@@ -199,13 +199,12 @@ public class RegistrationIntegrationScreensTest {
     PartyCharacterView.Artwork art = (PartyCharacterView.Artwork) view;
     assertEquals(id, art.id);
     assertEquals("Expected identity-specific sprite path", "/duel/sprites/" + id + "_s0_front.webp", art.path);
-    // These five legacy fixture IDs have no source/bundled front sprite in this checkout.
-    // D1-D4/D8 remain actual pixel comparisons below; do not label all legacy art missing.
-    if (Arrays.asList("D5", "D6", "D7", "E1", "E2").contains(id)) {
-      boolean exists;
-      try (java.io.InputStream source = host.getAssets().open("game-art" + art.path)) { exists = true; }
-      catch (java.io.IOException missing) { exists = false; }
-      assertFalse("Explicit absent-asset fixture needs review if its original art is added: " + id, exists);
+    // D5-D7/E1/E2 front sprites exist in some checkouts (public/battle/sprites) and not in others.
+    // A packaged sprite gets the same exact pixel comparison as D1-D4/D8; a missing one must stay unavailable.
+    boolean exists;
+    try (java.io.InputStream source = host.getAssets().open("game-art" + art.path)) { exists = true; }
+    catch (java.io.IOException missing) { exists = false; }
+    if (Arrays.asList("D5", "D6", "D7", "E1", "E2").contains(id) && !exists) {
       assertNull("An unavailable legacy identity cannot borrow another character", art.bitmap);
       assertTrue(art.target.isEmpty());
       assertTrue("No claim of rendered art while unavailable", art.status.equals("이미지 준비 중") || art.status.equals("이미지 없음"));

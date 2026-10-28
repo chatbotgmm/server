@@ -147,22 +147,26 @@ public class NativeVillageBuildDesignReviewTest {
   JSONArray checkHome(MainActivity h) throws Exception {
     NativeVillageHomeView view = h.villageHome.view;
     assertTrue("All current viewport assets and the current statue must load before the APK design gate", view.assets.ready());
-    assertEquals(47, view.layout.assets.size());
+    // 2.5D 순환 마을 manifest(village-layered-20261028)의 활성 자산 수. 옛 47개 월드는 더 이상 묶지 않는다.
+    assertEquals(29, view.layout.assets.size());
     assertTrue(view.assets.images.keySet().containsAll(view.assets.requiredImages));
     assertEquals(0, view.assets.pending);
     assertEquals(0, view.assets.missing);
-    java.util.Set<String> decorationAssets = new java.util.HashSet<>();
+    java.util.Set<String> decorationAssets = new java.util.HashSet<>(), actionAssets = new java.util.HashSet<>();
+    for (VillageLayout.Building building : view.layout.buildings) actionAssets.add(building.asset);
+    for (VillageLayout.Resident resident : view.layout.residents) actionAssets.add(resident.asset);
     for (VillageLayout.Asset asset : view.layout.assets.values()) {
       if(!asset.required&&!asset.id.equals(view.layout.landmark.asset(view.owner.statueStage))){assertTrue(asset.id.startsWith("statue-stage-"));assertNull(view.assets.get(asset.id));continue;}
       assertTrue("Unverified art cannot pass the build design gate: " + asset.id, asset.verified);
       if(view.assets.requiredImages.contains(asset.id)||!asset.required)assertNotNull("Missing current viewport art: " + asset.id, view.assets.get(asset.id));
       String file = asset.path.substring(asset.path.lastIndexOf('/') + 1);
-      if (file.startsWith("decor-") && file.endsWith(".png")) decorationAssets.add(asset.id);
+      if (file.startsWith("layered-") && file.endsWith(".png") && !actionAssets.contains(asset.id)) decorationAssets.add(asset.id);
     }
-    assertEquals("Three separately bundled assets are scenery only", 3, decorationAssets.size());
-    java.util.Set<String> originalIds=new java.util.HashSet<>(java.util.Arrays.asList("sea","terrain","ship","recruit","hideout","archive","mailbox","market","harbor","blacksmith","merchant","librarian","patrol"));
-    assertEquals(13,originalIds.size());for(String id:originalIds)assertTrue("All original interactive/core asset IDs remain available: "+id,view.layout.assets.containsKey(id));
-    assertTrue(view.layout.assets.containsKey("companions-background"));assertTrue(view.layout.assets.containsKey("companions-terrace"));
+    // 2.5D 마을은 하늘·구역 패널·연결·부두 8장을 누를 수 없는 장면 그림으로 쓴다(기록소 패널은 건물 동작). 옛 decor-* 그림은 묶지 않는다.
+    assertEquals("Eight layered 2.5D panels are scenery only", 8, decorationAssets.size());
+    java.util.Set<String> originalIds=new java.util.HashSet<>(java.util.Arrays.asList("recruit","hideout","archive","mailbox","market","harbor","training","blacksmith","merchant","librarian","patrol"));
+    assertEquals(11,originalIds.size());for(String id:originalIds)assertTrue("All interactive facility/resident asset IDs remain available: "+id,view.layout.assets.containsKey(id));
+    assertTrue(view.layout.assets.containsKey("layered-sky"));assertTrue(view.layout.assets.containsKey("layered-quay"));
     assertEquals("The village starts at the full viewport left", 0, view.field.left, .01f);
     assertEquals("The village starts at the full viewport top", 0, view.field.top, .01f);
     assertEquals("The village reaches the full viewport right", view.getWidth(), view.field.right, .01f);
@@ -170,7 +174,7 @@ public class NativeVillageBuildDesignReviewTest {
     assertEquals("The village background is not letterboxed inside OS safe areas",
         new Rect(0, 0, h.root.getWidth(), h.root.getHeight()),
         NativeHomePartyFeedbackTest.bounds(view, h.root));
-    assertEquals("Seven facilities, four residents, statue and three overlay icons", 15, view.getChildCount());
+    assertEquals("Seven facilities, four residents, statue, three overlay icons and the hidden readiness screen", 16, view.getChildCount());
     assertEquals("Training is the seventh facility; decorations add no actions", 7, view.buildingButtons.size());
     assertEquals("Decorations add no residents or quest markers", 4, view.residentButtons.size());
     for (String tag : new String[] {"village-title", "village-art-status", "village-prev", "village-next",
@@ -179,7 +183,7 @@ public class NativeVillageBuildDesignReviewTest {
     JSONArray rows = new JSONArray();
     rows.put(MainActivity.obj("kind", "viewport", "field", NativeHomePartyFeedbackTest.box(view.field),
         "safeAreaForIcons", NativeHomePartyFeedbackTest.box(view.safe),
-        "loadedMainImages", 13, "loadedNoninteractiveDecorationImages", decorationAssets.size()));
+        "loadedMainImages", originalIds.size(), "loadedLayeredSceneryImages", decorationAssets.size()));
     for (Button icon : new Button[] {view.settings, view.daily}) {
       NativeNoScrollReviewTest.assertFullyVisible(icon, h.root);
       Rect bounds = NativeHomePartyFeedbackTest.bounds(icon, h.root);
