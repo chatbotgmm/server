@@ -33,6 +33,28 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   boolean moved,stoppingFling,touching,smoothMotion,edgeGesture;
   float observedSpeed;
   long motionSampleAt;
+  Button pressedBuilding;
+  Bitmap outlineSource,outlineMask;
+  final Paint outlinePaint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+  final Rect outlineCrop=new Rect();
+  final RectF outlineTarget=new RectF();
+  void clearBuildingPress(){if(pressedBuilding!=null){pressedBuilding=null;invalidate();}}
+  void beginBuildingPress(WorldTarget button,float x,float y){
+    if(button.resident()||blocksClick()||h.busy||h.updateBlocks()||!owner.current())return;
+    Bitmap source=assets.get(button.asset);
+    if(source==null||!imageSlot(button).contains(button.getLeft()+x,button.getTop()+y)||!alphaHitWorldButton(button,x,y))return;
+    if(source!=outlineSource){if(outlineMask!=null)outlineMask.recycle();outlineSource=source;outlineMask=source.extractAlpha();}
+    pressedBuilding=button;invalidate();
+  }
+  void drawBuildingOutline(Canvas canvas,Bitmap bitmap,RectF slot,String asset,Button button){
+    if(pressedBuilding!=button||outlineSource!=bitmap||outlineMask==null)return;
+    RectF fitted=fittedObjectRect(bitmap,slot,asset);double[] crop=layout.assets.get(asset).crop;
+    outlineCrop.set((int)(crop[0]*bitmap.getWidth()),(int)(crop[1]*bitmap.getHeight()),(int)(crop[2]*bitmap.getWidth()),(int)(crop[3]*bitmap.getHeight()));
+    outlinePaint.setColor(Color.BLACK);float radius=h.dp(2);
+    // One cached alpha mask, shifted in eight directions. Original art covers the interior.
+    // This pass stays at the building's own depth, so quay/NPC occlusion remains unchanged.
+    for(int i=0;i<8;i++){double a=i*Math.PI/4;outlineTarget.set(fitted);outlineTarget.offset(radius*(float)Math.cos(a),radius*(float)Math.sin(a));canvas.drawBitmap(outlineMask,outlineCrop,outlineTarget,outlinePaint);}
+  }
 
   NativeVillageHomeView(MainActivity h,NativeVillageHomeController owner,VillageLayout layout) {
     this(h,owner,layout,new NativeVillageHomeAssets(h));
@@ -101,7 +123,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       canvas.restoreToCount(save);
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event){
-      if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&!alphaHitWorldButton(this,event.getX(),event.getY()))return false;
+      if(event.getActionMasked()==MotionEvent.ACTION_DOWN){if(!alphaHitWorldButton(this,event.getX(),event.getY()))return false;beginBuildingPress(this,event.getX(),event.getY());}
       return super.dispatchTouchEvent(event);
     }
   }
@@ -228,8 +250,8 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     double[] crop={0,0,1,1};if(desired<aspect){double span=desired/aspect;crop[0]=(1-span)/2;crop[2]=1-crop[0];}else{double span=aspect/desired;crop[1]=(1-span)/2;crop[3]=1-crop[1];}
     for(int i=-1;start+i*width<field.right;i++)drawImage(canvas,bitmap,crop,new RectF(start+i*width-.5f,top,start+(i+1)*width+.5f,bottom),false);
   }
-  @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);ambient.pause();if(focused)invalidate();}
-  @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(ambient!=null)ambient.pause();if(visibility==VISIBLE)invalidate();}
+  @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);ambient.pause();if(!focused)clearBuildingPress();else invalidate();}
+  @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(ambient!=null)ambient.pause();if(visibility!=VISIBLE)clearBuildingPress();else invalidate();}
   void drawLayer(Canvas canvas,VillageLayout.Layer layer) {
     Bitmap image=assets.get(layer.asset);float top=field.top+field.height()*(float)layer.top,bottom=field.top+field.height()*(float)layer.bottom;
     int tiles=2;float aspect=1;
@@ -291,7 +313,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   void drawObject(Canvas canvas,Bitmap image,RectF slot,String asset){drawImage(canvas,image,layout.assets.get(asset).crop,fittedObjectRect(image,slot,asset),false);}
   void drawBuilding(Canvas canvas,VillageLayout.Building building){
     RectF r=buildingBounds.get(building.id);if(!RectF.intersects(r,field))return;RectF image=imageSlot(buildingButtons.get(building.id));
-    Bitmap bitmap=assets.get(building.asset);if(bitmap!=null)drawObject(canvas,bitmap,image,building.asset);
+    Bitmap bitmap=assets.get(building.asset);if(bitmap!=null){drawBuildingOutline(canvas,bitmap,image,building.asset,buildingButtons.get(building.id));drawObject(canvas,bitmap,image,building.asset);}
     else {paint.setColor(0xffede2c7);canvas.drawRoundRect(image,h.dp(14),h.dp(14),paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(h.dp(2));paint.setColor(0xff8c8066);canvas.drawRoundRect(image,h.dp(14),h.dp(14),paint);paint.setStyle(Paint.Style.FILL);label(canvas,"건물 자리",image.centerX(),image.centerY(),12,0xff6a6558);}
   }
   void drawProp(Canvas canvas,VillageLayout.Prop prop){
@@ -328,11 +350,13 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   void animateTo(double target){stopMotion();scrollOffset=0;int distance=(int)Math.round((target-camera.cameraUnits())*unitPixels());smoothMotion=true;observedSpeed=Math.abs(distance)*2f;motionSampleAt=SystemClock.uptimeMillis();scroller.startScroll(0,0,distance,0,500);postInvalidateOnAnimation();}
   float motionSpeed(){return smoothMotion?observedSpeed:scroller.getCurrVelocity();}
   boolean blocksClick(){return moved||stoppingFling||(!touching&&!scroller.isFinished()&&motionSpeed()>minFling);}
-  void stopMotion(){scroller.abortAnimation();scrollOffset=0;smoothMotion=false;observedSpeed=0;motionSampleAt=0;}
+  void stopMotion(){clearBuildingPress();scroller.abortAnimation();scrollOffset=0;smoothMotion=false;observedSpeed=0;motionSampleAt=0;}
   @Override public void computeScroll(){if(!owner.current())return;if(scroller.computeScrollOffset()){int x=scroller.getCurrX();long now=SystemClock.uptimeMillis();if(smoothMotion&&now>motionSampleAt)observedSpeed=Math.abs(x-scrollOffset)*1000f/(now-motionSampleAt);motionSampleAt=now;moveCameraUnits((x-scrollOffset)/unitPixels());scrollOffset=x;postInvalidateOnAnimation();}else if(!touching){observedSpeed=0;owner.saveCamera();}}
   @Override public boolean dispatchTouchEvent(MotionEvent e){
     if(!owner.current())return false;int action=e.getActionMasked();
     if(action==MotionEvent.ACTION_DOWN){edgeGesture=!safe.contains(e.getX(),e.getY());computeScroll();boolean fast=!scroller.isFinished()&&motionSpeed()>minFling;stopMotion();stoppingFling=fast;moved=false;touching=true;activePointer=e.getPointerId(0);downX=lastX=e.getX();downY=e.getY();if(velocity!=null)velocity.recycle();velocity=VelocityTracker.obtain();}
+    if(action==MotionEvent.ACTION_OUTSIDE||action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL||action==MotionEvent.ACTION_POINTER_DOWN||action==MotionEvent.ACTION_POINTER_UP)clearBuildingPress();
+    if(action==MotionEvent.ACTION_MOVE&&pressedBuilding!=null){int pointer=e.findPointerIndex(activePointer);if(pointer<0||Math.hypot(e.getX(pointer)-downX,e.getY(pointer)-downY)>slop||!alphaHitWorldButton(pressedBuilding,e.getX(pointer)-pressedBuilding.getLeft(),e.getY(pointer)-pressedBuilding.getTop()))clearBuildingPress();}
     if(velocity!=null)velocity.addMovement(e);
     boolean result=super.dispatchTouchEvent(e);
     if(action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL){touching=false;activePointer=-1;if(velocity!=null){velocity.recycle();velocity=null;}owner.saveCamera();}
@@ -348,5 +372,5 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(action==MotionEvent.ACTION_CANCEL){stopMotion();moved=true;return true;}return true;
   }
   @Override public boolean performClick(){super.performClick();return true;}
-  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();ambient.pause();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
+  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();if(outlineMask!=null){outlineMask.recycle();outlineMask=null;outlineSource=null;}ambient.pause();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
 }
