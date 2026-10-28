@@ -183,7 +183,11 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     requestLayout();invalidate();
   }
   String visibleStatue(){return layout.landmark!=null&&owner.statueStage>0&&RectF.intersects(landmarkRect(),field)?layout.landmark.asset(owner.statueStage):"";}
-  boolean needsInitialStatueState(){return owner.statueStage==0&&layout.landmark!=null&&RectF.intersects(landmarkRect(),field);}
+  // 석상 상태는 처음 보여 주는 화면(저장된 카메라 위치)에서만 기다린다. 장면이 보이는 중 사용자가 밀어(끌기·플링·바로가기)
+  // 석상이 들어올 때 상태가 아직 없으면 석상만 그리지 않고(임시 도형 없음) 장면은 유지한다.
+  // 밀 때마다 로딩 화면이 번쩍이며 미끄러짐이 끊기던 문제를 막는다.
+  boolean sceneShownOnce;
+  boolean needsInitialStatueState(){return !sceneShownOnce&&owner.statueStage==0&&layout.landmark!=null&&RectF.intersects(landmarkRect(),field);}
   boolean sceneReady(){return !needsInitialStatueState()&&assets.ready(visibleStatue());}
   boolean storyOverlayCoversHud(){return h.rosterStory!=null&&h.rosterStory.villageOverlayOpen();}
   void updateLoadingState(){
@@ -461,7 +465,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(bitmap!=null){if(layout.continuousFoundation)groundShadows.drawActor(canvas,this,resident);drawBuildingOutline(canvas,bitmap,portrait,resident.asset,residentButtons.get(resident.id));drawObject(canvas,bitmap,portrait,resident.asset);}
   }
   void label(Canvas canvas,String text,float x,float y,int size,int color){paint.setColor(color);paint.setTypeface(h.prose);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(h.dp(size));canvas.drawText(text,x,y,paint);}
-  void moveCameraUnits(double delta){camera.moveUnits(delta);layoutWorld();invalidate();}
+  void moveCameraUnits(double delta){if(showingArtwork)sceneShownOnce=true;camera.moveUnits(delta);layoutWorld();invalidate();}
   View tutorialMenuTarget(String key){
     if("daily".equals(key)){stopMotion();moved=false;stoppingFling=false;return daily;}
     String id="draw".equals(key)?"recruit":("defenders".equals(key)||"team".equals(key))?"hideout":"play".equals(key)?"harbor":"";

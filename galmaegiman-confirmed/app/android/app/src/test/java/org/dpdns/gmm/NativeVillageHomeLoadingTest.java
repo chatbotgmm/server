@@ -30,6 +30,25 @@ public class NativeVillageHomeLoadingTest {
   Path out=Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"art-loading");Files.createDirectories(out);Bitmap bitmap=NativeHomePartyFeedbackTest.render(h.root);
   try{NativeVillageHomeArtTest.png(out.resolve(name+".png"),bitmap);}finally{bitmap.recycle();}
  }
+ /**
+  * 휴대폰에서 미는 동안 다음 구역 그림이 늦게 디코드되면 불투명 로딩 화면이 번쩍이며 미끄러짐이 끊겼다.
+  * 가정: 약 1.5U/초(프레임당 .025U, 60fps), 그림 한 장 디코드 5프레임(~80ms), 동시 2장. 8U 한 바퀴 동안 로딩 화면이 다시 나오면 안 된다.
+  */
+ @Test public void slidingAtPhoneSpeedWithRealisticDecodeLatencyNeverFlashesTheLoadingScreen()throws Exception{
+  try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+   MainActivity h=activity.get();NativeVillageHomeAssetsTest.Delayed source=new NativeVillageHomeAssetsTest.Delayed();NativeVillageHomeView view=open(h,source);
+   source.finishAll(view.assets);fixture.helper.layout(h,NativeVillageHomeTest.PHONE);assertTrue(view.sceneReady());assertEquals(View.GONE,view.loadingPanel.getVisibility());
+   java.util.List<Integer> requestedAt=new java.util.ArrayList<>();for(int i=0;i<source.callbacks.size();i++)requestedAt.add(-100);
+   int flashes=0,peak=view.assets.images.size();boolean shown=false;
+   for(int frame=0;frame<320;frame++){
+    for(int dir:new int[]{1}){view.moveCameraUnits(.025*dir);}
+    while(requestedAt.size()<source.callbacks.size())requestedAt.add(frame);
+    while(source.completed<source.callbacks.size()&&frame-requestedAt.get(source.completed)>=5){source.callbacks.get(source.completed++).accept(NativeVillageHomeAssetsTest.image());while(requestedAt.size()<source.callbacks.size())requestedAt.add(frame);}
+    boolean loading=view.loadingPanel.getVisibility()==View.VISIBLE;if(loading&&!shown)flashes++;shown=loading;peak=Math.max(peak,view.assets.images.size());
+   }
+   assertEquals("Loading screen must not flash while sliding",0,flashes);
+  }
+ }
  @Test public void delayedFailureShowsRetryAndBackWithoutWorldAndRetryRevealsOnlyCompleteScene()throws Exception{
   try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
    MainActivity h=activity.get();NativeVillageHomeAssetsTest.Delayed source=new NativeVillageHomeAssetsTest.Delayed();NativeVillageHomeView view=open(h,source);

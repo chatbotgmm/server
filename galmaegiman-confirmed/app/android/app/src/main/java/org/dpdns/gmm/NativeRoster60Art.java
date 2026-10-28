@@ -63,6 +63,14 @@ final class NativeRoster60Art extends View {
   for(int i=0;i<2;i++)if(!uncertain(i)&&fighter(snapshot,i)!=null&&images[i]==null&&imagePending[i]==0)return true;
   return false;
  }
+ /** 준비하지 못한 그림을 짧게 알려 준다(원인 확인용). 예: "상대 그림 u22", "전투 틀 bg-harbor". */
+ String failureDetail(){
+  StringBuilder out=new StringBuilder();
+  for(String name:BattleSkin.REQUIRED)if(BattleSkin.failed(name))out.append(out.length()==0?"":", ").append("전투 틀 ").append(name);
+  for(int i=0;snapshot!=null&&i<2;i++){JSONObject f=fighter(snapshot,i);if(uncertain(i)||f==null||images[i]!=null||imagePending[i]!=0)continue;String id=f.optString("speciesId");
+   out.append(out.length()==0?"":", ").append(i==0?"출전 그림 ":"상대 그림 ").append(id).append(Roster60BattleAppearance.black(i,id,f.optString("artVariant"))?" 흑화":"");}
+  return out.toString();
+ }
  void retryAssets(){
   for(String name:BattleSkin.REQUIRED)BattleSkin.retryMissing(name);prepareSkins();
   problem="";ids[0]="";ids[1]="";if(snapshot!=null)loadState(snapshot);else readinessChanged();

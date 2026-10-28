@@ -87,4 +87,9 @@ public class NativeRoster60BlackArtTest {
   art.frame(before,after,event,.8f);assertSame(black,art.images[1]);
   art.bind(state("u23",false));LocalGameArtTest.drain();assertEquals("u23|normal",art.ids[1]);assertNotSame(black,art.images[1]);
  }
+ /** 그림이 없는 종이면 실패 화면에 어느 쪽 어떤 그림인지 함께 보여 원인을 알 수 있게 한다. */
+ @Test public void unknownSpeciesFailureNamesTheMissingSideAndSpecies()throws Exception{
+  NativeRoster60Art art=art();art.bind(state("zz99",false));LocalGameArtTest.drain();
+  assertNull(art.images[1]);assertTrue(art.assetsFailed());assertEquals("상대 그림 zz99",art.failureDetail());
+ }
 }

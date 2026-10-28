@@ -174,7 +174,7 @@ public class NativeVillageBuildDesignReviewTest {
     assertEquals("The village background is not letterboxed inside OS safe areas",
         new Rect(0, 0, h.root.getWidth(), h.root.getHeight()),
         NativeHomePartyFeedbackTest.bounds(view, h.root));
-    assertEquals("Seven facilities, four residents, statue, three overlay icons and the hidden readiness screen", 16, view.getChildCount());
+    assertEquals("Seven facilities, four residents, statue, three overlay icons, shortcuts and the hidden readiness screen", 17, view.getChildCount());
     assertEquals("Training is the seventh facility; decorations add no actions", 7, view.buildingButtons.size());
     assertEquals("Decorations add no residents or quest markers", 4, view.residentButtons.size());
     for (String tag : new String[] {"village-title", "village-art-status", "village-prev", "village-next",

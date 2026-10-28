@@ -77,7 +77,8 @@ class NativeRoster60Battle {
    artGateRetry=h.button("다시 준비",()->{if(current()){if(art.snapshot==null)resume();else art.retryAssets();}});artGateRetry.setTag("roster60-battle-art-retry");artGate.addView(artGateRetry,new LinearLayout.LayoutParams(-1,h.dp(48)));
    Button leave=h.button("뒤로",()->{if(current())back();});leave.setTag("roster60-battle-art-back");artGate.addView(leave,new LinearLayout.LayoutParams(-1,h.dp(48)));
   }
-  boolean failed=art.assetsFailed();artGateNotice.setText(failed?"전투 그림을 준비하지 못했어요. 다시 시도해 주세요.":"전투 화면을 준비하고 있어요");artGateRetry.setVisibility(failed?android.view.View.VISIBLE:android.view.View.GONE);
+  boolean failed=art.assetsFailed();String detail=failed?art.failureDetail():"";
+  artGateNotice.setText(failed?"전투 그림을 준비하지 못했어요. 다시 시도해 주세요."+(detail.isEmpty()?"":"\n("+detail+")"):"전투 화면을 준비하고 있어요");artGateRetry.setVisibility(failed?android.view.View.VISIBLE:android.view.View.GONE);
   if(artGate.getParent()==null)h.root.addView(artGate,new FrameLayout.LayoutParams(-1,-1));
   artGate.setVisibility(android.view.View.VISIBLE);
   if(arena!=null)arena.setVisibility(android.view.View.INVISIBLE);

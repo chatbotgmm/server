@@ -29,6 +29,8 @@ public class NativeRoster60BattleArtGateTest {
   try(ActivityController<MainActivity> c=helper.helper.flow.start()){
    MainActivity h=c.get();NativeRoster60PlaybackTest.Api api=helper.open(h);ready(h);NativeRoster60Battle ui=h.rosterBattle;int requests=api.paths.size();
    ui.art.images[1]=null;ui.art.imagePending[1]=0;ui.art.readinessChanged();assertTrue(ui.art.assetsFailed());assertEquals(View.VISIBLE,ui.artGateRetry.getVisibility());
+   assertTrue("Failure names the missing side",ui.artGateNotice.getText().toString().contains("(상대 그림 "));
+   helper.helper.layout(h,NativeHomePartyFeedbackTest.PROFILES[0]);Bitmap failed=NativeHomePartyFeedbackTest.render(h.root);try{helper.helper.png(failed,"battle-art-failed-detail.png");}finally{failed.recycle();}
    ui.artGateRetry.performClick();RegistrationArtTest.await(()->ui.art.assetsReady());assertEquals(requests,api.paths.size());assertEquals(View.GONE,ui.artGate.getVisibility());
    ui.pause();h.epoch++;h.screen="home";ui.art.images[1]=null;ui.art.readinessChanged();assertEquals(View.GONE,ui.artGate.getVisibility());
   }
