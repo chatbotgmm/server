@@ -254,25 +254,25 @@
       "artReview": "technical candidate inspected; user final review pending"
     },
     "training": {
-      "path": "native/village-loop-v2/assets/continuous-v5-training.png",
-      "sourcePath": "galmaegiman-confirmed/art/gpt/village-continuous-20261028/training.png",
-      "sourceWidth": 1536,
-      "sourceHeight": 1024,
-      "sourceBytes": 2881600,
-      "sourceSha256": "0ca283c9207b80c3ec7e7af156c3c5d79e7df9005bd6db8926e331bcff99ff21",
-      "sourceGitBlobSha": "8e09da981c5b4e915fc6b3581dbaf60b00cc7be6",
+      "path": "native/village-loop-v2/assets/layered-training-v3.png",
+      "sourcePath": "galmaegiman-confirmed/art/gpt/village-layered-20261028/layered-training-v3.png",
+      "sourceWidth": 1402,
+      "sourceHeight": 1122,
+      "sourceBytes": 2393790,
+      "sourceSha256": "d2f1eb4686a1c5ab8012084d4edcaebb32e65382371367b2df7a2605b999b85a",
+      "sourceGitBlobSha": "c9efc94e3b472e25f6ed36a045d0d99152be98ec",
       "verified": true,
       "required": true,
       "useSheetDirectly": false,
       "crop": [
-        0.024088541666666668,
-        0.0517578125,
-        0.9850260416666666,
-        0.93359375
+        0.009272467902995721,
+        0.08823529411764706,
+        0.9942938659058488,
+        0.928698752228164
       ],
       "artReview": {
-        "status": "pending-user-review",
-        "basis": "Unmodified source; full circumference native review required"
+        "status": "native-review-candidate",
+        "basis": "Unmodified new lower-view training entrance; original historical courtyard preserved separately."
       }
     },
     "blacksmith": {
@@ -1030,9 +1030,9 @@
       "sub": "일반전 · 랭크전",
       "asset": "training",
       "x": 7.703333333333333,
-      "width": 0.6599999999999999,
+      "width": 0.74,
       "baseline": 0.89,
-      "heightRatio": 0.40378048780487796,
+      "heightRatio": 0.5053005068790731,
       "topClearanceDp": 24,
       "menu": [
         "일반전",

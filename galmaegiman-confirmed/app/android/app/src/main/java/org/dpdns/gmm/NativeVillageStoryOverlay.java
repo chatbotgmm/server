@@ -13,6 +13,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import org.json.JSONArray;
@@ -64,7 +65,7 @@ final class NativeVillageStoryOverlay {
   }
   boolean isShowing(){return !closed&&dialog.isShowing();}
   final Runnable guard=new Runnable(){public void run(){if(closed)return;if(!owner.current()){owner.closeVillage();return;}handler.postDelayed(this,250);}};
-  void stop(){closed=true;typing=false;handler.removeCallbacksAndMessages(null);}
+  void stop(){closed=true;typing=false;handler.removeCallbacksAndMessages(null);clearPortrait();}
   void close(){stop();dialog.dismiss();}
   void loading(String message){notice.setText(message);for(int i=0;i<choices.getChildCount();i++)choices.getChildAt(i).setEnabled(false);}
   void error(String message){pauseTyping();notice.setText(message);choices.removeAllViews();action("연결 다시 확인",owner::retrySavedProgress);}
@@ -75,8 +76,18 @@ final class NativeVillageStoryOverlay {
     LinearLayout.LayoutParams box=(owner.villageExploration||owner.villageHistory)?new LinearLayout.LayoutParams(-1,h.dp(48)):new LinearLayout.LayoutParams(0,h.dp(48),1);box.setMargins(h.dp(3),0,h.dp(3),0);choices.addView(button,box);
   }
   JSONObject resident(JSONObject state,String id){JSONArray values=state.optJSONArray("residents");for(int i=0;values!=null&&i<values.length();i++){JSONObject item=values.optJSONObject(i);if(item!=null&&id.equals(item.optString("id")))return item;}return null;}
+  void clearPortrait(){
+    for(int i=0;i<art.getChildCount();i++)if(art.getChildAt(i) instanceof ImageView)Roster60Portrait.clear((ImageView)art.getChildAt(i));
+    art.removeAllViews();
+  }
+  static boolean heroSpeaker(String id,String speaker){return "hero".equals(id)||(id.isEmpty()&&"주인공".equals(speaker));}
   void portrait(String id){
-    art.removeAllViews();if(id.isEmpty())return;
+    if("hero".equals(id)&&art.getChildCount()==1&&"village-dialogue-hero-u01".equals(art.getChildAt(0).getTag()))return;
+    clearPortrait();if(id.isEmpty())return;
+    if("hero".equals(id)){
+      ImageView image=new ImageView(h);image.setTag("village-dialogue-hero-u01");image.setContentDescription("주인공 갈매미맨");
+      art.addView(image,new FrameLayout.LayoutParams(-1,-1));Roster60Portrait.bind(h,image,"u01");return;
+    }
     try{VillageLayout layout=VillageLayout.load(h);VillageLayout.Asset asset=layout.assets.get("guard".equals(id)?"patrol":id);
       if(asset==null)return;
       NativeRoster60StoryView.ResidentPortrait image=new NativeRoster60StoryView.ResidentPortrait(h,asset,owner::current);
@@ -166,7 +177,8 @@ final class NativeVillageStoryOverlay {
   void scene(JSONObject scene,JSONObject state){
     JSONObject line=scene.optJSONObject("line");String speaker=line==null?"":line.optString("speaker",line.optString("speakerId"));
     name.setText(speaker);String id=line==null?"":line.optString("speakerId");
-    if(resident(state,id)==null){JSONObject selected=resident(state,owner.villageResidentId);id=selected!=null&&speaker.equals(selected.optString("name"))?owner.villageResidentId:"";}
+    if(heroSpeaker(id,speaker))id="hero";
+    else if(resident(state,id)==null){JSONObject selected=resident(state,owner.villageResidentId);id=selected!=null&&speaker.equals(selected.optString("name"))?owner.villageResidentId:"";}
     portrait(id);String message=line==null?"":line.optString("text");say(scene.optString("id")+":"+scene.optInt("cursor"),message);
     boolean accept=scene.optBoolean("last")&&"intro".equals(scene.optString("phase"));
     action("나중에",()->owner.closeScene());

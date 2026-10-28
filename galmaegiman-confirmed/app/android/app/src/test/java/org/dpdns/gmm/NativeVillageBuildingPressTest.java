@@ -37,7 +37,7 @@ public class NativeVillageBuildingPressTest {
  }
  @Test public void actualSilhouettePressAndReleaseAtPhoneAndTabletPreserveArtworkAndReuseMask()throws Exception{
   for(NativeHomePartyFeedbackTest.Profile p:new NativeHomePartyFeedbackTest.Profile[]{NativeVillageHomeTest.PHONE,NativeVillageHomeTest.PROFILES[1]}){
-   for(String id:new String[]{"recruit","archive"}){fixture.helper.configure(p);try(ActivityController<MainActivity> a=fixture.helper.flow.start()){
+   for(String id:new String[]{"recruit","archive","training"}){fixture.helper.configure(p);try(ActivityController<MainActivity> a=fixture.helper.flow.start()){
     MainActivity h=a.get();NativeVillageHomeView v=open(h,p);v.moveCameraUnits(v.layout.building(id).x-v.field.width()/v.unitPixels()/2-v.camera.cameraUnits());settle(h,v,p);Button b=v.buildingButtons.get(id);PointF point=NativeVillageHomeTest.opaqueArtPoint(v,b);
     Bitmap before=NativeHomePartyFeedbackTest.render(h.root);event(v,MotionEvent.ACTION_DOWN,point);assertSame(b,v.pressedBuilding);Bitmap mask=v.outlineMask;assertNotNull(mask);
     Bitmap pressed=NativeHomePartyFeedbackTest.render(h.root);int changed=0;RectF silhouette=NativeVillageHomeTest.shownArt(v,b);silhouette.inset(-h.dp(3),-h.dp(3));
