@@ -197,12 +197,23 @@ public class NativeVillageAmbientTest {
       assertNotNull(npc);
       for(String status:new String[]{"LOCKED","AVAILABLE","ACTIVE","READY","COMPLETED","LOCKED"}){
         npc.put("status",status);v.owner.refresh();assertTrue("State changes request fresh label geometry",v.isLayoutRequested());helper.layout(h,NativeVillageHomeTest.PHONE);
-        int cell=VillageNameplates.statusCell(status);float plateWidth=v.labelHeight(button)*VillageNameplates.aspect(VillageNameplates.cell(button.asset));
+        // V5: AVAILABLE 느낌표는 이름표 옆 칸 대신 주민 머리 위에 그린다.
+        int cell="AVAILABLE".equals(status)?-1:VillageNameplates.statusCell(status);float plateWidth=v.labelHeight(button)*VillageNameplates.aspect(VillageNameplates.cell(button.asset));
         float lane=cell<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(cell);
         assertEquals(lane,button.statusLane(),.001f);assertEquals(plateWidth+lane,v.labelWidth(button),.001f);
         android.graphics.RectF object=v.residentBounds.get("guard"),label=v.labelRect(object,button);
         assertEquals("Plaque alone or the plaque+badge group is centered",object.centerX(),label.centerX(),.01f);
         if(cell<0)assertEquals("No invisible badge lane shifts an inactive plaque",plateWidth,label.width(),.1f);
+        VillageLayout.Resident guard=null;for(VillageLayout.Resident r:v.layout.residents)if("guard".equals(r.id))guard=r;assertNotNull(guard);
+        android.graphics.RectF marker=v.residentMarkerRect(guard);
+        if("AVAILABLE".equals(status)){
+          assertFalse("AVAILABLE shows the exclamation above the head",marker.isEmpty());
+          assertTrue("Head marker sits above the nameplate",marker.bottom<=label.top);
+          assertTrue("Head marker stays over the resident",marker.centerX()>=object.left&&marker.centerX()<=object.right);
+          android.graphics.Bitmap with=NativeHomePartyFeedbackTest.render(h.root);android.graphics.Bitmap atlas=v.assets.images.remove("nameplates");android.graphics.Bitmap without=NativeHomePartyFeedbackTest.render(h.root);v.assets.images.put("nameplates",atlas);
+          int drawn=0;for(int y=Math.max(0,(int)marker.top);y<Math.min(with.getHeight(),(int)Math.ceil(marker.bottom));y++)for(int x=Math.max(0,(int)marker.left);x<Math.min(with.getWidth(),(int)Math.ceil(marker.right));x++)if(with.getPixel(x,y)!=without.getPixel(x,y))drawn++;
+          with.recycle();without.recycle();assertTrue("Head exclamation is actually painted",drawn>10);
+        }else assertTrue("Only AVAILABLE draws a head marker",marker.isEmpty());
       }
       assertTrue(api.writes.isEmpty());
     }

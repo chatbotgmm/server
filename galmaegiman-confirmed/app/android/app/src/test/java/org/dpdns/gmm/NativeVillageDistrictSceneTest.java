@@ -125,12 +125,37 @@ public class NativeVillageDistrictSceneTest {
     for(VillageLayout.Building actor:before.buildings){VillageLayout.Building copy=after.building(actor.id);assertEquals(actor.heightRatio,copy.heightRatio,0);assertEquals(actor.sourceX,copy.sourceX,0);assertEquals(actor.sourceY,copy.sourceY,0);assertArrayEquals(actor.actionIds,copy.actionIds);}
     shadow.put("asset","not-an-asset");assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("asset","nameplates").put("opacity",2);assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));shadow.put("opacity",.5).put("actionIds",new JSONArray().put("party"));assertThrows(IllegalArgumentException.class,()->VillageLayout.parse(data));
   }
-  @Test public void sharedFoundationDoesNotUseObsoleteShadowBlobsAndClosesAtEightUnits()throws Exception{
+  /** v4부터 주민 접지 그림자 그림을 쓴다. 바뀌는 픽셀은 주민 발밑 그림자 영역뿐이어야 하고(바닥 대체 금지), 8U 뒤 화면은 같다. */
+  @Test public void residentContactShadowsOnlyTouchResidentFeetAndCloseAtEightUnits()throws Exception{
     try(ActivityController<MainActivity> activity=helper.flow.start()){
       MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,NativeVillageHomeTest.PHONE);LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);v.ambient.fixedTime=0L;
-      assertTrue(v.assets.ready());assertEquals(7,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());assertNull(v.assets.get("companions-shadows"));
-      Bitmap before=NativeHomePartyFeedbackTest.render(h.root);Bitmap fake=Bitmap.createBitmap(8,8,Bitmap.Config.ARGB_8888);fake.eraseColor(android.graphics.Color.BLACK);v.assets.images.put("companions-shadows",fake);Bitmap after=NativeHomePartyFeedbackTest.render(h.root);
-      try{assertTrue("Floor planes must not be simulated by the rejected shadow atlas",before.sameAs(after));v.moveCameraUnits(8);for(int n=0;n<4;n++){LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);}Bitmap repeat=NativeHomePartyFeedbackTest.render(h.root);try{assertTrue(after.sameAs(repeat));}finally{repeat.recycle();}}finally{before.recycle();after.recycle();v.assets.images.remove("companions-shadows");fake.recycle();}
+      assertTrue(v.assets.ready());assertEquals(7,v.buildingButtons.size());assertEquals(4,v.residentButtons.size());
+      Bitmap atlas=v.assets.get("companions-shadows");assertNotNull("Resident ground-contact atlas is loaded",atlas);
+      // 화면에 보이는 주민의 실제 그림자 영역만 허용 범위로 모은다.
+      java.util.List<android.graphics.RectF> allowed=new java.util.ArrayList<>();
+      Bitmap scratch=Bitmap.createBitmap(Math.max(1,v.getWidth()),Math.max(1,v.getHeight()),Bitmap.Config.ARGB_8888);
+      for(VillageLayout.Resident resident:v.layout.residents){
+        v.groundShadows.target.setEmpty();v.groundShadows.drawActor(new Canvas(scratch),v,resident);
+        if(!v.groundShadows.target.isEmpty()&&android.graphics.RectF.intersects(v.groundShadows.target,v.field)){android.graphics.RectF r=new android.graphics.RectF(v.groundShadows.target);r.inset(-2,-2);r.offset(v.getLeft(),v.getTop());allowed.add(r);}
+      }
+      scratch.recycle();
+      assertFalse("At least one resident contact shadow is on screen",allowed.isEmpty());
+      Bitmap with=NativeHomePartyFeedbackTest.render(h.root);
+      v.assets.images.remove("companions-shadows");Bitmap without=NativeHomePartyFeedbackTest.render(h.root);
+      v.assets.images.put("companions-shadows",atlas);
+      try{
+        int shown=0;
+        for(int y=0;y<with.getHeight();y++)for(int x=0;x<with.getWidth();x++){
+          if(with.getPixel(x,y)==without.getPixel(x,y))continue;
+          shown++;
+          boolean inside=false;for(android.graphics.RectF r:allowed)if(r.contains(x+.5f,y+.5f)){inside=true;break;}
+          assertTrue("Shadow atlas only paints resident feet, never a floor plane: "+x+","+y,inside);
+        }
+        assertTrue("Resident contact shadow is actually visible",shown>10);
+        v.moveCameraUnits(8);for(int n=0;n<4;n++){LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);}
+        Bitmap repeat=NativeHomePartyFeedbackTest.render(h.root);try{assertTrue("Eight units close the loop with the same frame",with.sameAs(repeat));}finally{repeat.recycle();}
+      }finally{with.recycle();without.recycle();}
     }
   }
+
 }
