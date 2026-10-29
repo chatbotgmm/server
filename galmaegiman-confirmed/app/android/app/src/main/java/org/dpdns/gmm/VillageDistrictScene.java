@@ -102,6 +102,10 @@ final class VillageDistrictScene {
   /** Cache the regular mesh at layout scale; update only four interior water vertices per frame.
    * Authored patch x=.40625..5,y=.71875..75 contains no rocks, posts or transparent boundary. */
   void drawLayeredWater(Canvas canvas,Bitmap image){
+    // The panel can be visible while its small water patch is outside the current
+    // canvas clip. Test the actual clip before preparing or submitting its mesh.
+    layeredWaterClip();int save=canvas.save();
+    if(!canvas.clipRect(waterClip)){canvas.restoreToCount(save);return;}
     float width=target.width(),height=target.height();
     if(width!=layeredMeshWidth||height!=layeredMeshHeight){
       layeredMeshWidth=width;layeredMeshHeight=height;int at=0;
@@ -115,7 +119,7 @@ final class VillageDistrictScene {
       layeredWaterVertices[at]=(float)u*width+amplitude*(float)(envelope*Math.sin(phase+u*20));
       layeredWaterVertices[at+1]=(float)v*height+amplitude*.35f*(float)(envelope*Math.cos(phase+u*15));
     }
-    layeredWaterClip();int save=canvas.save();canvas.clipRect(waterClip);canvas.translate(target.left,target.top);
+    canvas.translate(target.left,target.top);
     canvas.drawBitmapMesh(image,32,96,layeredWaterVertices,0,null,0,paint);canvas.restoreToCount(save);
   }
   /** Deform only authored interior water pixels. The mesh is fixed at rock/quay and bitmap edges. */

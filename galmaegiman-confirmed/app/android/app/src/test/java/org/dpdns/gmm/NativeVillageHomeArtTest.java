@@ -117,7 +117,7 @@ public class NativeVillageHomeArtTest {
       }
       long bytes=bitmap.getAllocationByteCount();assertTrue(bytes>0);total+=bytes;
       rows.put(MainActivity.obj("id",asset.id,"packagedPath",asset.path,"decodedWidth",width,"decodedHeight",height,
-          "sample",NativeVillageHomeAssets.decodeSample(asset.path,view.h.getResources().getDisplayMetrics().heightPixels),"allocationBytes",bytes,"hasAlpha",bitmap.hasAlpha(),"transparentPixels",transparent,
+          "sample",view.assets.sample(asset.path),"allocationBytes",bytes,"hasAlpha",bitmap.hasAlpha(),"transparentPixels",transparent,
           "nonTransparentPixels",nonTransparent,"opaquePixels",opaque,"transparentBorderPixels",transparentBorder));
     }
     return MainActivity.obj("environment","Robolectric SDK35 native graphics; host only","assetCount",rows.length(),

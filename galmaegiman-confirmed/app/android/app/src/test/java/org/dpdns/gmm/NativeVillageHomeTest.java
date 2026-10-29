@@ -142,7 +142,27 @@ public class NativeVillageHomeTest {
    tap(view,view.settings);assertNull(h.villageHome.menu);assertTrue(view.scroller.isFinished());assertEquals("home",h.screen);
    LocalGameArtTest.drain();helper.layout(h,PHONE);assertTrue("The newly reached district must finish before controls reopen",view.sceneReady());tap(view,view.settings);assertNotNull(h.villageHome.menu);assertTrue(h.villageHome.menu.isShowing());h.villageHome.menu.dismiss();
    double reverse=view.desiredCamera.cameraUnits();fling(view,true);frames(view,3);assertTrue(view.desiredCamera.cameraUnits()<reverse);view.stopMotion();
-   assertFalse(coveredByFixedIcon(view,580,view.field.centerY()));assertFalse(coveredByFixedIcon(view,430,view.field.centerY()));double cancelStart=view.desiredCamera.cameraUnits();long t=SystemClock.uptimeMillis();touch(view,MotionEvent.ACTION_DOWN,t,t,580,view.field.centerY());touch(view,MotionEvent.ACTION_MOVE,t,t+40,430,view.field.centerY());double released=view.desiredCamera.cameraUnits();assertTrue("The cancel scenario must first perform a real world drag",released>cancelStart);touch(view,MotionEvent.ACTION_CANCEL,t,t+50,430,view.field.centerY());frames(view,4);assertTrue(view.scroller.isFinished());assertEquals(released,view.desiredCamera.cameraUnits(),1e-9);LocalGameArtTest.drain();helper.layout(h,PHONE);assertEquals(released,view.camera.cameraUnits(),1e-9);assertTrue(api.writes.isEmpty());assertEquals("home",h.screen);
+   assertFalse(coveredByFixedIcon(view,580,view.field.centerY()));assertFalse(coveredByFixedIcon(view,430,view.field.centerY()));double cancelStart=view.desiredCamera.cameraUnits();long t=SystemClock.uptimeMillis();touch(view,MotionEvent.ACTION_DOWN,t,t,580,view.field.centerY());touch(view,MotionEvent.ACTION_MOVE,t,t+20,505,view.field.centerY());touch(view,MotionEvent.ACTION_MOVE,t,t+40,430,view.field.centerY());double released=view.desiredCamera.cameraUnits();assertTrue("The cancel scenario must first perform a real world drag",released>cancelStart);assertEquals("The continuous gesture must move exactly its 150 physical pixels even when DOWN belonged to an image button",150/view.unitPixels(),released-cancelStart,1e-9);touch(view,MotionEvent.ACTION_CANCEL,t,t+50,430,view.field.centerY());frames(view,4);assertTrue(view.scroller.isFinished());assertEquals(released,view.desiredCamera.cameraUnits(),1e-9);LocalGameArtTest.drain();helper.layout(h,PHONE);assertEquals(released,view.camera.cameraUnits(),1e-9);assertTrue(api.writes.isEmpty());assertEquals("home",h.screen);
+  }
+ }
+ /** The first intercepted MOVE cancels a pressed child; a subsequent MOVE reaches the world drag. */
+ @Test public void opaqueObjectDownHandsOffToContinuousWorldDragAndCancelPreservesItsPosition()throws Exception{
+  try(ActivityController<MainActivity> activity=helper.flow.start()){
+   MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView view=open(h,PHONE);
+   Button target=worldTargets(view).get(0);PointF point=opaqueArtPoint(view,target);
+   float direction=point.x+150<view.safe.right-1?1:-1;
+   assertTrue(view.safe.contains(point.x+direction*150,point.y));
+   double start=view.desiredCamera.cameraUnits();long t=SystemClock.uptimeMillis();
+   touch(view,MotionEvent.ACTION_DOWN,t,t,point.x,point.y);assertSame("The actual opaque image child receives DOWN",target,view.pressedBuilding);
+   touch(view,MotionEvent.ACTION_MOVE,t,t+20,point.x+direction*75,point.y);
+   assertTrue("Crossing touch slop transfers the gesture away from the child",view.moved);assertNull(view.pressedBuilding);
+   assertEquals("Android ViewGroup delivers the first intercepted MOVE as child cancellation",start,view.desiredCamera.cameraUnits(),1e-9);
+   touch(view,MotionEvent.ACTION_MOVE,t,t+40,point.x+direction*150,point.y);double released=view.desiredCamera.cameraUnits();
+   assertEquals("The next MOVE applies the entire physical drag from DOWN",start-direction*150/view.unitPixels(),released,1e-9);
+   touch(view,MotionEvent.ACTION_CANCEL,t,t+50,point.x+direction*150,point.y);frames(view,4);
+   assertTrue(view.scroller.isFinished());assertEquals(released,view.desiredCamera.cameraUnits(),1e-9);
+   LocalGameArtTest.drain();helper.layout(h,PHONE);assertEquals(released,view.camera.cameraUnits(),1e-9);
+   assertTrue(api.writes.isEmpty());assertEquals("home",h.screen);
   }
  }
  @Test public void aLowSpeedViewportAnimationAllowsTheSeparateTapToOpenTheMenu()throws Exception{

@@ -40,7 +40,7 @@ final class NativeVillageHomeController {
     if(owner.isEmpty()){h.login();return;}
     view=new NativeVillageHomeView(h,this,layout);h.root.addView(view,new FrameLayout.LayoutParams(-1,-1));
     try{savedCamera=preferences.getString(scope+":camera","0");double saved=Double.parseDouble(savedCamera);if(Double.isFinite(saved))view.camera.setCameraUnits(saved);}catch(Exception invalid){savedCamera="";}
-    view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});
+    view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,view::scheduleArtworkRefresh);
     refresh();
   }
   boolean current() { return !paused&&view!=null&&epoch==h.epoch&&owner.equals(h.api.token())&&!owner.isEmpty()
@@ -112,10 +112,10 @@ final class NativeVillageHomeController {
     JSONObject pending=state.optJSONObject("pendingDeparture"),body=pending==null?null:pending.optJSONObject("body");
     return body!=null&&!q.optString("id").isEmpty()&&q.optString("id").equals(body.optString("questId"))?"boat":"";
   }
-  void loadCurrentStatue(){if(view!=null)view.assets.loadStatue(layout,statueStage,this::current,()->{if(current())view.updateNotice();});}
+  void loadCurrentStatue(){if(view!=null)view.assets.loadStatue(layout,statueStage,this::current,view::scheduleArtworkRefresh);}
   void reloadArtwork(){
     if(!current())return;
-    view.assets.load(layout,this::current,()->{if(current())view.updateNotice();});loadCurrentStatue();if(statueStage==0)refresh();view.updateNotice();
+    view.assets.load(layout,this::current,view::scheduleArtworkRefresh);loadCurrentStatue();if(statueStage==0)refresh();view.updateNotice();
   }
   static int validatedStatueStage(JSONObject statue){
     Object raw=statue==null?null:statue.opt("stage");if(!(raw instanceof Number))return 0;
@@ -124,7 +124,7 @@ final class NativeVillageHomeController {
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
   void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.cancelArtworkRefresh();view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -137,7 +137,7 @@ final class NativeVillageHomeController {
     }
     if(epoch!=h.epoch)return;
     if(!paused&&(reading||freshStorySnapshot()!=null))return;
-    paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,()->{if(current()){view.updateNotice();view.invalidate();}});loadCurrentStatue();refresh();}
+    paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,view::scheduleArtworkRefresh);loadCurrentStatue();refresh();}
   }
   void resident(String id){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();view.stopMotion();

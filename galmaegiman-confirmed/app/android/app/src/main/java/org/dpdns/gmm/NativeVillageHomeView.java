@@ -33,6 +33,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
   final Button loadingRetry,loadingBack;
   final Button windowRetry;
   boolean showingArtwork;
+  Runnable artworkRefresh;
   boolean committedScene,updatingWindow,targetReady;
   double committedCameraUnits,committedViewportUnits;
   int displayedStatueStage;
@@ -184,6 +185,27 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     }
     shortcuts.refresh();requestLayout();invalidate();
   }
+  /** Decode completions can arrive in a burst; publish their latest state once at the next UI frame. */
+  void scheduleArtworkRefresh(){
+    // Synchronous cache hits inside layoutWorld are already included in that same layout pass.
+    if(updatingWindow||artworkRefresh!=null||!owner.current()||!isAttachedToWindow())return;
+    artworkRefresh=new Runnable(){
+      @Override public void run(){
+        if(artworkRefresh!=this)return;
+        artworkRefresh=null;
+        if(owner.current()&&isAttachedToWindow())updateNotice();
+      }
+    };
+    postOnAnimation(artworkRefresh);
+  }
+  void cancelArtworkRefresh(){
+    if(artworkRefresh!=null){removeCallbacks(artworkRefresh);artworkRefresh=null;}
+  }
+  @Override protected void onAttachedToWindow(){
+    super.onAttachedToWindow();
+    // Cover a cached/decoded result received before attachment without retaining a stale queued task.
+    if(assets!=null&&assets.active)scheduleArtworkRefresh();
+  }
   void updateNotice(){
     if(updatingWindow)return;
     layoutWorld();
@@ -287,6 +309,7 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
       updatingWindow=true;
       try{
         camera.setCameraUnits(desiredCamera.cameraUnits());
+        assets.setRenderSize(Math.round(field.width()),Math.round(field.height()),getResources().getDisplayMetrics().density);
         assets.setViewport(desiredCamera.cameraUnits(),field.width()/unitPixels());
         targetVisibleStatue=desiredStatue();targetReady=!needsInitialStatueState()&&assets.ready(targetVisibleStatue);
         if(targetReady&&assets.commitWindow(targetVisibleStatue)){
@@ -540,5 +563,5 @@ final class NativeVillageHomeView extends FrameLayout implements FullBleed {
     if(action==MotionEvent.ACTION_CANCEL){stopMotion();moved=true;return true;}return true;
   }
   @Override public boolean performClick(){super.performClick();return true;}
-  @Override protected void onDetachedFromWindow(){owner.saveCamera();stopMotion();residentHeads.clear();if(outlineMask!=null){outlineMask.recycle();outlineMask=null;outlineSource=null;}ambient.pause();assets.cancel();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
+  @Override protected void onDetachedFromWindow(){cancelArtworkRefresh();owner.saveCamera();stopMotion();residentHeads.clear();if(outlineMask!=null){outlineMask.recycle();outlineMask=null;outlineSource=null;}ambient.pause();assets.cancel();if(velocity!=null){velocity.recycle();velocity=null;}super.onDetachedFromWindow();}
 }
