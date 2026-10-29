@@ -5,7 +5,7 @@ import {registerRoster60} from '../src/roster60-routes.js';
 import {RosterCraft} from '../src/roster60-craft.js';
 
 it('craft disclosure is opt-in only for the exact masking-aware client capability',async()=>{
- const options=vi.spyOn(RosterCraft.prototype,'options').mockResolvedValue({catalogVersion:'synthetic',discoveryVersion:undefined,truncated:false,units:[],recipes:[]});
+ const options=vi.spyOn(RosterCraft.prototype,'options').mockResolvedValue({catalogVersion:'synthetic',discoveryVersion:undefined,truncated:false,units:[],recipes:[],inheritancePolicy:{version:'roster60-skill-inheritance-v1',required:true,maxSkills:6,ordinaryAttackSeparate:true,unlockRule:'SOURCE_REQUIRED_LEVEL'}});
  const app=Fastify();registerRoster60(app,{} as PrismaClient,process.cwd(),()=> 'synthetic-player',()=>true);
  try{
   for(const [header,expected] of [[undefined,false],['1',true],['yes',false]] as const){

@@ -70,10 +70,10 @@ public class PerformanceEvidenceTest {
       if(path.equals("pvp/rank"))return NativeThemeReviewTest.rank();
       if(path.equals("attend"))return MainActivity.obj("result",MainActivity.obj("tickets",8,"streak",1));
       if(path.equals("native/roster60/pvp/options")) {
-        JSONArray ids = new JSONArray(); for(int i=0;i<6;i++)ids.put("owned"+i);
-        return MainActivity.obj("units",units(),"partyIds",ids);
+        JSONArray ids = new JSONArray(); for(int i=0;i<3;i++)ids.put("owned"+i);
+        return Roster60PartyPolicyTest.response(MainActivity.obj("units",units(),"partyIds",ids));
       }
-      if(path.equals("native/roster60/pvp/current"))return MainActivity.obj("status","idle");
+      if(path.equals("native/roster60/pvp/current"))return Roster60PartyPolicyTest.response(MainActivity.obj("status","idle"),false);
       if(path.equals("native/roster60/craft/options"))return MainActivity.obj("catalogVersion","offline-measurement","units",units(),"recipes",new JSONArray().put(MainActivity.obj("resultId","u09","name","노움","ingredients",new JSONArray().put(MainActivity.obj("unitId","u01","count",2,"minLevel",1)))));
       if(path.equals("native/roster60/recruit/session")) {
         JSONArray rows = new JSONArray(); for(int i=0;i<30;i++)rows.put(NativeRecruitInertialRailTest.candidate(i));
@@ -168,8 +168,10 @@ public class PerformanceEvidenceTest {
     try(ActivityController<MainActivity> c=helper.flow.start()) {
       MainActivity h=c.get();Api api=prepare(h);Hierarchy hierarchy=new Hierarchy(h);JSONArray samples=new JSONArray();
       try {NativeRoster60Pvp party=new NativeRoster60Pvp(h,true);samples.put(sample(h,api,hierarchy,"party-open",party::open,true));settle(h);
-        for(int i=0;i<7;i++)samples.put(sample(h,api,hierarchy,"party-toggle-"+i,()->{View target=h.root.findViewWithTag("party-unit-owned0");assertNotNull(target);assertTrue(target.performClick());},false));
-        assertEquals(5,party.selected.size());assertTrue(api.calls.stream().noneMatch(x->x.optBoolean("bodyPresent")));write("party",h,samples);
+        party.ownedGroups.open("species:u01");assertNotNull(party.ownedGroups.dialog);
+        View member=party.ownedGroups.memberButtons.get("owned0");assertNotNull(member);
+        for(int i=0;i<7;i++)samples.put(sample(h,api,hierarchy,"party-toggle-"+i,()->{assertSame(member,party.ownedGroups.memberButtons.get("owned0"));assertTrue(member.performClick());},false));
+        party.ownedGroups.close();assertEquals(2,party.selected.size());assertTrue(api.calls.stream().noneMatch(x->x.optBoolean("bodyPresent")));write("party",h,samples);
       }finally{hierarchy.close();api.close();}
     }
   }

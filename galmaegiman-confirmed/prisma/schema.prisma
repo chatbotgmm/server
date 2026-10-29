@@ -130,6 +130,8 @@ model Roster60Owned {
   status String @default("AVAILABLE")
   locked Boolean @default(false)
   source String
+  // Server-validated one-slot override; null preserves existing species skills.
+  skillInheritanceJson String?
   createdAt DateTime @default(now())
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   @@unique([playerId, source])

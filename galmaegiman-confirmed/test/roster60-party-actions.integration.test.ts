@@ -14,8 +14,8 @@ suite('authenticated sequential party actions on isolated DB',()=>{
  writeFileSync(join(root,'data/roster60-approved.json'),JSON.stringify(c));writeFileSync(join(root,'data/roster60-battle-policy.json'),JSON.stringify(p));app=Fastify();registerRoster60(app,db,root,r=>[player,other].includes(String(r.headers.authorization))?String(r.headers.authorization):null,()=>true);
  });
  afterAll(async()=>{if(prior===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=prior;await app.close();await db.playerItem.deleteMany({where:{playerId:{in:[player,other]}}});await db.player.deleteMany({where:{id:{in:[player,other]}}});await db.$disconnect();rmSync(root,{recursive:true,force:true});});
- it('locks six unique owned units; rejects duplicate, seventh, foreign, locked and competing parties',async()=>{
-  const ids=[];for(let i=0;i<5;i++)ids.push((await owned('u03')).id);const v=await create(ids);expect(v.state.reserves).toHaveLength(5);expect(await db.roster60Owned.count({where:{id:{in:ids},status:'BATTLE'}})).toBe(5);
+ it('locks three unique owned units; rejects duplicate, fourth, foreign, locked and competing parties',async()=>{
+  const ids=[];for(let i=0;i<2;i++)ids.push((await owned('u03')).id);const v=await create(ids);expect(v.state.reserves).toHaveLength(2);expect(await db.roster60Owned.count({where:{id:{in:ids},status:'BATTLE'}})).toBe(2);
   const base=await owned();for(const list of [[base.id],[(await owned('u03',other)).id],ids])expect((await post('create',{requestId:randomUUID(),ownedId:base.id,encounterId:'party-test',reserveIds:list})).statusCode).toBeGreaterThanOrEqual(400);
   const locked=await owned();await db.roster60Owned.update({where:{id:locked.id},data:{locked:true}});expect((await post('create',{requestId:randomUUID(),ownedId:base.id,encounterId:'party-test',reserveIds:[locked.id]})).json().error).toBe('UNIT_UNAVAILABLE');
   expect((await post('create',{requestId:randomUUID(),ownedId:base.id,encounterId:'party-test',reserveIds:[...ids,locked.id]})).statusCode).toBe(400);

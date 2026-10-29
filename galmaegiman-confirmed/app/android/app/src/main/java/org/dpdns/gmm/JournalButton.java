@@ -19,6 +19,16 @@ final class JournalButton extends AppCompatButton {
     super(context);
   }
 
+  @Override public void setEnabled(boolean enabled) {
+    super.setEnabled(enabled);
+    if (!enabled && BattleSkin.hasPressFeedback(this)) setPressed(false);
+  }
+
+  @Override public void onWindowFocusChanged(boolean focused) {
+    super.onWindowFocusChanged(focused);
+    if (!focused && BattleSkin.hasPressFeedback(this)) setPressed(false);
+  }
+
   @Override
   @SuppressWarnings("deprecation")
   public void setBackgroundDrawable(Drawable background) {

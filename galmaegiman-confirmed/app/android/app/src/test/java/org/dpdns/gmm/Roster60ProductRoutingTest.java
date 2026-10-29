@@ -23,8 +23,8 @@ public class Roster60ProductRoutingTest {
     @Override String token(){return "fixture-session";}
     @Override void call(String path,JSONObject body,Result callback){
      assertNull("Browsing the fixture must stay read-only",body);reads.add(path);
-     if(path.equals("native/roster60/pvp/options"))callback.done(MainActivity.obj("units",initial,"partyIds",new JSONArray()),null);
-     else if(path.equals("native/roster60/pvp/current"))callback.done(MainActivity.obj("status","idle"),null);
+     if(path.equals("native/roster60/pvp/options"))callback.done(Roster60PartyPolicyTest.response(MainActivity.obj("units",initial,"partyIds",new JSONArray())),null);
+     else if(path.equals("native/roster60/pvp/current"))callback.done(Roster60PartyPolicyTest.response(MainActivity.obj("status","idle")),null);
      else fail("Unexpected party fixture route: "+path);
     }
    };
@@ -35,7 +35,7 @@ public class Roster60ProductRoutingTest {
    h.root.measure(View.MeasureSpec.makeMeasureSpec(640,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(360,View.MeasureSpec.EXACTLY));h.root.layout(0,0,640,360);
    for(View v:NativeReviewDeepLinkTest.all(editor.root))assertFalse(v instanceof ScrollView);
    Roster60CardStrip strip=editor.ownedStrip;assertEquals(13,strip.cards.getChildCount());
-   assertNotNull(h.root.findViewWithTag("party-unit-unit-0"));assertNotNull(h.root.findViewWithTag("party-unit-unit-12"));
+   assertNotNull(h.root.findViewWithTag("party-group-owned:unit-0"));assertNotNull(h.root.findViewWithTag("party-group-owned:unit-12"));
    assertTrue("네이티브 연속 가로 스크롤",strip.canScrollHorizontally(1));
    assertFalse("화면 전체 세로 스크롤 없음",editor.root.canScrollVertically(1));
    for(View v:NativeReviewDeepLinkTest.all(editor.actions))if(v instanceof Button){
@@ -46,7 +46,7 @@ public class Roster60ProductRoutingTest {
    int scrolled=strip.getScrollX();assertTrue("페이지 끝이 아닌 카드 중간 위치",scrolled>0);
    // Programmatic movement shares the rail's brief accidental-click guard; this is a settled tap.
    org.robolectric.shadows.ShadowLooper.idleMainLooper(200,java.util.concurrent.TimeUnit.MILLISECONDS);
-   sixth.action.performClick();assertTrue(editor.selected.contains("unit-6"));
+   sixth.action.performClick();assertTrue(editor.selected.isEmpty());editor.ownedGroups.memberButtons.get("unit-6").performClick();editor.ownedGroups.close();assertTrue(editor.selected.contains("unit-6"));
    assertSame("선택해도 스크롤 뷰 재생성 없음",strip,editor.ownedStrip);
    assertSame("선택해도 보유 카드 재생성 없음",sixth,strip.cards.getChildAt(6));
    assertEquals("선택 직후 스크롤 위치 유지",scrolled,strip.getScrollX());
@@ -54,7 +54,7 @@ public class Roster60ProductRoutingTest {
    editor.units=changed;editor.drawParty();
    h.root.measure(View.MeasureSpec.makeMeasureSpec(640,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(360,View.MeasureSpec.EXACTLY));h.root.layout(0,0,640,360);
    assertEquals("목록 앞 개체 제거 후 같은 대원과 카드 내 오프셋 유지",strip.cards.getChildAt(5).getLeft()+10,strip.getScrollX());
-   assertNotNull(h.root.findViewWithTag("party-unit-unit-6"));assertNull(h.root.findViewWithTag("party-unit-unit-0"));
+   assertNotNull(h.root.findViewWithTag("party-group-owned:unit-6"));assertNull(h.root.findViewWithTag("party-group-owned:unit-0"));
    editor.units=new JSONArray();editor.selected.clear();editor.drawParty();assertFalse(editor.normal.isEnabled());assertFalse(editor.save.isEnabled());editor.pause();
   }
  }

@@ -25,6 +25,7 @@ final class BattleSkin extends Drawable {
   final MainActivity host;
   final String asset;
   final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+  final Paint edgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   static volatile org.json.JSONObject surfaces;
   int alpha = 255;
   // Each drawable owns its scratch geometry. HP skins draw twice per animation
@@ -98,6 +99,28 @@ final class BattleSkin extends Drawable {
     boolean pressed=false,enabled=false;
     for(int s:getState()){ pressed|=s==android.R.attr.state_pressed; enabled|=s==android.R.attr.state_enabled; }
     if(pressed || (!enabled && asset.startsWith("button-"))) { paint.setColor(pressed?0x20000000:0x48787979); c.drawRect(getBounds(),paint); }
+    if(enabled&&pressed&&asset.startsWith("button-")){
+      float width=Math.max(2,host.dp(2)),inset=width/2;edgePaint.setStyle(Paint.Style.STROKE);edgePaint.setStrokeWidth(width);edgePaint.setColor(Color.BLACK);edgePaint.setAlpha(alpha);
+      c.drawRoundRect(getBounds().left+inset,getBounds().top+inset,getBounds().right-inset,getBounds().bottom-inset,host.dp(6),host.dp(6),edgePaint);
+    }
+  }
+  /** Transparent feedback for portrait/icon buttons; existing art remains underneath. */
+  static Drawable pressFeedback(MainActivity host){
+    android.graphics.drawable.GradientDrawable edge=new android.graphics.drawable.GradientDrawable();edge.setColor(Color.TRANSPARENT);edge.setCornerRadius(host.dp(6));edge.setStroke(Math.max(2,host.dp(2)),Color.BLACK);
+    PressEdge states=new PressEdge();states.addState(new int[]{android.R.attr.state_enabled,android.R.attr.state_pressed},edge);states.addState(new int[]{},new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));return states;
+  }
+  private static final class PressEdge extends android.graphics.drawable.StateListDrawable {}
+  static boolean hasPressFeedback(android.view.View view){return view.getBackground() instanceof BattleSkin||view.getBackground() instanceof PressEdge||view.getForeground() instanceof PressEdge;}
+  /** Keep native click handling, but end the visual press in the release event itself. */
+  static void bindPressFeedback(android.widget.Button button){
+    if(!(button.getBackground() instanceof BattleSkin)&&!(button.getBackground() instanceof PressEdge)&&button.getContext() instanceof MainActivity)button.setForeground(pressFeedback((MainActivity)button.getContext()));
+    button.setOnTouchListener((view,event)->{
+      boolean handled=view.onTouchEvent(event);
+      int action=event.getActionMasked();
+      if(action==android.view.MotionEvent.ACTION_UP||action==android.view.MotionEvent.ACTION_CANCEL
+          ||(action==android.view.MotionEvent.ACTION_MOVE&&(event.getX()<0||event.getY()<0||event.getX()>=view.getWidth()||event.getY()>=view.getHeight())))view.setPressed(false);
+      return handled;
+    });
   }
   @Override public boolean isStateful(){return true;}
   @Override protected boolean onStateChange(int[] s){invalidateSelf();return true;}

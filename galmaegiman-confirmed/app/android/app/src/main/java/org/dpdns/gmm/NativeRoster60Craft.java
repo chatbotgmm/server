@@ -10,7 +10,8 @@ final class NativeRoster60Craft {
  final NativeEconomy economy;final MainActivity h;final MenuKit k;
  final LinkedHashMap<String,JSONObject> selected=new LinkedHashMap<>();
  JSONArray units=new JSONArray(),recipes=new JSONArray();JSONObject preview,pending;
- String version="",owner="",message="";int generation,screenEpoch,unitPage,recipePage;
+ String version="",owner="",message="",pendingSummary="";int generation,screenEpoch,unitPage,recipePage;
+ JSONObject inheritanceChoice;NativeCraftInheritance.Model inheritanceModel;final NativeCraftInheritance inheritance;
  // 휴대폰 가로(작업대 약 760×250dp)=1. 큰 화면에서 글자·재료 칸·버튼을 같은 비율로 키운다.
  float scale=1;
  boolean mix=true,loading,submitting;LinearLayout[] cols;Button previewButton,confirmButton;
@@ -19,18 +20,18 @@ final class NativeRoster60Craft {
  final Button[] materialButtons=new Button[6];final ImageView[] materialPictures=new ImageView[6];
  final JSONObject[] slotUnits=new JSONObject[6];final String[] slotSpecies=new String[6];
  NativeRoster60CraftWorkbench workbench;
- NativeRoster60Craft(NativeEconomy e){economy=e;h=e.h;k=e.k;}
+ NativeRoster60Craft(NativeEconomy e){economy=e;h=e.h;k=e.k;inheritance=new NativeCraftInheritance(this);}
  String text(int id,Object... args){return h.getString(id,args);}
  SharedPreferences preferences(){return h.getSharedPreferences("roster60-craft-"+NativeBackend.accountPreferences(BuildConfig.SERVER_URL),0);}
  String ownerKey(){try{byte[] b=java.security.MessageDigest.getInstance("SHA-256").digest(owner.getBytes(java.nio.charset.StandardCharsets.UTF_8));StringBuilder s=new StringBuilder();for(byte x:b)s.append(String.format(java.util.Locale.ROOT,"%02x",x&255));return s.toString();}catch(Exception e){throw new IllegalStateException(e);}}
- boolean savePending(){return pending==null?preferences().edit().remove(ownerKey()).commit():preferences().edit().putString(ownerKey(),pending.toString()).commit();}
+ boolean savePending(){SharedPreferences.Editor edit=preferences().edit();if(pending==null){pendingSummary="";edit.remove(ownerKey()).remove(ownerKey()+":inheritance-summary");}else edit.putString(ownerKey(),pending.toString()).putString(ownerKey()+":inheritance-summary",pendingSummary);return edit.commit();}
  boolean valid(int t){return t==generation&&screenEpoch==h.epoch&&owner.equals(h.api.token())&&!h.isFinishing()&&!h.isDestroyed()&&(h.screen.equals("mix")||h.screen.equals("craftRecipes"));}
- void leave(){generation++;loading=false;submitting=false;preview=null;if(pending==null)selected.clear();}
+ void leave(){generation++;loading=false;submitting=false;clearPreview();if(workbench!=null)workbench.closeMaterials();if(pending==null)selected.clear();}
  void open(boolean materialMode){
-  generation++;mix=materialMode;loading=false;submitting=false;preview=null;workbench=null;
-  if(!owner.equals(h.api.token())){selected.clear();pending=null;units=new JSONArray();recipes=new JSONArray();owner=h.api.token();}
+  generation++;mix=materialMode;loading=false;submitting=false;clearPreview();if(workbench!=null)workbench.closeMaterials();workbench=null;
+  if(!owner.equals(h.api.token())){selected.clear();pending=null;pendingSummary="";units=new JSONArray();recipes=new JSONArray();owner=h.api.token();}
   if(owner.isEmpty()){h.login();return;}
-  try{String saved=preferences().getString(ownerKey(),null);pending=saved==null?null:new JSONObject(saved);}catch(Exception invalid){pending=null;savePending();}
+  try{String saved=preferences().getString(ownerKey(),null);pending=saved==null?null:new JSONObject(saved);pendingSummary=pending==null?"":preferences().getString(ownerKey()+":inheritance-summary","");}catch(Exception invalid){pending=null;savePending();}
   if(cols!=null)for(LinearLayout column:cols)clearArtwork(column);resetRendering();
   h.base(text(R.string.roster60_craft_title),mix?"mix":"craftRecipes");screenEpoch=h.epoch;economy.economyScene("workshop");NavyWorkbenchTheme.page(h);
   LinearLayout tools=k.row();tools.setTag("craft-inline-tools");
@@ -39,7 +40,7 @@ final class NativeRoster60Craft {
   final int opened=generation;((View)cols[0].getParent()).addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{float s=Roster60Scale.of(v,r-l,b-t,760,250);if(Math.abs(s-scale)>.01f){scale=s;v.post(()->{if(cols!=null&&h.page.findViewWithTag("craft-inline-tools")==tools){for(int i=0;i<tools.getChildCount();i++)((Button)tools.getChildAt(i)).setTextSize(12*scale);render();}});}});
   if(pending!=null)checkReceipt();else load();
  }
- void load(){loading=true;preview=null;message=text(R.string.roster60_craft_loading);render();final int ticket=generation;
+ void load(){loading=true;clearPreview();message=text(R.string.roster60_craft_loading);render();final int ticket=generation;
   h.api.call("native/roster60/craft/options",null,(r,e)->{if(!valid(ticket))return;loading=false;
    if(e!=null){units=new JSONArray();recipes=new JSONArray();if(workbench!=null){workbench.allRecipes=recipes;workbench.rememberRecipePayload();}version="";message=text(R.string.roster60_craft_unavailable);render();return;}
    units=r.optJSONArray("units");JSONArray nextRecipes=r.optJSONArray("recipes");if(units==null)units=new JSONArray();if(nextRecipes==null)nextRecipes=new JSONArray();version=r.optString("catalogVersion");
@@ -52,7 +53,8 @@ final class NativeRoster60Craft {
    message=text(r.optBoolean("truncated")?R.string.roster60_craft_inventory_limit:R.string.roster60_craft_hint);render();});
  }
  JSONObject current(JSONArray a,int page){return a.length()==0?null:a.optJSONObject(Math.max(0,Math.min(page,a.length()-1)));}
- void changed(){generation++;preview=null;message=text(R.string.roster60_craft_hint);render();}
+ void clearPreview(){inheritance.close();preview=null;inheritanceChoice=null;inheritanceModel=null;}
+ void changed(){generation++;clearPreview();message=text(R.string.roster60_craft_hint);render();}
  void toggle(JSONObject unit){if(unit==null||loading||submitting||pending!=null)return;String id=unit.optString("ownedId");if(selected.containsKey(id))selected.remove(id);else if(selected.size()<6)selected.put(id,unit);changed();}
  TextView label(String value){TextView v=h.text(value,12);NavyWorkbenchTheme.text(h,v,12,false,NavyWorkbenchTheme.TEXT);v.setTextSize(12*scale);v.setGravity(Gravity.CENTER);v.setMaxLines(4);return v;}
  void carousel(LinearLayout parent,JSONArray items,int page,boolean material,java.util.function.IntConsumer turn){
@@ -93,8 +95,8 @@ final class NativeRoster60Craft {
  void ensureActions(){
   if(craftActions!=null)return;
   statusLabel=label("");statusLabel.setTag("roster60-craft-status");statusLabel.setMaxLines(3);
-  previewButton=k.action(null,"",()->{if(version.isEmpty())load();else requestPreview();});previewButton.setTag("roster60-craft-preview");
-  confirmButton=k.action(null,"",this::confirm);confirmButton.setTag("roster60-craft-confirm");craftActions=k.row();
+  previewButton=k.action(null,"",()->{if(pending!=null)inheritance.showPending();else if(version.isEmpty())load();else if(preview!=null)inheritance.choose();else requestPreview();});previewButton.setTag("roster60-craft-preview");
+  confirmButton=k.action(null,"",()->{if(pending!=null)confirm();else inheritance.review();});confirmButton.setTag("roster60-craft-confirm");craftActions=k.row();
   for(Button b:new Button[]{previewButton,confirmButton}){NavyWorkbenchTheme.tab(h,b,b==previewButton);b.setMinWidth(0);b.setMinimumWidth(0);craftActions.addView(b,new LinearLayout.LayoutParams(0,-1,1));}
  }
  void setText(TextView view,String value){if(!value.contentEquals(view.getText()))view.setText(value);}
@@ -107,17 +109,34 @@ final class NativeRoster60Craft {
   if(!rightRevision.equals(renderedRight)){clearArtwork(cols[2]);cols[2].removeAllViews();if(mix)carousel(cols[2],recipes,recipePage,false,d->{if(loading||submitting||pending!=null)return;recipePage=Math.max(0,Math.min(recipePage+d,recipes.length()-1));changed();});else carousel(cols[2],units,unitPage,true,d->{if(loading||submitting||pending!=null)return;unitPage=Math.max(0,Math.min(unitPage+d,units.length()-1));render();});cols[2].addView(statusLabel,new LinearLayout.LayoutParams(-1,-2));cols[2].addView(craftActions,new LinearLayout.LayoutParams(-1,h.dp(48*scale)));renderedRight=rightRevision;}
   String status=preview==null?message+(conditions().isEmpty()?"":"\n"+conditions()):text(R.string.roster60_craft_prediction,preview.optInt("expectedLevel"),preview.optString("maxLevel","—"),preview.optString("inheritedTotalXp"));
   if(preview!=null&&preview.has("remainingXp"))status+="\n현재 XP "+preview.optString("remainingXp")+(preview.isNull("xpToNext")?"":" · 다음 "+preview.optString("xpToNext"));setText(statusLabel,status);statusLabel.setTextSize(11*scale);
-  setText(previewButton,text(version.isEmpty()?R.string.roster60_craft_reload:R.string.roster60_craft_preview));previewButton.setEnabled(!loading&&!submitting&&pending==null&&(version.isEmpty()||(!selected.isEmpty()&&recipes.length()>0)));
-  setText(confirmButton,text(pending==null?R.string.roster60_craft_confirm:R.string.roster60_craft_retry));confirmButton.setEnabled(!loading&&!submitting&&(preview!=null||pending!=null));
+  if(inheritanceModel!=null)status+="\n"+inheritanceModel.summary();if(pending!=null&&!pendingSummary.isEmpty())status="이전에 확정한 요청의 처리 상태 확인 중\n"+pendingSummary;setText(statusLabel,status);
+  setText(previewButton,previewLabel());previewButton.setEnabled(!loading&&!submitting&&(pending!=null||version.isEmpty()||(!selected.isEmpty()&&recipes.length()>0)));
+  setText(confirmButton,pending==null?"조합 내용 확인":text(R.string.roster60_craft_retry));confirmButton.setEnabled(!loading&&!submitting&&(chosenPreview()||pending!=null));
   for(Button b:new Button[]{previewButton,confirmButton})b.setTextSize(11*scale);
  }
- JSONObject selection(){JSONObject recipe=current(recipes,recipePage);return MainActivity.obj("resultId",recipe==null?"":recipe.optString("resultId"),"materialIds",new JSONArray(selected.keySet()),"catalogVersion",version);}
- void requestPreview(){if(loading||submitting||pending!=null)return;loading=true;preview=null;render();int ticket=++generation;JSONObject request=selection();h.api.call("native/roster60/craft/preview",request,(r,e)->{if(!valid(ticket))return;loading=false;preview=e==null?r:null;message=text(R.string.roster60_craft_preview_failed);render();});}
- void confirm(){if(loading||submitting||(preview==null&&pending==null))return;
-  if(pending==null){pending=selection();try{pending.put("requestId",UUID.randomUUID().toString());pending.put("previewFingerprint",preview.getString("previewFingerprint"));}catch(JSONException invalid){pending=null;preview=null;render();return;}if(!savePending()){pending=null;message=text(R.string.roster60_craft_uncertain);render();return;}}
-  submitting=true;render();int ticket=++generation;h.api.call("native/roster60/craft/confirm",pending,(r,e)->{if(!valid(ticket))return;submitting=false;if(e==null){complete(r);return;}
-   if(Arrays.asList("PREVIEW_CHANGED","CATALOG_CHANGED","MATERIALS_UNAVAILABLE","INVALID_RECIPE","MATERIAL_LEVEL_REQUIRED","REQUEST_ID_REUSED","ROSTER_CATALOG_PENDING","ROSTER_CATALOG_INVALID","CAP_XP_POLICY_REQUIRED","CRAFT_REINCARNATION_POLICY_REQUIRED").contains(e)){pending=null;savePending();preview=null;message=text(R.string.roster60_craft_repreview);}else message=text(R.string.roster60_craft_uncertain);render();});
+ String previewLabel(){return pending!=null?"요청 내용 보기":version.isEmpty()?text(R.string.roster60_craft_reload):preview==null?text(R.string.roster60_craft_preview):inheritanceModel!=null&&inheritanceModel.chosen!=null?"계승 기술 변경":"계승 기술 선택";}
+ boolean chosenPreview(){return preview!=null&&inheritanceModel!=null&&inheritanceModel.matches(inheritanceChoice);}
+ JSONObject selection(){JSONObject recipe=current(recipes,recipePage);JSONObject result=MainActivity.obj("resultId",recipe==null?"":recipe.optString("resultId"),"materialIds",new JSONArray(selected.keySet()),"catalogVersion",version);if(inheritanceChoice!=null)try{result.put("inheritance",new JSONObject(inheritanceChoice.toString()));}catch(JSONException invalid){throw new IllegalStateException(invalid);}return result;}
+ boolean previewMatches(JSONObject response,JSONObject request){
+  if(response==null||!response.optString("previewFingerprint").matches("[a-f0-9]{64}")||!request.optString("resultId").equals(response.optString("resultId"))||!version.equals(response.optString("catalogVersion")))return false;
+  JSONArray ids=response.optJSONArray("materialIds");if(ids==null||ids.length()!=selected.size())return false;Set<String> actual=new HashSet<>();for(int i=0;i<ids.length();i++){Object id=ids.opt(i);if(!(id instanceof String)||!actual.add((String)id))return false;}if(!actual.equals(selected.keySet()))return false;
+  NativeCraftInheritance.Model model=NativeCraftInheritance.model(response);if(model==null)return false;return inheritanceChoice==null?model.chosen==null:model.matches(inheritanceChoice);
  }
- void complete(JSONObject r){if(r==null){message=text(R.string.roster60_craft_uncertain);render();return;}pending=null;savePending();preview=null;selected.clear();h.message(text(R.string.roster60_craft_done,r.optString("resultName"),r.optInt("expectedLevel")));load();}
+ void selectInheritance(String skillId,int slot){if(loading||submitting||pending!=null||preview==null||inheritanceModel==null)return;NativeCraftInheritance.Skill skill=inheritanceModel.candidates.get(skillId);if(skill==null||!skill.allowedSlots.contains(slot))return;inheritanceChoice=MainActivity.obj("skillId",skillId,"replaceSlot",slot);requestPreview();}
+ void requestPreview(){if(loading||submitting||pending!=null)return;inheritance.close();loading=true;preview=null;inheritanceModel=null;message="계승 기술을 확인하고 있어요.";render();int ticket=++generation;JSONObject request=selection();h.api.call("native/roster60/craft/preview",request,(r,e)->{if(!valid(ticket))return;loading=false;
+  if(e==null&&previewMatches(r,request)){preview=r;inheritanceModel=NativeCraftInheritance.model(r);message="";}else{preview=null;inheritanceModel=null;message=e==null?"계승 기술 정보를 확인하지 못했어요. 잠시 후 다시 확인해 주세요.":previewError(e);}
+  render();if(preview!=null&&inheritanceModel.chosen==null)inheritance.choose();});}
+ String previewError(String error){switch(error){case "INVALID_INHERITANCE_SKILL":return "선택한 기술을 재료에서 찾지 못했어요. 기술을 다시 선택해 주세요.";case "INVALID_INHERITANCE_SLOT":case "DUPLICATE_INHERITANCE_SKILL":return "이 기술로 교체할 수 없어요. 다른 기술을 선택해 주세요.";case "INHERITANCE_SELECTION_REQUIRED":return "계승할 기술과 교체할 기술을 선택해 주세요.";case "INHERITANCE_POLICY_UNAVAILABLE":return "계승 기술 정보를 준비하지 못했어요. 잠시 후 다시 확인해 주세요.";default:return text(R.string.roster60_craft_preview_failed);}}
+ void confirm(){if(loading||submitting||(!chosenPreview()&&pending==null))return;
+  if(pending==null){pendingSummary=preview.optString("resultName","조합 결과")+" · 예상 Lv."+preview.optInt("expectedLevel")+"\n\n"+inheritanceModel.details(preview.optInt("expectedLevel"));pending=selection();try{pending.put("requestId",UUID.randomUUID().toString());pending.put("previewFingerprint",preview.getString("previewFingerprint"));}catch(JSONException invalid){pending=null;preview=null;render();return;}if(!savePending()){pending=null;message=text(R.string.roster60_craft_uncertain);render();return;}}
+  submitting=true;render();int ticket=++generation;h.api.call("native/roster60/craft/confirm",pending,(r,e)->{if(!valid(ticket))return;submitting=false;if(e==null){complete(r);return;}
+   if(Arrays.asList("PREVIEW_CHANGED","CATALOG_CHANGED","MATERIALS_UNAVAILABLE","INVALID_RECIPE","MATERIAL_LEVEL_REQUIRED","REQUEST_ID_REUSED","ROSTER_CATALOG_PENDING","ROSTER_CATALOG_INVALID","CAP_XP_POLICY_REQUIRED","CRAFT_REINCARNATION_POLICY_REQUIRED","INHERITANCE_SELECTION_REQUIRED","INVALID_INHERITANCE_SKILL","INVALID_INHERITANCE_SLOT","DUPLICATE_INHERITANCE_SKILL","INHERITANCE_POLICY_UNAVAILABLE","INHERITANCE_STATE_INVALID","INHERITANCE_SOURCE_CHANGED","INHERITANCE_CATALOG_INVALID","INHERITANCE_SKILL_POLICY_INVALID","INHERITANCE_SKILL_AMBIGUOUS").contains(e)){pending=null;savePending();generation++;clearPreview();message=text(R.string.roster60_craft_repreview);}else message=text(R.string.roster60_craft_uncertain);render();});
+ }
+ boolean completedReceipt(JSONObject result){
+  if(result==null||pending==null||result.optString("ownedId").isEmpty()||!pending.optString("resultId").equals(result.optString("resultId"))||!pending.optString("catalogVersion").equals(result.optString("catalogVersion"))||!pending.optString("previewFingerprint").equals(result.optString("previewFingerprint")))return false;
+  JSONArray actual=result.optJSONArray("materialIds"),expected=pending.optJSONArray("materialIds");if(actual==null||expected==null||actual.length()!=expected.length())return false;Set<String> ids=new HashSet<>();for(int i=0;i<actual.length();i++){Object id=actual.opt(i);if(!(id instanceof String)||!ids.add((String)id))return false;}for(int i=0;i<expected.length();i++)if(!ids.contains(expected.optString(i)))return false;
+  JSONObject choice=pending.optJSONObject("inheritance");NativeCraftInheritance.Model model=NativeCraftInheritance.model(result);return choice==null||model!=null&&model.matches(choice);
+ }
+ void complete(JSONObject r){if(!completedReceipt(r)){message=text(R.string.roster60_craft_uncertain);render();return;}String resultMessage=text(R.string.roster60_craft_done,r.optString("resultName"),r.optInt("expectedLevel"));NativeCraftInheritance.Model inherited=NativeCraftInheritance.model(r);if(inherited!=null&&inherited.chosen!=null)resultMessage+="\n계승 · "+inherited.chosen.name+" · 필요 Lv."+inherited.chosen.requiredLevel;generation++;pending=null;savePending();clearPreview();selected.clear();h.message(resultMessage);load();}
  void checkReceipt(){loading=true;message=text(R.string.roster60_craft_checking);render();int ticket=generation;h.api.call("native/roster60/craft/receipt",MainActivity.obj("requestId",pending.optString("requestId")),(r,e)->{if(!valid(ticket))return;loading=false;if(e==null&&"completed".equals(r.optString("status"))){complete(r.optJSONObject("result"));return;}message=text(R.string.roster60_craft_uncertain);render();});}
 }

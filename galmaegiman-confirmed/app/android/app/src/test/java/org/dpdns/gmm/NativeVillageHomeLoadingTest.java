@@ -105,6 +105,19 @@ public class NativeVillageHomeLoadingTest {
    assertEquals(1,api.storyReads.size());assertTrue(view.owner.reading);assertFalse(view.needsInitialStatueState());assertTrue("An offscreen unknown statue never blocks this district",view.sceneReady());
   }
  }
+ @Test public void firstOffscreenSceneMayReachUnknownStatueWithoutStallingAndBindsItsLaterState()throws Exception{
+  try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
+   MainActivity h=activity.get();NativeVillageHomeView view=delayedState(h,false);NativeVillageHomeTest.Api api=(NativeVillageHomeTest.Api)h.api;
+   assertTrue(view.sceneReady());assertEquals(0,view.owner.statueStage);assertEquals(1,api.storyReads.size());
+   view.moveCameraUnits(2.25);LocalGameArtTest.drain();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);
+   assertEquals("Later travel reaches the requested region while only an unknown statue is omitted",2.25,view.camera.cameraUnits(),0);
+   assertFalse(view.needsInitialStatueState());assertTrue(view.sceneReady());assertEquals(View.GONE,view.loadingPanel.getVisibility());assertEquals(View.INVISIBLE,view.statue.getVisibility());
+   assertEquals("Travel never starts another story read or polling",1,api.storyReads.size());assertTrue(api.writes.isEmpty());
+   api.storyReads.get(0).done(NativeVillageHomeTest.story(),null);LocalGameArtTest.drain();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);
+   assertTrue(view.sceneReady());assertEquals(2.25,view.camera.cameraUnits(),0);assertEquals(1,view.drawnStatueStage());assertEquals(View.VISIBLE,view.statue.getVisibility());
+   assertNotNull(view.assets.get(view.visibleStatue()));assertEquals(View.GONE,view.loadingPanel.getVisibility());assertEquals(1,api.storyReads.size());
+  }
+ }
  @Test public void initialStatueStateFailureOffersRetryAndLateAccountReplyCannotRevealIt()throws Exception{
   try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
    MainActivity h=activity.get();NativeVillageHomeView view=delayedState(h,true);NativeVillageHomeTest.Api api=(NativeVillageHomeTest.Api)h.api;

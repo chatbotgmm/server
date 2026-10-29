@@ -96,6 +96,7 @@ final class NativeVillageHomeController {
       JSONArray list=result==null?null:result.optJSONArray("residents");
       if(error!=null||list==null)problem="주민 부탁 상태를 불러오지 못했어요. 다시 확인할 수 있어요.";
       else {problem="";for(int i=0;i<list.length();i++){JSONObject npc=list.optJSONObject(i);if(npc!=null)residents.put(npc.optString("id"),npc);}}
+      view.questTracker.bindStoryState(problem.isEmpty()?result:null,problem.isEmpty()?null:problem);
       view.bindResidents();view.updateNotice();view.invalidate();
   }
   /** Only the authenticated main quest advertises the next object; never infer unlocks locally. */
@@ -123,7 +124,7 @@ final class NativeVillageHomeController {
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
   void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -184,5 +185,5 @@ final class NativeVillageHomeController {
     String[] actions={"daily","profile","rebirth","settings","refresh"};
     menu=new GameDialog(h).navy().setTitle("마을 메뉴").setItems(labels,(dialog,index)->{if(!current())return;if("refresh".equals(actions[index]))refresh();else navigate(actions[index]);}).setNegativeButton("닫기",null).show();
   }
-  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}if(view.shortcuts.expanded){view.shortcuts.collapse();return true;}return false;}
+  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}if(view.shortcuts.getVisibility()==android.view.View.VISIBLE&&view.shortcuts.expanded){view.shortcuts.collapse();return true;}if(view.questTracker.getVisibility()==android.view.View.VISIBLE&&view.questTracker.expanded){view.questTracker.collapse();return true;}return false;}
 }

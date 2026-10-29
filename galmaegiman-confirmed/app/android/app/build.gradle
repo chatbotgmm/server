@@ -56,8 +56,25 @@ tasks.register('prepareStoryBattleArt') {
             file('../../..').absolutePath, storyArtManifest.absolutePath, storyArtGenerated.get().asFile.absolutePath }
     }
 }
+def storyBlackManifest = file('../../../data/story/black-art-v1.json')
+def storyBlackGenerator = file('../../../scripts/bundle-story-black-art.py')
+def storyBlackGenerated = layout.buildDirectory.dir('generated/story-black-art')
+tasks.register('prepareStoryBlackArt') {
+    inputs.file(storyBlackManifest)
+    inputs.file(storyBlackGenerator)
+    inputs.file(file('../../../data/story/story-mode-v1.json'))
+    ['u01', 'u02', 'u06', 'u07', 'u14', 'u23', 'u28', 'u31'].each { species ->
+        inputs.file(file('../../../art/gpt/blackened-gulls-20261028/' + species + '-black-front.png'))
+    }
+    outputs.dir(storyBlackGenerated)
+    doLast {
+        exec { commandLine 'python3', storyBlackGenerator.absolutePath,
+            file('../../..').absolutePath, storyBlackManifest.absolutePath, storyBlackGenerated.get().asFile.absolutePath }
+    }
+}
 tasks.register('bundleGameArt', Sync) {
     dependsOn 'prepareStoryBattleArt'
+    dependsOn 'prepareStoryBlackArt'
     into bundledArt
     from(storyArtGenerated)
     // The active manifest is the complete village runtime pack: no retired world is bundled or decoded.
@@ -140,11 +157,7 @@ tasks.register('bundleGameArt', Sync) {
         rename { 'companions-v3-' + it }
         into 'native/village-loop-v2/residents'
     }
-    from('../../../art/gpt/blackened-gulls-20261028') {
-        include '*-black-front.png'
-        rename { it.replace('-black-front.png', '-front.png') }
-        into 'roster60-art/black'
-    }
+    from(storyBlackGenerated)
     from('../../../art/gpt/village-continuous-20261028') {
         include '*.png'
         rename { 'continuous-v5-' + it }

@@ -123,7 +123,7 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
   const battle=await ok(b,'accept',{requestId:randomUUID(),battleId,revision:0,accept:true},transport);
   expect(battle.status).toBe('ACTIVE');return {a,b,battle,battleId};
  }
- it.each([1,2,3,4,5,6])('sets %i actual owned party members and queues/cancels both modes through authenticated routes',async size=>{
+ it.each([1,2,3])('sets %i actual owned party members and queues/cancels both modes through authenticated routes',async size=>{
   const actor=await user('party-'+size,size);
   expect((await ok(actor,'party',{ownedIds:actor.ownedIds})).partyIds).toHaveLength(size);
   for(const mode of ['normal','rank'] as const){
@@ -136,7 +136,13 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
   }
   completed.push({case:'party-range',size,modes:['normal','rank'],transport:'inject',restartedWaiting:size===1});
  });
- it.each([['normal',1],['rank',6]] as const)('%s reaches natural KO, durable recovery and exactly-once rating/settlement over localhost HTTP (party %i)',async(mode,size)=>{
+ it.each([4,5,6])('rejects new %i-member parties through authenticated routes without deleting owned units',async size=>{
+  const actor=await user('oversized-'+size,size);
+  const rejected=await request(actor,'party',{ownedIds:actor.ownedIds});expect(rejected.status).toBe(400);expect(rejected.body.error).toBe('INVALID_PARTY');
+  expect(await db.roster60PvpParty.findUnique({where:{playerId:actor.id}})).toBeNull();
+  expect(await db.roster60Owned.count({where:{playerId:actor.id,status:'AVAILABLE'}})).toBe(size);
+ });
+ it.each([['normal',1],['rank',3]] as const)('%s reaches natural KO, durable recovery and exactly-once rating/settlement over localhost HTTP (party %i)',async(mode,size)=>{
   const transport:Transport='http',{a,b,battleId}=await pair(mode,size,transport);
   const ownXp=await db.roster60Owned.findMany({where:{playerId:{in:[a.id,b.id]}},select:{id:true,totalXp:true},orderBy:{id:'asc'}});
   let current=(await ok(a,'current',undefined,transport)).battle;

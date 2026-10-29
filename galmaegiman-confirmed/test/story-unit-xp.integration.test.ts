@@ -51,9 +51,11 @@ suite('accepted quest unit XP settlement and account-event separation',()=>{
    const cmd=request(),paid=await settle(f,a.id,b,cmd);expect(await settle(f,a.id,b,cmd)).toEqual(paid);expect(await settle(f,a.id,b)).toEqual(paid);
    if(mode==='adventure'){
     expect(await Promise.all(a.units.map(u=>xp(u.id)))).toEqual([0n,0n,0n]);
+    expect(paid.settlement.unitXp.units.every((unit:any)=>unit.xpProgress===undefined)).toBe(true);
     await expect(f.story().createBattle(a.id,{requestId:request(),questId:'STORY_01',ownedIds:a.units.map(u=>u.id),adventureId:paid.state.adventureId})).rejects.toMatchObject({code:'STORY_OBJECTIVE_AWAITING_RETURN'});
    }
-   await returnRun(f,a.id,paid);const sorted=a.units.slice(0,2).map(u=>u.id).sort();
+   const returned:any=await returnRun(f,a.id,paid);const sorted=a.units.slice(0,2).map(u=>u.id).sort();
+   for(const ownedId of sorted){const progress=mode==='story'?paid.settlement.unitXp.units.find((unit:any)=>unit.ownedId===ownedId).xpProgress:returned.settlement.xpProgressByOwnedId[ownedId];expect(progress.before.totalXp).toBe('0');expect(progress.after.totalXp).toBe(String(ownedId===sorted[0]?51:50));const expected=growthAt(Number(progress.after.totalXp),f.catalog.characters.find((u:any)=>u.id==='u45').growth);expect(progress.after.level).toBe(expected.level);expect(progress.after.nextLevelTotalXp).toBe(expected.xpToNext===null?null:String(expected.totalXp+expected.xpToNext));}
    expect(await xp(sorted[0])).toBe(51n);expect(await xp(sorted[1])).toBe(50n);expect(await xp(a.units[2].id)).toBe(0n);
    const done=await complete(f,a.id);expect(done.commanderReward.xpAwarded).toBe(200);expect((await readCommanderState(db,a.id,commanderPolicy)).totalXp).toBe('200');
    await settle(f,a.id,b);await returnRun(f,a.id,paid);expect(await xp(sorted[0])).toBe(51n);expect(await xp(sorted[1])).toBe(50n);

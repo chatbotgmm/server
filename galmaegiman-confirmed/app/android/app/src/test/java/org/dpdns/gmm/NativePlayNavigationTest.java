@@ -29,14 +29,17 @@ public class NativePlayNavigationTest {
  @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
  static class Api extends NativeApi {
   String account="play-account";JSONObject current=MainActivity.obj("status","idle"),eligibility=rankEligibility(60,true,"");boolean rankFields=true;int unitLevel=60;boolean unitEligible=true;String unitReason="RANK_UNIT_LEVEL_REQUIRED";
-  final List<String> paths=new ArrayList<>();final List<JSONObject> writes=new ArrayList<>();Result pending,partyPending,currentPending;boolean deferParty,deferCurrent;
+  final List<String> paths=new ArrayList<>();final List<JSONObject> writes=new ArrayList<>();Result pending,partyPending,currentPending;boolean deferParty,deferCurrent;final ArrayList<String> savedIds=new ArrayList<>(Arrays.asList("o0","o1","o2"));
   Api(Context c){super(c);}
   @Override String token(){return account;}
+  JSONObject policy(JSONObject value){return Roster60PartyPolicyTest.response(value,savedIds.isEmpty()||savedIds.size()>3||new HashSet<>(savedIds).size()!=savedIds.size());}
+  void rememberParty(JSONObject body){savedIds.clear();JSONArray ids=body.optJSONArray("ownedIds");for(int i=0;ids!=null&&i<ids.length();i++)savedIds.add(ids.optString(i));}
+  void completeIdle(){current=MainActivity.obj("status","idle");pending.done(policy(NativeRealtime.copy(current)),null);}
   @Override void call(String path,JSONObject body,Result cb){
    paths.add(path);if(body!=null)writes.add(NativeRealtime.copy(body));
-   if(path.equals("native/roster60/pvp/options")){JSONArray units=new JSONArray(),ids=new JSONArray();for(int i=0;i<8;i++){JSONObject unit=MainActivity.obj("ownedId","o"+i,"speciesId","u01","name","갈매미맨 "+i,"level",unitLevel,"maxLevel",60);if(rankFields)try{unit.put("rankEligible",unitEligible).put("rankReason",unitEligible?"":unitReason);}catch(JSONException invalid){throw new AssertionError(invalid);}units.put(unit);if(i<6)ids.put("o"+i);}JSONObject options=MainActivity.obj("units",units,"partyIds",ids);if(rankFields)try{options.put("rankEligibility",eligibility);}catch(JSONException invalid){throw new AssertionError(invalid);}cb.done(options,null);}
-   else if(path.equals("native/roster60/pvp/current")){if(deferCurrent)currentPending=cb;else cb.done(current,null);}
-   else if(path.equals("native/roster60/pvp/party")){if(deferParty)partyPending=cb;else cb.done(new JSONObject(),null);}
+   if(path.equals("native/roster60/pvp/options")){JSONArray units=new JSONArray(),ids=new JSONArray(savedIds);for(int i=0;i<8;i++){JSONObject unit=MainActivity.obj("ownedId","o"+i,"speciesId","u01","name","갈매미맨 "+i,"level",unitLevel,"maxLevel",60);if(rankFields)try{unit.put("rankEligible",unitEligible).put("rankReason",unitEligible?"":unitReason);}catch(JSONException invalid){throw new AssertionError(invalid);}units.put(unit);}JSONObject options=MainActivity.obj("units",units,"partyIds",ids);if(rankFields)try{options.put("rankEligibility",eligibility);}catch(JSONException invalid){throw new AssertionError(invalid);}cb.done(policy(options),null);}
+   else if(path.equals("native/roster60/pvp/current")){if(deferCurrent)currentPending=cb;else cb.done(current.optJSONObject("battle")!=null?current:policy(NativeRealtime.copy(current)),null);}
+   else if(path.equals("native/roster60/pvp/party")){rememberParty(body);if(deferParty)partyPending=cb;else cb.done(policy(MainActivity.obj("partyIds",new JSONArray(savedIds))),null);}
    else if(path.equals("native/roster60/pvp/join")||path.equals("native/roster60/pvp/cancel"))pending=cb;
    else if(path.equals("native/roster60/home"))cb.done(MainActivity.obj("mailUnread",0),null);
    else if(path.equals("native/roster60/story/state"))cb.done(NativeRoster60StoryTest.state(),null);
@@ -64,11 +67,11 @@ public class NativePlayNavigationTest {
  }
 
  @Test public void eachMenuModeUsesSavedPartyOrOptionalOneMemberEditThenOneCorrectJoin()throws Exception{
-  for(int count:new int[]{1,6})for(String mode:new String[]{"normal","rank"})try(ActivityController<MainActivity> c=helper.flow.start()){
+  for(int count:new int[]{1,3})for(String mode:new String[]{"normal","rank"})try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.openPlayMenu();choose(h,mode);NativeRoster60Pvp p=h.rosterPvp;
-   assertEquals(mode,p.selectedMode);assertEquals(6,p.selected.size());assertEquals(6,new HashSet<>(p.selected).size());assertTrue(api.writes.isEmpty());
+   assertEquals(mode,p.selectedMode);assertEquals(3,p.selected.size());assertEquals(3,new HashSet<>(p.selected).size());assertTrue(api.writes.isEmpty());
    int saves=count==1?1:0;
-   if(count==1){p.editParty.performClick();for(int i=5;i>0;i--)p.ownedTiles.get("o"+i).action.performClick();assertFalse(p.normal.isEnabled());assertFalse(p.rank.isEnabled());p.save.performClick();assertFalse(p.editing);}assertEquals(count,p.selected.size());assertEquals(6,p.slots.getChildCount());
+   if(count==1){p.editParty.performClick();for(int i=2;i>0;i--)p.ownedTiles.get("o"+i).action.performClick();assertFalse(p.normal.isEnabled());assertFalse(p.rank.isEnabled());p.save.performClick();assertFalse(p.editing);}assertEquals(count,p.selected.size());assertEquals(3,p.slots.getChildCount());
    Button target=mode.equals("normal")?p.normal:p.rank,other=mode.equals("normal")?p.rank:p.normal;assertEquals(View.GONE,other.getVisibility());other.performClick();assertEquals(saves,api.writes.size());
    target.performClick();target.performClick();assertEquals(2+saves,api.writes.size());assertEquals(count,api.writes.get(saves).getJSONArray("ownedIds").length());if(mode.equals("rank"))assertEquals("rank",api.writes.get(saves).getString("mode"));else assertFalse(api.writes.get(saves).has("mode"));assertEquals(mode,api.writes.get(1+saves).getString("mode"));assertEquals(1,calls(api,"pvp/join"));assertFalse(api.paths.contains("native/team"));
    h.back();assertEquals("home",h.screen);assertEquals(0,calls(api,"pvp/cancel"));
@@ -89,9 +92,9 @@ public class NativePlayNavigationTest {
    MainActivity h=c.get();Api api=prepare(h);api.unitLevel=serverFlag?1:99;api.unitEligible=serverFlag;h.openRosterPvp("rank");NativeRoster60Pvp p=h.rosterPvp;
    assertFalse("Rank stays locked for unit level="+api.unitLevel+", server eligible="+serverFlag,p.rank.isEnabled());assertFalse("Invalid rank party cannot be saved",p.save.isEnabled());
    p.editParty.performClick();
-   for(int i=0;i<6;i++)p.ownedTiles.get("o"+i).action.performClick();assertTrue("Every existing invalid member remains removable: "+p.selected,p.selected.isEmpty());
+   for(int i=0;i<3;i++)p.ownedTiles.get("o"+i).action.performClick();assertTrue("Every existing invalid member remains removable: "+p.selected,p.selected.isEmpty());
    p.ownedTiles.get("o6").action.performClick();assertTrue("Rank cannot add this unit",p.selected.isEmpty());assertTrue("Low-level denial explains the unit threshold: "+p.status.getText(),p.status.getText().toString().contains("Lv.60"));assertTrue("Refused selection never sends a write",api.writes.isEmpty());p.pause();
-   h.openRosterPvp("normal");p=h.rosterPvp;assertEquals(6,p.selected.size());assertTrue(p.normal.isEnabled());p.normal.performClick();assertEquals(2,api.writes.size());assertFalse(api.writes.get(0).has("mode"));assertEquals("normal",api.writes.get(1).getString("mode"));p.pause();
+   h.openRosterPvp("normal");p=h.rosterPvp;assertEquals(3,p.selected.size());assertTrue(p.normal.isEnabled());p.normal.performClick();assertEquals(2,api.writes.size());assertFalse(api.writes.get(0).has("mode"));assertEquals("normal",api.writes.get(1).getString("mode"));p.pause();
   }
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);api.unitLevel=1;api.unitEligible=false;api.rankFields=false;h.team();NativeRoster60Pvp p=h.rosterPvp;assertTrue(p.management);assertTrue(p.save.isEnabled());p.save.performClick();assertEquals(1,api.writes.size());assertFalse(api.writes.get(0).has("mode"));p.pause();
@@ -109,7 +112,7 @@ public class NativePlayNavigationTest {
  @Test public void recoveredRankJoinReplaysItsExactRequestBeforeCheckingNewEligibility()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.openRosterPvp("rank");h.rosterPvp.rank.performClick();JSONObject original=api.writes.get(1);api.pending.done(null,"network");h.back();api.rankFields=false;h.openRosterPvp("rank");NativeRoster60Pvp p=h.rosterPvp;
-   assertEquals(original.toString(),api.writes.get(2).toString());assertEquals(1,calls(api,"pvp/party"));api.current=MainActivity.obj("status","waiting","mode","rank","rankCondition","RANK_QUEUE_CLASS_CHANGED","queuedAt",1000000L,"serverNow",1010000L);api.pending.done(api.current,null);
+   assertEquals(original.toString(),api.writes.get(2).toString());assertEquals(1,calls(api,"pvp/party"));api.current=MainActivity.obj("status","waiting","mode","rank","rankCondition","RANK_QUEUE_CLASS_CHANGED","queuedAt",1000000L,"serverNow",1010000L);api.pending.done(api.policy(NativeRealtime.copy(api.current)),null);
    assertTrue(p.waiting);assertTrue(p.cancel.isEnabled());assertTrue(p.status.getText().toString().contains("환생 이력"));assertEquals("rank",p.selectedMode);assertEquals(2,calls(api,"pvp/join"));assertFalse(p.status.getText().toString().contains("AI"));p.pause();
   }
  }
@@ -129,7 +132,7 @@ public class NativePlayNavigationTest {
    MainActivity h=c.get();Api api=prepare(h);api.current=MainActivity.obj("status","waiting","mode","normal");h.openPlayMenu();choose(h,"rank");
    assertTrue(h.rosterPvp.waiting);assertEquals("normal",h.rosterPvp.selectedMode);assertEquals(View.VISIBLE,h.rosterPvp.normal.getVisibility());assertEquals(View.GONE,h.rosterPvp.rank.getVisibility());assertTrue(h.title.getText().toString().contains("일반게임"));assertTrue(api.writes.isEmpty());
    h.back();assertEquals("home",h.screen);assertEquals(0,calls(api,"pvp/cancel"));choose(h,"rank");assertEquals("normal",h.rosterPvp.selectedMode);assertTrue(h.rosterPvp.waiting);
-   h.rosterPvp.cancel.performClick();assertEquals(1,calls(api,"pvp/cancel"));assertEquals(0,calls(api,"pvp/join"));api.pending.done(MainActivity.obj("status","idle"),null);h.back();assertEquals("home",h.screen);
+   h.rosterPvp.cancel.performClick();assertEquals(1,calls(api,"pvp/cancel"));assertEquals(0,calls(api,"pvp/join"));api.completeIdle();h.back();assertEquals("home",h.screen);
   }
  }
 
@@ -139,15 +142,15 @@ public class NativePlayNavigationTest {
    api.pending.done(null,"network");assertFalse(h.rosterPvp.prefs.getString(key,"").isEmpty());h.back();assertEquals("home",h.screen);assertEquals(0,calls(api,"pvp/cancel"));
    choose(h,"rank");assertEquals("normal",h.rosterPvp.selectedMode);assertEquals(3,api.writes.size());assertEquals(first.toString(),api.writes.get(2).toString());assertEquals(1,calls(api,"pvp/party"));
    h.back();assertEquals("home",h.screen);assertFalse(h.rosterPvp.prefs.getString(key,"").isEmpty());
-   api.pending.done(MainActivity.obj("status","waiting","mode","normal"),null);assertEquals("home",h.screen);assertTrue(h.rosterPvp.prefs.getString(key,"").isEmpty());
+   api.pending.done(api.policy(MainActivity.obj("status","waiting","mode","normal")),null);assertEquals("home",h.screen);assertTrue(h.rosterPvp.prefs.getString(key,"").isEmpty());
   }
  }
 
  @Test public void leavingDuringPartySavePreventsLateJoinAndStaleCurrentCannotChangeMode()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){
-   MainActivity h=c.get();Api api=prepare(h);api.deferParty=true;h.openPlayMenu();choose(h,"rank");h.rosterPvp.rank.performClick();assertNotNull(api.partyPending);h.back();assertEquals("home",h.screen);api.partyPending.done(new JSONObject(),null);assertEquals(0,calls(api,"pvp/join"));
-   api.deferCurrent=true;choose(h,"rank");assertNotNull(api.currentPending);h.back();api.currentPending.done(MainActivity.obj("status","waiting","mode","normal"),null);assertEquals("home",h.screen);assertEquals("rank",h.rosterPvpMode);
-   choose(h,"rank");NativeRoster60Pvp p=h.rosterPvp;api.account="different-account";api.currentPending.done(MainActivity.obj("status","waiting","mode","normal"),null);assertEquals("rank",p.selectedMode);assertEquals(0,calls(api,"pvp/join"));assertEquals(0,calls(api,"pvp/cancel"));
+   MainActivity h=c.get();Api api=prepare(h);api.deferParty=true;h.openPlayMenu();choose(h,"rank");h.rosterPvp.rank.performClick();assertNotNull(api.partyPending);h.back();assertEquals("home",h.screen);api.partyPending.done(api.policy(MainActivity.obj("partyIds",new JSONArray(api.savedIds))),null);assertEquals(0,calls(api,"pvp/join"));
+   api.deferCurrent=true;choose(h,"rank");assertNotNull(api.currentPending);h.back();api.currentPending.done(api.policy(MainActivity.obj("status","waiting","mode","normal")),null);assertEquals("home",h.screen);assertEquals("rank",h.rosterPvpMode);
+   choose(h,"rank");NativeRoster60Pvp p=h.rosterPvp;api.account="different-account";api.currentPending.done(api.policy(MainActivity.obj("status","waiting","mode","normal")),null);assertEquals("rank",p.selectedMode);assertEquals(0,calls(api,"pvp/join"));assertEquals(0,calls(api,"pvp/cancel"));
   }
  }
 
@@ -158,7 +161,7 @@ public class NativePlayNavigationTest {
    if(!metadata){saved.remove("mode");old.prefs.edit().putString(old.key,saved.toString()).commit();}
    h.back();assertEquals("home",h.screen);choose(h,"rank");NativeRoster60Pvp restored=h.rosterPvp;assertEquals(2,api.writes.size());assertEquals(first.toString(),api.writes.get(1).toString());assertEquals(0,calls(api,"pvp/join"));assertEquals(0,calls(api,"pvp/party"));
    if(metadata){assertEquals("normal",restored.selectedMode);assertTrue(h.title.getText().toString().contains("일반게임"));}else{assertEquals("",restored.selectedMode);assertTrue(restored.pendingModeUnknown);assertEquals("대전 확인 중",h.title.getText().toString());assertEquals(View.GONE,restored.normal.getVisibility());assertEquals(View.GONE,restored.rank.getVisibility());}
-   api.pending.done(MainActivity.obj("status","idle"),null);assertFalse(restored.pendingModeUnknown);assertTrue(restored.prefs.getString(restored.key,"").isEmpty());assertEquals(metadata?"normal":"rank",restored.selectedMode);h.back();assertEquals("home",h.screen);assertEquals(2,calls(api,"pvp/cancel"));
+   api.completeIdle();assertFalse(restored.pendingModeUnknown);assertTrue(restored.prefs.getString(restored.key,"").isEmpty());assertEquals(metadata?"normal":"rank",restored.selectedMode);h.back();assertEquals("home",h.screen);assertEquals(2,calls(api,"pvp/cancel"));
   }
  }
 
@@ -169,7 +172,7 @@ public class NativePlayNavigationTest {
    assertTrue(p.status.getText().toString().contains("0:30 대기"));assertTrue(p.status.getText().toString().contains("AI 매칭 확인 중"));assertTrue("The display never starts its own AI match",api.writes.isEmpty());
    h.back();int calls=api.paths.size();org.robolectric.shadows.ShadowLooper.idleMainLooper(3000,java.util.concurrent.TimeUnit.MILLISECONDS);assertEquals(calls,api.paths.size());
    api.deferCurrent=false;api.current.put("serverNow",1036000L);choose(h,"rank");assertEquals("normal",h.rosterPvp.selectedMode);assertTrue(h.rosterPvp.status.getText().toString().contains("0:36 대기"));
-   h.rosterPvp.cancel.performClick();h.rosterPvp.cancel.performClick();assertEquals(1,calls(api,"pvp/cancel"));api.pending.done(MainActivity.obj("status","idle"),null);assertFalse(h.rosterPvp.waiting);h.rosterPvp.pause();
+   h.rosterPvp.cancel.performClick();h.rosterPvp.cancel.performClick();assertEquals(1,calls(api,"pvp/cancel"));api.completeIdle();assertFalse(h.rosterPvp.waiting);h.rosterPvp.pause();
   }
  }
 
@@ -177,8 +180,8 @@ public class NativePlayNavigationTest {
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);api.current=MainActivity.obj("status","waiting","mode","normal","queuedAt",1000000L,"serverNow",1028000L,"aiAvailableAt",1030000L);h.openPlayMenu();choose(h,"normal");NativeRoster60Pvp p=h.rosterPvp;api.deferCurrent=true;
    org.robolectric.shadows.ShadowLooper.idleMainLooper(2000,java.util.concurrent.TimeUnit.MILLISECONDS);assertTrue(p.currentRead);assertTrue(p.cancel.isEnabled());p.cancel.performClick();p.cancel.performClick();assertEquals(1,calls(api,"pvp/cancel"));assertFalse(p.cancel.isEnabled());
-   JSONObject late=NativeRoster60HumanPvpTest.battle();late.put("mode","normal").put("opponentKind","AI");api.currentPending.done(MainActivity.obj("status","matched","battle",late),null);assertEquals("roster60Pvp",h.screen);assertTrue(p.busy);
-   api.pending.done(MainActivity.obj("status","idle"),null);assertFalse(p.waiting);assertFalse(p.busy);assertFalse(p.status.getText().toString().contains("대기"));p.pause();assertEquals(1,api.writes.size());
+   JSONObject late=NativeRoster60HumanPvpTest.battle();late.put("mode","normal").put("opponentKind","AI");api.currentPending.done(api.policy(MainActivity.obj("status","matched","battle",late)),null);assertEquals("roster60Pvp",h.screen);assertTrue(p.busy);
+   api.completeIdle();assertFalse(p.waiting);assertFalse(p.busy);assertFalse(p.status.getText().toString().contains("대기"));p.pause();assertEquals(1,api.writes.size());
   }
  }
 
@@ -186,7 +189,7 @@ public class NativePlayNavigationTest {
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.openPlayMenu();choose(h,"normal");h.rosterPvp.normal.performClick();JSONObject first=api.writes.get(1);api.pending.done(null,"network");h.back();
    choose(h,"rank");assertEquals(first.toString(),api.writes.get(2).toString());api.current=MainActivity.obj("status","waiting","mode","normal","queuedAt",1000000L,"serverNow",1024000L,"aiAvailableAt",1030000L);int before=calls(api,"pvp/current");
-   api.pending.done(MainActivity.obj("status","waiting","mode","normal","queuedAt",1000000L,"serverNow",1000000L,"aiAvailableAt",1030000L),null);
+   api.pending.done(api.policy(MainActivity.obj("status","waiting","mode","normal","queuedAt",1000000L,"serverNow",1000000L,"aiAvailableAt",1030000L)),null);
    assertEquals(before+1,calls(api,"pvp/current"));assertTrue(h.rosterPvp.status.getText().toString().contains("0:24 대기"));assertTrue(h.rosterPvp.status.getText().toString().contains("6초 후 AI"));assertFalse(h.rosterPvp.status.getText().toString().contains("0:00"));assertEquals(3,api.writes.size());h.rosterPvp.pause();
   }
  }
@@ -210,7 +213,7 @@ public class NativePlayNavigationTest {
   List<NativeHomePartyFeedbackTest.Profile> profiles=new ArrayList<>(Arrays.asList(NativeHomePartyFeedbackTest.PROFILES));profiles.add(new NativeHomePartyFeedbackTest.Profile("tablet-1280x800",1280,800,160,1,0,0,0,0));JSONArray evidence=new JSONArray();
   for(NativeHomePartyFeedbackTest.Profile profile:profiles){helper.configure(profile);try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();Api api=prepare(h);h.openPlayMenu();helper.layout(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);assertEquals("home",h.screen);assertNull(h.root.findViewWithTag("play-menu-choices"));assertNull(h.root.findViewWithTag("story-tab-main"));assertTrue(h.root.getChildAt(0) instanceof NativeVillageHomeView);captureSettled(h,profile,"village");
-   choose(h,"rank");helper.layout(h,profile);LocalGameArtTest.drain();assertEquals(6,h.rosterPvp.slots.getChildCount());assertEquals("rank",h.rosterPvp.selectedMode);assertEquals(View.VISIBLE,h.rosterPvp.rank.getVisibility());assertEquals(View.GONE,h.rosterPvp.normal.getVisibility());assertTrue(api.writes.isEmpty());captureSettled(h,profile,"rank-party");evidence.put(MainActivity.obj("profile",profile.json(),"hubRemoved",true,"trainingMode","rank"));h.rosterPvp.pause();
+   choose(h,"rank");helper.layout(h,profile);LocalGameArtTest.drain();assertEquals(3,h.rosterPvp.slots.getChildCount());assertEquals("rank",h.rosterPvp.selectedMode);assertEquals(View.VISIBLE,h.rosterPvp.rank.getVisibility());assertEquals(View.GONE,h.rosterPvp.normal.getVisibility());assertTrue(api.writes.isEmpty());captureSettled(h,profile,"rank-party");evidence.put(MainActivity.obj("profile",profile.json(),"hubRemoved",true,"trainingMode","rank"));h.rosterPvp.pause();
   }}
   Files.write(output().resolve("geometry.json"),evidence.toString(2).getBytes(StandardCharsets.UTF_8));
  }

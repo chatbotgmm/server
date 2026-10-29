@@ -11,6 +11,7 @@ final class Roster60BattleErrorText {
    case "INSUFFICIENT_MP":return "MP가 부족해요. 다른 기술이나 집중을 선택해 주세요.";
    case "UNIT_NOT_FOUND":return "선택한 대원을 현재 보유 목록에서 찾지 못했어요. 편성을 확인해 주세요.";
    case "UNIT_UNAVAILABLE":return "선택한 대원은 지금 출전할 수 없어요. 대원 상태와 편성을 확인해 주세요.";
+   case Roster60PartyPolicy.RESELECT:return Roster60PartyPolicy.selectionMessage();
    case "INVALID_PARTY":return "출전 편성을 확인해 주세요.";
    case "ACTIVE_UNIT_FAINTED":case "FORCED_SWITCH_REQUIRED":return "출전 대원이 전투불능이에요. 생존한 예비 대원을 확인해 주세요.";
    default:return error;

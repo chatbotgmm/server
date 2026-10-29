@@ -59,7 +59,7 @@ final class NativeVillageShortcuts extends LinearLayout {
     button.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);buttons.put(key,button);
     LayoutParams box=new LayoutParams(-1,h.dp(52));box.topMargin=h.dp(4);targets.addView(button,box);
   }
-  void toggle(){expanded=!expanded;applyExpansion();}
+  void toggle(){expanded=!expanded;if(expanded&&village.questTracker!=null)village.questTracker.collapse();applyExpansion();}
   void collapse(){if(expanded){expanded=false;applyExpansion();}}
   void applyExpansion(){scroll.setVisibility(expanded?VISIBLE:GONE);refresh();village.requestLayout();}
   boolean contains(float x,float y){return getVisibility()==VISIBLE&&new RectF(getLeft(),getTop(),getRight(),getBottom()).contains(x,y);}

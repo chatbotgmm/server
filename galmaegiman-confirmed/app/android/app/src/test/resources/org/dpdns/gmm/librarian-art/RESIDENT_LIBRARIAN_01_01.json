@@ -1,0 +1,256 @@
+{
+  "recording": {
+    "questId": "RESIDENT_LIBRARIAN_01",
+    "title": "책 사이의 이름",
+    "encounterId": "RESIDENT_LIBRARIAN_01_01",
+    "checkpointWins": 0,
+    "contentVersion": "story-progression-test-v1",
+    "catalogVersion": "five-stat-device-test-v1",
+    "contentSha256": "1702b4439faba28089433e8aabfb6bc460cd3368fc0165348f4aab3b3bf19ee5",
+    "catalogSha256": "cb0743b7ce93d6dc0fbdd9c9acd360734511d4a34bafaca9fe5f5f437a79abf7",
+    "service": "RosterStory.createBattle",
+    "priorPlaythrough": "server-owned-checkpoint-fixture"
+  },
+  "battle": {
+    "balanceProfile": "five-stat-device-test-v1",
+    "testBaseline": true,
+    "battleId": "649afc66-8df7-4618-8d91-379aa3bca21c",
+    "revision": 0,
+    "status": "ACTIVE",
+    "state": {
+      "participation": [
+        {
+          "ownedId": "34ba38af-9121-40a0-bd7d-01fe87b0b2db",
+          "kind": "start",
+          "turn": 0
+        }
+      ],
+      "rulesVersion": "party-actions-v2",
+      "adventureId": "83251a9f-0477-4b87-883b-c1384d5f1565",
+      "reserves": [],
+      "mode": "adventure",
+      "inventory": [],
+      "version": "five-battle-v1",
+      "turn": 0,
+      "fighters": [
+        {
+          "id": "self",
+          "speciesId": "u01",
+          "name": "갈매미맨",
+          "level": 60,
+          "stats": {
+            "hp": 701,
+            "mp": 117,
+            "durability": 51,
+            "statusResistance": 27,
+            "speed": 29
+          },
+          "hp": 701,
+          "mp": 117,
+          "attack": {
+            "id": "basic_attack",
+            "name": "공격",
+            "element": "NORMAL",
+            "power": 16,
+            "mpCost": 0
+          },
+          "skills": [
+            {
+              "id": "normal_1",
+              "name": "주먹",
+              "element": "NORMAL",
+              "power": 24,
+              "mpCost": 4,
+              "nameStatus": "confirmed_in_parent_history",
+              "learnLevel": 1
+            },
+            {
+              "id": "holy_1",
+              "name": "빛살",
+              "element": "HOLY",
+              "power": 24,
+              "mpCost": 4,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 5
+            },
+            {
+              "id": "normal_2",
+              "name": "강한주먹",
+              "element": "NORMAL",
+              "power": 36,
+              "mpCost": 8,
+              "nameStatus": "confirmed_in_parent_history",
+              "learnLevel": 10
+            },
+            {
+              "id": "normal_3",
+              "name": "맹렬한주먹",
+              "element": "NORMAL",
+              "power": 50,
+              "mpCost": 14,
+              "nameStatus": "confirmed_in_parent_history",
+              "learnLevel": 24
+            },
+            {
+              "id": "normal_4",
+              "name": "온힘의 주먹",
+              "element": "NORMAL",
+              "power": 68,
+              "mpCost": 22,
+              "nameStatus": "confirmed_in_parent_history",
+              "learnLevel": 40
+            }
+          ],
+          "suitability": {
+            "NORMAL": 2,
+            "FIRE": 0,
+            "WATER": 0,
+            "LIGHTNING": 0,
+            "ICE": 0,
+            "NATURE": 0,
+            "HOLY": 1,
+            "DARK": -1
+          },
+          "ownedId": "34ba38af-9121-40a0-bd7d-01fe87b0b2db"
+        },
+        {
+          "id": "enemy",
+          "artVariant": "black",
+          "speciesId": "u14",
+          "name": "흑화 서리",
+          "level": 44,
+          "hp": 483,
+          "mp": 125,
+          "stats": {
+            "hp": 483,
+            "mp": 125
+          },
+          "attack": {
+            "id": "basic_attack",
+            "name": "공격",
+            "element": "NORMAL",
+            "power": 18,
+            "mpCost": 0
+          },
+          "skills": [
+            {
+              "id": "ice_1",
+              "name": "서리바늘",
+              "element": "ICE",
+              "power": 26,
+              "mpCost": 4,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 1
+            },
+            {
+              "id": "water_1",
+              "name": "물방울",
+              "element": "WATER",
+              "power": 26,
+              "mpCost": 4,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 5
+            },
+            {
+              "id": "ice_2",
+              "name": "고드름",
+              "element": "ICE",
+              "power": 40,
+              "mpCost": 8,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 10
+            },
+            {
+              "id": "ice_3",
+              "name": "얼음쐐기",
+              "element": "ICE",
+              "power": 55,
+              "mpCost": 14,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 24
+            },
+            {
+              "id": "ice_4",
+              "name": "서릿발",
+              "element": "ICE",
+              "power": 75,
+              "mpCost": 22,
+              "nameStatus": "workbook_proposal_not_name_approval",
+              "learnLevel": 40
+            }
+          ]
+        }
+      ],
+      "decision": {
+        "version": "five-speed-v1",
+        "battleId": "649afc66-8df7-4618-8d91-379aa3bca21c",
+        "turn": 0,
+        "fighters": [
+          "enemy",
+          "self"
+        ],
+        "order": [
+          "self",
+          "enemy"
+        ],
+        "tie": false
+      },
+      "outcome": null,
+      "events": [],
+      "opponentIntel": {
+        "version": "opponent-intel-v2",
+        "speciesId": "u14",
+        "name": "흑화 서리",
+        "level": 44,
+        "completedTurns": 0,
+        "defenseKnowledgeScope": "base-observed",
+        "statsKnown": false,
+        "stats": null,
+        "defenses": {
+          "NORMAL": "unknown",
+          "FIRE": "unknown",
+          "WATER": "unknown",
+          "LIGHTNING": "unknown",
+          "ICE": "unknown",
+          "NATURE": "unknown",
+          "HOLY": "unknown",
+          "DARK": "unknown"
+        },
+        "knownDefenseCount": 0,
+        "totalDefenseCount": 8
+      }
+    },
+    "settlement": null,
+    "itemDefinitions": {
+      "potion": {
+        "name": "치료약",
+        "price": 60,
+        "desc": "지금 나와 있는 갈매미의 체력을 35% 회복해요",
+        "heal": 35
+      },
+      "big": {
+        "name": "큰 치료약",
+        "price": 150,
+        "desc": "지금 나와 있는 갈매미의 체력을 75% 회복해요",
+        "heal": 75
+      },
+      "clear": {
+        "name": "정신 차리기 물",
+        "price": 80,
+        "desc": "지금 나와 있는 갈매미의 상태 이상(화상·빙결·잠·묶임·폭주)을 풀어요",
+        "cleanse": true
+      },
+      "feather": {
+        "name": "다시 출근 깃털",
+        "price": 300,
+        "desc": "쓰러진 아군 하나를 체력 50%로 다시 일으켜요",
+        "revive": 50
+      }
+    },
+    "disabledCommands": {
+      "item": "",
+      "switch": "",
+      "escape": ""
+    }
+  }
+}

@@ -1,0 +1,438 @@
+[
+  {
+    "path": [
+      "residents",
+      0,
+      "dailyDialogue"
+    ],
+    "text": "작은 표지판 하나라도 제대로 세워야지. 길 잃은 녀석이 그걸 보고 돌아오니까.",
+    "speakerId": "blacksmith",
+    "characters": 43
+  },
+  {
+    "path": [
+      "residents",
+      1,
+      "dailyDialogue"
+    ],
+    "text": "꼭 물건 사러 오란 법 있나. 이야기만 두고 가도 돼. 잠깐 앉을래?",
+    "speakerId": "merchant",
+    "characters": 38
+  },
+  {
+    "path": [
+      "residents",
+      2,
+      "dailyDialogue"
+    ],
+    "text": "오늘 남겨 두고 싶은 기억이 있나요? 짧게 적어도 괜찮아요.",
+    "speakerId": "librarian",
+    "characters": 33
+  },
+  {
+    "path": [
+      "residents",
+      3,
+      "dailyDialogue"
+    ],
+    "text": "길만 보고 다니는 건 아니야. 다들 무사히 돌아왔는지도 봐야지.",
+    "speakerId": "guard",
+    "characters": 35
+  },
+  {
+    "path": [
+      "scenes",
+      4,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "남아 있는 기록을 함께 봐요. 같은 시기의 다른 글과 비교해 보니, 이상하게 비어 있는 부분이 있어요.",
+    "speakerId": "librarian",
+    "characters": 57
+  },
+  {
+    "path": [
+      "scenes",
+      5,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "빈칸을 짐작으로 채우지는 말아요. 비어 있다는 것도 조사 결과니까요.",
+    "speakerId": "librarian",
+    "characters": 38
+  },
+  {
+    "path": [
+      "scenes",
+      8,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "도우러 오는 이들도 돌아갈 길은 보여야지. 돈보다 길 상태가 먼저야. 살펴봐 주겠나.",
+    "speakerId": "blacksmith",
+    "characters": 47
+  },
+  {
+    "path": [
+      "scenes",
+      8,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "아니. 무너진 표식을 바로 세우고, 위험한 데가 어딘지 알려 주게.",
+    "speakerId": "blacksmith",
+    "characters": 37
+  },
+  {
+    "path": [
+      "scenes",
+      9,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "좋아. 이젠 돌아오는 이가 헤매지 않겠군.",
+    "speakerId": "blacksmith",
+    "characters": 23
+  },
+  {
+    "path": [
+      "scenes",
+      10,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "그림 하나만 보지 말고, 서로 다른 자료를 나란히 놓고 살펴봐요.",
+    "speakerId": "librarian",
+    "characters": 36
+  },
+  {
+    "path": [
+      "scenes",
+      11,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "자료와 조각은 따로 기록해 둘게요. 모양만 보고 과거를 단정할 수는 없으니까요.",
+    "speakerId": "librarian",
+    "characters": 44
+  },
+  {
+    "path": [
+      "scenes",
+      12,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "같은 사건을 다룬 자료들을 모아 봤어요. 그런데 비어 있는 부분이 자료마다 달라요.",
+    "speakerId": "librarian",
+    "characters": 46
+  },
+  {
+    "path": [
+      "scenes",
+      13,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "그대로 적어 둘게요. 아직 모르는 걸 아는 것처럼 쓸 수는 없으니까요.",
+    "speakerId": "librarian",
+    "characters": 39
+  },
+  {
+    "path": [
+      "scenes",
+      14,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "조심해. 그 노인을 찾는 건 너희만이 아니야.",
+    "speakerId": "messenger",
+    "characters": 25
+  },
+  {
+    "path": [
+      "scenes",
+      14,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "이름은 크레갈스. 오래된 석상을 아는 인간이라고 들었어.",
+    "speakerId": "messenger",
+    "characters": 31
+  },
+  {
+    "path": [
+      "scenes",
+      15,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "덕분에 무사히 빠져나왔어. 노인이 옮겨 간 거처의 흔적을 알려 줄게.",
+    "speakerId": "messenger",
+    "characters": 38
+  },
+  {
+    "path": [
+      "scenes",
+      17,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "위치는 함부로 알리지 않고 기록만 해 둘게요. 직접 만나기 전에는 그분 사정을 알 수 없으니까요.",
+    "speakerId": "librarian",
+    "characters": 54
+  },
+  {
+    "path": [
+      "scenes",
+      32,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "누가 강한지만 따지면 되는 줄 알았어. 대피할 길도, 기다릴 자리도 챙겨야겠군.",
+    "speakerId": "guard",
+    "characters": 44
+  },
+  {
+    "path": [
+      "scenes",
+      32,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "보급은 내가 맡을게. 짐은 나눠 들자. 누구 혼자 다 들고 가면 곤란하지.",
+    "speakerId": "merchant",
+    "characters": 41
+  },
+  {
+    "path": [
+      "scenes",
+      33,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "대피할 길은 다 살폈어. 돌아올 사람도 빠짐없이 세어 둘게.",
+    "speakerId": "guard",
+    "characters": 33
+  },
+  {
+    "path": [
+      "scenes",
+      42,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "예전엔 내 이름이나 크게 새겼지. 이젠 길이 잘 보여야겠더군.",
+    "speakerId": "blacksmith",
+    "characters": 34
+  },
+  {
+    "path": [
+      "scenes",
+      42,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "바깥 길표식이 길을 제대로 가리키는지 봐 주겠나. 돌아오는 방향을 똑바로 새기고 싶네.",
+    "speakerId": "blacksmith",
+    "characters": 48
+  },
+  {
+    "path": [
+      "scenes",
+      43,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "잘 봐 왔군. 돌아오는 방향은 선명하게 새겨 두겠네.",
+    "speakerId": "blacksmith",
+    "characters": 29
+  },
+  {
+    "path": [
+      "scenes",
+      43,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "이번엔 오래 남았으면 해. 내 이름 말고, 돌아오는 길이.",
+    "speakerId": "blacksmith",
+    "characters": 32
+  },
+  {
+    "path": [
+      "scenes",
+      44,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "오늘은 뭘 안 사도 편히 앉을 자리를 좀 만들려고.",
+    "speakerId": "merchant",
+    "characters": 28
+  },
+  {
+    "path": [
+      "scenes",
+      44,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "응. 팔 물건은 챙겨 놓고, 정작 같이 앉을 자리를 빼먹었지 뭐야. 밖에 두고 온 꾸러미 좀 가져다줄래?",
+    "speakerId": "merchant",
+    "characters": 58
+  },
+  {
+    "path": [
+      "scenes",
+      45,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "이 꾸러미엔 값표 안 붙여. 오늘 다 같이 쓸 거거든.",
+    "speakerId": "merchant",
+    "characters": 30
+  },
+  {
+    "path": [
+      "scenes",
+      45,
+      "lines",
+      3,
+      "text"
+    ],
+    "text": "계산은 내일로 미루자. 오늘은 이야기부터 하자고.",
+    "speakerId": "merchant",
+    "characters": 27
+  },
+  {
+    "path": [
+      "scenes",
+      46,
+      "lines",
+      0,
+      "text"
+    ],
+    "text": "아직 돌아오지 않은 책이 있어요. 책도 책이지만, 그 안에 든 메모가 마음에 걸려요.",
+    "speakerId": "librarian",
+    "characters": 47
+  },
+  {
+    "path": [
+      "scenes",
+      46,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "꼭 비밀이어야 소중한 건 아니에요. 역사에 남지 않은 이름도 누군가에겐 가장 소중한 이름이니까요.",
+    "speakerId": "librarian",
+    "characters": 54
+  },
+  {
+    "path": [
+      "scenes",
+      47,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "짧은 말이지만, 기록으로 남길 이유는 충분하네요.",
+    "speakerId": "librarian",
+    "characters": 27
+  },
+  {
+    "path": [
+      "scenes",
+      47,
+      "lines",
+      2,
+      "text"
+    ],
+    "text": "이름도 남아 있네요. 잘 기록해 두면 이 추억도 잊히지 않겠어요.",
+    "speakerId": "librarian",
+    "characters": 36
+  },
+  {
+    "path": [
+      "scenes",
+      48,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "내 이름이 그렇게 많아? 지우는 걸 깜빡했나 보군.",
+    "speakerId": "guard",
+    "characters": 28
+  },
+  {
+    "path": [
+      "scenes",
+      48,
+      "lines",
+      3,
+      "text"
+    ],
+    "text": "오늘 바깥 순찰길을 좀 봐 주겠나. 난 여기서 당번을 맡고 있을 테니.",
+    "speakerId": "guard",
+    "characters": 39
+  },
+  {
+    "path": [
+      "scenes",
+      48,
+      "lines",
+      5,
+      "text"
+    ],
+    "text": "인어기사한테는 물 공격이 안 통해. 번개나 자연 공격, 다른 보통 피해 기술로 대비해 줘.",
+    "speakerId": "guard",
+    "characters": 50
+  },
+  {
+    "path": [
+      "scenes",
+      49,
+      "lines",
+      1,
+      "text"
+    ],
+    "text": "혼자 다 맡아야 지키는 줄 알았는데… 다음엔 나도 동료한테 맡겨 봐야겠어.",
+    "speakerId": "guard",
+    "characters": 41
+  },
+  {
+    "path": [
+      "scenes",
+      49,
+      "lines",
+      3,
+      "text"
+    ],
+    "text": "돌아올 사람을 기다리는 것도 당번 일이겠지. 다음 순찰은 같이 돌자.",
+    "speakerId": "guard",
+    "characters": 38
+  }
+]

@@ -47,7 +47,9 @@ public class OwnedRosterFormationTest {
 
       assertEquals(Arrays.asList("o1", "o2", "o0"), new ArrayList<>(form.ownedTiles.keySet()));
       assertEquals(3, form.units.length());
-      assertEquals(3, form.ownedStrip.cards.getChildCount());
+      assertEquals("Same species starts as one collapsed group", 1, form.ownedStrip.cards.getChildCount());
+      assertEquals("최고 Lv.50 · 보유 3명", form.ownedGroups.groups.get(0).summary());
+      assertNull(form.ownedGroups.dialog);
       assertEquals(Arrays.asList("o0", "o1"), form.selected);
       form.start.performClick();
       assertEquals(1, submitted.size());

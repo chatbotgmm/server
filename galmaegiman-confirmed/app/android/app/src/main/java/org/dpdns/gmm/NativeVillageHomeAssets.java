@@ -21,6 +21,8 @@ final class NativeVillageHomeAssets {
   final Source source;
   final Set<String> statueRequests=new HashSet<>(),statuePending=new HashSet<>(),statueErrors=new HashSet<>();
   final Set<String> requiredImages=new LinkedHashSet<>(),wantedImages=new LinkedHashSet<>();
+  // The complete displayed window is pinned until the next complete window is committed.
+  final Set<String> committedImages=new LinkedHashSet<>();
   final Set<String> inFlight=new HashSet<>(),failed=new HashSet<>();
   VillageLayout activeLayout;
   BooleanSupplier current=()->false;
@@ -48,9 +50,9 @@ final class NativeVillageHomeAssets {
     if(active&&activeLayout!=null)refreshWindow();
   }
   void load(VillageLayout layout, BooleanSupplier current, Runnable changed) {
-    boolean sameLayout=activeLayout==layout;
+    boolean sameLayout=activeLayout==layout&&this.current.getAsBoolean();
     generation++;this.activeLayout=layout;this.current=current;this.changed=changed;active=true;
-    if(!sameLayout)images.clear();
+    if(!sameLayout){images.clear();committedImages.clear();}
     pending=0;missing=0;requiredMask=-1;wantedMask=-1;inFlight.clear();failed.clear();requiredImages.clear();wantedImages.clear();
     statueRequests.clear();statuePending.clear();statueErrors.clear();if(!sameLayout)currentStatue="";
     refreshWindow();
@@ -62,7 +64,7 @@ final class NativeVillageHomeAssets {
       requiredMask=visible;wantedMask=nearby;
       Set<String> required=selectLayered(cameraUnits,viewportUnits),wanted=selectLayered(cameraUnits-PREFETCH_UNITS,viewportUnits+2*PREFETCH_UNITS);
       requiredImages.clear();requiredImages.addAll(required);wantedImages.clear();wantedImages.addAll(wanted);
-      images.keySet().removeIf(id->!wantedImages.contains(id)&&!id.equals(currentStatue));
+      prune();
       recount();drain();changed.run();return;
     }
     double apron=activeLayout.continuousFoundation?.5:0;
@@ -72,7 +74,7 @@ final class NativeVillageHomeAssets {
     Set<String> required=select(visible),wanted=select(nearby);
     requiredImages.clear();requiredImages.addAll(required);wantedImages.clear();wantedImages.addAll(wanted);
     // Bitmaps may remain in the bounded shared LRU; this view must not pin all four districts forever.
-    images.keySet().removeIf(id->!wantedImages.contains(id)&&!id.equals(currentStatue));
+    prune();
     recount();drain();changed.run();
   }
   int layeredMask(double left,double span){
@@ -123,28 +125,58 @@ final class NativeVillageHomeAssets {
   boolean available(VillageLayout.Asset asset){return asset!=null&&asset.verified&&asset.path.startsWith("native/village-loop-v2/")&&!asset.path.contains("..")&&asset.path.matches("[A-Za-z0-9_./-]+");}
   void recount(){
     pending=0;missing=0;
-    for(String id:requiredImages){if(images.containsKey(id))continue;if(failed.contains(id)||!available(activeLayout.assets.get(id)))missing++;else pending++;}
+    for(String id:requiredImages){if(get(id)!=null)continue;if(failed.contains(id)||!available(activeLayout.assets.get(id)))missing++;else pending++;}
+  }
+  void prune(){images.keySet().removeIf(id->!wantedImages.contains(id)&&!committedImages.contains(id)&&!id.equals(currentStatue));}
+  boolean commitWindow(String visibleStatue){
+    if(!ready(visibleStatue))return false;
+    committedImages.clear();committedImages.addAll(requiredImages);if(!visibleStatue.isEmpty())committedImages.add(visibleStatue);
+    prune();return true;
+  }
+  boolean committedReady(){
+    if(!active||!current.getAsBoolean()||committedImages.isEmpty())return false;
+    for(String id:committedImages)if(get(id)==null)return false;return true;
+  }
+  void retryWindow(){
+    if(!active||!current.getAsBoolean())return;
+    failed.clear();statueErrors.clear();
+    if(!currentStatue.isEmpty()&&get(currentStatue)==null){statueRequests.add(currentStatue);statuePending.add(currentStatue);}
+    recount();drain();changed.run();
+  }
+  void install(String id,Bitmap bitmap){
+    inFlight.remove(id);statuePending.remove(id);
+    if(bitmap==null||bitmap.isRecycled()){if(id.equals(currentStatue))statueErrors.add(id);else failed.add(id);}
+    else if(wantedImages.contains(id)||committedImages.contains(id)||id.equals(currentStatue))images.put(id,bitmap);
+    recount();
+  }
+  void cacheHit(String id,Bitmap bitmap){images.put(id,bitmap);failed.remove(id);statueErrors.remove(id);statuePending.remove(id);}
+  void peekRequired(){
+    // A ready cache hit must not wait behind two unrelated decoding jobs.
+    for(String id:requiredImages)if(get(id)==null&&available(activeLayout.assets.get(id))){Bitmap cached=source.peek(activeLayout.assets.get(id).path);if(cached!=null&&!cached.isRecycled())cacheHit(id,cached);}
+    if(!currentStatue.isEmpty()&&get(currentStatue)==null&&available(activeLayout.assets.get(currentStatue))){Bitmap cached=source.peek(activeLayout.assets.get(currentStatue).path);if(cached!=null&&!cached.isRecycled())cacheHit(currentStatue,cached);}
+    recount();
   }
   String nextRequest(){
-    for(Set<String> order:java.util.Arrays.asList(requiredImages,wantedImages))for(String id:order)
-      if(!images.containsKey(id)&&!inFlight.contains(id)&&!failed.contains(id)&&available(activeLayout.assets.get(id)))return id;
+    for(String id:requiredImages)if(requestable(id))return id;
+    if(statuePending.contains(currentStatue)&&!statueErrors.contains(currentStatue)&&requestable(currentStatue))return currentStatue;
+    for(String id:wantedImages)if(requestable(id))return id;
     return null;
   }
+  boolean requestable(String id){return get(id)==null&&!inFlight.contains(id)&&!failed.contains(id)&&available(activeLayout.assets.get(id));}
   void drain(){
     if(dispatching||!active||!current.getAsBoolean())return;
     dispatching=true;
     try{
+      peekRequired();
       while(active&&current.getAsBoolean()&&inFlight.size()<MAX_IN_FLIGHT){
         final String id=nextRequest();if(id==null)break;
         Bitmap cached=source.peek(activeLayout.assets.get(id).path);
-        if(cached!=null){images.put(id,cached);recount();continue;}
+        if(cached!=null&&!cached.isRecycled()){cacheHit(id,cached);recount();continue;}
         final int ticket=generation;inFlight.add(id);
         try{source.load(activeLayout.assets.get(id).path,bitmap->{
           if(ticket!=generation||!active||!current.getAsBoolean())return;
-          inFlight.remove(id);
-          if(bitmap==null)failed.add(id);else if(wantedImages.contains(id))images.put(id,bitmap);
-          recount();changed.run();drain();
-        });}catch(RuntimeException error){inFlight.remove(id);failed.add(id);recount();changed.run();}
+          install(id,bitmap);changed.run();drain();
+        });}catch(RuntimeException error){install(id,null);changed.run();}
       }
     }finally{dispatching=false;}
   }
@@ -154,23 +186,15 @@ final class NativeVillageHomeAssets {
     String id=layout.landmark.asset(stage);VillageLayout.Asset asset=layout.assets.get(id);
     if(!available(asset)){currentStatue=id;statueErrors.add(id);changed.run();return;}
     if(!id.equals(currentStatue)&&!statuePending.contains(id)&&!statueErrors.contains(id))statueRequests.remove(id);
-    currentStatue=id;images.keySet().removeIf(key->key.startsWith("statue-stage-")&&!key.equals(id));
-    if(images.containsKey(id)||!statueRequests.add(id))return;
-    Bitmap cached=source.peek(asset.path);if(cached!=null){images.put(id,cached);changed.run();return;}
-    int ticket=generation;statuePending.add(id);
-    try{source.load(asset.path,bitmap->{
-      if(ticket!=generation||!active||!current.getAsBoolean())return;
-      statuePending.remove(id);
-      if(!id.equals(currentStatue))return;
-      if(bitmap==null)statueErrors.add(id);else images.put(id,bitmap);
-      changed.run();
-    });}catch(RuntimeException error){statuePending.remove(id);statueErrors.add(id);}
-    changed.run();
+    currentStatue=id;prune();
+    if(get(id)!=null||!statueRequests.add(id))return;
+    Bitmap cached=source.peek(asset.path);if(cached!=null&&!cached.isRecycled()){cacheHit(id,cached);changed.run();return;}
+    statuePending.add(id);drain();changed.run();
   }
   String statueStatus(String id){return statuePending.contains(id)?"그림 불러오는 중":statueErrors.contains(id)?"그림을 불러오지 못했어요":"그림 준비 중";}
-  Bitmap get(String id) { return images.get(id); }
-  boolean ready() { return active&&pending==0&&missing==0&&!requiredImages.isEmpty(); }
-  boolean ready(String visibleStatue){return ready()&&(visibleStatue.isEmpty()||images.containsKey(visibleStatue));}
+  Bitmap get(String id) { Bitmap bitmap=images.get(id);return bitmap==null||bitmap.isRecycled()?null:bitmap; }
+  boolean ready() { return active&&current.getAsBoolean()&&pending==0&&missing==0&&!requiredImages.isEmpty(); }
+  boolean ready(String visibleStatue){return ready()&&(visibleStatue.isEmpty()||get(visibleStatue)!=null);}
   boolean hasFailure(String visibleStatue){return missing>0||(!visibleStatue.isEmpty()&&statueErrors.contains(visibleStatue));}
   void cancel() { generation++;active=false;pending=0;inFlight.clear();statueRequests.clear();statuePending.clear();statueErrors.clear(); }
 }

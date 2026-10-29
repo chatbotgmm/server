@@ -56,7 +56,7 @@ final class Roster60StoryJournal {
   static boolean definitive(String error) {
     return error != null && (error.startsWith("MENU_LOCKED") || error.startsWith("STORY_")
         || Arrays.asList("STALE_REVISION", "INVALID_REQUEST", "REQUEST_ID_REUSED", "UNIT_UNAVAILABLE",
-            "UNIT_NOT_FOUND", "INVALID_PARTY", "ADVENTURE_NOT_FOUND", "ADVENTURE_STATE_CHANGED",
+            "UNIT_NOT_FOUND", "INVALID_PARTY", Roster60PartyPolicy.RESELECT, "ADVENTURE_NOT_FOUND", "ADVENTURE_STATE_CHANGED",
             "ADVENTURE_BATTLE_ACTIVE", "RETURN_ONLY_OUTSIDE_BATTLE", "BATTLE_NOT_FOUND", "CATALOG_CHANGED",
             "UNIT_STATE_CHANGED", "CAP_XP_POLICY_REQUIRED", "BATTLE_POLICY_PENDING", "ROSTER_CATALOG_PENDING").contains(error));
   }

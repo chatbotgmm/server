@@ -11,7 +11,7 @@ suite('roster60 transactional combination',()=>{
  let db:PrismaClient,owner:string,other:string,service:RosterCraft;
  // Deliberately synthetic arithmetic data, not product defaults.
  const catalog:RosterCatalog={approved:true,version:'craft-test-only',characters:['u02','u09'].map(id=>({id,name:id,rarity:'COMMON',stats:{hp:10},
-   attack:{id:'test',name:'test',element:'NORMAL',mpCost:1},skills:[],
+   attack:{id:'test',name:'test',element:'NORMAL',mpCost:1},skills:[{id:id==='u02'?'material-tech':'result-tech',name:'synthetic skill',element:'NORMAL',mpCost:1,power:10} as any],
    suitability:Object.fromEntries(skillElements.map(e=>[e,0])) as any,defense:Object.fromEntries(skillElements.map(e=>[e,'normal'])) as any,
    growth:[{totalXp:0,maxMp:7},{totalXp:id==='u02'?10:12,maxMp:9}]})),recipes:[{resultId:'u09',ingredients:[{unitId:'u02',count:2,minLevel:2}],visibility:'public'}]};
  beforeAll(async()=>{
@@ -23,7 +23,7 @@ suite('roster60 transactional combination',()=>{
  });
  afterAll(async()=>{if(db){await db.auditEvent.deleteMany({where:{playerId:{in:[owner,other]}}});await db.dailyProgress.deleteMany({where:{playerId:{in:[owner,other]}}});await db.player.deleteMany({where:{id:{in:[owner,other]}}});await db.$disconnect();}});
  async function material(xp=11,playerId=owner){return db.roster60Owned.create({data:{playerId,speciesId:'u02',totalXp:BigInt(xp),source:randomUUID()}});}
- const selection=(ids:string[])=>({materialIds:ids,resultId:'u09',catalogVersion:catalog.version});
+ const selection=(ids:string[])=>({materialIds:ids,resultId:'u09',catalogVersion:catalog.version,inheritance:{skillId:'material-tech',replaceSlot:0}});
  it('options only expose available owned units and receipt is owner scoped',async()=>{
    const a=await material(),foreign=await material(11,other),locked=await material();
    await db.roster60Owned.update({where:{id:locked.id},data:{locked:true}});

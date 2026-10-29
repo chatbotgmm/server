@@ -38,7 +38,7 @@ public class PartyEntryNavigationTest {
    if(optionsFirst)api.options.get(0).done(FormationManagementEntryTest.options(),null);
    api.states.get(0).done(fresh,null);assertEquals("roster60Pvp",h.screen);assertEquals(71,h.me().getInt("credits"));
    if(!optionsFirst)api.options.get(0).done(FormationManagementEntryTest.options(),null);
-   assertEquals(2,h.rosterPvp.units.length());assertEquals(1,api.options.size());assertNull(h.partyEntryRead);
+   assertEquals(2,h.rosterPvp.units.length());assertEquals(Arrays.asList("o0","o1"),h.rosterPvp.selected);assertTrue("Prepared two-member entry remains actionable",h.rosterPvp.save.isEnabled());assertEquals(1,api.options.size());assertNull(h.partyEntryRead);
    h.load("team");assertEquals(2,api.options.size());assertEquals(2,api.states.size());
   }
  }

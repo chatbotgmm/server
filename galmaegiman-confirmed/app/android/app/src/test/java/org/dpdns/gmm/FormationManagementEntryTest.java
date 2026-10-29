@@ -27,7 +27,7 @@ public class FormationManagementEntryTest {
  Api prepare(MainActivity h)throws Exception{helper.prepare(h);h.api.close();Api api=new Api(h);h.api=api;return api;}
  static JSONObject options()throws Exception{
   JSONArray units=PartyUiWorkPerformanceTest.roster(2);units.getJSONObject(0).put("level",7);units.getJSONObject(1).put("level",43);
-  return MainActivity.obj("units",units,"partyIds",new JSONArray().put("o0").put("o1"));
+  return Roster60PartyPolicyTest.response(MainActivity.obj("units",units,"partyIds",new JSONArray().put("o0").put("o1")));
  }
  @Test public void managementReadsOncePerOpenAndUsesOwnedLevels()throws Exception{
   try(ActivityController<MainActivity> c=helper.flow.start()){

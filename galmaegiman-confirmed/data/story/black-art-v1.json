@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "085f204b13429889c631994961433a0a1f0ffb25",
+  "entries": [
+    {
+      "speciesId": "u01",
+      "sha256": "d42fc760e08099260a861c20144205f3da1a77b4c5854cb10f7f43ac103aaf43",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "speciesId": "u02",
+      "sha256": "f61841cf54dd051a526e808beb22b39b8556ec7e4d41c7cd16709cc05425285a",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "speciesId": "u06",
+      "sha256": "cdcb8930141151aba3532e40eff78b601d1fd259da9e6afec1784b457ea6f2e9",
+      "size": [
+        1147,
+        1371
+      ]
+    },
+    {
+      "speciesId": "u07",
+      "sha256": "6e5b11cfe981f0bd2c254786431542f0fb3496597e35718692500cd45e68ed3d",
+      "size": [
+        1286,
+        1223
+      ]
+    },
+    {
+      "speciesId": "u14",
+      "sha256": "c84e4feaaf770a3f2176b803be9ce300f3a1b621120d732d539a5997214f1670",
+      "size": [
+        1211,
+        1299
+      ]
+    },
+    {
+      "speciesId": "u23",
+      "sha256": "f745ef06871b4191de402b6c4c07bd30f683ca9570778a167a09ae421ac64d38",
+      "size": [
+        1282,
+        1227
+      ]
+    },
+    {
+      "speciesId": "u28",
+      "sha256": "3aa0fd83eb09c4839e63109a80de82cccbb09b9a821a1e961aa6ac1b6cdcddc3",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "speciesId": "u31",
+      "sha256": "b5bb884307e9605586c5b0ec4ef5259ce388a04c327ee3008b1c24819681656b",
+      "size": [
+        1298,
+        1212
+      ]
+    }
+  ]
+}

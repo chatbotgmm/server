@@ -25,6 +25,7 @@ public class PartyUiWorkPerformanceTest {
  @Before public void setup(){helper.isolate();helper.configure(Roster60CardStripInertialTest.PHONE);}
  @After public void cleanup()throws Exception{LocalGameArtTest.drain();helper.restore();}
  static JSONArray roster(int count){JSONArray out=new JSONArray();for(int i=0;i<count;i++)out.put(MainActivity.obj("ownedId","o"+i,"speciesId","u01","name","대원 "+i,"level",10,"rarity","COMMON"));return out;}
+ static JSONArray distinctRoster(int count)throws Exception{JSONArray result=roster(count);for(int i=0;i<count;i++)result.getJSONObject(i).put("speciesId",String.format(java.util.Locale.ROOT,"u%02d",i+1));return result;}
  static final class Api extends NativeApi{
   JSONArray units=roster(60),party=new JSONArray();String account="party-perf";long delay,applyNanos;int reads,writes;
   final Handler ui=new Handler(Looper.getMainLooper());
@@ -32,7 +33,7 @@ public class PartyUiWorkPerformanceTest {
   @Override String token(){return account;}
   @Override void call(String path,JSONObject body,Result result){
    assertNull("Performance probes never save or match",body);assertEquals("native/roster60/pvp/options",path);reads++;
-   JSONObject response=MainActivity.obj("units",units,"partyIds",party);
+   JSONObject response=Roster60PartyPolicyTest.response(MainActivity.obj("units",units,"partyIds",party));
    Runnable deliver=()->{long began=System.nanoTime();result.done(response,null);applyNanos=System.nanoTime()-began;};
    if(delay==0)deliver.run();else ui.postDelayed(deliver,delay);
   }
@@ -98,15 +99,15 @@ public class PartyUiWorkPerformanceTest {
   try(ActivityController<MainActivity> c=helper.flow.start()){
    MainActivity h=c.get();helper.prepare(h);List<JSONObject> commands=new ArrayList<>();
    NativeRoster60Battle battle=new NativeRoster60Battle(h){@Override void resume(){}@Override void mutate(String op,JSONObject body){assertEquals("create",op);commands.add(NativeRealtime.copy(body));}};battle.open();
-   JSONArray units=roster(60);battle.showFormation(units,MainActivity.obj("mode","story","id","encounter"));helper.layout(h,Roster60CardStripInertialTest.PHONE);ShadowLooper.idleMainLooper(200,TimeUnit.MILLISECONDS);LocalGameArtTest.drain();
-   Roster60FormationView f=battle.formation;assertTrue(f.findViewWithTag("formation-owned-swipe") instanceof InertialCardScrollView);assertEquals(60,f.ownedStrip.cards.getChildCount());assertEquals(6,f.slots.getChildCount());assertNull(f.findViewWithTag("formation-page"));
-   int bound=0;for(Roster60MemberTile tile:f.ownedTiles.values())if(tile.portraitBound)bound++;assertTrue("Only the viewport and a small buffer bind portraits",bound>1&&bound<10);
+   JSONArray units=distinctRoster(60);battle.showFormation(units,MainActivity.obj("mode","story","id","encounter"));helper.layout(h,Roster60CardStripInertialTest.PHONE);ShadowLooper.idleMainLooper(200,TimeUnit.MILLISECONDS);LocalGameArtTest.drain();
+   Roster60FormationView f=battle.formation;assertTrue(f.findViewWithTag("formation-owned-swipe") instanceof InertialCardScrollView);assertEquals(60,f.ownedStrip.cards.getChildCount());assertEquals(3,f.slots.getChildCount());assertNull(f.findViewWithTag("formation-page"));
+   int bound=0;for(Roster60MemberTile tile:f.ownedGroups.tiles.values())if(tile.portraitBound)bound++;assertTrue("Only the viewport and a small buffer bind portraits",bound>1&&bound<10);
    View anchor=f.ownedStrip.cards.getChildAt(6);f.ownedStrip.scrollTo(anchor.getLeft()+17,0);Roster60CardStripInertialTest.settle(f.ownedStrip);int offset=f.ownedStrip.getScrollX();Object owned=f.ownedTiles.get("o1");
    long slots=f.slotReplacements,binds=f.focusBindings,states=f.tileStateUpdates;long began=System.nanoTime();for(int i=0;i<20;i++)f.draw();long repeated=System.nanoTime()-began;assertEquals(slots,f.slotReplacements);assertEquals(binds,f.focusBindings);assertEquals(states,f.tileStateUpdates);long unchangedSlots=f.slotReplacements-slots;
-   for(int i=0;i<7;i++)f.toggle(units.getJSONObject(i));assertEquals(6,f.selected.size());assertEquals(6,new HashSet<>(f.selected).size());assertSame(owned,f.ownedTiles.get("o1"));helper.layout(h,Roster60CardStripInertialTest.PHONE);assertEquals(offset,f.ownedStrip.getScrollX());assertTrue(commands.isEmpty());
+   for(int i=0;i<7;i++)f.toggle(units.getJSONObject(i));assertEquals(3,f.selected.size());assertEquals(3,new HashSet<>(f.selected).size());assertSame(owned,f.ownedTiles.get("o1"));helper.layout(h,Roster60CardStripInertialTest.PHONE);assertEquals(offset,f.ownedStrip.getScrollX());assertTrue(commands.isEmpty());
    f.ownedStrip.fling(1800);List<String> before=new ArrayList<>(f.selected);f.start.performClick();f.ownedTiles.get("o0").action.performClick();assertEquals(before,f.selected);assertTrue("Fling cannot start a battle",commands.isEmpty());
-   Roster60CardStripInertialTest.settle(f.ownedStrip);f.start.performClick();f.start.performClick();assertEquals(1,commands.size());assertEquals("o0",commands.get(0).getString("ownedId"));assertEquals(5,commands.get(0).getJSONArray("reserveIds").length());assertTrue(f.locked);f.toggle(units.getJSONObject(0));assertEquals(before,f.selected);
-   save("formation-work.json",MainActivity.obj("actualRoute","NativeRoster60Battle.showFormation","ownedCount",60,"sameSpeciesDistinctOwnedIds",true,"boundPortraitsAtFirstViewport",bound,"unchangedDraw20WallNanos",repeated,"unchangedDraw20SlotReplacements",unchangedSlots,"realDeviceMeasured",false));
+   Roster60CardStripInertialTest.settle(f.ownedStrip);f.start.performClick();f.start.performClick();assertEquals(1,commands.size());assertEquals("o0",commands.get(0).getString("ownedId"));assertEquals(2,commands.get(0).getJSONArray("reserveIds").length());assertTrue(f.locked);f.toggle(units.getJSONObject(0));assertEquals(before,f.selected);
+   save("formation-work.json",MainActivity.obj("actualRoute","NativeRoster60Battle.showFormation","ownedCount",60,"speciesGroupCount",60,"individualSelectionPreserved",true,"boundPortraitsAtFirstViewport",bound,"unchangedDraw20WallNanos",repeated,"unchangedDraw20SlotReplacements",unchangedSlots,"realDeviceMeasured",false));
   }
  }
  @Test public void captureActualPrebattleFormationAtPhoneTabletAndLargeFont()throws Exception{
@@ -116,14 +117,14 @@ public class PartyUiWorkPerformanceTest {
    try(ActivityController<MainActivity> c=helper.flow.start()){
     MainActivity h=c.get();helper.prepare(h);
     NativeRoster60Battle battle=new NativeRoster60Battle(h){@Override void resume(){}@Override void mutate(String op,JSONObject body){fail("A formation capture cannot start a battle");}};battle.open();
-    JSONArray units=roster(60);battle.showFormation(units,MainActivity.obj("mode","story","id","capture"));Roster60FormationView f=battle.formation;for(int i=0;i<6;i++)f.toggle(units.getJSONObject(i));
+    JSONArray units=distinctRoster(60);battle.showFormation(units,MainActivity.obj("mode","story","id","capture"));Roster60FormationView f=battle.formation;for(int i=0;i<3;i++)f.toggle(units.getJSONObject(i));
     helper.layout(h,profile);ShadowLooper.idleMainLooper(200,TimeUnit.MILLISECONDS);LocalGameArtTest.drain();helper.layout(h,profile);
-    assertEquals(6,f.slots.getChildCount());assertEquals(60,f.ownedStrip.cards.getChildCount());assertNull(f.findViewWithTag("formation-page"));assertFalse(f.indicator.getText().toString().contains("/"));assertTrue(f.start.getHeight()>=h.dp(48));NativeNoScrollReviewTest.assertFullyVisible(f.start,h.root);
-    int bound=0;for(Roster60MemberTile tile:f.ownedTiles.values())if(tile.portraitBound)bound++;assertTrue(bound>1&&bound<10);
-    for(int i=0;i<6;i++){View tile=f.slots.getChildAt(i);assertTrue(tile.getWidth()>0&&tile.getHeight()>0);NativeNoScrollReviewTest.assertFullyVisible(tile,h.root);}
+    assertEquals(3,f.slots.getChildCount());assertEquals(60,f.ownedStrip.cards.getChildCount());assertNull(f.findViewWithTag("formation-page"));assertFalse(f.indicator.getText().toString().contains("/"));assertTrue(f.start.getHeight()>=h.dp(48));NativeNoScrollReviewTest.assertFullyVisible(f.start,h.root);
+    int bound=0;for(Roster60MemberTile tile:f.ownedGroups.tiles.values())if(tile.portraitBound)bound++;assertTrue(bound>1&&bound<10);
+    for(int i=0;i<3;i++){View tile=f.slots.getChildAt(i);assertTrue(tile.getWidth()>0&&tile.getHeight()>0);NativeNoScrollReviewTest.assertFullyVisible(tile,h.root);}
     Path output=Path.of(System.getProperty("gmm.nativeReviewOutput","build/native-review"),"party");Files.createDirectories(output);
     android.graphics.Bitmap image=NativeHomePartyFeedbackTest.render(h.root);try(java.io.OutputStream stream=Files.newOutputStream(output.resolve(profile.name+".png"))){assertTrue(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream));}finally{image.recycle();}
-    evidence.put(MainActivity.obj("profile",profile.json(),"actualRoute","NativeRoster60Battle.showFormation","selectedSlots",6,"ownedCards",60,"portraitBindings",bound,"pagingIndicator",false));
+    evidence.put(MainActivity.obj("profile",profile.json(),"actualRoute","NativeRoster60Battle.showFormation","selectedSlots",3,"ownedCards",60,"portraitBindings",bound,"pagingIndicator",false));
    }
   }
   save("formation-profile-evidence.json",MainActivity.obj("captures",evidence,"realDeviceMeasured",false));

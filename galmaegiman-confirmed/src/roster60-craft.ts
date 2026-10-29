@@ -4,12 +4,15 @@ import {combinationGrowth,growthAt,rosterMaxLevel,validateRosterDefinition} from
 import {RosterError,type RosterCatalog} from './roster60-onboarding.js';
 import {recordRosterDailyProgress} from './roster60-daily-progress.js';
 import {discoveredRosterSpecies} from './roster60-discovery.js';
+import {inheritancePreview,skillInheritanceVersion,type InheritanceChoice} from './roster60-skill-inheritance.js';
+import {serializeRoster60Write} from './roster60-write-queue.js';
 type Tx=Prisma.TransactionClient;
-export type CraftSelection={resultId:string;materialIds:string[];catalogVersion:string};
+export type CraftSelection={resultId:string;materialIds:string[];catalogVersion:string;inheritance?:InheritanceChoice};
 export type CraftConfirmation=CraftSelection&{requestId:string;previewFingerprint:string};
 const fail=(code:string,status=409):never=>{throw new RosterError(status,code);};
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const canonical=(b:CraftSelection)=>[b.resultId,[...b.materialIds].sort(),b.catalogVersion];
+// The original three-field shape preserves completed pre-inheritance receipt replay.
+const canonical=(b:CraftSelection)=>b.inheritance?[b.resultId,[...b.materialIds].sort(),b.catalogVersion,b.inheritance.skillId,b.inheritance.replaceSlot]:[b.resultId,[...b.materialIds].sort(),b.catalogVersion];
 export class RosterCraft {
   constructor(private db:PrismaClient,private catalog:()=>RosterCatalog|null,private completionTime=()=>new Date()){}
   async options(playerId:string,discovery=false){
@@ -37,7 +40,8 @@ export class RosterCraft {
       return {resultId:r.resultId,name:nameVisible?(definitions.get(r.resultId)?.name??r.resultId):'???',discovered:found,imageVisible:found,
         nameVisible,materialsReady,craftable,levelRestricted:ingredients.some(i=>Math.min(i.availableCount,i.count)>i.readyCount),hidden:r.visibility==='hidden',ingredients,index};
     }).sort((a,b)=>discovery?(Number(b.materialsReady)-Number(a.materialsReady)||Number(b.craftable)-Number(a.craftable)||a.index-b.index):a.index-b.index).map(({index,...recipe})=>recipe);
-    return {catalogVersion:c.version,discoveryVersion:discovery?'craft-discovery-v1':undefined,truncated:rows.length>1000,units,recipes};
+    return {catalogVersion:c.version,discoveryVersion:discovery?'craft-discovery-v1':undefined,truncated:rows.length>1000,units,recipes,
+      inheritancePolicy:{version:skillInheritanceVersion,required:true,maxSkills:6,ordinaryAttackSeparate:true,unlockRule:'SOURCE_REQUIRED_LEVEL'}};
   }
   async receipt(playerId:string,requestId:string){
     const r=await this.db.roster60CraftReceipt.findUnique({where:{playerId_requestId:{playerId,requestId}}});
@@ -73,29 +77,36 @@ export class RosterCraft {
     }
     let result:ReturnType<typeof combinationGrowth>;
     try{result=combinationGrowth(materials.map(m=>xp(m.totalXp)),target.growth);}catch(e){if((e as Error).message==='CAP_XP_POLICY_REQUIRED')return fail('CAP_XP_POLICY_REQUIRED');throw e;}
-    // Include the calculated result as well as version: a mistakenly edited catalog
-    // with an unchanged version must not silently change the confirmed level.
-    const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString()]),target.name,target.rarity,recipe,result]);
-    return {resultId:target.id,resultName:target.name,resultRarity:target.rarity,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
-      inheritedTotalXp:result.totalXp,remainingXp:result.xp,xpToNext:result.xpToNext,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint};
+    const inheritance=inheritancePreview(catalog,target.id,result.level,materials.map(material=>({id:material.id,speciesId:material.speciesId,
+      level:growthAt(xp(material.totalXp),definition(material.speciesId).growth).level,skillInheritanceJson:material.skillInheritanceJson})),input.inheritance);
+    // The proof includes source unlocks and every material's current override, not client numbers.
+    const previewFingerprint=hash([canonical(input),materials.map(m=>[m.id,m.speciesId,m.totalXp.toString(),m.reincarnation,m.skillInheritanceJson]),target.name,target.rarity,recipe,result,inheritance.view]);
+    const view={resultId:target.id,resultName:target.name,resultRarity:target.rarity,catalogVersion:catalog.version,materialIds:materials.map(m=>m.id),
+      inheritedTotalXp:result.totalXp,remainingXp:result.xp,xpToNext:result.xpToNext,expectedLevel:result.level,maxLevel:result.maxLevel,reincarnation:0,previewFingerprint,inheritance:inheritance.view};
+    return {view,materials,stored:inheritance.stored};
   }
-  preview(playerId:string,input:CraftSelection){return this.db.$transaction(tx=>this.plan(tx,playerId,input));}
+  preview(playerId:string,input:CraftSelection){return this.db.$transaction(async tx=>(await this.plan(tx,playerId,input)).view);}
   async confirm(playerId:string,input:CraftConfirmation){
     if(!input.requestId||input.requestId.length>100||!input.previewFingerprint)return fail('INVALID_REQUEST',400);
     const fingerprint=hash([canonical(input),input.previewFingerprint]);
     const run=()=>this.db.$transaction(async tx=>{
+      // Acquire SQLite's shared writer before domain reads, including cross-client contenders.
+      await tx.appMeta.upsert({where:{key:'realtime-pvp-write-lock'},create:{key:'realtime-pvp-write-lock',value:'1'},update:{value:'1'}});
       const old=await tx.roster60CraftReceipt.findUnique({where:{playerId_requestId:{playerId,requestId:input.requestId}}});
       if(old){if(old.fingerprint!==fingerprint)return fail('REQUEST_ID_REUSED');return JSON.parse(old.result);}
       const plan=await this.plan(tx,playerId,input);
-      if(plan.previewFingerprint!==input.previewFingerprint)return fail('PREVIEW_CHANGED');
-      const consumed=await tx.roster60Owned.updateMany({where:{playerId,id:{in:plan.materialIds},status:'AVAILABLE',locked:false},data:{status:'CONSUMED'}});
-      if(consumed.count!==plan.materialIds.length)return fail('MATERIALS_UNAVAILABLE');
-      const unit=await tx.roster60Owned.create({data:{id:randomUUID(),playerId,speciesId:plan.resultId,totalXp:BigInt(plan.inheritedTotalXp),source:'craft:'+input.requestId}});
-      await recordRosterDailyProgress(tx,playerId,'CRAFT',1,this.completionTime(),plan.resultRarity);
-      const result={...plan,ownedId:unit.id};
+      if(!plan.stored||plan.view.inheritance.status!=='selected')return fail('INHERITANCE_SELECTION_REQUIRED');
+      if(plan.view.previewFingerprint!==input.previewFingerprint)return fail('PREVIEW_CHANGED');
+      for(const material of plan.materials){
+        const consumed=await tx.roster60Owned.updateMany({where:{id:material.id,playerId,status:'AVAILABLE',locked:false,totalXp:material.totalXp,reincarnation:material.reincarnation,skillInheritanceJson:material.skillInheritanceJson},data:{status:'CONSUMED'}});
+        if(consumed.count!==1)return fail('MATERIALS_UNAVAILABLE');
+      }
+      const unit=await tx.roster60Owned.create({data:{id:randomUUID(),playerId,speciesId:plan.view.resultId,totalXp:BigInt(plan.view.inheritedTotalXp),source:'craft:'+input.requestId,skillInheritanceJson:JSON.stringify(plan.stored)}});
+      await recordRosterDailyProgress(tx,playerId,'CRAFT',1,this.completionTime(),plan.view.resultRarity);
+      const result={...plan.view,ownedId:unit.id};
       await tx.roster60CraftReceipt.create({data:{playerId,requestId:input.requestId,fingerprint,result:JSON.stringify(result)}});
       return result;
     });
-    try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}
+    return serializeRoster60Write(this.db,async()=>{try{return await run();}catch(e){if(['P2002','P2034'].includes((e as {code?:string}).code??''))return run();throw e;}});
   }
 }

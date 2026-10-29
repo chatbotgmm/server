@@ -1,5 +1,6 @@
 import {describe,it,expect,beforeAll,afterAll} from 'vitest';
 import {PrismaClient} from '@prisma/client';import {readFileSync,mkdtempSync,writeFileSync,mkdirSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {randomUUID} from 'node:crypto';import Fastify from 'fastify';
+import {fighter} from '../src/roster60-battle.js';
 import {registerRoster60} from '../src/roster60-routes.js';import {adventureEscapeSucceeds} from '../src/roster60-adventure.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('authenticated adventure escrow and escape',()=>{
@@ -68,7 +69,12 @@ suite('authenticated adventure escrow and escape',()=>{
  });
  it('records voluntary/forced entries per battle, floors reserve XP, escrows each share and settles once',async()=>{
   const units=[];for(let i=0;i<4;i++)units.push(await db.roster60Owned.create({data:{playerId:player,speciesId:'u01',source:randomUUID()}}));
-  const ids=units.map(u=>u.id);let run=await ok('adventure/start',{requestId:randomUUID(),ownedIds:ids}),v=await battle(run,'adventure-odd');
+  const ids=units.map(u=>u.id);let run=await ok('adventure/start',{requestId:randomUUID(),ownedIds:ids.slice(0,3)});
+  // Pinned pre-policy four-member adventure fixture retains the existing XP contract.
+  const legacy=await db.roster60Adventure.findUniqueOrThrow({where:{id:run.adventureId}}),pinned=JSON.parse(legacy.state),catalog=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8')),definition=catalog.characters.find((u:any)=>u.id==='u01');
+  pinned.party.push({...fighter(catalog,'u01',1,'self'),ownedId:ids[3]});pinned.members.push({ownedId:ids[3],startingXp:'0',growth:definition.growth,reincarnation:0,reincarnationXpPolicy:definition.reincarnationXpPolicy});
+  await db.$transaction([db.roster60Owned.update({where:{id:ids[3]},data:{status:'ADVENTURE'}}),db.roster60Adventure.update({where:{id:legacy.id},data:{state:JSON.stringify(pinned)}})]);
+  run=await read(run);let v=await battle(run,'adventure-odd');
   expect(v.state.participation).toEqual([{ownedId:ids[0],kind:'start',turn:0}]);
   const change={requestId:randomUUID(),battleId:v.battleId,revision:v.revision,action:{kind:'switch',targetOwnedId:ids[1]}};
   v=await ok('battle/action',change);expect(await ok('battle/action',change)).toEqual(v);expect(v.state.participation).toHaveLength(2);

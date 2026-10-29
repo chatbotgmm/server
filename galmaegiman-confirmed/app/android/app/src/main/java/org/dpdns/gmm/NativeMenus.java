@@ -1309,6 +1309,13 @@ final class NativeMenus {
     for (JSONObject unit : NativeOwnedRoster.levelOrderedCandidates(source, pvp ? "id" : "key")) {
       if (!pvp || unit.optBoolean("top")) candidates.add(unit);
     }
+    ArrayList<JSONObject> displayedCandidates = new ArrayList<>();
+    java.util.HashMap<String, NativeOwnedRosterGroups.Group> displayedGroups = new java.util.HashMap<>();
+    if (pvp) displayedCandidates.addAll(candidates); // This legacy response already aggregates species in have.
+    else for (NativeOwnedRosterGroups.Group group : NativeOwnedRosterGroups.group(new JSONArray(candidates), "key", "id")) {
+      displayedCandidates.add(group.representative());
+      displayedGroups.put(group.representative().optString("key"), group);
+    }
     TextView status = k.note("");
     status.setTag("team-draft-status");
     status.setPadding(h.dp(4), 0, h.dp(4), 0);
@@ -1456,10 +1463,10 @@ final class NativeMenus {
           previous.setTag("team-candidates-previous");
           previous.setEnabled(teamScrollX > 0);
           paging.addView(previous, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
-          TextView pageLabel = PartyCharacterView.stateLabel(h, candidates.size() + "명");
+          TextView pageLabel = PartyCharacterView.stateLabel(h, displayedCandidates.size() + "종");
           pageLabel.setBackgroundColor(Color.TRANSPARENT);
           pageLabel.setTextColor(JournalTheme.WHITE);
-          pageLabel.setContentDescription("교체 후보 " + candidates.size() + "명 · 좌우로 밀어 탐색");
+          pageLabel.setContentDescription("교체 후보 " + displayedCandidates.size() + "종 · 좌우로 밀어 묶음 탐색");
           pageLabel.setTextSize(h.uiText(14));
           pageLabel.setTag("team-candidate-page");
           pageLabel.setGravity(Gravity.CENTER);
@@ -1472,7 +1479,7 @@ final class NativeMenus {
           pagerChevron(next, true);
           next.setContentDescription("교체 후보 오른쪽으로 이동");
           next.setTag("team-candidates-next");
-          next.setEnabled(candidates.size() > 2);
+          next.setEnabled(displayedCandidates.size() > 2);
           paging.addView(next, new LinearLayout.LayoutParams(h.dp(48), h.dp(48)));
           Button remove = k.action(null, "비우기", () -> {
             if (activeSlot[0] < teamDraft.size()) teamDraft.remove(activeSlot[0]);
@@ -1536,15 +1543,17 @@ final class NativeMenus {
           rail.setContentDescription("교체 후보 · 좌우로 밀어 탐색하고 카드를 눌러 배치");
           rail.addView(strip, new HorizontalScrollView.LayoutParams(-2, -1));
           summary.addView(rail, new LinearLayout.LayoutParams(-1, 0, 1));
-          for (int index = 0; index < candidates.size(); index++) {
+          for (int index = 0; index < displayedCandidates.size(); index++) {
             LinearLayout tile = k.column();
             tile.setPadding(h.dp(3), h.dp(3), h.dp(3), h.dp(3));
             tile.setGravity(Gravity.CENTER);
             LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(h.dp(140), -1);
             cell.setMargins(h.dp(3), h.dp(3), h.dp(3), 0);
             strip.addView(tile, cell);
-            JSONObject candidate = candidates.get(index);
+            JSONObject candidate = displayedCandidates.get(index);
             String key = candidate.optString(pvp ? "id" : "key");
+            NativeOwnedRosterGroups.Group group = displayedGroups.get(key);
+            if (group != null) tile.setTag("team-candidate-group-" + group.key);
             View portrait = PartyCharacterView.art(h, candidate);
             portrait.setTag("team-candidate-character-" + key);
             portrait.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -1553,26 +1562,31 @@ final class NativeMenus {
             candidateName.setTag("team-candidate-name");
             tile.addView(candidateName);
             boolean isSelected = teamDraft.contains(key);
+            if (group != null) for (JSONObject member : group.members) isSelected |= teamDraft.contains(member.optString("key"));
             String state = (isSelected ? "✓ " : "")
-                + (pvp ? "보유 " + candidate.optInt("have") : "Lv" + candidate.optInt("level")
-                    + " · " + candidate.optInt("hp") + "/" + candidate.optInt("maxHp"));
+                + (pvp ? "보유 " + candidate.optInt("have") : group.summary());
             tile.addView(PartyCharacterView.liveLabel(h, state));
             tile.setSelected(isSelected);
             tile.setBackground(PartyCharacterView.selection(h, isSelected));
             tile.setContentDescription(PartyCharacterView.description(candidate) + " · " + state
                 + " · " + (activeSlot[0] + 1) + "번에 배치");
-            tile.setOnClickListener(v -> {
-              if (h.busy || rail.blocksClick()) return;
+            java.util.function.Consumer<JSONObject> place = chosen -> {
+              String chosenKey = chosen.optString(pvp ? "id" : "key");
               int target = Math.min(activeSlot[0], teamDraft.size());
-              int old = teamDraft.indexOf(key);
+              int old = teamDraft.indexOf(chosenKey);
               if (old >= 0 && old != target && target < teamDraft.size()) {
                 String swapped = teamDraft.get(target);
-                teamDraft.set(target, key); teamDraft.set(old, swapped);
+                teamDraft.set(target, chosenKey); teamDraft.set(old, swapped);
               } else if (old < 0) {
-                if (target < teamDraft.size()) teamDraft.set(target, key);
-                else if (teamDraft.size() < 3) teamDraft.add(key);
+                if (target < teamDraft.size()) teamDraft.set(target, chosenKey);
+                else if (teamDraft.size() < 3) teamDraft.add(chosenKey);
               }
               render[0].run();
+            };
+            tile.setOnClickListener(v -> {
+              if (h.busy || rail.blocksClick()) return;
+              if (group == null) place.accept(candidate);
+              else Roster60OwnedGroups.openLegacy(h, group, teamDraft, place);
             });
           }
           if (candidates.isEmpty()) summary.addView(k.note("배치할 수 있는 대원이 없어요."));

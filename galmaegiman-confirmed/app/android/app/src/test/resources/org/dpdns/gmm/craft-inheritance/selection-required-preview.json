@@ -1,0 +1,201 @@
+{
+  "resultId": "u09",
+  "resultName": "노움",
+  "resultRarity": "UNCOMMON",
+  "catalogVersion": "five-stat-device-test-v1",
+  "materialIds": [
+    "339c6e25-82e7-4dec-8382-e67f73992e51",
+    "66c153d4-0dd4-4a3c-809b-e778dd033986"
+  ],
+  "inheritedTotalXp": 39219,
+  "remainingXp": 1413,
+  "xpToNext": 1873,
+  "expectedLevel": 30,
+  "maxLevel": 60,
+  "reincarnation": 0,
+  "previewFingerprint": "1e8b26709d0136313036c9d189966bb768d0871217a504d8b678ee2c15bbf05a",
+  "inheritance": {
+    "version": "roster60-skill-inheritance-v1",
+    "status": "selection-required",
+    "candidates": [
+      {
+        "skillId": "water_1",
+        "name": "물방울",
+        "element": "WATER",
+        "mpCost": 4,
+        "power": 24,
+        "requiredLevel": 1,
+        "source": {
+          "ownedId": "339c6e25-82e7-4dec-8382-e67f73992e51",
+          "speciesId": "u06",
+          "name": "물방울",
+          "level": 40,
+          "sourceSpeciesId": "u06",
+          "sourceName": "물방울",
+          "sourceSlot": 0,
+          "materialSkillSlot": 0
+        },
+        "allowedReplaceSlots": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "skillId": "ice_1",
+        "name": "서리바늘",
+        "element": "ICE",
+        "mpCost": 4,
+        "power": 24,
+        "requiredLevel": 5,
+        "source": {
+          "ownedId": "339c6e25-82e7-4dec-8382-e67f73992e51",
+          "speciesId": "u06",
+          "name": "물방울",
+          "level": 40,
+          "sourceSpeciesId": "u06",
+          "sourceName": "물방울",
+          "sourceSlot": 1,
+          "materialSkillSlot": 1
+        },
+        "allowedReplaceSlots": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "skillId": "water_2",
+        "name": "물살찌르기",
+        "element": "WATER",
+        "mpCost": 8,
+        "power": 36,
+        "requiredLevel": 10,
+        "source": {
+          "ownedId": "339c6e25-82e7-4dec-8382-e67f73992e51",
+          "speciesId": "u06",
+          "name": "물방울",
+          "level": 40,
+          "sourceSpeciesId": "u06",
+          "sourceName": "물방울",
+          "sourceSlot": 2,
+          "materialSkillSlot": 2
+        },
+        "allowedReplaceSlots": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "skillId": "water_3",
+        "name": "너울송곳",
+        "element": "WATER",
+        "mpCost": 14,
+        "power": 50,
+        "requiredLevel": 24,
+        "source": {
+          "ownedId": "339c6e25-82e7-4dec-8382-e67f73992e51",
+          "speciesId": "u06",
+          "name": "물방울",
+          "level": 40,
+          "sourceSpeciesId": "u06",
+          "sourceName": "물방울",
+          "sourceSlot": 3,
+          "materialSkillSlot": 3
+        },
+        "allowedReplaceSlots": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "skillId": "water_4",
+        "name": "너울어금니",
+        "element": "WATER",
+        "mpCost": 22,
+        "power": 68,
+        "requiredLevel": 40,
+        "source": {
+          "ownedId": "339c6e25-82e7-4dec-8382-e67f73992e51",
+          "speciesId": "u06",
+          "name": "물방울",
+          "level": 40,
+          "sourceSpeciesId": "u06",
+          "sourceName": "물방울",
+          "sourceSlot": 4,
+          "materialSkillSlot": 4
+        },
+        "allowedReplaceSlots": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "resultSkillSlots": [
+      {
+        "slot": 0,
+        "skillId": "normal_1",
+        "name": "주먹",
+        "element": "NORMAL",
+        "mpCost": 4,
+        "power": 24,
+        "requiredLevel": 1,
+        "unlockedAtResultLevel": true
+      },
+      {
+        "slot": 1,
+        "skillId": "nature_1",
+        "name": "잎날",
+        "element": "NATURE",
+        "mpCost": 4,
+        "power": 24,
+        "requiredLevel": 5,
+        "unlockedAtResultLevel": true
+      },
+      {
+        "slot": 2,
+        "skillId": "normal_2",
+        "name": "강한주먹",
+        "element": "NORMAL",
+        "mpCost": 8,
+        "power": 36,
+        "requiredLevel": 10,
+        "unlockedAtResultLevel": true
+      },
+      {
+        "slot": 3,
+        "skillId": "normal_3",
+        "name": "맹렬한주먹",
+        "element": "NORMAL",
+        "mpCost": 14,
+        "power": 50,
+        "requiredLevel": 24,
+        "unlockedAtResultLevel": true
+      },
+      {
+        "slot": 4,
+        "skillId": "normal_4",
+        "name": "온힘의 주먹",
+        "element": "NORMAL",
+        "mpCost": 22,
+        "power": 68,
+        "requiredLevel": 40,
+        "unlockedAtResultLevel": false
+      }
+    ],
+    "selected": null
+  }
+}

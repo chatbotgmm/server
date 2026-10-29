@@ -50,7 +50,9 @@ final class NativeRoster60StoryBattle extends NativeRoster60Battle {
   }
   @Override void showAdventure(JSONObject result){
     if(!current())return;
-    if("RETURNED".equals(result.optString("status"))||"LOST".equals(result.optString("status"))){leave();return;}
+    if("RETURNED".equals(result.optString("status"))||"LOST".equals(result.optString("status"))){
+      super.showAdventure(result);retry.setText("마을로 돌아가기");retry.setOnClickListener(v->leave());return;
+    }
     super.showAdventure(result);
   }
   @Override void options(){leave();}

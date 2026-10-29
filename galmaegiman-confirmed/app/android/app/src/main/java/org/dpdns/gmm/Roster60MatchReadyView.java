@@ -19,8 +19,8 @@ final class Roster60MatchReadyView extends LinearLayout {
   notice=h.text("",16);notice.setGravity(Gravity.CENTER);notice.setTextColor(NavyWorkbenchTheme.TEXT);addView(notice,new LayoutParams(-1,-2));
   LinearLayout buttons=new LinearLayout(h);buttons.setGravity(Gravity.CENTER);addView(buttons,new LayoutParams(-1,h.dp(56)));
   accept=h.button("대전 수락",yes);accept.setTag("roster60-match-accept");decline=h.button("대전 거절",no);decline.setTag("roster60-match-decline");
-  for(Button button:new Button[]{accept,decline}){NavyWorkbenchTheme.tab(h,button,false);buttons.addView(button,new LayoutParams(0,-1,1));}
-  retry=h.button("다시 확인",retryAction);NavyWorkbenchTheme.tab(h,retry,false);retry.setVisibility(GONE);addView(retry,new LayoutParams(-1,h.dp(48)));
+  for(Button button:new Button[]{accept,decline}){NavyWorkbenchTheme.tab(h,button,false);BattleSkin.bindPressFeedback(button);buttons.addView(button,new LayoutParams(0,-1,1));}
+  retry=h.button("다시 확인",retryAction);NavyWorkbenchTheme.tab(h,retry,false);BattleSkin.bindPressFeedback(retry);retry.setVisibility(GONE);addView(retry,new LayoutParams(-1,h.dp(48)));
  }
  void bind(JSONObject snapshot,boolean pending){
   this.pending=pending;accepted=snapshot.optBoolean("accepted");accepting="ACCEPTING".equals(snapshot.optString("status"));

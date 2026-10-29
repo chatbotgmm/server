@@ -51,8 +51,8 @@ final class CombatV2ReviewPanel extends LinearLayout {
     badge=new TextView(context);CombatV2ReviewStyle.text(badge);badge.setTextSize(11);addView(badge,new LayoutParams(-1,dp(20)));
     details=new TextView(context);CombatV2ReviewStyle.text(details); hideDetails(); details.setTextSize(11); details.setMaxLines(3); addView(details,new LayoutParams(-1,dp(product?0:48)));
     rows=new LinearLayout(context); rows.setOrientation(VERTICAL); addView(rows,new LayoutParams(-1,0,1));
-    back=new Button(context);back.setText(CombatV2ReviewStyle.label(context,"back"));back.setContentDescription(CombatV2ReviewStyle.label(getContext(),"back_description"));
-    if(product&&context instanceof MainActivity){back.setBackground(new BattleSkin((MainActivity)context,"button-switch"));CombatV2ReviewStyle.text(back);back.setTextColor(0xfffff8e8);}
+    back=product?new JournalButton(context):new Button(context);back.setText(CombatV2ReviewStyle.label(context,"back"));back.setContentDescription(CombatV2ReviewStyle.label(getContext(),"back_description"));
+    if(product&&context instanceof MainActivity){back.setBackground(new BattleSkin((MainActivity)context,"button-switch"));BattleSkin.bindPressFeedback(back);CombatV2ReviewStyle.text(back);back.setTextColor(0xfffff8e8);}
     addView(back,new LayoutParams(-1,dp(product?48:40)));back.setOnClickListener(v->{skills=false;render();});
   }
 
@@ -98,7 +98,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
       rows.addView(line,new LayoutParams(-1,0,1));
       for(int col=0;col<(product?2:3);col++) {
         JSONObject entry=entries.optJSONObject(row*(product?2:3)+col);
-        buttonBuilds++;Button button=new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12*scale:10);button.setMaxLines(2);if(product&&getContext() instanceof MainActivity&&entry!=null)CombatV2ReviewStyle.text(button);else CombatV2ReviewStyle.button(button);
+        buttonBuilds++;Button button=product?new JournalButton(getContext()):new Button(getContext());button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(2),0,dp(2),0);button.setTextSize(product?12*scale:10);button.setMaxLines(2);if(product&&getContext() instanceof MainActivity&&entry!=null)CombatV2ReviewStyle.text(button);else CombatV2ReviewStyle.button(button);
         line.addView(button,new LayoutParams(0,-1,1));
         if(entry==null){button.setText(CombatV2ReviewStyle.label(getContext(),"empty"));button.setEnabled(false);continue;}
         boolean skillPage=skills;
@@ -111,7 +111,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
         if(product && getContext() instanceof MainActivity){
           MainActivity host=(MainActivity)getContext();String kind=entry.optString("kind");
           String surface=skillPage?"switch":"escape".equals(kind)?"surrender":"item".equals(kind)?"item":("switch".equals(kind)||"focus".equals(kind))?"switch":"attack";
-          button.setBackground(new BattleSkin(host,"button-"+surface));CombatV2ReviewStyle.text(button);
+          button.setBackground(new BattleSkin(host,"button-"+surface));BattleSkin.bindPressFeedback(button);CombatV2ReviewStyle.text(button);
           button.setTextColor("surrender".equals(surface)?JournalTheme.INK:0xfffff8e8);
           button.setCompoundDrawables(null,null,null,null);
           if(skillPage){Roster60ElementArt.bind(button,entry.optString("element"),28*scale,false);button.setPadding(dp(6*scale),dp(2),dp(6*scale),dp(2));}
@@ -144,7 +144,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
     ViewConfiguration config=ViewConfiguration.get(getContext());
     long timeout=ViewConfiguration.getLongPressTimeout();
     SkillHoldGesture gesture=new SkillHoldGesture(timeout,config.getScaledTouchSlop());gestures.add(gesture);
-    Runnable timer=()->{if(gesture.hold(SystemClock.uptimeMillis())){button.setPressed(false);button.setSelected(true);
+    Runnable timer=()->{if(gesture.hold(SystemClock.uptimeMillis())){button.setPressed(product);button.setSelected(true);
       details.setText(entry.optString("name")+" · "+elementName(entry.optString("element"))+" · MP "+entry.optInt("mpCost")
           +" · "+CombatV2ReviewStyle.label(getContext(),"suitability")+" "+dto.optJSONObject("self").optJSONObject("suitability").optDouble(entry.optString("element"))+"\n"+entry.optString("description")+(entry.optString("reason").isEmpty()?"":(product?" · ":"\n")+entry.optString("reason")));details.setVisibility(VISIBLE);if(holdOverlay!=null){holdOverlay.setText(details.getText());holdOverlay.setVisibility(VISIBLE);}
     }};timers.add(timer);
@@ -154,7 +154,7 @@ final class CombatV2ReviewPanel extends LinearLayout {
       if(pending||!holdButtons.contains(button)){gesture.cancel();removeCallbacks(timer);button.setPressed(false);return true;}
       switch(event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:cancelHolds();button.setPressed(true);gesture.down(SystemClock.uptimeMillis(),event.getX(),event.getY());postDelayed(timer,timeout);return true;
-        case MotionEvent.ACTION_MOVE:if(gesture.move(event.getX(),event.getY())){removeCallbacks(timer);button.setPressed(false);button.setSelected(false);hideDetails();}return true;
+        case MotionEvent.ACTION_MOVE:if(event.getX()<0||event.getY()<0||event.getX()>=button.getWidth()||event.getY()>=button.getHeight())gesture.cancel();if(gesture.move(event.getX(),event.getY())){removeCallbacks(timer);button.setPressed(false);button.setSelected(false);hideDetails();}return true;
         case MotionEvent.ACTION_UP:
           removeCallbacks(timer);button.setPressed(false);button.setSelected(false);boolean click=gesture.release(SystemClock.uptimeMillis());hideDetails();
           if(click)button.performClick();return true;

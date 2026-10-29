@@ -1,4 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto';
+import {isCurrentRoster60Party} from '../roster60-party-policy.js';
 import type {Prisma,PrismaClient,Roster60StoryAccount} from '@prisma/client';
 import {RosterError,type RosterCatalog} from '../roster60-onboarding.js';
 import {RosterAdventure} from '../roster60-adventure.js';
@@ -153,6 +154,20 @@ export class RosterStory{
    if(b.questId){quest=this.quest(b.questId);if(await this.status(tx,row,quest)!=='ACTIVE'||quest.objective.kind!=='adventure_win')return fail('STORY_QUEST_NOT_ACTIVE');const accepted=p.accepted[quest.id];if(accepted.unitXpPolicy&&accepted.wins>=quest.objective.wins)return fail('STORY_OBJECTIVE_AWAITING_RETURN');token=accepted.token;encounter=this.content.encounters.find(e=>e.id===quest!.objective.encounterIds[Math.min(accepted.wins,quest!.objective.encounterIds.length-1)]);}
    else{encounter=this.content.encounters.find(e=>e.id===b.encounterId&&e.kind==='black'&&e.mode==='adventure');if(!encounter||!this.content.quests.some(q=>q.objective.encounterIds.includes(encounter!.id)&&(p.accepted[q.id]||p.completed.includes(q.id))))return fail('STORY_ENCOUNTER_LOCKED');}
    if(!encounter||prior&&prior.encounterId!==encounter.id)return fail('STORY_ENCOUNTER_LOCKED');
+   if(!isCurrentRoster60Party(b.ownedIds)){
+    // Old receipts above remain replayable; an old active adventure can only
+    // continue with its exact server-pinned party, never a new oversized party.
+    let linkedId=prior?.adventureId??b.adventureId??(encounter.mode==='adventure'?(quest?p.accepted[quest.id]?.adventureId:p.materialAdventureId):undefined);
+    // A successful start can precede a failed link write. Recover only the
+    // matching durable start receipt for this pending departure.
+    if(!linkedId&&prior?.pending){
+     const started=await tx.roster60AdventureReceipt.findUnique({where:{playerId_requestId:{playerId,requestId:operationId(b.requestId,'adventure')}}});
+     if(started?.fingerprint===fingerprint(['start',b.ownedIds]))linkedId=JSON.parse(started.result).adventureId;
+    }
+    const run=linkedId?await tx.roster60Adventure.findFirst({where:{id:linkedId,playerId,status:'ACTIVE'}}):null;
+    const saved=run?JSON.parse(run.state).party as {ownedId:string}[]:null;
+    if(encounter.mode!=='adventure'||!saved||saved.length!==b.ownedIds.length||saved.some(f=>!b.ownedIds.includes(f.ownedId)))return fail('INVALID_PARTY',400);
+   }
    const pending=prior??{pending:true,contentVersion:this.content.version,questId:quest?.id,acceptToken:token,encounterId:encounter.id};
    p.departure={requestId:b.requestId,questId:b.questId,encounterId:encounter.id,ownedIds:[...b.ownedIds],requestedAdventureId:b.adventureId};
    const changed=await tx.roster60StoryAccount.updateMany({where:{playerId,revision:row.revision},data:{state:JSON.stringify(p),revision:{increment:1}}});if(changed.count!==1)return fail('STORY_STALE_REVISION');

@@ -198,10 +198,23 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void immersive() {
+    immersive(getWindow());
+    if (visibleDialog != null && visibleDialog.isShowing()) immersive(visibleDialog.getWindow());
+  }
+
+  void immersive(Window window) {
+    if (window == null || isFinishing() || isDestroyed()) return;
     WindowInsetsControllerCompat c =
-        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        WindowCompat.getInsetsController(window, window.getDecorView());
     c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+    // IME is a separate inset type. Keep input dialogs focusable and their keyboard visible.
     c.hide(WindowInsetsCompat.Type.systemBars());
+  }
+
+  @Override
+  public void onConfigurationChanged(android.content.res.Configuration configuration) {
+    super.onConfigurationChanged(configuration);
+    immersive();
   }
 
   RectF safeBounds(int w, int h) {
@@ -252,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
     if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.recover();
     NativeAlerts.schedule(this, me());
     if (guide != null) guide.onStateUpdated();
+    if (ownedGulls != null && NativeOwnedGulls.SCREEN.equals(screen)) ownedGulls.refresh();
   }
 
   static JSONObject obj(Object... xs) {
@@ -575,6 +589,10 @@ public class MainActivity extends AppCompatActivity {
   }
 
   void base(String name, String id) {
+    if (menus != null && menus.economy.roster60Craft != null
+        && (screen.equals("mix") || screen.equals("craftRecipes"))
+        && !(id.equals("mix") || id.equals("craftRecipes"))) menus.economy.roster60Craft.leave();
+    if (ownedGulls != null && !NativeOwnedGulls.SCREEN.equals(id)) ownedGulls.pause();
     if (id.equals("account") && !screen.equals("account"))
       accountReturn = screen.equals("title") ? "title" : "home";
     epoch++;
@@ -1022,6 +1040,7 @@ public class MainActivity extends AppCompatActivity {
   NativeRoster60StoryEntry storyEntry;
   NativeRoster60StoryController rosterStory;
   NativeVillageHomeController villageHome;
+  NativeOwnedGulls ownedGulls;
   String rosterPvpMode="";
   void openPlayMenu(){if(rosterPvp!=null)rosterPvp.pause();home();}
   void openRosterStoryEntry(){storyEntry=new NativeRoster60StoryEntry(this);storyEntry.open();}
@@ -1032,8 +1051,10 @@ public class MainActivity extends AppCompatActivity {
   void openRosterHumanBattle(JSONObject state){String mode=state.optString("mode");if(NativeRoster60Pvp.validMode(mode))rosterPvpMode=mode;rosterBattle=new NativeRoster60PvpBattle(this,state);rosterBattle.open();}
   void openRosterBattle(){openRosterBattle(Roster60BattleMode.ALL);}
   void openRosterBattle(Roster60BattleMode mode){rosterBattle=new NativeRoster60Battle(this,mode);rosterBattle.open();}
+  void openOwnedGulls(){if(ownedGulls!=null)ownedGulls.pause();ownedGulls=new NativeOwnedGulls(this);ownedGulls.open();}
 
   void home() {
+    if (ownedGulls != null) ownedGulls.pause();
     if (nicknameRequired()) { NativeNicknameSetup.show(this); return; }
     if (villageHome != null) villageHome.pause();
     epoch++;
@@ -1486,12 +1507,12 @@ public class MainActivity extends AppCompatActivity {
 
   void back() {
     if (updateBlocks()) return;
+    if(NativeOwnedGulls.SCREEN.equals(screen)&&ownedGulls!=null&&ownedGulls.back())return;
     if(screen.equals("playMenu")){home();return;}
     if(screen.equals("roster60StoryEntry")&&storyEntry!=null&&storyEntry.back())return;
     if(screen.equals(NativeRoster60StoryController.SCREEN)&&rosterStory!=null&&rosterStory.back())return;
     if(screen.equals("roster60Pvp")&&rosterPvp!=null){rosterPvp.back();return;}
     if(screen.equals("roster60Battle")&&rosterBattle!=null){rosterBattle.back();return;}
-    if((screen.equals("mix")||screen.equals("craftRecipes"))&&menus.economy.roster60Craft!=null)menus.economy.roster60Craft.leave();
     if (screen.equals("news") && menus.news.back()) return;
     if (screen.equals("collection") && menus.library.collectionFocus != null
         && menus.library.collectionFocus.back()) return;
@@ -1578,6 +1599,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onResume() {
     super.onResume();
+    immersive();
     if (sound != null) sound.resume();
     if (requiredUpdate != null) requiredUpdate.resume();
     if (realtime != null && !updateBlocks() && !roster60Menus()) realtime.resume();
@@ -1585,6 +1607,7 @@ public class MainActivity extends AppCompatActivity {
     if(rosterBattle!=null&&screen.equals("roster60Battle"))rosterBattle.resume();
     if(rosterStory!=null&&screen.equals(NativeRoster60StoryController.SCREEN))rosterStory.refresh();
     if(villageHome!=null&&screen.equals("home"))villageHome.resume();
+    if(ownedGulls!=null&&NativeOwnedGulls.SCREEN.equals(screen))ownedGulls.resume();
     motionResumed = true;
     if (backgroundEffects != null) backgroundEffects.resumed(true);
     journalTime.resume();
@@ -1599,6 +1622,7 @@ public class MainActivity extends AppCompatActivity {
     if(rosterStory!=null)rosterStory.pause();
     if(villageHome!=null)villageHome.pause();
     if(rosterPvp!=null)rosterPvp.pause();
+    if(ownedGulls!=null)ownedGulls.pause();
     if (sound != null) sound.pause();
     if (realtime != null) realtime.pause();
     motionResumed = false;

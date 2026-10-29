@@ -8,7 +8,7 @@ import org.json.*;
 
 /** Approved result-first usability on the discovery-aware API. Selection never executes a craft. */
 final class NativeRoster60CraftWorkbench {
- final NativeRoster60Craft ui;final MainActivity h;final MenuKit k;JSONArray allRecipes;
+ final NativeRoster60Craft ui;final MainActivity h;final MenuKit k;JSONArray allRecipes;android.app.AlertDialog materialDialog;
  final LinearLayout left,right,grid;final TextView count,status;final Button filter;
  final Button[] slots=new Button[6];final ImageView[] pictures=new ImageView[6];final JSONObject[] displayed=new JSONObject[6];
  final String[] species=new String[6];CraftResultCarousel carousel;boolean discoveredOnly;JSONArray recipeSource;String recipeContent="",renderedContent="",renderedVersion="",renderedOwner="";float renderedScale=-1;long carouselBuilds,resultArtBinds,recipeSerializations;
@@ -60,11 +60,13 @@ final class NativeRoster60CraftWorkbench {
   if(busy())return;String[] labels=new String[ui.units.length()];boolean[] checked=new boolean[labels.length];
   final int epoch=h.epoch;final String owner=ui.owner;
   for(int i=0;i<labels.length;i++){JSONObject unit=ui.units.optJSONObject(i);labels[i]=unit.optString("name")+" · Lv."+unit.optInt("level");checked[i]=ui.selected.containsKey(unit.optString("ownedId"));}
-  new android.app.AlertDialog.Builder(h).setTitle("재료 선택 · 최대 6개").setMultiChoiceItems(labels,checked,(dialog,index,isChecked)->{
-   if(ui.workbench!=this||h.epoch!=epoch||!owner.equals(h.api.token())||!ui.valid(ui.generation))return;JSONObject unit=ui.units.optJSONObject(index);boolean before=ui.selected.containsKey(unit.optString("ownedId"));if(before!=isChecked)ui.toggle(unit);
+  closeMaterials();materialDialog=new GameDialog(h).navy().setTitle("재료 선택 · 최대 6개").setMultiChoiceItems(labels,checked,(dialog,index,isChecked)->{
+   if(materialDialog!=dialog||!materialDialog.isShowing()||h.visibleDialog!=materialDialog||ui.workbench!=this||h.epoch!=epoch||!owner.equals(h.api.token())||!ui.valid(ui.generation))return;JSONObject unit=ui.units.optJSONObject(index);boolean before=ui.selected.containsKey(unit.optString("ownedId"));if(before!=isChecked)ui.toggle(unit);
    ((android.app.AlertDialog)dialog).getListView().setItemChecked(index,ui.selected.containsKey(unit.optString("ownedId")));
   }).setPositiveButton("닫기",null).show();
+  final android.app.AlertDialog opened=materialDialog;opened.getWindow().getDecorView().setTag("craft-material-picker-dialog");opened.setOnDismissListener(d->{if(materialDialog==opened)materialDialog=null;if(h.visibleDialog==opened)h.visibleDialog=null;});
  }
+ void closeMaterials(){android.app.AlertDialog opened=materialDialog;materialDialog=null;if(opened!=null){if(h.visibleDialog==opened)h.visibleDialog=null;opened.dismiss();}}
  void buildCarousel(){
   // 레시피는 응답 스냅샷이다. 테스트/외부 새 배열도 최초 한 번만 지문을 갱신한다.
   if(recipeSource!=ui.recipes)rememberRecipePayload();
@@ -115,7 +117,8 @@ final class NativeRoster60CraftWorkbench {
   String message=ui.preview==null?(ui.message.equals(ui.text(R.string.roster60_craft_hint))?"결과를 탭하면 필요한 보유 재료를 선택합니다.":ui.message):ui.text(R.string.roster60_craft_prediction,ui.preview.optInt("expectedLevel"),ui.preview.optString("maxLevel","—"),ui.preview.optString("inheritedTotalXp"));
   if(ui.preview!=null&&ui.preview.has("remainingXp"))message+="\n현재 XP "+ui.preview.optString("remainingXp")+(ui.preview.isNull("xpToNext")?"":" · 다음 "+ui.preview.optString("xpToNext"));
   ui.setText(status,message);status.setTextSize(11*ui.scale);
-  ui.setText(ui.previewButton,ui.text(ui.version.isEmpty()?R.string.roster60_craft_reload:R.string.roster60_craft_preview));ui.previewButton.setEnabled(!busy()&&(ui.version.isEmpty()||(!ui.selected.isEmpty()&&ui.recipes.length()>0)));
-  ui.setText(ui.confirmButton,ui.text(ui.pending==null?R.string.roster60_craft_confirm:R.string.roster60_craft_retry));ui.confirmButton.setEnabled(!ui.loading&&!ui.submitting&&(ui.preview!=null||ui.pending!=null));
+  if(ui.inheritanceModel!=null)message+="\n"+ui.inheritanceModel.summary();if(ui.pending!=null&&!ui.pendingSummary.isEmpty())message="이전에 확정한 요청의 처리 상태 확인 중\n"+ui.pendingSummary;ui.setText(status,message);
+  ui.setText(ui.previewButton,ui.previewLabel());ui.previewButton.setEnabled(!ui.loading&&!ui.submitting&&(ui.pending!=null||ui.version.isEmpty()||(!ui.selected.isEmpty()&&ui.recipes.length()>0)));
+  ui.setText(ui.confirmButton,ui.pending==null?"조합 내용 확인":ui.text(R.string.roster60_craft_retry));ui.confirmButton.setEnabled(!ui.loading&&!ui.submitting&&(ui.chosenPreview()||ui.pending!=null));
  }
 }

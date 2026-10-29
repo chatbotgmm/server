@@ -5,7 +5,7 @@ import android.widget.LinearLayout;
 import java.util.function.IntConsumer;
 
 /** Free native inertia; the card nearest the center grows without selecting materials. */
-final class CraftResultCarousel extends InertialCardScrollView {
+class CraftResultCarousel extends InertialCardScrollView {
  interface CardArt {void showArt(boolean visible);}
  final MainActivity h;final LinearLayout cards;final IntConsumer choose;
  int selected,cardWidth;boolean centerPending=true;
@@ -26,10 +26,14 @@ final class CraftResultCarousel extends InertialCardScrollView {
  }
  void select(int index){selected=index;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).setSelected(i==index);}
  @Override protected void onMeasure(int ws,int hs){
-  int width=MeasureSpec.getSize(ws),next=Math.max(1,width);
-  if(next!=cardWidth){cardWidth=next;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).getLayoutParams().width=next;setPadding(0,0,0,0);centerPending=true;}
+  int width=MeasureSpec.getSize(ws),next=Math.max(1,preferredCardWidth(width,MeasureSpec.getSize(hs)));
+  int side=centerEdges()?Math.max(0,(width-next)/2):0;
+  if(next!=cardWidth||getPaddingLeft()!=side){cardWidth=next;for(int i=0;i<cards.getChildCount();i++)cards.getChildAt(i).getLayoutParams().width=next;setPadding(side,0,side,0);centerPending=true;}
   super.onMeasure(ws,hs);
  }
+ int preferredCardWidth(int width,int height){return width;}
+ boolean centerEdges(){return false;}
+ float sideScale(){return .76f;}
  @Override protected void onLayout(boolean changed,int l,int t,int r,int b){
   super.onLayout(changed,l,t,r,b);if(centerPending){scrollTo(selected*cardWidth,0);centerPending=false;}scaleCards();
  }
@@ -38,7 +42,7 @@ final class CraftResultCarousel extends InertialCardScrollView {
   if(cards==null||getWidth()<=0)return;float center=getScrollX()+getWidth()/2f-getPaddingLeft();
   for(int i=0;i<cards.getChildCount();i++){
    View card=cards.getChildAt(i);float distance=Math.min(1,Math.abs(card.getLeft()+card.getWidth()/2f-center)/Math.max(1,cardWidth));
-   float scale=1-.24f*distance;card.setScaleX(scale);card.setScaleY(scale);
+   float scale=1-(1-sideScale())*distance;card.setScaleX(scale);card.setScaleY(scale);
    if(card instanceof CardArt)((CardArt)card).showArt(card.getRight()>=getScrollX()-cardWidth&&card.getLeft()<=getScrollX()+getWidth()+cardWidth);
   }
  }

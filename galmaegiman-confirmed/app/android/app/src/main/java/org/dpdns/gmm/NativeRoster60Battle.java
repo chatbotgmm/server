@@ -10,10 +10,12 @@ class NativeRoster60Battle {
  static final Set<String> IN_FLIGHT=new HashSet<>();
  String owner,key,autoSettled="",settlementError="",rejectionNotice=""; int epoch; LinearLayout container; TextView message,stats; Button retry,settle,returnAdventure,home;
  Roster60FormationView formation;Roster60PreparationView preparation;LinearLayout arena;
+ NativeXpRewards xpRewards;
  LinearLayout artGate;TextView artGateNotice;Button artGateRetry;boolean artGateWanted,artPausedAnimator,artGateRefreshPosted;
  android.app.AlertDialog opponentDialog;Button opponentInfo;FrameLayout stageOverlay;
  android.app.AlertDialog conditionDialog;LinearLayout opponentDetails;TextView opponentSummary;final TextView[] opponentReactions=new TextView[8];boolean opponentInfoChanging;JSONObject opponentProjection;
  LinearLayout choicePanel;String choiceKind="",switchTarget="",targetItem="";int itemPage;
+ final ArrayList<Roster60SkillElements> candidateSkills=new ArrayList<>();
  NativeRoster60Art art; NativeRoster60Playback playback; CombatV2ReviewPanel panel; LinearLayout toolbar; TextView hold;
  // 휴대폰 가로(약 760×300dp)=1. 큰 화면에서는 글자·아이콘·버튼 높이를 같은 비율로 키운다(Roster60Scale).
  float scale=1; JSONObject view,adventure; boolean reading;boolean presentationPaused; android.app.AlertDialog selection;
@@ -33,6 +35,7 @@ class NativeRoster60Battle {
   // decorative page padding: field and command rail fill that entire viewport.
   h.root.addView(h.page,new FrameLayout.LayoutParams(-1,-1));h.screenShown();
   owner=h.api.token();key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner+storageScope());epoch=h.epoch;
+  xpRewards=new NativeXpRewards(h,owner,epoch,NativeCommander.state(h));
   Roster60Scale.Column column=new Roster60Scale.Column(h,760,300);column.changed=this::rescale;container=column;container.setBackgroundColor(NavyWorkbenchTheme.HEADER);h.page.addView(container,new LinearLayout.LayoutParams(-1,0,1));
   // No top navigation/banner: the battle field owns the reclaimed height.
   home=h.button("‹ 홈",()->back()); // Detached compatibility handle; hardware Back remains authoritative.
@@ -56,11 +59,13 @@ class NativeRoster60Battle {
   LinearLayout commandRail=new Roster60Scale.Capped(h,1.3f);commandRail.setOrientation(LinearLayout.VERTICAL);commandRail.setTag("roster60-command-rail");commandRail.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));commandRail.setBackground(new BattleSkin(h,"panel-command"));LinearLayout.LayoutParams railBox=new LinearLayout.LayoutParams(0,-1,.375f);railBox.gravity=android.view.Gravity.CENTER_VERTICAL;arena.addView(commandRail,railBox);
   commandRail.addView(message,new LinearLayout.LayoutParams(-1,-2));
   stats=h.text("",12);stats.setTextColor(NavyWorkbenchTheme.TEXT);stats.setMaxLines(3);stats.setVisibility(android.view.View.GONE);commandRail.addView(stats);
+  commandRail.addView(xpRewards.button,new LinearLayout.LayoutParams(-1,h.dp(44)));
   LinearLayout controls=new LinearLayout(h);controls.setOrientation(LinearLayout.HORIZONTAL);commandRail.addView(controls);
   retry=h.button("연결 재시도",()->{if(adventure!=null&&"ACTIVE".equals(adventure.optString("status")))chooseAdventureBattle();else resume();});retry.setTag("roster60-battle-retry");controls.addView(retry,new LinearLayout.LayoutParams(0,h.dp(48),1));
   settle=h.button("정산 다시 시도",()->{if(view!=null)mutate("settle",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision")));});settle.setTag("roster60-battle-settle");settle.setEnabled(false);controls.addView(settle,new LinearLayout.LayoutParams(0,h.dp(48),1));
   returnAdventure=h.button("모험 정상 복귀",()->{if(adventure!=null)mutate("adventure/return",h.obj("adventureId",adventure.optString("adventureId"),"revision",adventure.optInt("revision")));});controls.addView(returnAdventure,new LinearLayout.LayoutParams(0,h.dp(48),1));
-  for(Button button:new Button[]{retry,settle,returnAdventure}){button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
+  BattleSkin.bindPressFeedback(xpRewards.button);
+  for(Button button:new Button[]{retry,settle,returnAdventure}){BattleSkin.bindPressFeedback(button);button.setVisibility(android.view.View.GONE);NavyWorkbenchTheme.tab(h,button,false);button.setTextSize(12);button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxLines(2);}
   panel=new CombatV2ReviewPanel(h,this::command,CombatV2ReviewStyle::icon,true);panel.setTag("roster60-battle-panel");panel.setHoldOverlay(hold);commandRail.addView(panel,new LinearLayout.LayoutParams(-1,0,1));choicePanel=new LinearLayout(h);choicePanel.setOrientation(1);choicePanel.setTag("roster60-battle-choices");choicePanel.setVisibility(android.view.View.GONE);commandRail.addView(choicePanel,new LinearLayout.LayoutParams(-1,0,1));resume();
  }
  void refreshArtGate(){
@@ -74,8 +79,8 @@ class NativeRoster60Battle {
   if(artGate==null){
    artGate=new LinearLayout(h);artGate.setTag("roster60-battle-art-gate");artGate.setOrientation(LinearLayout.VERTICAL);artGate.setGravity(android.view.Gravity.CENTER);artGate.setPadding(h.dp(24),h.dp(12),h.dp(24),h.dp(12));artGate.setBackgroundColor(NavyWorkbenchTheme.HEADER);artGate.setClickable(true);
    artGateNotice=h.text("전투 화면을 준비하고 있어요",16);artGateNotice.setGravity(android.view.Gravity.CENTER);artGateNotice.setTextColor(NavyWorkbenchTheme.TEXT);artGate.addView(artGateNotice,new LinearLayout.LayoutParams(-1,-2));
-   artGateRetry=h.button("다시 준비",()->{if(current()){if(art.snapshot==null)resume();else art.retryAssets();}});artGateRetry.setTag("roster60-battle-art-retry");artGate.addView(artGateRetry,new LinearLayout.LayoutParams(-1,h.dp(48)));
-   Button leave=h.button("뒤로",()->{if(current())back();});leave.setTag("roster60-battle-art-back");artGate.addView(leave,new LinearLayout.LayoutParams(-1,h.dp(48)));
+   artGateRetry=h.button("다시 준비",()->{if(current()){if(art.snapshot==null)resume();else art.retryAssets();}});BattleSkin.bindPressFeedback(artGateRetry);artGateRetry.setTag("roster60-battle-art-retry");artGate.addView(artGateRetry,new LinearLayout.LayoutParams(-1,h.dp(48)));
+   Button leave=h.button("뒤로",()->{if(current())back();});BattleSkin.bindPressFeedback(leave);leave.setTag("roster60-battle-art-back");artGate.addView(leave,new LinearLayout.LayoutParams(-1,h.dp(48)));
   }
   boolean failed=art.assetsFailed();String detail=failed?art.failureDetail():"";
   artGateNotice.setText(failed?"전투 그림을 준비하지 못했어요. 다시 시도해 주세요."+(detail.isEmpty()?"":"\n("+detail+")"):"전투 화면을 준비하고 있어요");artGateRetry.setVisibility(failed?android.view.View.VISIBLE:android.view.View.GONE);
@@ -118,6 +123,9 @@ class NativeRoster60Battle {
   stopArtGate();
   clearFormation();adventure=run;view=null;closeOpponentInfo();panel.lock();panel.setVisibility(android.view.View.GONE);stats.setVisibility(android.view.View.VISIBLE);retry.setVisibility(android.view.View.VISIBLE);settle.setEnabled(false);boolean active="ACTIVE".equals(run.optString("status"));returnAdventure.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);returnAdventure.setEnabled(active&&run.isNull("activeBattleId"));retry.setText(active?"모험 계속":"홈으로");retry.setOnClickListener(v->{if(active)chooseAdventureBattle();else h.load("home");});
   message.setText(active?"모험 전투 밖 · 도망 성공은 복귀가 아닙니다.":"모험 종료");JSONObject rewards=run.optJSONObject("pendingRewards"),xp=rewards==null?null:rewards.optJSONObject("xp");long totalXp=0;if(xp!=null){java.util.Iterator<String> ids=xp.keys();while(ids.hasNext())totalXp+=xp.optLong(ids.next());}stats.setText("누적 경험치 합계 "+totalXp+" · 정상 복귀 시 보상 획득\n전멸하면 이번 모험의 미정산 보상을 잃습니다.");
+  if("RETURNED".equals(run.optString("status")))stats.setText("모험 정상 귀환 · 경험치 보상 정산 완료");
+  else if("LOST".equals(run.optString("status")))stats.setText("전멸로 이번 모험의 미정산 보상을 잃었습니다.");
+  if(xpRewards!=null)xpRewards.bind(run);
  }
  void chooseAdventureBattle(){if(!current()||adventure==null||reading)return;reading=true;h.api.call("native/roster60/battle/options",null,(r,e)->{if(!current())return;reading=false;if(e!=null){error(e);return;}JSONArray all=r.optJSONArray("encounters");ArrayList<JSONObject> encounters=new ArrayList<>();if(all!=null)for(int i=0;i<all.length();i++)if("adventure".equals(all.optJSONObject(i).optString("mode")))encounters.add(all.optJSONObject(i));if(encounters.isEmpty()){error("ADVENTURE_ENCOUNTER_PENDING");return;}
   JSONArray party=adventure.optJSONArray("party");ArrayList<JSONObject> alive=new ArrayList<>();for(int i=0;i<party.length();i++)if(party.optJSONObject(i).optInt("hp")>0)alive.add(party.optJSONObject(i));String[] names=new String[alive.size()];for(int i=0;i<names.length;i++)names[i]=alive.get(i).optString("name")+" HP "+alive.get(i).optInt("hp");
@@ -128,6 +136,7 @@ class NativeRoster60Battle {
   stopArtGate();
   reading=true;h.api.call("native/roster60/battle/options",null,(r,e)->{
    if(!current())return;reading=false;if(e!=null){error(e);return;}
+   if(!Roster60PartyPolicy.read(r,false).ready){error(Roster60PartyPolicy.compatibilityMessage());return;}
    JSONArray units=r.optJSONArray("units"),allEncounters=r.optJSONArray("encounters");
    JSONArray encounters=new JSONArray();if(allEncounters!=null)for(int i=0;i<allEncounters.length();i++){JSONObject encounter=allEncounters.optJSONObject(i);if(encounter!=null&&requestedMode.includes(encounter.optString("mode")))encounters.put(encounter);}
    if(units==null||units.length()==0){message.setText("편성할 개체가 없습니다. 튜토리얼에서 갈매미맨으로 시작하세요.");return;}
@@ -140,51 +149,56 @@ class NativeRoster60Battle {
   if(!current()||reading)return;reading=true;
   h.api.call("native/roster60/pvp/options",null,(result,error)->{
    if(!current())return;reading=false;if(error!=null){error(error);return;}
+   Roster60PartyPolicy policy=Roster60PartyPolicy.read(result,true);
    stopArtGate();clearFormation();closeOpponentInfo();panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);
    preparation=new Roster60PreparationView(h,units,result==null?null:result.optJSONArray("partyIds"),encounter.optString("name","출발 준비"),ids->{
     if(!current())return;if(!prefs.getString(key+":pending","").isEmpty()){resume();return;}
     if("adventure".equals(encounter.optString("mode")))mutate("adventure/start",h.obj("ownedIds",ids));
     else{JSONArray reserves=new JSONArray();for(int i=1;i<ids.length();i++)reserves.put(ids.optString(i));mutate("create",h.obj("ownedId",ids.optString(0),"reserveIds",reserves,"encounterId",encounter.optString("id")));}
-   },()->{clearFormation();options();},this::current);
+   },()->{clearFormation();options();},this::current,policy);
+   if("story".equals(encounter.optString("mode"))||"adventure".equals(encounter.optString("mode")))preparation.recommendation(encounter);
    container.addView(preparation,new LinearLayout.LayoutParams(-1,0,1));
   });
  }
  void showFormation(JSONArray units,JSONObject encounter){
   stopArtGate();
-  closeOpponentInfo();if(formation!=null)container.removeView(formation);panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);home.setText("‹ 뒤로");message.setText("전투 편성 · "+("adventure".equals(encounter.optString("mode"))?"모험":"스토리")+" · 출전 1 + 예비 5");
+  closeOpponentInfo();if(formation!=null)container.removeView(formation);panel.cancelInteraction();arena.setVisibility(android.view.View.GONE);home.setText("‹ 뒤로");message.setText("전투 편성 · "+("adventure".equals(encounter.optString("mode"))?"모험":"스토리")+" · 출전 1 + 예비 2");
   formation=new Roster60FormationView(h,units,ids->{if(!current())return;if(!prefs.getString(key+":pending","").isEmpty()){resume();return;}if("adventure".equals(encounter.optString("mode")))mutate("adventure/start",h.obj("ownedIds",ids));else{JSONArray reserves=new JSONArray();for(int i=1;i<ids.length();i++)reserves.put(ids.optString(i));mutate("create",h.obj("ownedId",ids.optString(0),"reserveIds",reserves,"encounterId",encounter.optString("id")));}},()->{clearFormation();options();});container.addView(formation,new LinearLayout.LayoutParams(-1,0,1));
  }
  void clearFormation(){if(formation!=null){container.removeView(formation);formation=null;}if(preparation!=null){container.removeView(preparation);preparation=null;}arena.setVisibility(android.view.View.VISIBLE);if(home!=null)home.setText("‹ 홈");}
  void chooseReserves(JSONArray units,String first,String encounter,boolean isAdventure){
   ArrayList<JSONObject> candidates=new ArrayList<>();for(int i=0;i<units.length();i++)if(!first.equals(units.optJSONObject(i).optString("ownedId")))candidates.add(units.optJSONObject(i));
   String[] names=new String[candidates.size()];boolean[] checked=new boolean[names.length];for(int i=0;i<names.length;i++)names[i]=candidates.get(i).optString("name");
-  selection=new GameDialog(h).navy().setTitle("예비 최대 5마리 · 출전 1마리씩")
-   .setMultiChoiceItems(names,checked,(d,n,on)->checked[n]=on).setPositiveButton("전투 시작",(d,n)->{if(!current())return;JSONArray ids=new JSONArray();for(int i=0;i<checked.length;i++)if(checked[i])ids.put(candidates.get(i).optString("ownedId"));if(ids.length()>5){message.setText("예비는 최대 5마리입니다.");return;}if(isAdventure){JSONArray party=new JSONArray().put(first);for(int j=0;j<ids.length();j++)party.put(ids.optString(j));mutate("adventure/start",h.obj("ownedIds",party));}else mutate("create",h.obj("ownedId",first,"encounterId",encounter,"reserveIds",ids));}).setNegativeButton("취소",null).show();
+  selection=new GameDialog(h).navy().setTitle("예비 최대 2마리 · 출전 1마리씩")
+   .setMultiChoiceItems(names,checked,(d,n,on)->checked[n]=on).setPositiveButton("전투 시작",(d,n)->{if(!current())return;JSONArray ids=new JSONArray();for(int i=0;i<checked.length;i++)if(checked[i])ids.put(candidates.get(i).optString("ownedId"));if(ids.length()>2){message.setText("예비는 최대 2마리입니다.");return;}if(isAdventure){JSONArray party=new JSONArray().put(first);for(int j=0;j<ids.length();j++)party.put(ids.optString(j));mutate("adventure/start",h.obj("ownedIds",party));}else mutate("create",h.obj("ownedId",first,"encounterId",encounter,"reserveIds",ids));}).setNegativeButton("취소",null).show();
  }
  void action(JSONObject a){if(!presenting()&&view!=null)mutate("action",h.obj("battleId",view.optString("battleId"),"revision",view.optInt("revision"),"action",a));}
  void cancelSelection(){if(current()&&view!=null&&prefs.getString(key+":pending","").isEmpty())bind(view);}
  void unlockOnDismiss(){final android.app.AlertDialog dialog=selection;if(dialog!=null)dialog.setOnDismissListener(d->{if(h.visibleDialog==dialog)h.visibleDialog=null;if(selection!=dialog)return;selection=null;if(current()&&view!=null&&prefs.getString(key+":pending","").isEmpty())bind(view);});}
- void chooseSwitch(){switchTarget="";choiceKind="switch";renderChoices();}
+ void chooseSwitch(){switchTarget="";itemPage=0;choiceKind="switch";renderChoices();}
  void chooseItem(){choiceKind="item";itemPage=0;renderChoices();}
- void closeChoices(){switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);panel.setVisibility(android.view.View.VISIBLE);cancelSelection();}
+ void closeSkillElements(){for(Roster60SkillElements skills:candidateSkills)skills.close();candidateSkills.clear();}
+ void closeChoices(){closeSkillElements();switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);panel.setVisibility(android.view.View.VISIBLE);cancelSelection();}
  void renderChoices(){
- if(view==null||choiceKind.isEmpty())return;panel.cancelInteraction();panel.setVisibility(android.view.View.GONE);choicePanel.setVisibility(android.view.View.VISIBLE);choicePanel.removeAllViews();
+ if(view==null||choiceKind.isEmpty())return;ScrollView previous=choicePanel.findViewWithTag("battle-candidates-scroll");final int scrollY=previous==null?0:previous.getScrollY();closeSkillElements();panel.cancelInteraction();panel.setVisibility(android.view.View.GONE);choicePanel.setVisibility(android.view.View.VISIBLE);choicePanel.removeAllViews();
  JSONObject state=view.optJSONObject("state");ArrayList<JSONObject> entries=new ArrayList<>();boolean reviving="revive".equals(choiceKind),switching="switch".equals(choiceKind)||reviving;
  if(switching){entries.add(state.optJSONArray("fighters").optJSONObject(0));JSONArray reserves=state.optJSONArray("reserves");if(reserves!=null)for(int i=0;i<reserves.length();i++)entries.add(reserves.optJSONObject(i));}
  else{JSONArray inventory=state.optJSONArray("inventory");JSONObject defs=view.optJSONObject("itemDefinitions");if(inventory!=null&&defs!=null)for(int i=0;i<inventory.length();i++){JSONObject item=inventory.optJSONObject(i);if(item.optInt("count")>0&&defs.has(item.optString("itemId")))entries.add(item);}}
- TextView heading=h.text(reviving?"회복할 대원 선택 · 전투불능만":switching?"대원 교체 · 후보 선택":"아이템 선택",12);CombatV2ReviewStyle.text(heading);heading.setTextSize(13*scale);heading.setTextColor(NavyWorkbenchTheme.TEXT);heading.setSingleLine(true);heading.setPadding(h.dp(4*scale),0,h.dp(4*scale),h.dp(3*scale));heading.setTag("battle-choices-heading");choicePanel.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+ TextView heading=h.text(reviving?"회복할 대원 선택 · 전투불능만":switching?"대원 교체 · 기술 속성":"아이템 선택",12);CombatV2ReviewStyle.text(heading);heading.setTextSize(13*scale);heading.setTextColor(NavyWorkbenchTheme.TEXT);heading.setSingleLine(true);heading.setPadding(h.dp(4*scale),0,h.dp(4*scale),h.dp(3*scale));heading.setTag("battle-choices-heading");choicePanel.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+ LinearLayout candidateList=null;
+ if(switching){ScrollView scroll=new ScrollView(h);scroll.setTag("battle-candidates-scroll");candidateList=new LinearLayout(h);candidateList.setOrientation(LinearLayout.VERTICAL);scroll.addView(candidateList,new ScrollView.LayoutParams(-1,-2));choicePanel.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));scroll.post(()->{if(current()&&!choiceKind.isEmpty()&&scroll.getParent()==choicePanel)scroll.scrollTo(0,scrollY);});}
  int pages=Math.max(1,(entries.size()+5)/6);itemPage=Math.min(itemPage,pages-1);boolean available=prefs.getString(key+":pending","").isEmpty()&&!view.optBoolean("waitingForOpponent");
- for(int row=0;row<3;row++){LinearLayout line=new LinearLayout(h);choicePanel.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<2;col++){int index=itemPage*6+row*2+col;
+ for(int row=0;row<(switching?Math.min(3,(entries.size()-itemPage*6+1)/2):3);row++){LinearLayout line=new LinearLayout(h);if(switching)candidateList.addView(line,new LinearLayout.LayoutParams(-1,h.dp(104*scale)));else choicePanel.addView(line,new LinearLayout.LayoutParams(-1,0,1));for(int col=0;col<2;col++){int index=itemPage*6+row*2+col;
  if(index>=entries.size()){line.addView(new android.view.View(h),new LinearLayout.LayoutParams(0,-1,1));continue;}JSONObject item=entries.get(index);
- if(switching){boolean active=index==0,alive=item.optInt("hp")>0;Roster60SwitchTile tile=new Roster60SwitchTile(h,item,active,(reviving?!alive:!active&&alive)&&available,item.optString("ownedId").equals(switchTarget),()->{switchTarget=item.optString("ownedId");renderChoices();},scale);tile.action.setTag("battle-switch-"+item.optString("ownedId"));line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
- else{String id=item.optString("itemId");JSONObject def=view.optJSONObject("itemDefinitions").optJSONObject(id);Button button=h.button(def.optString("name")+" ×"+item.optInt("count"),()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);if(def.optInt("revive")>0)chooseRevive(id);else action(h.obj("kind","item","itemId",id));});button.setTextSize(12*scale);button.setMinWidth(0);button.setMinimumWidth(0);button.setEnabled(available);button.setBackground(new BattleSkin(h,"button-item"));line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}
+ if(switching){boolean active=index==0,alive=item.optInt("hp")>0;Roster60SwitchTile tile=new Roster60SwitchTile(h,item,active,(reviving?!alive:!active&&alive)&&available,item.optString("ownedId").equals(switchTarget),()->{switchTarget=item.optString("ownedId");renderChoices();},scale);tile.action.setTag("battle-switch-"+item.optString("ownedId"));final JSONObject shown=view;Roster60SkillElements skills=new Roster60SkillElements(h,item,scale,()->current()&&view==shown&&!choiceKind.isEmpty(),true);skills.setTag("battle-own-skill-elements-"+item.optString("ownedId"));candidateSkills.add(skills);tile.showSkills(skills);line.addView(tile,new LinearLayout.LayoutParams(0,-1,1));}
+ else{String id=item.optString("itemId");JSONObject def=view.optJSONObject("itemDefinitions").optJSONObject(id);Button button=h.button(def.optString("name")+" ×"+item.optInt("count"),()->{choiceKind="";choicePanel.setVisibility(android.view.View.GONE);if(def.optInt("revive")>0)chooseRevive(id);else action(h.obj("kind","item","itemId",id));});button.setTextSize(12*scale);button.setMinWidth(0);button.setMinimumWidth(0);button.setEnabled(available);button.setBackground(new BattleSkin(h,"button-item"));BattleSkin.bindPressFeedback(button);line.addView(button,new LinearLayout.LayoutParams(0,-1,1));}
  }}
  LinearLayout footer=new LinearLayout(h);LinearLayout.LayoutParams footerBox=new LinearLayout.LayoutParams(-1,h.dp(48*scale));footerBox.topMargin=h.dp(3*scale);choicePanel.addView(footer,footerBox);
- if(pages>1){Button prev=h.button("‹",()->{itemPage--;renderChoices();}),next=h.button("›",()->{itemPage++;renderChoices();});prev.setEnabled(itemPage>0);next.setEnabled(itemPage<pages-1);footer.addView(prev,new LinearLayout.LayoutParams(0,-1,1));footer.addView(next,new LinearLayout.LayoutParams(0,-1,1));}
+ if(pages>1){Button prev=h.button("‹",()->{itemPage--;renderChoices();}),next=h.button("›",()->{itemPage++;renderChoices();});BattleSkin.bindPressFeedback(prev);BattleSkin.bindPressFeedback(next);prev.setEnabled(itemPage>0);next.setEnabled(itemPage<pages-1);footer.addView(prev,new LinearLayout.LayoutParams(0,-1,1));footer.addView(next,new LinearLayout.LayoutParams(0,-1,1));}
  // 취소는 남색 보조 행동(교체 확정과 같은 글자 크기·같은 터치 높이), 확정만 크림색 주행동. 취소는 서버 요청 없이 닫기만 한다.
- Button back=h.button("취소",this::closeChoices);back.setTag("battle-choices-back");back.setBackground(new BattleSkin(h,"button-switch"));CombatV2ReviewStyle.text(back);back.setTextColor(0xfffff8e8);back.setTextSize(12*scale);back.setMinWidth(0);back.setMinimumWidth(0);back.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(back,new LinearLayout.LayoutParams(0,-1,1));
+ Button back=h.button("취소",this::closeChoices);back.setTag("battle-choices-back");back.setBackground(new BattleSkin(h,"button-switch"));BattleSkin.bindPressFeedback(back);CombatV2ReviewStyle.text(back);back.setTextColor(0xfffff8e8);back.setTextSize(12*scale);back.setMinWidth(0);back.setMinimumWidth(0);back.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(back,new LinearLayout.LayoutParams(0,-1,1));
  if(switching){JSONObject target=null;for(JSONObject candidate:entries)if(candidate.optString("ownedId").equals(switchTarget)&&(reviving?candidate.optInt("hp")==0:candidate.optInt("hp")>0&&candidate!=entries.get(0)))target=candidate;final JSONObject chosen=target;
- Button confirm=h.button(chosen==null?"대원 선택":chosen.optString("name")+(reviving?" 회복":" 교체"),()->{if(chosen==null||!current())return;switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(reviving?h.obj("kind","item","itemId",targetItem,"targetOwnedId",chosen.optString("ownedId")):h.obj("kind","switch","targetOwnedId",chosen.optString("ownedId")));});confirm.setTag("battle-switch-confirm");confirm.setEnabled(chosen!=null&&available);confirm.setBackground(new BattleSkin(h,"button-surrender"));CombatV2ReviewStyle.text(confirm);confirm.setTextColor(chosen!=null&&available?JournalTheme.INK:JournalTheme.MUTED);confirm.setTextSize(12*scale);confirm.setMaxLines(1);confirm.setEllipsize(android.text.TextUtils.TruncateAt.END);confirm.setMinWidth(0);confirm.setMinimumWidth(0);confirm.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(confirm,new LinearLayout.LayoutParams(0,-1,2));}
+ Button confirm=h.button(chosen==null?"대원 선택":chosen.optString("name")+(reviving?" 회복":" 교체"),()->{if(chosen==null||!current())return;closeSkillElements();switchTarget="";choiceKind="";choicePanel.setVisibility(android.view.View.GONE);action(reviving?h.obj("kind","item","itemId",targetItem,"targetOwnedId",chosen.optString("ownedId")):h.obj("kind","switch","targetOwnedId",chosen.optString("ownedId")));});confirm.setTag("battle-switch-confirm");confirm.setEnabled(chosen!=null&&available);confirm.setBackground(new BattleSkin(h,"button-surrender"));BattleSkin.bindPressFeedback(confirm);CombatV2ReviewStyle.text(confirm);confirm.setTextColor(chosen!=null&&available?JournalTheme.INK:JournalTheme.MUTED);confirm.setTextSize(12*scale);confirm.setMaxLines(1);confirm.setEllipsize(android.text.TextUtils.TruncateAt.END);confirm.setMinWidth(0);confirm.setMinimumWidth(0);confirm.setPadding(h.dp(4),0,h.dp(4),0);footer.addView(confirm,new LinearLayout.LayoutParams(0,-1,2));}
 
  }
  void chooseRevive(String item){targetItem=item;switchTarget="";choiceKind="revive";itemPage=0;renderChoices();}
@@ -200,7 +214,7 @@ class NativeRoster60Battle {
   if(!current()||presenting()||!prefs.getString(key+":pending","").isEmpty())return false;
   if("settle".equals(op))settlementError="";
   try{body.put("requestId",UUID.randomUUID().toString());JSONObject intent=h.obj("operation",op,"body",body);
-   if(!prefs.edit().putString(key+":pending",intent.toString()).commit()){error("요청 저장 실패");return false;}send(intent);return true;
+   if(!prefs.edit().putString(key+":pending",intent.toString()).commit()){error("요청 저장 실패");return false;}if(xpRewards!=null)xpRewards.armMutation(op,body);send(intent);return true;
   }catch(Exception bad){error("요청 생성 실패");return false;}
  }
  void send(JSONObject intent){
@@ -210,7 +224,7 @@ class NativeRoster60Battle {
   NativeApi sender=h.api;Runnable releaseWatch=sender.whenClosed(()->IN_FLIGHT.remove(id));
   sender.call("native/roster60/"+(op.startsWith("adventure/")?op:"battle/"+op),body,(r,e)->{
    releaseWatch.run();IN_FLIGHT.remove(id);if(!owner.equals(h.api.token()))return;
-   boolean rejected=(e!=null&&e.startsWith("MENU_LOCKED"))||Arrays.asList("TUTORIAL_STARTER_REQUIRED","ADVENTURE_REQUIRED","ADVENTURE_NOT_FOUND","ADVENTURE_BATTLE_ACTIVE","ADVENTURE_STATE_CHANGED","RETURN_ONLY_OUTSIDE_BATTLE","CATALOG_CHANGED","UNIT_STATE_CHANGED","INVALID_PARTY","INVALID_SWITCH","INVALID_ITEM","INVALID_ITEM_TARGET","NO_STATUS_TO_CLEANSE","HP_FULL","ITEM_UNAVAILABLE","ACTIVE_UNIT_FAINTED","FORCED_SWITCH_REQUIRED","FORCED_SWITCH_POLICY_PENDING","ESCAPE_POLICY_PENDING","BATTLE_POLICY_PENDING","BATTLE_POLICY_INVALID","BATTLE_GROWTH_PENDING","BATTLE_SKILL_POLICY_PENDING","FIVE_STAT_REBIRTH_POLICY_PENDING","ROSTER_CATALOG_PENDING","FIVE_STAT_CATALOG_REQUIRED","FIVE_STAT_CATALOG_INVALID","FIVE_STATS_REQUIRED","INVALID_FIVE_STATS","BASE_MP_MISMATCH","ROSTER_CATALOG_INVALID","INSUFFICIENT_MP","STALE_REVISION","UNIT_UNAVAILABLE","UNIT_NOT_FOUND","ENCOUNTER_NOT_ALLOWED","BATTLE_NOT_FOUND","BATTLE_FINISHED","BATTLE_NOT_FINISHED","INVALID_REQUEST","REQUEST_ID_REUSED","CAP_XP_POLICY_REQUIRED").contains(e);
+   boolean rejected=(e!=null&&e.startsWith("MENU_LOCKED"))||Arrays.asList("TUTORIAL_STARTER_REQUIRED","ADVENTURE_REQUIRED","ADVENTURE_NOT_FOUND","ADVENTURE_BATTLE_ACTIVE","ADVENTURE_STATE_CHANGED","RETURN_ONLY_OUTSIDE_BATTLE","CATALOG_CHANGED","UNIT_STATE_CHANGED","INVALID_PARTY",Roster60PartyPolicy.RESELECT,"INVALID_SWITCH","INVALID_ITEM","INVALID_ITEM_TARGET","NO_STATUS_TO_CLEANSE","HP_FULL","ITEM_UNAVAILABLE","ACTIVE_UNIT_FAINTED","FORCED_SWITCH_REQUIRED","FORCED_SWITCH_POLICY_PENDING","ESCAPE_POLICY_PENDING","BATTLE_POLICY_PENDING","BATTLE_POLICY_INVALID","BATTLE_GROWTH_PENDING","BATTLE_SKILL_POLICY_PENDING","FIVE_STAT_REBIRTH_POLICY_PENDING","ROSTER_CATALOG_PENDING","FIVE_STAT_CATALOG_REQUIRED","FIVE_STAT_CATALOG_INVALID","FIVE_STATS_REQUIRED","INVALID_FIVE_STATS","BASE_MP_MISMATCH","ROSTER_CATALOG_INVALID","INSUFFICIENT_MP","STALE_REVISION","UNIT_UNAVAILABLE","UNIT_NOT_FOUND","ENCOUNTER_NOT_ALLOWED","BATTLE_NOT_FOUND","BATTLE_FINISHED","BATTLE_NOT_FINISHED","INVALID_REQUEST","REQUEST_ID_REUSED","CAP_XP_POLICY_REQUIRED").contains(e);
    if(e==null||rejected)prefs.edit().remove(key+":pending").commit();
    if(!current())return;
    if(e!=null){if("settle".equals(op))settlementError=e;error(e);if(Roster60BattleErrorText.starter(e))return;if(rejected&&view!=null&&!"settle".equals(op))read(view.optString("battleId"));return;}
@@ -254,7 +268,7 @@ class NativeRoster60Battle {
   // Transparent hit target matches the painted opponent name + HP/MP HUD exactly.
   opponentInfo=h.button("",()->{});
   opponentInfo.setTag("roster60-opponent-info");opponentInfo.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-  opponentInfo.setPadding(0,0,0,0);opponentInfo.setMinWidth(0);opponentInfo.setMinimumWidth(0);
+  BattleSkin.bindPressFeedback(opponentInfo);opponentInfo.setPadding(0,0,0,0);opponentInfo.setMinWidth(0);opponentInfo.setMinimumWidth(0);
   opponentInfo.setMinHeight(0);opponentInfo.setMinimumHeight(0);
   opponentInfo.setOnLongClickListener(v->{showOpponentInfo();return true;});
   opponentInfo.setVisibility(android.view.View.GONE);stage.addView(opponentInfo,new FrameLayout.LayoutParams(1,1));
@@ -338,7 +352,7 @@ class NativeRoster60Battle {
  void closeOpponentInfo(){dismissOpponentDialog();if(opponentInfo!=null)opponentInfo.setVisibility(android.view.View.GONE);opponentProjection=null;}
  boolean presenting(){return playback!=null&&playback.playing();}
  void lockPresentation(){
-  dismissOpponentDialog();panel.lock();panel.cancelInteraction();panel.restoreSkillPage(false);
+  dismissOpponentDialog();closeSkillElements();panel.lock();panel.cancelInteraction();panel.restoreSkillPage(false);
   choiceKind="";switchTarget="";choicePanel.setVisibility(android.view.View.GONE);
   panel.setVisibility(android.view.View.VISIBLE);
   retry.setEnabled(false);settle.setEnabled(false);returnAdventure.setEnabled(false);
@@ -367,7 +381,7 @@ class NativeRoster60Battle {
    JSONObject displaySelf=new JSONObject(self.toString());displaySelf.put("maxHp",self.getJSONObject("stats").getInt("hp"));displaySelf.put("maxMp",self.getJSONObject("stats").getInt("mp"));JSONObject displayFoe=new JSONObject(foe.toString());displayFoe.put("maxHp",foe.getJSONObject("stats").getInt("hp"));displayFoe.put("maxMp",foe.getJSONObject("stats").getInt("mp"));
    panel.bind(h.obj("epoch","product-five-battle-v1","battleId",r.getString("battleId"),"revision",r.getInt("revision"),"self",displaySelf,"foe",displayFoe,"commands",commands,"skills",skills,"events",new JSONArray()));
    adventure=null;returnAdventure.setVisibility(android.view.View.GONE);retry.setVisibility(android.view.View.GONE);settle.setVisibility(android.view.View.GONE);view=r;opponentInfo.setVisibility(android.view.View.VISIBLE);refreshOpponentInfo();
-   if(!active){choiceKind="";choicePanel.setVisibility(android.view.View.GONE);}
+   if(!active){closeSkillElements();choiceKind="";choicePanel.setVisibility(android.view.View.GONE);}
    panel.setVisibility(active?android.view.View.VISIBLE:android.view.View.GONE);
    if(active&&!choiceKind.isEmpty())renderChoices();
    message.setText(active?"턴 "+s.getInt("turn")+" · 행동을 선택하세요":resultLabel(s.optString("outcome")));
@@ -378,10 +392,11 @@ class NativeRoster60Battle {
     if(!r.optString("battleId").equals(autoSettled)){autoSettled=r.optString("battleId");final String id=autoSettled;h.page.post(()->{if(current()&&view!=null&&id.equals(view.optString("battleId"))&&"FINISHED".equals(view.optString("status")))mutate("settle",h.obj("battleId",id,"revision",view.optInt("revision")));});}
    }else if("SETTLED".equals(r.optString("status"))){stats.setVisibility(android.view.View.VISIBLE);JSONObject receipt=r.optJSONObject("settlement");boolean exploring="adventure".equals(s.optString("mode"));stats.setText(exploring?"LOST".equals(receipt==null?"":receipt.optString("adventureStatus"))?"전멸로 이번 모험의 미정산 보상을 잃었습니다.":"모험 보상은 누적 보관됩니다. 정상 복귀 시 획득합니다.":"경험치 +"+(receipt==null?0:receipt.optInt("xpAwarded"))+" · 결과 저장 완료");retry.setVisibility(android.view.View.VISIBLE);retry.setText(exploring?"모험 확인":"홈으로");retry.setOnClickListener(v->{if(exploring)adventureResume();else h.load("home");});}
 
+   if(xpRewards!=null)xpRewards.bind(r);
   }catch(Exception bad){view=null;stopArtGate();closeOpponentInfo();panel.lock();settle.setEnabled(false);message.setText("서버 전투 데이터 형식을 확인할 수 없습니다.");}
  }
  static String resultLabel(String outcome){return "win".equals(outcome)?"승리":"loss".equals(outcome)?"패배":"escaped".equals(outcome)?"도망 성공":"전투 종료";}
  boolean back(){if(opponentDialog!=null&&opponentDialog.isShowing()){dismissOpponentDialog();return true;}if(preparation!=null)return preparation.back();if(presenting()){playback.suspend();h.load("home");return true;}if(formation!=null){clearFormation();message.setText("전투를 선택하세요.");options();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}h.load("home");return true;}
- void pause(){stopArtGate();dismissOpponentDialog();closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
+ void pause(){closeSkillElements();if(xpRewards!=null)xpRewards.pause();stopArtGate();dismissOpponentDialog();closeCondition();presentationPaused=true;if(playback!=null)playback.suspend();if(panel!=null)panel.cancelInteraction();if(selection!=null){selection.dismiss();selection=null;}}
 }
 

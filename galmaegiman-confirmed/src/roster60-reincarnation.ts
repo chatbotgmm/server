@@ -32,7 +32,7 @@ export class RosterReincarnation {
   if(!policy.grades.includes(d.rarity))reason='REINCARNATION_GRADE_NOT_ALLOWED';
   else if(before.level<requiredLevel)reason='REINCARNATION_REQUIREMENTS_NOT_MET';
   // The public proof must not become a brute-force oracle for the hidden defense table.
-  const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,successes,cost,policy,requiredLevel,publicDefenseSafe(preview)]);
+  const fingerprint=hash([c.version,u.id,u.speciesId,u.totalXp.toString(),u.reincarnation,u.skillInheritanceJson,successes,cost,policy,requiredLevel,publicDefenseSafe(preview)]);
   return {ownedId:u.id,speciesId:u.speciesId,name:d.name,catalogVersion:c.version,eligible:!reason,reason,requiredLevel,preview,costPeanut:cost,accountFreeAvailable:successes===0,successes,previewFingerprint:fingerprint};
  }
  async preview(playerId:string){

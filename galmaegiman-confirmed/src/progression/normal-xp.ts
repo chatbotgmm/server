@@ -3,6 +3,7 @@ import type {BattlePolicy,Fighter} from '../roster60-battle.js';
 import {RosterError,type RosterCatalog} from '../roster60-onboarding.js';
 import {validatePresenceForfeitProof,type PresenceForfeitProof} from './roster60-presence.js';
 import {growthAt,instanceGrowthCurve,rosterMaxLevel,type GrowthPoint,type ReincarnationXpPolicy} from '../battle/roster60-rules.js';
+import {unitXpProgress,type XpProgress} from './xp-progress.js';
 
 type NormalXpPolicyBase={approved:boolean;version:string;catalogVersion:string;profileKind:'user-authorized-test-baseline'|'approved-production';productionBalanceApproved:boolean;testValues:boolean;scope:'normal';source:'duel-nearest-owned-start-level';participation:'actually-entered-owned-only';surrender:'confirmed-zero';draw:'undecided-no-award';legacyRoom:'unconfigured-no-retroactive-award';notes?:string[]};
 export type NormalXpLegacyPolicy=NormalXpPolicyBase&{rulesVersion?:'normal-xp-v1';lossFallback:{numerator:number;denominator:number;minimum:number};capOverflow:'pending-policy-ledger';eligibleReason:'BATTLE';timeout:'undecided-no-award';disconnect:'undecided-no-award'};
@@ -108,7 +109,7 @@ export function queuedNormalXpPlan(raw:string|null|undefined,playerId:string,mem
  return plan;
 }
 
-export type NormalXpSettlement={status:string;players:Record<string,{status:string;xpAwarded:number;xpDeferred:number;xpDiscarded:number;xpRequested:number;policyVersion:string|null;sourcePolicyVersion:string|null;rulesVersion:'normal-xp-v2'|'legacy-record';testValues:boolean;participation:'actually-entered-owned-only';units:{ownedId:string;requestedXp:number;appliedXp:number;deferredXp:number;discardedXp:number;status:string;sourceEncounterId:string|null}[]}>;appliedByOwnedId:Record<string,number>};
+export type NormalXpSettlement={status:string;players:Record<string,{status:string;xpAwarded:number;xpDeferred:number;xpDiscarded:number;xpRequested:number;policyVersion:string|null;sourcePolicyVersion:string|null;rulesVersion:'normal-xp-v2'|'legacy-record';testValues:boolean;participation:'actually-entered-owned-only';units:{ownedId:string;requestedXp:number;appliedXp:number;deferredXp:number;discardedXp:number;status:string;sourceEncounterId:string|null;xpProgress?:XpProgress}[]}>;appliedByOwnedId:Record<string,number>};
 
 /** Old completed ledgers are immutable; unsettled v1 plans retain sources but use the confirmed v2 rules. */
 export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string;mode:string;player0Id:string;player1Id:string},state:{botSide?:1;entered?:[string[],string[]];parties:[Fighter[],Fighter[]]},snapshot:{catalogVersion:string;members:MemberReference[];normalXp?:NormalXpRoomSnapshot},reason:string,winner:0|1|null,timeoutGenerated=false,terminationProof?:unknown):Promise<NormalXpSettlement|null>{
@@ -127,7 +128,7 @@ export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string
    const records=refs.map(ref=>retained.get(ref.id)!),statuses=records.map(r=>r.status);
    const status=statuses.includes('CAP_POLICY_PENDING')?'CAP_POLICY_PENDING':statuses.includes('CAP_CLAMPED')?'CAP_CLAMPED':statuses.includes('DISCONNECT_WIN')?'DISCONNECT_WIN':statuses.includes('APPLIED')?'APPLIED':statuses.find(value=>value!=='NOT_ENTERED')??'NOT_ENTERED';
    const own={status,xpAwarded:0,xpDeferred:0,xpDiscarded:0,xpRequested:0,policyVersion:records[0].policyVersion,sourcePolicyVersion:plan?.policy?.version??null,rulesVersion:'legacy-record' as const,testValues:plan?.policy?.testValues??false,participation:'actually-entered-owned-only' as const,units:[] as NormalXpSettlement['players'][string]['units']};
-   for(const record of records){const discardedXp=Math.max(0,record.requestedXp-record.appliedXp-record.deferredXp);own.xpAwarded+=record.appliedXp;own.xpDeferred+=record.deferredXp;own.xpDiscarded+=discardedXp;own.xpRequested+=record.requestedXp;result.appliedByOwnedId[record.ownedId]=0;own.units.push({ownedId:record.ownedId,requestedXp:record.requestedXp,appliedXp:record.appliedXp,deferredXp:record.deferredXp,discardedXp,status:record.status,sourceEncounterId:record.sourceEncounterId});}
+   for(const record of records){const discardedXp=Math.max(0,record.requestedXp-record.appliedXp-record.deferredXp),pinned=Array.isArray(plan?.members)?plan.members.find(m=>m&&m.id===record.ownedId&&m.playerId===playerId&&m.startingXp===record.startingXp):undefined,xpProgress=pinned?unitXpProgress(pinned,record.endingXp,record.startingXp):undefined;own.xpAwarded+=record.appliedXp;own.xpDeferred+=record.deferredXp;own.xpDiscarded+=discardedXp;own.xpRequested+=record.requestedXp;result.appliedByOwnedId[record.ownedId]=0;own.units.push({ownedId:record.ownedId,requestedXp:record.requestedXp,appliedXp:record.appliedXp,deferredXp:record.deferredXp,discardedXp,status:record.status,sourceEncounterId:record.sourceEncounterId,...(xpProgress?{xpProgress}:{})});}
    result.players[playerId]=own;continue;
   }
   if(plan)validateNormalXpPolicy(plan.policy,snapshot.catalogVersion,true);
@@ -151,7 +152,8 @@ export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string
    // A pre-existing ledger is a result replay, never another delta to apply.
    result.appliedByOwnedId[member.id]=old?0:record.appliedXp;
    if(record.status==='CAP_POLICY_PENDING')own.status='CAP_POLICY_PENDING';else if(record.status==='CAP_CLAMPED'&&own.status!=='CAP_POLICY_PENDING')own.status='CAP_CLAMPED';
-   own.units.push({ownedId:member.id,requestedXp:record.requestedXp,appliedXp:record.appliedXp,deferredXp:record.deferredXp,discardedXp,status:record.status,sourceEncounterId:record.sourceEncounterId});
+   const xpProgress=pinned?unitXpProgress(pinned,record.endingXp,record.startingXp):undefined;
+   own.units.push({ownedId:member.id,requestedXp:record.requestedXp,appliedXp:record.appliedXp,deferredXp:record.deferredXp,discardedXp,status:record.status,sourceEncounterId:record.sourceEncounterId,...(xpProgress?{xpProgress}:{})});
   }
  }
  return result;

@@ -122,14 +122,17 @@ final class GameDialog extends AlertDialog.Builder {
     AlertDialog dialog = super.create();
     showing = dialog;
     if (content != null) dialog.setView(content, 0, 0, 0, 0);
+    Window window = dialog.getWindow();
+    if (window != null) bindFullscreen(dialog, window);
     dialog.show();
     host.visibleDialog = dialog;
     dialog.setOnDismissListener(
         d -> {
           if (host.visibleDialog == dialog) host.visibleDialog = null;
+          host.immersive();
         });
-    Window window = dialog.getWindow();
     if (window != null) {
+      host.immersive(window);
       window.setBackgroundDrawable(new GamePanelDrawable(host));
       if (navy) {
         android.graphics.drawable.GradientDrawable panel = new android.graphics.drawable.GradientDrawable();
@@ -137,12 +140,7 @@ final class GameDialog extends AlertDialog.Builder {
         window.setBackgroundDrawable(panel);
       }
       window.setDimAmount(.4f);
-      window.setLayout(
-          Math.min(
-              host.dp(maxWidthDp),
-              (int) host.safeBounds(host.root.getWidth(), host.root.getHeight()).width()
-                  - host.dp(24)),
-          -2);
+      window.setLayout(dialogWidth(), -2);
       window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
       style(window.getDecorView());
       int titleId = host.getResources().getIdentifier("alertTitle", "id", "android");
@@ -202,6 +200,77 @@ final class GameDialog extends AlertDialog.Builder {
     // 비동기 게임 응답의 별도 Window가 필수 업데이트 화면 위로 올라오지 않게 한다.
     if (host.updateBlocks()) host.requiredUpdate.holdGameDialog(dialog);
     return dialog;
+  }
+
+  /** A dialog owns a separate Window; the activity's flags do not follow its focus. */
+  private void bindFullscreen(AlertDialog dialog, Window window) {
+    View decor = window.getDecorView();
+    Runnable reveal = () -> {
+      // A dialog can close before its first traversal/attach. In that case no
+      // detach callback runs, and a caller may have replaced OnDismissListener.
+      if (!dialog.isShowing()) {
+        if (host.visibleDialog == dialog) host.visibleDialog = null;
+        host.immersive();
+        return;
+      }
+      if (!decor.isShown()) return;
+      host.visibleDialog = dialog;
+      host.immersive(window);
+      int width = dialogWidth();
+      if (window.getAttributes().width != width) window.setLayout(width, -2);
+    };
+    dialog.setOnShowListener(ignored -> reveal.run());
+    // Dialog.hide()/show() keeps the decor attached and skips OnShow when it is
+    // already showing. Ancestor visibility is the lifecycle event in that path;
+    // ordinary inset changes and transient system-bar swipes never trigger it.
+    View visibility = new View(host) {
+      @Override protected void onVisibilityChanged(View changed, int state) {
+        super.onVisibilityChanged(changed, state);
+        if (state == View.VISIBLE && isAttachedToWindow() && isShown() && dialog.isShowing())
+          reveal.run();
+      }
+    };
+    visibility.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    ((ViewGroup) decor).addView(visibility, new ViewGroup.LayoutParams(0, 0));
+    ViewTreeObserver.OnWindowFocusChangeListener focus =
+        focused -> { if (focused) host.immersive(window); };
+    View.OnLayoutChangeListener resize =
+        (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          if (right - left == oldRight - oldLeft && bottom - top == oldBottom - oldTop) return;
+          int width = dialogWidth();
+          if (window.getAttributes().width != width) window.setLayout(width, -2);
+          if (content != null) content.requestLayout();
+        };
+    decor.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+      private ViewTreeObserver observer;
+
+      @Override public void onViewAttachedToWindow(View view) {
+        observer = view.getViewTreeObserver();
+        observer.addOnWindowFocusChangeListener(focus);
+        host.root.addOnLayoutChangeListener(resize);
+        host.immersive(window);
+        int width = dialogWidth();
+        if (window.getAttributes().width != width) window.setLayout(width, -2);
+      }
+
+      @Override public void onViewDetachedFromWindow(View view) {
+        if (observer != null && observer.isAlive()) observer.removeOnWindowFocusChangeListener(focus);
+        observer = null;
+        host.root.removeOnLayoutChangeListener(resize);
+        // Callers can replace OnDismissListener. Window cleanup must still run, and
+        // closing an older dialog must never clear a replacement dialog's identity.
+        if (host.visibleDialog == dialog) host.visibleDialog = null;
+        host.immersive();
+      }
+    });
+    // Configure before show as well as on attach/focus. No NOT_FOCUSABLE flag is
+    // needed, so EditText focus and keyboard dismissal retain platform behavior.
+    host.immersive(window);
+  }
+
+  private int dialogWidth() {
+    return Math.max(1, Math.min(host.dp(maxWidthDp),
+        (int) host.safeBounds(host.root.getWidth(), host.root.getHeight()).width() - host.dp(24)));
   }
 
   private void style(View v) {

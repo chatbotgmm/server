@@ -93,6 +93,13 @@ describe('방범대장 계정 XP 시험 정책과 유닛 성장 분리',()=>{
   const replay=await awardCommanderXp(tx,'owner',{...event,terminationProof:{...proof(),decisionAt:3000}},null);expect(replay).toMatchObject({xpAwarded:0,recordedXp:100,totalXp:'100',replayed:true});expect(accounts.get('owner').totalXp).toBe(100n);expect(ledger.size).toBe(1);
   await expect(awardCommanderXp(tx,'owner',{...event,outcome:'loss'},config())).rejects.toMatchObject({code:'COMMANDER_EVENT_CONFLICT'});
  });
+ it('progress가 없던 기존 지급 영수증은 새 곡선으로 재구성하거나 다시 지급하지 않는다',async()=>{
+  const {tx,accounts,ledger}=memory(),event=normal();await awardCommanderXp(tx,'owner',event,config());
+  const retained=[...ledger.values()][0],legacy=JSON.parse(retained.result);delete legacy.xpProgress;retained.result=JSON.stringify(legacy);
+  const before=structuredClone(retained),replay=await awardCommanderXp(tx,'owner',event,null);
+  expect(replay.xpProgress).toBeUndefined();expect(replay).toMatchObject({xpAwarded:0,recordedXp:100,replayed:true,totalXp:'100'});
+  expect(retained).toEqual(before);expect(accounts.get('owner').totalXp).toBe(100n);expect(ledger.size).toBe(1);
+ });
  it('서로 다른 계정·서로 다른 사건은 독립이며 합계는 보존하고 마지막 곡선 이후도 누적한다',async()=>{
   const {tx,accounts}=memory(),p=config();await awardCommanderXp(tx,'a',normal(),p);await awardCommanderXp(tx,'b',normal(),p);await awardCommanderXp(tx,'a',normal({eventId:'room2',outcome:'loss'}),p);
   expect(accounts.get('a').totalXp).toBe(150n);expect(accounts.get('b').totalXp).toBe(100n);

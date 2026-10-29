@@ -31,11 +31,11 @@ public class NativeVillageStoryOverlayTest {
     Api(Context context,JSONObject legacy){super(context,legacy);}
     @Override void call(String path,JSONObject body,Result done){
       if(holdDepartureOptions&&(path.equals("native/roster60/pvp/options")||path.equals("native/roster60/battle/options"))){paths.add(path);departureReads.add(done);return;}
-      if(path.equals("native/roster60/pvp/options")){paths.add(path);done.done(MainActivity.obj("units",units(),"partyIds",savedParty),null);return;}
+      if(path.equals("native/roster60/pvp/options")){paths.add(path);done.done(Roster60PartyPolicyTest.response(MainActivity.obj("units",units(),"partyIds",savedParty)),null);return;}
       if(path.equals("native/roster60/pvp/party")){
         paths.add(path);partyWrites.add(NativeVillageHomeTest.copy(body));
         if(holdPartySave)partySaves.add(done);
-        else{savedParty=Roster60PreparationView.copy(body.optJSONArray("ownedIds"));done.done(MainActivity.obj("partyIds",savedParty),null);}return;
+        else{savedParty=Roster60PreparationView.copy(body.optJSONArray("ownedIds"));done.done(Roster60PartyPolicyTest.response(MainActivity.obj("partyIds",savedParty)),null);}return;
       }
       if(body!=null&&(path.startsWith("native/roster60/story/")||path.equals("native/roster60/adventure/read")||path.equals("native/roster60/adventure/return")||path.equals("native/roster60/battle/read"))){paths.add(path);writes.add(NativeVillageHomeTest.copy(body));commands.add(done);return;}
       super.call(path,body,done);
@@ -50,7 +50,7 @@ public class NativeVillageStoryOverlayTest {
   @Test public void residentOpensOverSameVillageAndClosingPreservesCameraWithoutWrites()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);NativeVillageHomeView village=h.villageHome.view;
-      village.camera.setCameraUnits(2.25);double camera=village.camera.cameraUnits();int epoch=h.epoch;
+      village.moveCameraUnits(2.25);LocalGameArtTest.drain();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);assertEquals(2.25,village.camera.cameraUnits(),.0001);double camera=village.camera.cameraUnits();int epoch=h.epoch;
       NativeRoster60StoryController story=open(h,"blacksmith");
       assertSame(village,h.villageHome.view);assertEquals("home",h.screen);assertEquals(epoch,h.epoch);assertFalse(h.villageHome.paused);assertEquals(0,api.writes.size());
       assertEquals(1,story.overlay.art.getChildCount());assertTrue(story.overlay.name.getText().toString().contains("대장장이"));
@@ -262,7 +262,7 @@ public class NativeVillageStoryOverlayTest {
       NativeRoster60StoryController story=explore(h);story.overlay.finishTyping();choice(story,sideTitle("SIDE")).performClick();Roster60PreparationView preparation=story.preparation;NativeVillageStoryOverlay overlay=story.overlay;
       preparation.edit();Roster60FormationView editor=preparation.formation;editor.submit();assertTrue(preparation.saving);assertEquals(1,api.partyWrites.size());
       exitThroughDialog(overlay,systemBack);assertTrue(story.villageOverlayOpen());assertSame(editor,preparation.formation);assertTrue(preparation.saving);assertTrue(api.writes.isEmpty());
-      api.partySaves.get(0).done(MainActivity.obj("partyIds",new JSONArray().put("owned-a")),null);assertFalse(preparation.saving);assertNull(preparation.formation);
+      api.partySaves.get(0).done(Roster60PartyPolicyTest.response(MainActivity.obj("partyIds",new JSONArray().put("owned-a"))),null);assertFalse(preparation.saving);assertNull(preparation.formation);
       preparation.start.performClick();assertTrue(preparation.locked);assertEquals(1,api.writes.size());
       exitThroughDialog(overlay,systemBack);assertTrue(story.villageOverlayOpen());assertSame(preparation,story.preparation);assertTrue(preparation.locked);assertEquals(1,api.writes.size());story.closeVillage();
     }
@@ -297,7 +297,7 @@ public class NativeVillageStoryOverlayTest {
     for(int scenario=0;scenario<4;scenario++)try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();Api api=prepare(h);api.story.put("quests",new JSONArray().put(side("SIDE","ACTIVE",true)));api.holdDepartureOptions=true;
       NativeRoster60StoryController story=explore(h);story.overlay.finishTyping();choice(story,sideTitle("SIDE")).performClick();assertEquals("Both reads launch before either completes",2,api.departureReads.size());assertEquals(0,api.writes.size());
-      JSONObject saved=MainActivity.obj("partyIds",new JSONArray().put("owned-a")),options=MainActivity.obj("units",NativeVillageHomeTest.Api.units());
+      JSONObject saved=Roster60PartyPolicyTest.response(MainActivity.obj("partyIds",new JSONArray().put("owned-a")),false),options=Roster60PartyPolicyTest.battle(MainActivity.obj("units",NativeVillageHomeTest.Api.units()));
       if(scenario==1)story.closeVillage();if(scenario==2)api.account="changed-account";
       api.departureReads.get(1).done(saved,scenario==3?"network":null);assertEquals(0,api.writes.size());api.departureReads.get(0).done(options,null);api.departureReads.get(0).done(options,null);
       assertEquals(0,api.writes.size());if(scenario==0){assertNotNull(story.preparation);story.preparation.start.performClick();assertEquals(1,api.writes.size());assertEquals("SIDE",api.writes.get(0).optString("questId"));}else assertNull(story.preparation);story.closeVillage();

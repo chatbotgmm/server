@@ -7,6 +7,7 @@ import {RosterPvp} from './roster60-pvp.js';
 import {RecruitSessions,type RecruitSessionPolicy} from './roster60-recruit-session.js';
 import {RosterAdventure} from './roster60-adventure.js';
 import {RosterLibrary} from './roster60-library.js';
+import {RosterOwned} from './roster60-owned.js';
 import {RosterHome} from './roster60-home.js';
 import type {FastifyInstance,FastifyRequest,FastifyReply} from 'fastify';
 import {readFileSync,existsSync} from 'node:fs';
@@ -58,6 +59,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const service=new RosterOnboarding(db,catalog);
   const adventure=new RosterAdventure(db,catalog,fighter,undefined,commanderPolicy);
   const library=new RosterLibrary(db,catalog);
+  const owned=new RosterOwned(db,catalog,clock);
   // No implicit prices, odds, rounding or pity. Explicit reviewed policy file required.
   const recruitPolicy=()=>{const path=resolve(root,'data/roster60-recruit-policy.json');return existsSync(path)?JSON.parse(readFileSync(path,'utf8')) as RecruitSessionPolicy:null;};
   const recruitSessions=new RecruitSessions(db,catalog,recruitPolicy);
@@ -65,7 +67,7 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   const craft=new RosterCraft(db,catalog);
   const reincarnation=new RosterReincarnation(db,catalog);
   const empty=z.object({}).strict();
-  const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:2048,config:{rateLimit:{max:60,timeWindow:'1 minute',...(path.startsWith('pvp/')?{keyGenerator:(req:FastifyRequest)=>'roster-pvp:'+(auth(req)??'ip:'+req.ip)}:{})}},handler:async(req,reply)=>{
+  const route=(method:'GET'|'POST',path:string,run:(id:string,r:FastifyRequest)=>Promise<unknown>)=>app.route({method,url:'/my/api/native/roster60/'+path,bodyLimit:path==='recruit/session/claim-all'?8192:2048,config:{rateLimit:{max:60,timeWindow:'1 minute',...(path.startsWith('pvp/')?{keyGenerator:(req:FastifyRequest)=>'roster-pvp:'+(auth(req)??'ip:'+req.ip)}:{})}},handler:async(req,reply)=>{
     reply.header('Cache-Control','no-store');if(!guard(req,reply))return;
     const id=auth(req);if(!id)return reply.code(401).send({error:'login'});
     try{return publicDefenseSafe(await run(id,req));}catch(e){
@@ -82,13 +84,15 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','adventure/start',(id,r)=>adventure.start(id,z.object({requestId,ownedIds:z.array(z.string().min(1).max(100)).min(1).max(6)}).strict().parse(r.body)));
   route('POST','adventure/return',(id,r)=>adventure.return(id,z.object({requestId,adventureId:z.string().uuid(),revision}).strict().parse(r.body)));
   route('GET','collection',id=>library.collection(id));
+  route('GET','owned',id=>owned.list(id));
+  route('POST','owned/read',(id,r)=>owned.read(id,z.object({ownedId:z.string().min(1).max(100)}).strict().parse(r.body).ownedId));
   route('GET','recruit',id=>library.info(id));
   route('POST','recruit',(id,r)=>library.recruit(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),times:z.number().int().min(1).max(50),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body)));
   route('GET','recruit/session',id=>recruitSessions.info(id));
   route('POST','recruit/session/read',(id,r)=>recruitSessions.read(id,z.object({sessionId:z.string().uuid()}).strict().parse(r.body).sessionId));
   route('POST','recruit/session/start',(id,r)=>recruitSessions.start(id,z.object({requestId,kind:z.enum(['LOW','MID','HIGH']),catalogVersion:z.string().min(1).max(100),times:z.number().int().min(1).max(50).optional()}).strict().parse(r.body)));
   route('POST','recruit/session/claim-all',(id,r)=>recruitSessions.claimAll(id,z.object({requestId,sessions:z.array(z.object({sessionId:z.string().uuid(),revision}).strict()).min(1).max(50)}).strict().parse(r.body)));
-  route('POST','recruit/session/action',(id,r)=>recruitSessions.action(id,z.object({requestId,sessionId:z.string().uuid(),revision,action:z.enum(['reroll','claim'])}).strict().parse(r.body)));
+  route('POST','recruit/session/action',(id,r)=>recruitSessions.action(id,z.object({requestId,sessionId:z.string().uuid(),revision,action:z.enum(['reroll','claim','reject'])}).strict().parse(r.body)));
   route('GET','home',id=>home.read(id));
   route('POST','home/rebirth-intro/complete',(id,r)=>{empty.parse(r.body);return home.completeIntro(id);});
   route('GET','battle/options',id=>battle.options(id));
@@ -113,7 +117,8 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
   route('POST','complete',(id,r)=>{empty.parse(r.body);return service.complete(id);});
   route('POST','preview',(id,r)=>{const b=z.object({ticketId:z.string().min(1).max(100)}).strict().parse(r.body);return service.preview(id,b.ticketId);});
   route('POST','confirm',(id,r)=>{const b=z.object({ticketId:z.string().min(1).max(100),characterId:z.string(),catalogVersion:z.string().min(1).max(100)}).strict().parse(r.body);return service.confirm(id,b.ticketId,b.characterId,b.catalogVersion);});
-  const selection=z.object({resultId:z.string().regex(/^u\d{2}$/),materialIds:z.array(z.string().min(1).max(100)).min(1).max(6),catalogVersion:z.string().min(1).max(100)}).strict();
+  const inheritanceChoice=z.object({skillId:z.string().min(1).max(100),replaceSlot:z.number().int().min(0).max(5)}).strict();
+  const selection=z.object({resultId:z.string().regex(/^u\d{2}$/),materialIds:z.array(z.string().min(1).max(100)).min(1).max(6),catalogVersion:z.string().min(1).max(100),inheritance:inheritanceChoice.optional()}).strict();
   route('POST','craft/preview',(id,r)=>craft.preview(id,selection.parse(r.body)));
   // Old apps bind every returned resultId to art. Hidden outcomes require masking-aware clients.
   route('GET','craft/options',(id,r)=>craft.options(id,r.headers['x-gmm-craft-discovery']==='1'));

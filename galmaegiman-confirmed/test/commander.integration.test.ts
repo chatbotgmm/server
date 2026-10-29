@@ -40,7 +40,9 @@ suite('방범대장 계정 XP 원자 정산과 저장 경계',()=>{
  });
  it('같은 사건의 반복·다른 요청과 다른 Prisma 재접속에서도 계정 한 번만 지급한다',async()=>{
   const id=await player(),input=event(),first=await award(id,input);expect(first).toMatchObject({xpAwarded:policy.rewards.normalWin,replayed:false});
-  for(const client of [db,other,db])expect(await award(id,input,null,client)).toMatchObject({xpAwarded:0,recordedXp:policy.rewards.normalWin,replayed:true});
+  expect(first.xpProgress?.before).toEqual({level:1,totalXp:'0',levelStartTotalXp:'0',nextLevelTotalXp:String(policy.growth[1].totalXp),maxLevel:policy.growth.at(-1)!.level});
+  expect(first.xpProgress?.after.totalXp).toBe(String(policy.rewards.normalWin));
+  for(const client of [db,other,db]){const replay=await award(id,input,null,client);expect(replay).toMatchObject({xpAwarded:0,recordedXp:policy.rewards.normalWin,replayed:true});expect(replay.xpProgress).toEqual(first.xpProgress);}
   expect((await db.commanderAccount.findUniqueOrThrow({where:{playerId:id}})).totalXp).toBe(BigInt(policy.rewards.normalWin));expect(await db.commanderXpLedger.count({where:{playerId:id}})).toBe(1);
  });
  it('두 Prisma의 중복 동시 완료는 유일 원장 한 건과 한 번의 계정 증가로 수렴한다',async()=>{

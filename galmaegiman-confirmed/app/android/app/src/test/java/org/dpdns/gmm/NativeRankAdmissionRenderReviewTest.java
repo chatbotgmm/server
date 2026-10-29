@@ -46,11 +46,11 @@ public class NativeRankAdmissionRenderReviewTest {
     boolean reborn=scenario==Scenario.REBORN_1&&i==0;
     int level=scenario==Scenario.UNIT_59_MIXED&&i==2?59:reborn?1:60;
     units.put(MainActivity.obj("ownedId","render-"+i,"speciesId","u01","name",reborn?"환생 후 대원":"확인 대원 "+i,"level",level,"maxLevel",reborn?99:60,"reincarnation",reborn?1:0,"rankEligible",level>=60,"rankReason",level>=60?"":"RANK_UNIT_LEVEL_REQUIRED","stats",MainActivity.obj("hp",60,"mp",10,"durability",5,"statusResistance",3,"speed",8)));
-    if(i<6)ids.put("render-"+i);
+    if(i<3)ids.put("render-"+i);
    }
    Integer account=scenario==Scenario.ACCOUNT_UNKNOWN?null:scenario==Scenario.ACCOUNT_59?59:60;
    JSONObject eligibility=MainActivity.obj("eligible",account!=null&&account>=60,"reason",account==null?"ACCOUNT_LEVEL_POLICY_PENDING":account<60?"RANK_ACCOUNT_LEVEL_REQUIRED":"","accountLevel",account==null?JSONObject.NULL:account,"requiredAccountLevel",60,"requiredUnitLevel",60,"pool",scenario==Scenario.REBORN_1?"REBORN":"FIRST_LIFE","scope","rank-only");
-   done.done(MainActivity.obj("units",units,"partyIds",ids,"rankEligibility",eligibility),null);
+   done.done(Roster60PartyPolicyTest.response(MainActivity.obj("units",units,"partyIds",ids,"rankEligibility",eligibility)),null);
   }
  }
  void prepare(MainActivity h)throws Exception{helper.prepare(h).close();h.state.put("tutorial",MainActivity.obj("flow","roster60-v1"));h.getSharedPreferences("roster60_human_queue",0).edit().clear().commit();h.getSharedPreferences("roster60_product_battle",0).edit().clear().commit();}
@@ -62,15 +62,20 @@ public class NativeRankAdmissionRenderReviewTest {
     MainActivity h=activity.get();prepare(h);
     for(Scenario scenario:Scenario.values()){
      Api api=new Api(h,scenario);h.api=api;h.openRosterPvp("rank");NativeRoster60Pvp ui=h.rosterPvp;helper.settle(h,profile);
-     boolean eligible=scenario==Scenario.ELIGIBLE_60;assertEquals(scenario.name(),eligible,ui.rank.isEnabled());assertEquals(scenario.name(),eligible,ui.save.isEnabled());
-     assertTextFits(h.title,h);assertTextFits(ui.rankNotice,h);assertTextFits(ui.summary,h);assertTextFits(ui.ownedHeading,h);assertTextFits(ui.focusedName,h);
+     boolean eligible=scenario==Scenario.ELIGIBLE_60;assertEquals(scenario.name(),eligible,ui.rank.isEnabled());
+     assertFalse("유효 저장 편성은 편집 화면을 강제하지 않음",ui.editing);assertEquals(View.GONE,ui.save.getVisibility());assertEquals(View.GONE,ui.ownedSection.getVisibility());
+     assertTextFits(h.title,h);assertTextFits(ui.rankNotice,h);assertTextFits(ui.summary,h);
+     for(Button button:new Button[]{ui.editParty,ui.rank,ui.cancel})assertControl(button,h);
+     capture(h,profile.name+"-"+scenario.name()+"-preparation.png");
+     ui.editParty.performClick();helper.settle(h,profile);assertTrue(ui.editing);assertEquals(scenario.name(),eligible,ui.save.isEnabled());
+     assertEquals(View.GONE,ui.rank.getVisibility());assertTextFits(ui.ownedHeading,h);assertTextFits(ui.focusedName,h);
      String copy=ui.rankNotice.getText().toString();
      if(scenario==Scenario.ACCOUNT_UNKNOWN)assertTrue(copy.contains("방범대장 레벨"));
      else if(scenario==Scenario.ACCOUNT_59)assertTrue(copy.contains("59 / 필요 Lv.60"));
      else if(eligible)assertTrue(copy.contains("방범대장 Lv.60"));
      else assertTrue(copy.contains("모두 Lv.60"));
      if(scenario==Scenario.REBORN_1)assertTrue(ui.focusedName.getText().toString().contains("Lv1/99"));
-     JSONArray controls=new JSONArray();for(Button button:new Button[]{ui.save,ui.rank,ui.cancel}){assertControl(button,h);controls.put(bounds(button));}
+     JSONArray controls=new JSONArray();for(Button button:new Button[]{ui.save,ui.clearParty,ui.editParty,ui.cancel}){assertControl(button,h);controls.put(bounds(button));}
      assertTrue(api.writes.isEmpty());capture(h,profile.name+"-"+scenario.name()+".png");geometry.put(MainActivity.obj("profile",profile.json(),"case",scenario.name(),"rankEnabled",ui.rank.isEnabled(),"saveEnabled",ui.save.isEnabled(),"admission",bounds(ui.rankNotice),"controls",controls));ui.pause();api.pool.shutdownNow();
     }
    }

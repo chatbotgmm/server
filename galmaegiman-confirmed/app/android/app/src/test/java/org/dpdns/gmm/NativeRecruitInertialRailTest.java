@@ -89,7 +89,7 @@ public class NativeRecruitInertialRailTest {
 
   static void tap(NativeRecruitSession screen, int index) {
     View card = screen.slots.get(index);
-    float x = (card.getLeft() + card.getRight()) / 2f - screen.rail.getScrollX();
+    float x = (card.getLeft() + card.getRight()) / 2f + screen.rail.getPaddingLeft() - screen.rail.getScrollX();
     float y = screen.rail.getHeight() / 2f;
     long time = SystemClock.uptimeMillis();
     touch(screen.rail, MotionEvent.ACTION_DOWN, time, time, x, y);
@@ -108,8 +108,8 @@ public class NativeRecruitInertialRailTest {
       assertEquals(30, screen.rail.row.getChildCount());
       int visible = 0, loaded = 0;
       for (NativeRecruitSession.CandidateSlot slot : screen.slots) {
-        if (slot.getRight() > screen.rail.getScrollX()
-            && slot.getLeft() < screen.rail.getScrollX() + screen.rail.getWidth()) visible++;
+        if (slot.getRight()+screen.rail.getPaddingLeft() > screen.rail.getScrollX()
+            && slot.getLeft()+screen.rail.getPaddingLeft() < screen.rail.getScrollX() + screen.rail.getWidth()) visible++;
         if (slot.loaded) loaded++;
       }
       assertTrue("Several candidates must be visible together", visible >= 2);
@@ -190,7 +190,7 @@ public class NativeRecruitInertialRailTest {
     }
   }
 
-  @Test public void confirmWithOnePendingKeepsSingleClaimIdentityAndRevision() throws Exception {
+  @Test public void allAcceptWithOnePendingKeepsBulkIdentityAndRevision() throws Exception {
     try(ActivityController<MainActivity> controller=helper.flow.start()){
       MainActivity h=controller.get();Api api=new Api(h);NativeRecruitSession screen=open(h,api,3);
       screen.candidates.getJSONObject(0).put("status","CLAIMED");
@@ -198,9 +198,9 @@ public class NativeRecruitInertialRailTest {
       screen.candidates.getJSONObject(1).put("revision",7);screen.render(false);helper.layout(h,PHONE);
       tap(screen,1);assertEquals(1,screen.selected);assertTrue(api.paths.isEmpty());
       ((Button)h.root.findViewWithTag("recruit-confirm")).performClick();
-      assertEquals(1,api.paths.size());assertEquals("native/roster60/recruit/session/action",api.paths.get(0));
-      JSONObject request=api.bodies.get(0);assertEquals("claim",request.getString("action"));
-      assertEquals("session-1",request.getString("sessionId"));assertEquals(7,request.getInt("revision"));
+      assertEquals(1,api.paths.size());assertEquals("native/roster60/recruit/session/claim-all",api.paths.get(0));
+      JSONObject request=api.bodies.get(0);assertFalse(request.has("action"));JSONArray remaining=request.getJSONArray("sessions");assertEquals(1,remaining.length());
+      assertEquals("session-1",remaining.getJSONObject(0).getString("sessionId"));assertEquals(7,remaining.getJSONObject(0).getInt("revision"));
       assertFalse(request.getString("requestId").isEmpty());
       ((Button)h.root.findViewWithTag("recruit-confirm")).performClick();assertEquals(1,api.paths.size());
     }
@@ -259,7 +259,7 @@ public class NativeRecruitInertialRailTest {
         int visible = 0;
         for (NativeRecruitSession.CandidateSlot slot : screen.slots)
           if (slot.getLeft() >= 0 && slot.getRight() <= screen.rail.getWidth()) visible++;
-        assertEquals("Three complete candidates fit at " + profile.name, 3, visible);
+        assertTrue("The centered candidate fits at " + profile.name,visible>=1);assertEquals(1,screen.slots.get(0).getScaleX(),.01f);assertTrue("Neighbouring candidates remain smaller",screen.slots.get(1).getScaleX()<1);
         assertTrue("A useful illustration area remains", screen.rail.getHeight() >= h.dp(100));
         for (NativeRecruitSession.CandidateSlot slot : screen.slots) {
           View artwork = slot.findViewWithTag("recruit-registration-card");

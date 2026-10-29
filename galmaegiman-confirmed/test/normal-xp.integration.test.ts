@@ -6,8 +6,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {RosterPvp} from '../src/roster60-pvp.js';
+import {fighter} from '../src/roster60-battle.js';
+import {growthAt} from '../src/battle/roster60-rules.js';
 import {registerRoster60} from '../src/roster60-routes.js';
-import type {NormalXpPolicy} from '../src/progression/normal-xp.js';
+import {prepareNormalXpPlayer,type NormalXpPolicy} from '../src/progression/normal-xp.js';
 import {initialStoryProgress} from '../src/story/types.js';
 import {REALTIME_LIMITS} from '../src/pvp/service.js';
 
@@ -22,10 +24,32 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
  const service=(client=db)=>new RosterPvp(client,()=>catalog,()=>battlePolicy,()=>now,()=>xpPolicy,async()=>60);
  const save=(name:string,value:unknown)=>writeFileSync(join(root,'data',name),JSON.stringify(value));
  type User={id:string;ids:string[];starting:bigint[]};
- async function user(levels=[1]):Promise<User>{const p=await db.player.create({data:{identity:'normal-xp:'+request()}});owners.add(p.id);const ids:string[]=[],starting:bigint[]=[];for(const [i,level] of levels.entries()){const def=catalog.characters.find((u:any)=>u.id==='u'+String(i+1).padStart(2,'0')),xp=BigInt(def.growth[level-1].totalXp);const u=await db.roster60Owned.create({data:{playerId:p.id,speciesId:def.id,totalXp:xp,source:request()}});ids.push(u.id);starting.push(xp);}await svc.party(p.id,ids);return {id:p.id,ids,starting};}
+ async function ownedUser(levels:number[]):Promise<User>{const p=await db.player.create({data:{identity:'normal-xp:'+request()}});owners.add(p.id);const ids:string[]=[],starting:bigint[]=[];for(const [i,level] of levels.entries()){const def=catalog.characters.find((u:any)=>u.id==='u'+String(i+1).padStart(2,'0')),xp=BigInt(def.growth[level-1].totalXp);const u=await db.roster60Owned.create({data:{playerId:p.id,speciesId:def.id,totalXp:xp,source:request()}});ids.push(u.id);starting.push(xp);}return {id:p.id,ids,starting};}
+ async function user(levels=[1]):Promise<User>{const u=await ownedUser(levels);await svc.party(u.id,u.ids);return u;}
  async function pair(a:User,b:User,mode:'normal'|'rank'='normal'){
   expect((await svc.join(a.id,{requestId:request(),mode}) as any).status).toBe('waiting');const q:any=await svc.join(b.id,{requestId:request(),mode});expect(q.status).toBe('matched');
   await svc.accept(a.id,{requestId:request(),battleId:q.battle.battleId,revision:q.battle.revision,accept:true});await svc.accept(b.id,{requestId:request(),battleId:q.battle.battleId,revision:q.battle.revision,accept:true});return q.battle.battleId as string;
+ }
+ async function legacyPartyRoom(levels:number[]){
+  const a=await ownedUser(levels),b=await user();
+  // 새 입장은 현재 3마리 정책을 따른다. 아래 격리 DB fixture에서만 이전 릴리스의 큰 방을 재현한다.
+  await svc.party(a.id,a.ids.slice(0,3));const room=await pair(a,b);
+  await db.$transaction(async tx=>{
+   const row=await tx.roster60PvpMatch.findUniqueOrThrow({where:{id:room}}),state=JSON.parse(row.state),snapshot=JSON.parse(row.snapshot),side=row.player0Id===a.id?0:1;
+   const refs=a.ids.map((id,index)=>({id,playerId:a.id,xp:a.starting[index].toString()}));
+   for(const ownedId of a.ids.slice(3)){
+    const owned=await tx.roster60Owned.findUniqueOrThrow({where:{id:ownedId}}),def=catalog.characters.find((u:any)=>u.id===owned.speciesId);
+    const level=growthAt(Number(owned.totalXp),def.growth,owned.reincarnation,def.reincarnationXpPolicy).level;
+    state.parties[side].push({...fighter(catalog,owned.speciesId,level,ownedId,owned.reincarnation),ownedId});
+   }
+   snapshot.members=[...snapshot.members.filter((m:any)=>m.playerId!==a.id),...refs];
+   const plan=await prepareNormalXpPlayer(tx,a.id,refs,catalog,battlePolicy,xpPolicy);
+   snapshot.normalXp.players=snapshot.normalXp.players.map((old:any)=>old.playerId===a.id?plan:old);
+   await tx.roster60Owned.updateMany({where:{playerId:a.id,id:{in:a.ids}},data:{status:'PVP'}});
+   await tx.roster60PvpParty.update({where:{playerId:a.id},data:{ownedIds:JSON.stringify(a.ids)}});
+   await tx.roster60PvpMatch.update({where:{id:room},data:{state:JSON.stringify(state),snapshot:JSON.stringify(snapshot)}});
+  });
+  return {a,b,room};
  }
  async function ai(a:User){
   expect((await svc.join(a.id,{requestId:request(),mode:'normal'}) as any).status).toBe('waiting');now+=30_000;const q:any=await svc.current(a.id);expect(q.battle).toMatchObject({mode:'normal',opponentKind:'AI'});await svc.accept(a.id,{requestId:request(),battleId:q.battle.battleId,revision:q.battle.revision,accept:true});return q.battle.battleId as string;
@@ -102,7 +126,7 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
  });
 
  it('실제 자발 교체·강제 교체로 출전한 개체에게 계정총량을 균등분배하고 미출전 예비는 제외한다',async()=>{
-  const a=await user([1,5,10,1]),b=await user(),room=await pair(a,b);let v=await view(a.id);
+  const {a,b,room}=await legacyPartyRoom([1,5,10,1]);let v=await view(a.id);
   await svc.action(a.id,{requestId:request(),battleId:room,revision:v.revision,action:{kind:'switch',targetOwnedId:a.ids[1]}});await svc.action(b.id,{requestId:request(),battleId:room,revision:v.revision,action:{kind:'focus'}});
   const row=await db.roster60PvpMatch.findUniqueOrThrow({where:{id:room}}),s=JSON.parse(row.state),side=row.player0Id===a.id?0:1;s.parties[side][0].hp=0;await db.roster60PvpMatch.update({where:{id:room},data:{state:JSON.stringify(s)}});v=await view(a.id);
   await svc.action(a.id,{requestId:request(),battleId:room,revision:v.revision,action:{kind:'switch',targetOwnedId:a.ids[2]}});const done=await natural(room,a,b);
@@ -151,7 +175,7 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
 
  it('6개 실제 출전은 홀수 총량을 ID순으로 균등분배하고 재접속·중복정산에도 늘어나지 않는다',async()=>{
   const source=battlePolicy.encounters.find((e:any)=>e.mode==='duel'&&!e.tutorial&&e.level===1);source.winXp=61;source.lossXp=7;
-  const a=await user([1,1,1,1,1,1]),b=await user(),room=await pair(a,b);
+  const {a,b,room}=await legacyPartyRoom([1,1,1,1,1,1]);
   for(let index=1;index<a.ids.length;index++){
    const v=await view(a.id);await svc.action(a.id,{requestId:request(),battleId:room,revision:v.revision,action:{kind:'switch',targetOwnedId:a.ids[index]}});await svc.action(b.id,{requestId:request(),battleId:room,revision:v.revision,action:{kind:'focus'}});
   }

@@ -46,7 +46,7 @@ public class Roster60CardStripInertialTest {
     Api(Context context) {
       super(context);
       for (int i = 0; i < 30; i++) units.put(MainActivity.obj("ownedId", "owned-" + i,
-          "speciesId", "u01", "name", "보유 대원 " + i, "level", 10));
+          "speciesId", String.format(java.util.Locale.ROOT,"u%02d",i+1), "name", "보유 종족 " + i, "level", 10));
     }
     @Override String token() { return "offline-new60-inertial-strip"; }
     @Override void call(String path, JSONObject body, Result callback) {
@@ -57,7 +57,7 @@ public class Roster60CardStripInertialTest {
       }
       reads.add(path);
       assertEquals("Only the party options read is needed", "native/roster60/pvp/options", path);
-      callback.done(MainActivity.obj("units", units, "partyIds", new JSONArray()), null);
+      callback.done(Roster60PartyPolicyTest.response(MainActivity.obj("units", units, "partyIds", new JSONArray())), null);
     }
   }
 
@@ -106,7 +106,7 @@ public class Roster60CardStripInertialTest {
       int stride = strip.cards.getChildAt(1).getLeft() - strip.cards.getChildAt(0).getLeft();
       assertTrue("Release positions are not snapped to card boundaries", slow % stride != 0 || fast % stride != 0);
       long revision = editor.selectionRevision;
-      Roster60MemberTile second = editor.ownedTiles.get("owned-1");
+      Roster60MemberTile second = editor.ownedGroups.tiles.get("species:u02");
       float x = (second.getLeft() + second.getRight()) / 2f - strip.getScrollX();
       float y = strip.getHeight() / 2f; long now = SystemClock.uptimeMillis();
       touch(strip, now, now, MotionEvent.ACTION_DOWN, x, y);
@@ -116,7 +116,7 @@ public class Roster60CardStripInertialTest {
       assertEquals(revision, editor.selectionRevision);
       assertTrue(strip.blocksClick()); assertTrue(api.writes.isEmpty());
       settle(strip);
-      int offset = strip.getScrollX(); second.action.performClick();
+      int offset = strip.getScrollX(); second.action.performClick();assertTrue(editor.selected.isEmpty());editor.ownedGroups.memberButtons.get("owned-1").performClick();editor.ownedGroups.close();
       assertTrue("A subsequent settled explicit tap adds the member", editor.selected.contains("owned-1"));
       assertSame(strip, editor.ownedStrip); assertSame(second, strip.cards.getChildAt(1));
       assertEquals(offset, strip.getScrollX()); assertTrue("Selection is not an automatic save", api.writes.isEmpty());
@@ -156,7 +156,7 @@ public class Roster60CardStripInertialTest {
       for (int i = 1; i < api.units.length(); i++) remaining.put(api.units.getJSONObject(i));
       api.units = remaining; editor.fetchOptions(); helper.layout(h, PHONE);
       assertSame(strip, editor.ownedStrip); assertEquals(29, strip.cards.getChildCount());
-      assertEquals("owned-6", strip.ids.get(5));
+      assertEquals("species:u07", strip.ids.get(5));
       int expected = strip.cards.getChildAt(5).getLeft() + 13;
       assertEquals("Removing an earlier member retains the same visual anchor", expected, strip.getScrollX());
       advanceFrames(strip);
@@ -208,14 +208,38 @@ public class Roster60CardStripInertialTest {
       MainActivity h = controller.get(); Api api = new Api(h);
       NativeRoster60Pvp editor = open(h, api); Roster60CardStrip strip = editor.ownedStrip;
       View anchor = strip.cards.getChildAt(6);
+      List<String> groupOrder = new ArrayList<>(strip.ids);
+      JSONArray anchoredOwnedIds = editor.ownedGroups.group(strip.ids.get(6)).ownedIds();
+      assertEquals("This group backs the actual owned individual", new JSONArray().put("owned-6").toString(), anchoredOwnedIds.toString());
       int oldStride = anchor.getWidth() + strip.gap, inset = oldStride / 3;
       float offset = inset / (float) oldStride;
       strip.scrollTo(anchor.getLeft() + inset, 0); settle(strip); strip.fling(1800);
       helper.configure(SMALL); helper.layout(h, SMALL);
-      int expected = Roster60StripPosition.scroll(6, offset, strip.cards.getChildAt(6).getWidth(),
+      int committedCardWidth = Roster60StripPosition.cardWidth(
+          strip.getWidth() - strip.getPaddingLeft() - strip.getPaddingRight(), strip.minimum, strip.gap);
+      // onSizeChanged requests the real-width measure after the old-width probe.
+      // Advance native frames until that queued layout commits, without forcing a layout or stopping motion.
+      for (int frame = 0; frame < 12 && (strip.restoring
+          || strip.cards.getChildAt(6).getWidth() != committedCardWidth); frame++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS); strip.computeScroll();
+      }
+      assertFalse("Resize must finish restoring within twelve native frames: " + movementSample(h, strip), strip.restoring);
+      assertEquals("The actual committed viewport determines the final card width", committedCardWidth,
+          strip.cards.getChildAt(6).getWidth());
+      assertEquals("The same owned species remains anchored", "species:u07", strip.anchor);
+      assertSame("Resize keeps the same actual group card", anchor, strip.cards.getChildAt(6));
+      assertSame("The group mapping still points to that card", anchor, editor.ownedGroups.tiles.get(strip.anchor));
+      assertEquals("Resize does not reorder the owned groups", groupOrder, strip.ids);
+      assertEquals("The anchored card keeps the same actual owned IDs in order", anchoredOwnedIds.toString(),
+          editor.ownedGroups.group(strip.anchor).ownedIds().toString());
+      assertEquals("The relative position within the same member is unchanged", offset, strip.offset, .000001f);
+      int expected = Roster60StripPosition.scroll(6, offset, committedCardWidth,
           strip.gap, strip.getWidth(), strip.cards.getChildCount());
-      assertEquals(expected, strip.getScrollX()); advanceFrames(strip);
-      assertEquals("Resize restoration remains stable after later native frames", expected, strip.getScrollX());
+      assertEquals(expected, strip.getScrollX());
+      for (int frame = 0; frame < 30; frame++) {
+        ShadowLooper.idleMainLooper(16, TimeUnit.MILLISECONDS); strip.computeScroll();
+        assertEquals("Resize restoration remains exact at later native frame " + frame, expected, strip.getScrollX());
+      }
       assertTrue(api.writes.isEmpty());
     }
   }

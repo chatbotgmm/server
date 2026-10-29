@@ -26,6 +26,8 @@ final class NativeRoster60StoryController {
   final Runnable checkOwnSave=()->{if(current())refresh();};
   Roster60FormationView formation;
   Roster60PreparationView preparation;
+  NativeXpRewards xpRewards;
+  final java.util.HashSet<String> freshXpRequests=new java.util.HashSet<>();
   android.app.AlertDialog residentDialogue;
   String residentEntryId="";
   NativeVillageStoryOverlay overlay;
@@ -39,6 +41,7 @@ final class NativeRoster60StoryController {
     if(h.api.token().isEmpty()) { h.login(); return; }
     owner=h.api.token(); journal=new Roster60StoryJournal(h.getSharedPreferences("roster60_story_v1",Context.MODE_PRIVATE),owner);
     h.base("이야기",SCREEN);epoch=h.epoch;
+    xpRewards=new NativeXpRewards(h,owner,epoch,NativeCommander.state(h));
     // Story and resident conversation are not a currency spending destination.
     View header=h.root.findViewWithTag("theme-page-header");if(header instanceof LinearLayout) {
       LinearLayout row=(LinearLayout)header;while(row.getChildCount()>2)row.removeViewAt(row.getChildCount()-1);
@@ -50,6 +53,7 @@ final class NativeRoster60StoryController {
   void openVillage() {
     if(h.busy||h.updateBlocks()||h.isFinishing()||h.isDestroyed()||h.villageHome==null||!h.villageHome.current())return;
     owner=h.api.token();epoch=h.epoch;villageMode=true;villageResidentId=residentEntryId;residentEntryId="";
+    xpRewards=new NativeXpRewards(h,owner,epoch,NativeCommander.state(h));
     journal=new Roster60StoryJournal(h.getSharedPreferences("roster60_story_v1",Context.MODE_PRIVATE),owner);
     h.villageHome.view.stopMotion();
     overlay=new NativeVillageStoryOverlay(h,this);overlay.open();readState(false);
@@ -62,6 +66,7 @@ final class NativeRoster60StoryController {
   void closeVillage(){closeVillage(true);}
   void closeVillage(boolean refreshHome){
     if(!villageMode)return;
+    if(xpRewards!=null)xpRewards.pause();
     readGeneration++;reading=false;reconnect.removeCallbacks(checkOwnSave);
     if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;}
     if(overlay!=null){overlay.close();overlay=null;}
@@ -157,6 +162,7 @@ final class NativeRoster60StoryController {
   }
   static String message(String error) {
     if(error==null)return "이야기를 확인하지 못했어요.";
+    if(Roster60PartyPolicy.reselection(error))return Roster60PartyPolicy.selectionMessage();
     if(error.startsWith("STORY_POLICY")||error.startsWith("STORY_CONTENT")||error.startsWith("STORY_PROFILE"))return "이야기 기능이 아직 열리지 않았어요. 저장된 진행은 유지됩니다.";
     if(error.contains("LOCKED"))return "아직 열리지 않은 이야기예요.";
     if("STALE_REVISION".equals(error)||"STORY_STALE_REVISION".equals(error)||"STORY_STATE_CHANGED".equals(error)||"STORY_SCENE_STALE".equals(error))return "다른 요청에서 진행이 바뀌었어요. 저장 위치를 다시 확인해 주세요.";
@@ -173,7 +179,7 @@ final class NativeRoster60StoryController {
     try{
       JSONObject existing=journal.pending();if(existing!=null){send(existing);return;}
       if(!"battle/create".equals(operation)&&!"adventure/create".equals(operation)&&!"adventure/return".equals(operation))body.put("revision",state.optInt("revision"));
-      send(journal.prepare(operation,body));
+      JSONObject prepared=journal.prepare(operation,body);freshXpRequests.add(prepared.optJSONObject("body").optString("requestId"));send(prepared);
     }catch(Exception invalid){error(invalid.getMessage());}
   }
   void send(JSONObject intent) {
@@ -204,6 +210,7 @@ final class NativeRoster60StoryController {
         openBattle(result,body.optString("questId"));return;
       }
       if(storyReply&&(!villageMode||published))acceptStoryState(result);else readState();
+      if(xpRewards!=null&&current())xpRewards.bind(result,freshXpRequests.remove(requestId));
     });
   }
   JSONObject quest(String id) {
@@ -249,10 +256,12 @@ final class NativeRoster60StoryController {
       if(!current()||generation!=readGeneration||joined[0]||!ready[0]||!ready[1])return;
       joined[0]=true;reading=false;
       if(failures[0]!=null||failures[1]!=null){error(failures[0]!=null?failures[0]:failures[1]);return;}
+      Roster60PartyPolicy battlePolicy=Roster60PartyPolicy.read(results[0],false),policy=Roster60PartyPolicy.read(results[1],true);
+      if(!battlePolicy.ready||!policy.ready){error(Roster60PartyPolicy.compatibilityMessage());return;}
       JSONArray units=results[0]==null?null:results[0].optJSONArray("units");
       if(units==null||units.length()==0){error("모험에 나갈 수 있는 대원이 없어요. 진행 중인 전투와 편성을 확인해 주세요.");return;}
       JSONArray ids=results[1]==null?null:results[1].optJSONArray("partyIds");
-      showPreparation(units,ids,quest,encounterId);
+      showPreparation(units,ids,quest,encounterId,policy);
     };
     // Independent authoritative reads overlap; neither response alone can start a battle.
     h.api.call("native/roster60/battle/options",null,(result,error)->{if(!current()||generation!=readGeneration||ready[0])return;results[0]=result;failures[0]=error;ready[0]=true;complete.run();});
@@ -261,11 +270,13 @@ final class NativeRoster60StoryController {
   static boolean validSavedParty(JSONArray ids,JSONArray units){
     return Roster60PreparationView.valid(ids,units);
   }
-  void showPreparation(JSONArray units,JSONArray ids,JSONObject quest,String encounterId){
+  void showPreparation(JSONArray units,JSONArray ids,JSONObject quest,String encounterId){showPreparation(units,ids,quest,encounterId,Roster60PartyPolicy.current());}
+  void showPreparation(JSONArray units,JSONArray ids,JSONObject quest,String encounterId,Roster60PartyPolicy policy){
     if(view!=null)view.pauseTyping();android.widget.FrameLayout destination=villageMode?overlay.formationContent():view.content;destination.removeAllViews();
     preparation=new Roster60PreparationView(h,units,ids,quest==null?"모험 출항 준비":quest.optString("title","부탁 출항 준비"),chosen->{
       if(current()&&!waiting())mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",chosen):h.obj("encounterId",encounterId,"ownedIds",chosen));
-    },()->{if(current()){preparation=null;formation=null;render();}},this::current);
+    },()->{if(current()){preparation=null;formation=null;render();}},this::current,policy);
+    preparation.recommendation(quest);
     destination.addView(preparation,new android.widget.FrameLayout.LayoutParams(-1,-1));
   }
   void showFormation(JSONArray units,JSONObject quest,String encounterId){
@@ -274,7 +285,7 @@ final class NativeRoster60StoryController {
   }
   void chooseMaterialAdventure(){
     if(!current()||waiting())return;JSONArray places=state.optJSONArray("adventures");if(places==null||places.length()==0)return;
-    String[] labels=new String[places.length()];for(int i=0;i<labels.length;i++)labels[i]=places.optJSONObject(i).optString("name","흑화 갈매미 모험")+" · 권장 "+places.optJSONObject(i).optInt("level");
+    String[] labels=new String[places.length()];for(int i=0;i<labels.length;i++)labels[i]=places.optJSONObject(i).optString("name","흑화 갈매미 모험");
     residentDialogue=new GameDialog(h).navy().setTitle("열린 모험 지점").setItems(labels,(dialog,index)->{if(current())chooseParty(null,places.optJSONObject(index).optString("id"));}).setNegativeButton("취소",null).show();
   }
   void resumeMaterialAdventure(){
@@ -307,7 +318,7 @@ final class NativeRoster60StoryController {
   void openBattle(JSONObject initial,String questId) {
     if(!current())return;pause();h.rosterBattle=new NativeRoster60StoryBattle(h,initial,questId);h.rosterBattle.open();
   }
-  void pause() { if(villageMode){closeVillage(false);return;}reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
+  void pause() { if(xpRewards!=null)xpRewards.pause();if(villageMode){closeVillage(false);return;}reconnect.removeCallbacks(checkOwnSave);if(view!=null)view.pauseTyping();if(residentDialogue!=null){residentDialogue.dismiss();residentDialogue=null;} }
   void freeAdventure(){if(!current()||waiting())return;pause();h.openRosterBattle(Roster60BattleMode.ADVENTURE);}
   void playMenu(){if(!current()||waiting())return;pause();h.openPlayMenu();}
   static String reference(JSONObject value,String name){return value==null||value.isNull(name)?"":value.optString(name);}

@@ -701,6 +701,17 @@ final class NativeExtras {
     popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
     popup.setOutsideTouchable(true);
     popup.setElevation(h.dp(8));
+    if(h.roster60Menus()){
+      Button gulls=k.action(null,"내 갈매미",()->{if(!NativeCommander.current(h,profileOwner,profileEpoch)){popup.dismiss();return;}popup.dismiss();h.openOwnedGulls();});
+      gulls.setTag("profile-action-owned-gulls");gulls.setContentDescription("내 갈매미 · 보유 개체별 능력치, 속성, 기술 보기");
+      LinearLayout.LayoutParams gullRow=new LinearLayout.LayoutParams(-1,h.dp(52));gullRow.topMargin=h.dp(8);panel.addView(gulls,gullRow);
+    }
+    LinearLayout profileActions = new LinearLayout(h);
+    profileActions.setTag("profile-account-actions");
+    profileActions.setOrientation(LinearLayout.HORIZONTAL);
+    LinearLayout.LayoutParams profileActionsRow = new LinearLayout.LayoutParams(-1, h.dp(48));
+    profileActionsRow.topMargin = h.dp(5);
+    panel.addView(profileActions, profileActionsRow);
     for (String[] entry :
         new String[][] {
           {"m-account", "계정 관리", "account"},
@@ -717,9 +728,9 @@ final class NativeExtras {
               });
       button.setTag("profile-action-" + entry[2]);
       button.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
-      LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, h.dp(48));
-      row.topMargin = h.dp(5);
-      panel.addView(button, row);
+      LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(0, -1, 1);
+      if (profileActions.getChildCount() > 0) row.leftMargin = h.dp(8);
+      profileActions.addView(button, row);
     }
     popup.showAsDropDown(anchor, 0, h.dp(8));
     NativeCommander.refresh(h,value->{if(popup.isShowing()&&NativeCommander.current(h,profileOwner,profileEpoch))commander.setText(NativeCommander.styled(NativeCommander.profileText(value)));});

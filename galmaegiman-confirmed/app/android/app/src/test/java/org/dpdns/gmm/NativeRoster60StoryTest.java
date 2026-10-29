@@ -54,7 +54,7 @@ public class NativeRoster60StoryTest {
         if(path.equals("native/menu-access")){done.done(MainActivity.obj("features",new JSONObject()),null);return;}
         if(path.equals("native/roster60/battle/active")){done.done(MainActivity.obj("battles",new JSONArray()),null);return;}
         if(path.equals("native/roster60/adventure/active")){done.done(MainActivity.obj("adventures",new JSONArray()),null);return;}
-        if(path.equals("native/roster60/pvp/options")){done.done(MainActivity.obj("units",new JSONArray(),"partyIds",new JSONArray()),null);return;}
+        if(path.equals("native/roster60/pvp/options")){done.done(Roster60PartyPolicyTest.response(MainActivity.obj("units",new JSONArray(),"partyIds",new JSONArray())),null);return;}
       }
       if(body==null){if(holdReads){heldRead=done;return;}if(path.equals("native/roster60/story/state")){done.done(copy(saved),null);return;}throw new AssertionError("Unexpected story read "+path);}
       bodies.add(copy(body));callbacks.add(done);

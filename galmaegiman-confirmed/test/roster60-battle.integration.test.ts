@@ -55,10 +55,14 @@ suite('authenticated persisted five-stat battle (synthetic server policy only)',
   // Pinned policy means removal/replacement cannot change a retry or settlement.
   write('roster60-battle-policy.json',{approved:false});expect((await post('action',kill)).json()).toEqual(view);
   const settle={requestId:randomUUID(),battleId:id,revision:view.revision};const settled=(await post('settle',settle)).json();expect(settled.status).toBe('SETTLED');expect(settled.settlement.xpAwarded).toBe(10);
+  expect(settled.settlement.xpProgress).toEqual({before:{level:1,totalXp:'0',levelStartTotalXp:'0',nextLevelTotalXp:'100',maxLevel:60},after:{level:1,totalXp:'10',levelStartTotalXp:'0',nextLevelTotalXp:'100',maxLevel:60}});
   expect((await post('settle',settle)).json()).toEqual(settled);expect((await post('settle',{...settle,requestId:randomUUID()})).json()).toEqual(settled);
   const after=await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}});expect(after.totalXp).toBe(10n);expect(after.status).toBe('AVAILABLE');
   expect((await db.roster60State.findUniqueOrThrow({where:{playerId:player}})).tutorialProof).toBe(id);
   const completed=await app.inject({method:'POST',url:'/my/api/native/roster60/complete',headers:{authorization:player},payload:{}});expect(completed.statusCode).toBe(200);
+  const legacy={...settled.settlement};delete legacy.xpProgress;
+  await db.roster60Battle.update({where:{id},data:{settlement:JSON.stringify(legacy)}});
+  const oldReplay=(await post('settle',{...settle,requestId:randomUUID()})).json();expect(oldReplay.settlement).toEqual(legacy);expect(oldReplay.settlement.xpProgress).toBeUndefined();expect((await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp).toBe(10n);
   write('roster60-battle-policy.json',policy);
  });
  it('concurrent actions advance once; failed settlement rolls back every write',async()=>{

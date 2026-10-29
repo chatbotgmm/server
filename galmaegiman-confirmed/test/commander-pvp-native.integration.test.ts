@@ -104,7 +104,7 @@ suite('방범대장 PvP 사건 정산과 실제 로그인·native 조회 경계 
    for(const id of ids)await award(a.id,{kind,eventId:commanderPolicy.story.contentVersion+':'+id,outcome:'completed'});
  }
 
- it.each([1,6])('편성 %i명의 정상 승패는 계정100/50 한 사건이며 개체XP·미출전예비와 독립이고 재조회가 중복 지급하지 않는다',async count=>{
+ it.each([1,3])('편성 %i명의 정상 승패는 계정100/50 한 사건이며 개체XP·미출전예비와 독립이고 재조회가 중복 지급하지 않는다',async count=>{
   const svc=service(),a=await actor(count),b=await actor(count,'u02'),beforeA=await ownedRows(a),beforeB=await ownedRows(b),battle=await pair(svc,a,b);
   const {last,terminalCommand}=await naturalWin(svc,a,b,battle),winner:any=(await svc.current(a.id) as any).battle;
   expect(winner.settlement.commanderXpAwarded).toBe(commanderPolicy.rewards.normalWin);expect(last.settlement.commanderXpAwarded).toBe(commanderPolicy.rewards.normalLoss);

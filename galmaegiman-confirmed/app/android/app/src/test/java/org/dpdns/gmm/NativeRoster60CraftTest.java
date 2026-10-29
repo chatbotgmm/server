@@ -16,13 +16,20 @@ public class NativeRoster60CraftTest {
  final NativeHomePartyFeedbackTest helper=new NativeHomePartyFeedbackTest();
  @Before public void setup(){helper.isolate();helper.configure(NativeHomePartyFeedbackTest.PROFILES[0]);}
  @After public void restore(){helper.restore();}
+ static JSONObject preview(JSONObject input){
+  try{JSONArray slots=new JSONArray();for(int i=0;i<6;i++)slots.put(MainActivity.obj("slot",i,"skillId","base-"+i,"name","기존 기술 "+(i+1),"element","NORMAL","mpCost",1,"power",1,"requiredLevel",1));
+   JSONObject skill=MainActivity.obj("skillId","inherited-test","name","계승 기술","element","NORMAL","mpCost",1,"power",1,"requiredLevel",1,"allowedReplaceSlots",new JSONArray(Arrays.asList(0,1,2,3,4,5)));JSONObject selected=null;
+   if(input.optJSONObject("inheritance")!=null){selected=new JSONObject(skill.toString());selected.put("replaceSlot",input.getJSONObject("inheritance").getInt("replaceSlot")).put("kindUnchanged",false).put("requiredLevelChanged",false);}
+   return MainActivity.obj("resultId",input.getString("resultId"),"resultName","노움","materialIds",input.getJSONArray("materialIds"),"catalogVersion",input.getString("catalogVersion"),"expectedLevel",2,"maxLevel",60,"inheritedTotalXp",13,"previewFingerprint","e".repeat(64),"inheritance",MainActivity.obj("version",NativeCraftInheritance.VERSION,"status",selected==null?"selection-required":"selected","candidates",new JSONArray().put(skill),"resultSkillSlots",slots,"selected",selected==null?JSONObject.NULL:selected));
+  }catch(Exception invalid){throw new AssertionError(invalid);}
+ }
  static class Api extends NativeApi {
   List<JSONObject> confirms=new ArrayList<>();Result confirm;boolean unavailable;String receipt="unknown";
   Api(Context c){super(c);}
   @Override String token(){return "synthetic-craft-test";}
   @Override void call(String path,JSONObject b,Result cb){
    if(path.endsWith("/options")){cb.done(MainActivity.obj("catalogVersion","synthetic-only","units",new JSONArray(Arrays.asList(MainActivity.obj("ownedId","a","name","미니","level",2,"maxLevel",60,"totalXp","11"),MainActivity.obj("ownedId","b","name","미니","level",2,"maxLevel",60,"totalXp","16"))),"recipes",new JSONArray(Arrays.asList(MainActivity.obj("resultId","u09","name","노움")))),unavailable?"ROSTER_CATALOG_PENDING":null);}
-   else if(path.endsWith("/preview"))cb.done(MainActivity.obj("expectedLevel",2,"inheritedTotalXp",13,"previewFingerprint","server-fingerprint"),null);
+   else if(path.endsWith("/preview"))cb.done(preview(b),null);
    else if(path.endsWith("/confirm")){confirms.add(b);confirm=cb;}
    else if(path.endsWith("/receipt"))cb.done(MainActivity.obj("status",receipt),null);
   }
@@ -37,9 +44,9 @@ public class NativeRoster60CraftTest {
     ui.units.getJSONObject(0).put("maxLevel",99);ui.render();
     assertTrue(h.root.findViewWithTag("roster60-material-carousel").getContentDescription().toString().contains("/ 99"));
     ui.toggle(ui.units.getJSONObject(0));ui.toggle(ui.units.getJSONObject(1));ui.requestPreview();
-    assertEquals(13,ui.preview.getInt("inheritedTotalXp"));assertTrue(ui.confirmButton.isEnabled());
+    assertEquals(13,ui.preview.getInt("inheritedTotalXp"));assertFalse(ui.confirmButton.isEnabled());ui.selectInheritance("inherited-test",0);assertTrue(ui.confirmButton.isEnabled());
     ui.toggle(ui.units.getJSONObject(0));assertNull(ui.preview);assertFalse(ui.confirmButton.isEnabled());
-    ui.toggle(ui.units.getJSONObject(0));ui.requestPreview();ui.confirm();ui.confirm();assertEquals(1,api.confirms.size());
+    ui.toggle(ui.units.getJSONObject(0));ui.requestPreview();ui.selectInheritance("inherited-test",0);ui.confirm();ui.confirm();assertEquals(1,api.confirms.size());
     String id=api.confirms.get(0).getString("requestId");NativeApi.Result stale=api.confirm;
     h.back();stale.done(null,"PREVIEW_CHANGED");assertNotNull(ui.pending);
     h.busy=false; // home reload is outside this API fixture
