@@ -149,7 +149,8 @@ public class NativeVillageQuestTrackerTest {
   @Test public void draggingTheActualTrackerNeverDragsTheVillageOrExecutesAQuest()throws Exception{
     try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();NativeVillageHomeTest.Api api=fixture.prepare(h);NativeVillageHomeView village=fixture.open(h,NativeVillageHomeTest.PHONE);LocalGameArtTest.drain();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);
-      NativeVillageQuestTracker tracker=village.questTracker;assertTrue(village.sceneReady());assertTrue(tracker.expanded);assertEquals(View.VISIBLE,tracker.getVisibility());
+      NativeVillageQuestTracker tracker=village.questTracker;assertTrue(village.sceneReady());assertFalse("처음에는 마을을 가리지 않도록 접혀 있음",tracker.expanded);assertEquals(View.VISIBLE,tracker.getVisibility());
+      tracker.toggle();fixture.helper.layout(h,NativeVillageHomeTest.PHONE);assertTrue(tracker.expanded);
       float x=tracker.getRight()-h.dp(24),y=tracker.getTop()+h.dp(90);assertTrue(tracker.contains(x,y));assertTrue(tracker.contains(x-h.dp(160),y));double camera=village.camera.cameraUnits();int reads=api.paths.size();long time=android.os.SystemClock.uptimeMillis();
       NativeVillageHomeTest.touch(village,android.view.MotionEvent.ACTION_DOWN,time,time,x,y);NativeVillageHomeTest.touch(village,android.view.MotionEvent.ACTION_MOVE,time,time+30,x-h.dp(160),y);NativeVillageHomeTest.touch(village,android.view.MotionEvent.ACTION_CANCEL,time,time+60,x-h.dp(160),y);
       assertEquals(camera,village.camera.cameraUnits(),0);assertTrue(village.scroller.isFinished());assertEquals(reads,api.paths.size());assertTrue(api.writes.isEmpty());assertNull(h.rosterStory);
@@ -178,6 +179,9 @@ public class NativeVillageQuestTrackerTest {
     for(NativeHomePartyFeedbackTest.Profile profile:profiles){fixture.helper.configure(profile);try(ActivityController<MainActivity> activity=fixture.helper.flow.start()){
       MainActivity h=activity.get();NativeVillageHomeTest.Api api=fixture.prepare(h);NativeVillageHomeView village=fixture.open(h,profile);NativeVillageQuestTracker tracker=village.questTracker;
       tracker.bindStoryState(state(),null);assertTrue(tracker.setPinned(Arrays.asList("R1","R2")));LocalGameArtTest.drain();fixture.helper.layout(h,profile);assertTrue(village.sceneReady());assertEquals(View.VISIBLE,tracker.getVisibility());
+      assertFalse("기본은 접힘",tracker.expanded);assertTrue("접힌 목표창은 작은 버튼 높이",tracker.getHeight()<=h.dp(56));
+      {android.graphics.Bitmap folded=NativeHomePartyFeedbackTest.render(h.root);try(java.io.OutputStream stream=java.nio.file.Files.newOutputStream(out.resolve((profile.width==1280?"tracker-tablet":profile.font>1?"tracker-phone-font130":"tracker-phone")+"-collapsed.png"))){assertTrue(folded.compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream));}finally{folded.recycle();}}
+      tracker.toggle();fixture.helper.layout(h,profile);assertTrue(tracker.expanded);
       assertEquals(2,portraits(tracker).size());assertTrue(text(tracker).contains("두드림"));assertTrue(text(tracker).contains("모아"));assertTrue(village.safe.contains(new RectF(tracker.getLeft(),tracker.getTop(),tracker.getRight(),tracker.getBottom())));
       android.graphics.Bitmap image=NativeHomePartyFeedbackTest.render(h.root);try(java.io.OutputStream stream=java.nio.file.Files.newOutputStream(out.resolve(profile.width==1280?"tracker-tablet.png":profile.font>1?"tracker-phone-font130.png":"tracker-phone.png"))){assertTrue(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream));}finally{image.recycle();}assertTrue(api.writes.isEmpty());
     }}

@@ -47,6 +47,22 @@ public class NativeVillageDistrictSceneTest {
     NativeVillageHomeController owner=new NativeVillageHomeController(h);owner.layout=layout;h.villageHome=owner;owner.attach();
     LocalGameArtTest.drain();helper.layout(h,NativeVillageHomeTest.PHONE);owner.view.ambient.fixedTime=0L;return owner.view;
   }
+  /** 새 구역 그림이 다 준비돼 장면이 확정될 때까지 실제 프레임을 진행한다(그 전에는 이전 장면을 그대로 보여 준다). */
+  /** 합성 장면 그림(검증 안 된 가짜 자산)은 불러올 수 없으므로, 확정을 기다리는 동안만 메모리에 넣어 '준비됨'으로 둔다. */
+  void moveAndCommit(NativeVillageHomeView v,double camera)throws Exception{
+    Bitmap synthetic=Bitmap.createBitmap(32,24,Bitmap.Config.ARGB_8888);synthetic.eraseColor(0xff5d947d);
+    try{
+      // 첫 완성 장면이 확정되기 전의 이동은 저장 위치로 되돌아가므로, 현재 장면부터 확정한 뒤 옮긴다.
+      for(int n=0;n<8&&!v.committedScene;n++){keep(v,synthetic);LocalGameArtTest.drain();helper.layout((MainActivity)v.getContext(),NativeVillageHomeTest.PHONE);}
+      assertTrue("Initial scene committed",v.committedScene);
+      v.moveCameraUnits(camera-v.desiredCamera.cameraUnits());
+      for(int n=0;n<8&&v.camera.cameraUnits()!=camera;n++){keep(v,synthetic);LocalGameArtTest.drain();helper.layout((MainActivity)v.getContext(),NativeVillageHomeTest.PHONE);}
+      assertEquals("Committed camera "+camera,camera,v.camera.cameraUnits(),1e-9);
+    }finally{if(v.assets.images.get("fixture-district-scene")==synthetic)v.assets.images.remove("fixture-district-scene");synthetic.recycle();}
+  }
+  static void keep(NativeVillageHomeView v,Bitmap synthetic){
+    if(v.assets.wantedImages.contains("fixture-district-scene")||v.assets.requiredImages.contains("fixture-district-scene")){v.assets.images.put("fixture-district-scene",synthetic);v.assets.recount();}
+  }
   static Bitmap layer(NativeVillageHomeView v,String depth){
     Bitmap synthetic=Bitmap.createBitmap(32,24,Bitmap.Config.ARGB_8888);synthetic.eraseColor(0xff5d947d);
     Bitmap previous=v.assets.images.put("fixture-district-scene",synthetic);
@@ -62,11 +78,11 @@ public class NativeVillageDistrictSceneTest {
   }
   @Test public void exactRealRendererClosesAtEightUnitsAndNeverPaintsTheOtherDistricts()throws Exception{
     try(ActivityController<MainActivity> activity=helper.flow.start()){
-      NativeVillageHomeView v=open(activity.get(),VillageLayout.parse(manifest()));v.moveCameraUnits(.25-v.camera.cameraUnits());LocalGameArtTest.drain();
+      NativeVillageHomeView v=open(activity.get(),VillageLayout.parse(manifest()));moveAndCommit(v,.25);
       Bitmap first=layer(v,"backdrop");assertTrue(painted(first)>1000);
       try{
-        v.moveCameraUnits(8);LocalGameArtTest.drain();Bitmap repeated=layer(v,"backdrop");try{assertTrue(first.sameAs(repeated));}finally{repeated.recycle();}
-        for(double camera:new double[]{2.25,4.25,6.25}){v.moveCameraUnits(camera-v.camera.cameraUnits());LocalGameArtTest.drain();Bitmap other=layer(v,"backdrop");try{assertEquals("No new illustration pixels outside companions",0,painted(other));}finally{other.recycle();}}
+        moveAndCommit(v,8.25);Bitmap repeated=layer(v,"backdrop");try{assertTrue(first.sameAs(repeated));}finally{repeated.recycle();}
+        for(double camera:new double[]{2.25,4.25,6.25}){moveAndCommit(v,camera);Bitmap other=layer(v,"backdrop");try{assertEquals("No new illustration pixels outside companions",0,painted(other));}finally{other.recycle();}}
       }finally{first.recycle();}
     }
   }
@@ -141,8 +157,9 @@ public class NativeVillageDistrictSceneTest {
       scratch.recycle();
       assertFalse("At least one resident contact shadow is on screen",allowed.isEmpty());
       Bitmap with=NativeHomePartyFeedbackTest.render(h.root);
-      v.assets.images.remove("companions-shadows");Bitmap without=NativeHomePartyFeedbackTest.render(h.root);
-      v.assets.images.put("companions-shadows",atlas);
+      // 표시 중인 장면은 확정된 그림이 모두 있어야 그려진다. 그림을 빼는 대신 같은 크기의 투명 그림으로 바꿔 그림자만 없앤다.
+      Bitmap clear=Bitmap.createBitmap(atlas.getWidth(),atlas.getHeight(),Bitmap.Config.ARGB_8888);v.assets.images.put("companions-shadows",clear);Bitmap without=NativeHomePartyFeedbackTest.render(h.root);
+      v.assets.images.put("companions-shadows",atlas);clear.recycle();
       try{
         int shown=0;
         for(int y=0;y<with.getHeight();y++)for(int x=0;x<with.getWidth();x++){

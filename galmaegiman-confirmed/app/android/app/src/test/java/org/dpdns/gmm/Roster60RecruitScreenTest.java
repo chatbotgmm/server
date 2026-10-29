@@ -102,11 +102,13 @@ public class Roster60RecruitScreenTest {
    JSONObject cand=MainActivity.obj("speciesId","u25","name","룬장인","rarity","RARE","level",3);
    api.pending.done(MainActivity.obj("requestId",api.posts.get(0).getString("requestId"),"sessionId","s1","revision",0,"status","PENDING","rerolls",0,"rerollCost",3,"baseCost",6,"candidate",cand,"credits",4),null);idle();helper.layout(h,SIZES[0]);
    assertNotNull("후보 등록증",h.root.findViewWithTag("recruit-registration-card"));
-   Button reroll=(Button)tag(h,"recruit-reroll");assertTrue("새로고침 = 중급 비용 절반",reroll.getText().toString().contains("3장"));
+   Button reroll=(Button)tag(h,"recruit-reroll");/* 새로고침은 오른쪽 위 작은 ↻ 버튼이고, 비용은 버튼 설명과 정보창에 있다 */assertEquals("↻",reroll.getText().toString());assertTrue("새로고침 = 중급 비용 절반",reroll.getContentDescription().toString().contains("지원서 3장"));
    helper.png(NativeHomePartyFeedbackTest.render(h.root),"roster60-session-candidate-915x412.png");
-   tag(h,"recruit-confirm").performClick();idle();assertEquals("claim",api.posts.get(1).getString("action"));
-   api.pending.done(MainActivity.obj("requestId",api.posts.get(1).getString("requestId"),"sessionId","s1","revision",1,"status","CLAIMED","rerolls",0,"rerollCost",3,"candidate",cand,"credits",4),null);idle();
-   Button confirm=(Button)tag(h,"recruit-confirm");assertEquals("확인",confirm.getText().toString());assertTrue("수령 뒤 확인으로 모집소로",confirm.getContentDescription().toString().contains("모집소로 돌아가기"));assertTrue(confirm.isEnabled());assertEquals("수령 응답만으로 추가 모집하지 않음",2,api.posts.size());
+   /* 확인 버튼은 '전부 합격' 하나다. 남은 후보 회차를 한 번의 claim-all 요청으로 확정한다. */
+   assertEquals("전부 합격",((Button)tag(h,"recruit-confirm")).getText().toString());tag(h,"recruit-confirm").performClick();idle();
+   assertTrue(api.paths.get(api.paths.size()-1).endsWith("claim-all"));assertFalse(api.posts.get(1).has("action"));assertEquals("s1",api.posts.get(1).getJSONArray("sessions").getJSONObject(0).getString("sessionId"));assertEquals(0,api.posts.get(1).getJSONArray("sessions").getJSONObject(0).getInt("revision"));
+   api.pending.done(MainActivity.obj("requestId",api.posts.get(1).getString("requestId"),"credits",4,"sessions",new JSONArray().put(MainActivity.obj("sessionId","s1","revision",1,"status","CLAIMED","rerolls",0,"rerollCost",3,"baseCost",6,"candidate",cand))),null);idle();
+   Button confirm=(Button)tag(h,"recruit-confirm");assertEquals("수령 뒤 같은 버튼이 모집소로 돌아가기","모집소로",confirm.getText().toString());assertTrue(confirm.isEnabled());assertEquals("수령 응답만으로 추가 모집하지 않음",2,api.posts.size());
   }
  }
 

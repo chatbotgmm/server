@@ -392,6 +392,15 @@ public class RegistrationIntegrationScreensTest {
         View replacementTile = (View) replacement.getParent();
         revealCandidate(host, replacementTile);
         replacementTile.performClick();
+        if (!pvp) {
+          // 이야기 편성 보유 목록은 종 묶음이다. 묶음을 누르면 개체 선택 창이 열리고, 거기서 실제 개체를 고른다.
+          android.app.Dialog picker = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+          assertNotNull("종 묶음은 개체 선택 창을 연다", picker);
+          View individual = picker.getWindow().getDecorView().findViewWithTag("team-individual-" + fourth);
+          assertNotNull("선택 창에 실제 개체가 있다", individual);
+          assertTrue("선택 창을 여는 것만으로는 초안이 바뀌지 않는다", !fourth.equals(host.menus.teamDraft.get(0)));
+          individual.performClick();
+        }
         assertEquals(fourth, host.menus.teamDraft.get(0));
         assertTrue("후보 선택은 저장 전 초안만 변경", api.writes.isEmpty());
         layout(host, 915, 412);

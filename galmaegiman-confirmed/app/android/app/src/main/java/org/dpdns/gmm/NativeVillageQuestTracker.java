@@ -40,7 +40,7 @@ final class NativeVillageQuestTracker extends LinearLayout {
     super(h);this.h=h;this.host=host;this.preferences=preferences;key=scope;
     setTag("village-quest-tracker");setOrientation(VERTICAL);setClickable(true);setPadding(h.dp(4),h.dp(4),h.dp(4),h.dp(4));
     setBackground(NavyWorkbenchTheme.surface(h,0xf2102433,NavyWorkbenchTheme.LINE,10));
-    expanded=preferences.getBoolean(key+":expanded",true);initialized=preferences.contains(key+":selected");
+    expanded=preferences.getBoolean(key+":expanded",false);initialized=preferences.contains(key+":selected");
     try{JSONArray saved=new JSONArray(preferences.getString(key+":selected","[]"));for(int i=0;i<saved.length()&&selected.size()<2;i++){String id=saved.optString(i);if(!id.isEmpty()&&!selected.contains(id))selected.add(id);}}catch(Exception invalid){selected.clear();initialized=false;}
     LinearLayout header=new LinearLayout(h);header.setOrientation(HORIZONTAL);addView(header,new LayoutParams(-1,h.dp(48)));
     toggle=h.button("목표 ▴",this::toggle);toggle.setTag("quest-tracker-toggle");NativeVillageShortcuts.flatButton(h,toggle);header.addView(toggle,new LayoutParams(0,-1,1));

@@ -26,10 +26,10 @@ public class RegistrationV10CardTest {
     JSONObject candidate=MainActivity.obj("sessionId","round","revision",0,"status","PENDING","rerolls",0,"rerollCost",1,"candidate",MainActivity.obj("speciesId","u25","name","후보","rarity","EPIC","level",7));
     JSONObject info=MainActivity.obj("enabled",true,"catalogVersion","fixture","offers",new JSONArray(),"sessions",new JSONArray().put(candidate));
     h.api=new Api(h,info);NativeRecruitSession session=new NativeRecruitSession(h);session.open(info);helper.layout(h,p);
-    LocalGameArtTest.drain();ImageView card=h.root.findViewWithTag("recruit-registration-card");assertNotNull(card);Bitmap art=drawn(card);assertEquals(720*art.getHeight()/960,art.getWidth());
+    LocalGameArtTest.drain();ImageView card=h.root.findViewWithTag("recruit-registration-card");assertNotNull(card);Bitmap art=drawn(card);/* 후보는 완성 카드 축소본 대신 승인된 전신 그림을 크게 쓴다 */assertTrue("후보 그림은 승인된 전신 그림",card.getContentDescription().toString().contains("전신"));assertNotEquals("완성 등록증 카드(720×960) 축소본이 아님",720*art.getHeight()/960,art.getWidth());
     assertTrue("연속 후보 레일 안의 실제 그림 공간 · "+p.name,card.getWidth()>0&&card.getHeight()>=h.dp(72));
     NativeNoScrollReviewTest.assertFullyVisible(card,h.root);
-    assertTrue("등록증 이름 중복 대신 상태·레벨만",NativeNoScrollReviewTest.descendants(h.root).stream().anyMatch(v->v instanceof TextView&&"Lv7".equals(((TextView)v).getText().toString())));
+    /* 간결한 등록증: 그림 위 한 줄 표지(이름·등급)만 두고, 실제 레벨·비용은 정보창에서 본다 */TextView identity=h.root.findViewWithTag("recruit-registration-identity");assertNotNull(identity);assertTrue(identity.getText().toString().startsWith("입사등록증 · 후보 · "));assertFalse("표지에 레벨을 중복 표시하지 않음",identity.getText().toString().contains("Lv"));
     helper.png(NativeHomePartyFeedbackTest.render(h.root),"registration-v10-candidate-"+p.name+".png");
 
     // 실제 일반 모집 화면(하급 2·중급 3·고급 5장 버튼과 기타 버튼 포함)에서 수령 결과를 보인다.
