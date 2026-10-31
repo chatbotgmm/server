@@ -50,6 +50,7 @@ export class RosterStory{
  });try{return await transaction();}catch(e){if(['P2002','P2034','COMMANDER_CONCURRENT_WRITE'].includes((e as {code?:string}).code??''))return transaction();throw e;}});}
  private async account(tx:Tx,id:string){return tx.roster60StoryAccount.upsert({where:{playerId:id},create:{playerId:id,contentVersion:this.content.version,state:JSON.stringify(initialStoryProgress())},update:{}});}
  private quest(id:string){return this.content.quests.find(q=>q.id===id)??fail('STORY_QUEST_NOT_FOUND',404);}
+ private validatedUnitXpPolicy(){const policy=this.unitXpPolicy();if(policy!==null)validateStoryUnitXpPolicy(policy,this.catalog()?.version??'',this.content.version,[...new Set(this.content.quests.flatMap(q=>q.objective.encounterIds))]);return policy;}
  private unlocked(q:StoryQuest,p:StoryProgress,lifetime:number){return q.unlockAfter.every(id=>p.completed.includes(id))&&lifetime>=(q.darkGangLifetimeRequired??this.content.policy.mainLifetimeGates[q.id]??0);}
  private async status(tx:Tx,row:Roster60StoryAccount,q:StoryQuest){
   const p=progressOf(row);if(p.completed.includes(q.id))return 'COMPLETED' as const;
@@ -105,7 +106,7 @@ export class RosterStory{
  });}
  async accept(playerId:string,b:{requestId:string;revision:number;questId:string}){return this.mutate(playerId,b,['accept',b.questId,b.revision],async(tx,row,p)=>{
   const q=this.quest(b.questId);if(await this.status(tx,row,q)!=='AVAILABLE'||p.scene?.phase!=='intro'||p.scene.questId!==q.id||p.scene.cursor!==this.sceneData(p.scene).lines.length-1)return fail('STORY_ACCEPT_NOT_READY');
-  const unitPolicy=this.unitXpPolicy();if(unitPolicy!==null)validateStoryUnitXpPolicy(unitPolicy,this.catalog()?.version??'',this.content.version,[...new Set(this.content.quests.flatMap(q=>q.objective.encounterIds))]);
+  const unitPolicy=this.validatedUnitXpPolicy();
   p.accepted[q.id]={token:randomUUID(),wins:0,battles:[],commanderPolicy:structuredClone(this.commanderPolicy()),unitXpPolicy:structuredClone(unitPolicy)};if(q.fragmentBundleOnAccept)p.fragments[q.fragmentBundleOnAccept.id]=q.fragmentBundleOnAccept.count;if(q.statueStageOnAccept)p.statueStage=Math.max(p.statueStage,q.statueStageOnAccept);
   const scene=this.sceneData(p.scene);if(!p.readScenes.includes(scene.id))p.readScenes.push(scene.id);delete p.checkpoints[checkpoint(p.scene)];p.scene=null;
  });}
@@ -151,7 +152,14 @@ export class RosterStory{
    const active=await tx.roster60Battle.findMany({where:{playerId,status:{in:['ACTIVE','FINISHED']}},select:{snapshot:true}});
    if(active.some(r=>JSON.parse(r.snapshot).story))return fail('STORY_BATTLE_ACTIVE');
    let quest:StoryQuest|undefined,encounter:StoryEncounter|undefined,token:string|undefined;
-   if(b.questId){quest=this.quest(b.questId);if(await this.status(tx,row,quest)!=='ACTIVE'||quest.objective.kind!=='adventure_win')return fail('STORY_QUEST_NOT_ACTIVE');const accepted=p.accepted[quest.id];if(accepted.unitXpPolicy&&accepted.wins>=quest.objective.wins)return fail('STORY_OBJECTIVE_AWAITING_RETURN');token=accepted.token;encounter=this.content.encounters.find(e=>e.id===quest!.objective.encounterIds[Math.min(accepted.wins,quest!.objective.encounterIds.length-1)]);}
+   if(b.questId){
+    quest=this.quest(b.questId);if(await this.status(tx,row,quest)!=='ACTIVE'||quest.objective.kind!=='adventure_win')return fail('STORY_QUEST_NOT_ACTIVE');const accepted=p.accepted[quest.id];
+    // An old acceptance without a policy must not leave future battles at zero
+    // forever. Pin the current validated policy with this new reservation only;
+    // receipts and ACTIVE/FINISHED snapshots above retain their original terms.
+    if(accepted.unitXpPolicy==null){const current=this.validatedUnitXpPolicy();if(current!==null)accepted.unitXpPolicy=structuredClone(current);}
+    if(accepted.unitXpPolicy&&accepted.wins>=quest.objective.wins)return fail('STORY_OBJECTIVE_AWAITING_RETURN');token=accepted.token;encounter=this.content.encounters.find(e=>e.id===quest!.objective.encounterIds[Math.min(accepted.wins,quest!.objective.encounterIds.length-1)]);
+   }
    else{encounter=this.content.encounters.find(e=>e.id===b.encounterId&&e.kind==='black'&&e.mode==='adventure');if(!encounter||!this.content.quests.some(q=>q.objective.encounterIds.includes(encounter!.id)&&(p.accepted[q.id]||p.completed.includes(q.id))))return fail('STORY_ENCOUNTER_LOCKED');}
    if(!encounter||prior&&prior.encounterId!==encounter.id)return fail('STORY_ENCOUNTER_LOCKED');
    if(!isCurrentRoster60Party(b.ownedIds)){

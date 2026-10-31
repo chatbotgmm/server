@@ -7,14 +7,23 @@ import android.view.*;import android.widget.*;import org.json.*;
  */
 final class Roster60SwitchTile extends FrameLayout {
  final Button action;final TextView status,name,hp,mp;final LinearLayout row;final float scale;int skillHeight;
+ Runnable details;float holdX,holdY;boolean disabledHoldPending,disabledLongPressed;
+ final Runnable disabledHold=()->{if(disabledHoldPending&&isAttachedToWindow()){disabledHoldPending=false;disabledLongPressed=true;performLongClick();}};
  Roster60SwitchTile(MainActivity h,JSONObject unit,boolean current,boolean enabled,boolean selected,Runnable choose){this(h,unit,current,enabled,selected,choose,1);}
  Roster60SwitchTile(MainActivity h,JSONObject unit,boolean current,boolean enabled,boolean selected,Runnable choose,float scale){
   super(h);this.scale=scale;int pad=h.dp(3*scale);setPadding(pad,pad,pad,pad);setBackground(new BattleSkin(h,"panel-hp"));
-  if(selected){android.graphics.drawable.GradientDrawable edge=new android.graphics.drawable.GradientDrawable();edge.setColor(0);edge.setCornerRadius(h.dp(6));edge.setStroke(Math.max(3,h.dp(2.5f*scale)),android.graphics.Color.BLACK);setForeground(edge);}
+  setSelected(selected);
+  if(selected){
+   android.graphics.drawable.GradientDrawable outer=new android.graphics.drawable.GradientDrawable(),inner=new android.graphics.drawable.GradientDrawable();
+   outer.setColor(0);outer.setCornerRadius(h.dp(6));outer.setStroke(Math.max(4,h.dp(4*scale)),android.graphics.Color.BLACK);
+   inner.setColor(0);inner.setCornerRadius(h.dp(3));inner.setStroke(Math.max(2,h.dp(2*scale)),0xfffff8e8);
+   android.graphics.drawable.LayerDrawable edge=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{outer,inner});int inset=h.dp(5*scale);edge.setLayerInset(1,inset,inset,inset,inset);setForeground(edge);
+  }
   row=new LinearLayout(h);row.setGravity(Gravity.CENTER_VERTICAL);addView(row,new LayoutParams(-1,-1));
   boolean fallen=unit.optInt("hp")<=0;String state=current?"출전 중":fallen?"전투불능":selected?"선택됨":"후보";
   FrameLayout faceBox=new FrameLayout(h);ImageView face=new ImageView(h);Roster60Portrait.bindFace(h,face,unit.optString("speciesId"));if(!enabled)face.setAlpha(.45f);faceBox.addView(face,new LayoutParams(-1,-1));
   status=Roster60Scale.chip(h,state,!current&&!fallen,scale*.9f);status.setTag("switch-status");LayoutParams chip=new LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);faceBox.addView(status,chip);
+  if(selected){android.graphics.drawable.GradientDrawable selectedChip=new android.graphics.drawable.GradientDrawable();selectedChip.setColor(android.graphics.Color.BLACK);selectedChip.setCornerRadius(h.dp(4));status.setBackground(selectedChip);status.setTextColor(0xfffff8e8);}
   row.addView(faceBox,new LinearLayout.LayoutParams(0,-1,1));
   JSONObject stats=unit.optJSONObject("stats");String maxHp=stats==null?"?":stats.optString("hp"),maxMp=stats==null?"?":stats.optString("mp");
   LinearLayout text=new LinearLayout(h);text.setOrientation(LinearLayout.VERTICAL);text.setGravity(Gravity.CENTER_VERTICAL);text.setPadding(h.dp(3*scale),0,h.dp(7*scale),0);
@@ -26,6 +35,29 @@ final class Roster60SwitchTile extends FrameLayout {
   String why=enabled?"":current?"현재 출전 중이라 교체할 수 없음":fallen?"전투불능이라 교체할 수 없음":"";
   action=h.button("",choose);action.setBackground(BattleSkin.pressFeedback(h));BattleSkin.bindPressFeedback(action);action.setEnabled(enabled);action.setContentDescription(unit.optString("name")+" HP "+unit.optInt("hp")+"/"+maxHp+" MP "+unit.optInt("mp")+"/"+maxMp+" · "+state+(why.isEmpty()?"":" · "+why));addView(action,new LayoutParams(-1,-1));
  }
+ void bindDetails(Runnable open){
+  details=open;setContentDescription(action.getContentDescription()+" · 길게 눌러 대원 정보 보기");
+  setOnLongClickListener(v->{if(details!=null)details.run();return true;});
+  action.setOnLongClickListener(v->{if(details!=null)details.run();return true;});
+ }
+ // Disabled choices remain disabled for taps. Their face/text can still explain
+ // the active/fainted fighter without enabling a switch or consuming a turn.
+ @Override public boolean dispatchTouchEvent(MotionEvent event){
+  if(details!=null&&!action.isEnabled()){
+   int kind=event.getActionMasked();
+   if(kind==MotionEvent.ACTION_DOWN){
+    cancelDisabledHold();disabledLongPressed=false;holdX=event.getX();holdY=event.getY();
+    if(holdX>=action.getLeft()&&holdX<action.getRight()&&holdY>=action.getTop()&&holdY<action.getBottom()){
+     disabledHoldPending=true;postDelayed(disabledHold,ViewConfiguration.getLongPressTimeout());
+    }
+   }else if(kind==MotionEvent.ACTION_MOVE){int slop=ViewConfiguration.get(getContext()).getScaledTouchSlop();if(Math.abs(event.getX()-holdX)>slop||Math.abs(event.getY()-holdY)>slop)cancelDisabledHold();}
+   else if(kind==MotionEvent.ACTION_UP||kind==MotionEvent.ACTION_CANCEL){boolean consumed=disabledLongPressed;cancelDisabledHold();disabledLongPressed=false;if(consumed)return true;}
+  }
+  return super.dispatchTouchEvent(event);
+ }
+ void cancelDisabledHold(){disabledHoldPending=false;removeCallbacks(disabledHold);}
+ @Override public void onWindowFocusChanged(boolean focused){if(!focused){cancelDisabledHold();disabledLongPressed=false;}super.onWindowFocusChanged(focused);}
+ @Override protected void onDetachedFromWindow(){cancelDisabledHold();disabledLongPressed=false;super.onDetachedFromWindow();}
  void showSkills(Roster60SkillElements skills){
   skillHeight=Math.round(44*scale*getResources().getDisplayMetrics().density);
   for(View view:new View[]{row,action}){LayoutParams box=(LayoutParams)view.getLayoutParams();box.bottomMargin=skillHeight;view.setLayoutParams(box);}

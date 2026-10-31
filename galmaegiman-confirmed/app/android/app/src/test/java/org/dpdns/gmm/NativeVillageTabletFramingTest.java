@@ -25,7 +25,7 @@ public class NativeVillageTabletFramingTest {
    for(VillageLayout.Resident resident:v.layout.residents){v.owner.residents.get(resident.id).put("status","AVAILABLE");v.bindResidents();v.moveCameraUnits(resident.x-v.field.width()/v.unitPixels()/2-v.camera.cameraUnits());for(int i=0;i<4;i++){LocalGameArtTest.drain();fixture.helper.layout(h,p);}android.widget.Button b=v.residentButtons.get(resident.id);NativeVillageHomeView.WorldTarget target=(NativeVillageHomeView.WorldTarget)b;assertEquals(-1,target.statusCell());assertEquals(0,target.statusLane(),0);
     android.graphics.RectF marker=v.residentMarkerRect(resident),art=v.fittedObjectRect(v.assets.get(resident.asset),v.imageSlot(b),resident.asset);NativeVillageHomeView.ResidentHead head=v.residentHeads.get(resident.id);assertFalse(marker.isEmpty());assertTrue(marker.bottom<=art.top+art.height()*head.y);assertTrue(marker.centerX()>=art.left&&marker.centerX()<=art.right);for(int i=0;i<30;i++)v.residentMarkerRect(resident);assertSame(head,v.residentHeads.get(resident.id));assertEquals(4,v.residentButtons.size());
     Bitmap image=NativeHomePartyFeedbackTest.render(h.root);NativeVillageHomeArtTest.png(NativeVillageHomeArtTest.output().resolve(p.name+"-available-"+resident.id+".png"),image);image.recycle();
-    for(String state:new String[]{"ACTIVE","READY","COMPLETED"}){v.owner.residents.get(resident.id).put("status",state);assertTrue(v.residentMarkerRect(resident).isEmpty());assertEquals("ACTIVE".equals(state)?-1:11,target.statusCell());}
+    for(String state:new String[]{"ACTIVE","READY","COMPLETED"}){v.owner.residents.get(resident.id).put("status",state);assertTrue(v.residentMarkerRect(resident).isEmpty());assertEquals("READY".equals(state)?11:-1,target.statusCell());}
    }
   }}
  }

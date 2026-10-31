@@ -1,6 +1,7 @@
 import {afterAll,beforeAll,describe,expect,it} from 'vitest';
 import {PrismaClient} from '@prisma/client';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {RosterStory} from '../src/story/service.js';
 import {RosterBattle,fighter} from '../src/roster60-battle.js';
@@ -11,6 +12,7 @@ import {readCommanderState} from '../src/progression/commander.js';
 import type {StoryUnitXpPolicy} from '../src/progression/story-unit-xp.js';
 import Fastify from 'fastify';
 import {registerRoster60} from '../src/roster60-routes.js';
+import {RosterOwned} from '../src/roster60-owned.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 const load=(file:string)=>JSON.parse(readFileSync(file,'utf8'));
@@ -44,6 +46,39 @@ suite('accepted quest unit XP settlement and account-event separation',()=>{
  async function complete(f:ReturnType<typeof fixture>,id:string){const s=f.story();let v:any=await s.state(id);v=await s.open(id,{requestId:request(),revision:v.revision,questId:'STORY_01',phase:'return'});const command={requestId:request(),revision:v.revision,cursor:v.scene.cursor};const done:any=await s.advance(id,command);expect(await s.advance(id,command)).toEqual(done);return done;}
  const xp=async(id:string)=>(await db.roster60Owned.findUniqueOrThrow({where:{id}})).totalXp;
 
+ it('the configured campaign amount persists for exact same-species owned IDs and a fresh owned-detail reader',async()=>{
+  const configured=load('data/test-profiles/five-stat-device-test-v1/story-unit-xp-policy.json') as StoryUnitXpPolicy;
+  const f=fixture('story');f.set(structuredClone(configured));
+  const definition=f.catalog.characters.find((unit:any)=>unit.id==='u45'),startingXp=BigInt(definition.growth[14].totalXp);
+  const a=await actor(3,startingXp),other=await actor(1,startingXp),before=await Promise.all(a.units.map(unit=>xp(unit.id)));
+  let b:any=await create(f,a);
+  b=await f.battle().action(a.id,{requestId:request(),battleId:b.battleId,revision:b.revision,action:{kind:'switch',targetOwnedId:a.units[1].id}});
+  b=await win(f,a.id,b);
+  expect(await Promise.all(a.units.map(unit=>xp(unit.id)))).toEqual(before);
+  const requestId=request(),paid:any=await settle(f,a.id,b,requestId);
+  expect(await settle(f,a.id,b,requestId)).toEqual(paid);expect(await settle(f,a.id,b)).toEqual(paid);
+  const amount=configured.rewards.STORY_01_01.winXp,entered=a.units.slice(0,2).map(unit=>unit.id).sort();
+  const expected=Object.fromEntries(a.units.map(unit=>[unit.id,startingXp+BigInt(entered.includes(unit.id)?Math.floor(amount/2)+(unit.id===entered[0]?amount%2:0):0)]));
+  expect(paid.settlement.policyVersion).toBe(configured.version);expect(paid.settlement.xpAwarded).toBe(amount);
+  expect(paid.settlement.unitXp.units.reduce((sum:number,unit:any)=>sum+unit.appliedXp,0)).toBe(amount);
+  const fresh=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});
+  try{
+   const reader=new RosterOwned(fresh,()=>f.catalog),reopened=[];
+   for(const unit of a.units){
+    const current:any=await reader.read(a.id,unit.id),persisted=await fresh.roster60Owned.findUniqueOrThrow({where:{id:unit.id}});
+    expect(persisted.totalXp).toBe(expected[unit.id]);expect(current.unit.ownedId).toBe(unit.id);
+    expect(String(current.unit.growth.totalXp)).toBe(expected[unit.id].toString());
+    expect(current.unit.level).toBe(growthAt(Number(expected[unit.id]),definition.growth).level);
+    expect(persisted.reincarnation).toBe(0);reopened.push({ownedId:unit.id,speciesId:unit.speciesId,beforeTotalXp:startingXp.toString(),afterTotalXp:persisted.totalXp.toString(),level:current.unit.level,xpProgress:paid.settlement.unitXp.units.find((reward:any)=>reward.ownedId===unit.id)?.xpProgress});
+   }
+   expect((await fresh.roster60Owned.findUniqueOrThrow({where:{id:other.units[0].id}})).totalXp).toBe(startingXp);
+   await expect(reader.read(other.id,a.units[0].id)).rejects.toMatchObject({code:'UNIT_NOT_FOUND'});
+   expect(await fresh.roster60StoryBattleAward.count({where:{playerId:a.id,battleId:b.battleId}})).toBe(1);
+   const directory=process.env.XP_GRANT_AUDIT_OUT;
+   if(directory){mkdirSync(directory,{recursive:true});writeFileSync(join(directory,'configured-owned-id-grant.json'),JSON.stringify({scope:'isolated SQLite and minimal enemy fixture; original configured XP amount and unit growth; no operating data',policyVersion:configured.version,sourceEncounter:'STORY_01_01',configuredWinXp:amount,settlementXpAwarded:paid.settlement.xpAwarded,enteredOwnedIds:entered,unenteredOwnedId:a.units[2].id,foreignOwnerUnitUnchanged:true,replayedRequestAndBattleDoNotDuplicate:true,freshPrismaOwnedDetailMatches:true,units:reopened},null,2)+'\n');}
+  }finally{await fresh.$disconnect();}
+ });
+
  for(const mode of ['story','adventure'] as const){
   it(mode+': equal entered shares, untouched reserve and distinct quest/account event survive all replays',async()=>{
    const f=fixture(mode),a=await actor(3);let b:any=await create(f,a);
@@ -62,11 +97,53 @@ suite('accepted quest unit XP settlement and account-event separation',()=>{
    expect(await db.commanderXpLedger.count({where:{playerId:a.id,eventKind:'STORY_QUEST'}})).toBe(1);
    expect(await db.roster60StoryBattleAward.count({where:{playerId:a.id,battleId:b.battleId}})).toBe(1);
   });
-  it(mode+': an unconfigured accepted quest stays zero after later activation; a configured quest pins its amount',async()=>{
-   const f=fixture(mode,101,false),a=await actor();await accept(f,a.id);const later=fixture(mode).get()!;f.set(later);
-   let b:any=await f.story().createBattle(a.id,{requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]});b=await win(f,a.id,b);await returnRun(f,a.id,await settle(f,a.id,b));expect(await xp(a.units[0].id)).toBe(0n);
+  it(mode+': an old null or missing acceptance pins the current policy for a new battle, including concurrent restart/replay',async()=>{
+   const f=fixture(mode,101,false),a=await actor();await accept(f,a.id);
+   if(mode==='adventure'){const row=await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}}),state=JSON.parse(row.state);delete state.accepted.STORY_01.unitXpPolicy;await db.roster60StoryAccount.update({where:{playerId:a.id},data:{state:JSON.stringify(state)}});}
+   f.set(fixture(mode).get()!);
+   const command={requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]},fresh=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});
+   let b:any;
+   try{const restarted=new RosterStory(fresh,()=>f.catalog,()=>basePolicy,f.content,()=>commanderPolicy,()=>f.get()),results=await Promise.all([f.story().createBattle(a.id,command),restarted.createBattle(a.id,command)]);expect(results[0]).toEqual(results[1]);b=results[0];}finally{await fresh.$disconnect();}
+   const pinned=JSON.parse((await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}})).snapshot);expect(pinned.story.unitXpPolicy.rewards.STORY_01_01.winXp).toBe(101);
+   const current=f.get()!;for(const reward of Object.values(current.rewards))reward.winXp=9999;f.set(current);
+   expect(await f.story().createBattle(a.id,command)).toEqual(b);
+   b=await win(f,a.id,b);const paid=await settle(f,a.id,b);if(mode==='adventure')expect(await xp(a.units[0].id)).toBe(0n);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(101n);
+   await settle(f,a.id,b);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(101n);
    const g=fixture(mode),other=await actor();await accept(g,other.id);const changed=g.get()!;for(const reward of Object.values(changed.rewards))reward.winXp=9999;g.set(changed);
    let c:any=await g.story().createBattle(other.id,{requestId:request(),questId:'STORY_01',ownedIds:[other.units[0].id]});c=await win(g,other.id,c);await returnRun(g,other.id,await settle(g,other.id,c));expect(await xp(other.units[0].id)).toBe(101n);
+  });
+  it(mode+': a still-unconfigured new reservation keeps its original zero reward',async()=>{
+   const f=fixture(mode,101,false),a=await actor(),b=await win(f,a.id,await create(f,a)),row=await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}});
+   expect(JSON.parse(row.snapshot).story.unitXpPolicy).toBeNull();expect(JSON.parse(row.snapshot).storyUnitXp).toBeUndefined();
+   const paid=await settle(f,a.id,b);expect(paid.settlement.xpAwarded).toBe(0);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(0n);
+  });
+  it(mode+': late activation preserves active, finished and settled old-zero snapshots/receipts and pays only the next battle',async()=>{
+   const f=fixture(mode,101,false),a=await actor(),q=f.content.quests.find((q:any)=>q.id==='STORY_01'),second=f.content.encounters.find((e:any)=>e.id==='STORY_02_01');
+   Object.assign(second,{speciesId:'u07',mode,kind:'ordinary',level:1,hpMultiplier:1,powerMultiplier:1});delete second.villainProfileId;q.objective={kind:'adventure_win',wins:2,encounterIds:['STORY_01_01','STORY_02_01']};
+   await accept(f,a.id);const originalCommand={requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]};let old:any=await f.story().createBattle(a.id,originalCommand),oldCreate=structuredClone(old);
+   const before=await db.roster60Battle.findUniqueOrThrow({where:{id:old.battleId}}),oldReceipt=await db.roster60StoryReceipt.findUniqueOrThrow({where:{playerId_requestId:{playerId:a.id,requestId:originalCommand.requestId}}});
+   f.set(fixture(mode).get()!);
+   // Simulate a process stopping after the inner battle commit but before the
+   // workflow's final receipt write. Recovery must keep that old battle at zero.
+   const progress=JSON.parse((await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}})).state);
+   await db.roster60StoryReceipt.update({where:{playerId_requestId:{playerId:a.id,requestId:originalCommand.requestId}},data:{result:JSON.stringify({pending:true,contentVersion:f.content.version,questId:'STORY_01',acceptToken:progress.accepted.STORY_01.token,encounterId:'STORY_01_01',...(old.state.adventureId?{adventureId:old.state.adventureId}:{})})}});
+   expect(await f.story().createBattle(a.id,originalCommand)).toEqual(oldCreate);expect(JSON.parse((await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}})).state).accepted.STORY_01.unitXpPolicy).toBeNull();
+   await expect(f.story().createBattle(a.id,{...originalCommand,requestId:request()})).rejects.toMatchObject({code:'STORY_BATTLE_ACTIVE'});
+   expect(await f.story().createBattle(a.id,originalCommand)).toEqual(oldCreate);old=await win(f,a.id,old);
+   await expect(f.story().createBattle(a.id,{...originalCommand,requestId:request()})).rejects.toMatchObject({code:'STORY_BATTLE_ACTIVE'});
+   const settlementRequest=request(),oldPaid=await settle(f,a.id,old,settlementRequest);expect(oldPaid.settlement.xpAwarded).toBe(0);expect(await xp(a.units[0].id)).toBe(0n);
+   let next:any=await f.story().createBattle(a.id,{...originalCommand,requestId:request()});const newSnapshot=JSON.parse((await db.roster60Battle.findUniqueOrThrow({where:{id:next.battleId}})).snapshot);expect(newSnapshot.story.unitXpPolicy.rewards.STORY_02_01.winXp).toBe(101);
+   f.set(null);next=await win(f,a.id,next);const paid=await settle(f,a.id,next);if(mode==='adventure')expect(await xp(a.units[0].id)).toBe(0n);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(101n);
+   expect(await f.story().createBattle(a.id,originalCommand)).toEqual(oldCreate);expect(await settle(f,a.id,old,settlementRequest)).toEqual(oldPaid);expect(await settle(f,a.id,old)).toEqual(oldPaid);expect(await xp(a.units[0].id)).toBe(101n);
+   expect((await db.roster60Battle.findUniqueOrThrow({where:{id:old.battleId}})).snapshot).toBe(before.snapshot);
+   expect((await db.roster60StoryReceipt.findUniqueOrThrow({where:{playerId_requestId:{playerId:a.id,requestId:originalCommand.requestId}}})).result).toBe(oldReceipt.result);
+  });
+  it(mode+': an invalid current policy rolls back a new reservation and the same request recovers with a valid policy',async()=>{
+   const f=fixture(mode,101,false),a=await actor();await accept(f,a.id);const invalid=fixture(mode).get()!;invalid.catalogVersion='wrong-catalog';f.set(invalid);
+   const command={requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]};await expect(f.story().createBattle(a.id,command)).rejects.toMatchObject({code:'STORY_UNIT_XP_POLICY_INVALID'});
+   const row=await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}}),state=JSON.parse(row.state);expect(state.accepted.STORY_01.unitXpPolicy).toBeNull();expect(state.departure).toBeUndefined();
+   expect(await db.roster60StoryReceipt.count({where:{playerId:a.id,requestId:command.requestId}})).toBe(0);expect(await db.roster60Battle.count({where:{playerId:a.id}})).toBe(0);expect(await xp(a.units[0].id)).toBe(0n);
+   f.set(fixture(mode).get()!);let b:any=await f.story().createBattle(a.id,command);f.set(null);b=await win(f,a.id,b);await returnRun(f,a.id,await settle(f,a.id,b));expect(await xp(a.units[0].id)).toBe(101n);
   });
   it(mode+': two Prisma clients settle the same event concurrently without duplicating XP or quest wins',async()=>{
    const f=fixture(mode),a=await actor(),b=await win(f,a.id,await create(f,a)),otherDb=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});
@@ -111,6 +188,25 @@ suite('accepted quest unit XP settlement and account-event separation',()=>{
    const s:any=await f.story().state(a.id);expect(s.quests.find((q:any)=>q.id==='STORY_01').objective.wins).toBe(0);expect((await readCommanderState(db,a.id,commanderPolicy)).totalXp).toBe('0');
   });
  }
+ it('late activation cannot repeat an already-won legacy adventure objective while return is pending',async()=>{
+  const f=fixture('adventure',101,false),a=await actor(),old=await win(f,a.id,await create(f,a)),paid=await settle(f,a.id,old);expect(await xp(a.units[0].id)).toBe(0n);f.set(fixture('adventure').get()!);
+  const command={requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]};await expect(f.story().createBattle(a.id,command)).rejects.toMatchObject({code:'STORY_OBJECTIVE_AWAITING_RETURN'});
+  expect(await db.roster60Battle.count({where:{playerId:a.id}})).toBe(1);expect(await db.roster60StoryReceipt.count({where:{playerId:a.id,requestId:command.requestId}})).toBe(0);expect(JSON.parse((await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}})).state).accepted.STORY_01.unitXpPolicy).toBeNull();
+  await returnRun(f,a.id,paid);await complete(f,a.id);expect(await xp(a.units[0].id)).toBe(0n);expect(await db.roster60StoryBattleAward.count({where:{playerId:a.id}})).toBe(1);
+ });
+ for(const activation of ['before','after'] as const)it('a failed pre-battle adventure link resumes once with policy activation '+activation+' the reservation',async()=>{
+  const f=fixture('adventure',101,false),a=await actor();await accept(f,a.id);if(activation==='before')f.set(fixture('adventure').get()!);
+  const command={requestId:request(),questId:'STORY_01',ownedIds:[a.units[0].id]};
+  await db.$executeRawUnsafe(`CREATE TRIGGER xp_link_test_failure BEFORE UPDATE ON Roster60StoryAccount WHEN NEW.playerId='${a.id}' AND instr(NEW.state, '"adventureId"')>0 BEGIN SELECT RAISE(ABORT, 'xp-link-test-only-failure'); END`);
+  try{await expect(f.story().createBattle(a.id,command)).rejects.toThrow();}finally{await db.$executeRawUnsafe('DROP TRIGGER xp_link_test_failure');}
+  const oldRun=await db.roster60Adventure.findFirstOrThrow({where:{playerId:a.id}}),row=await db.roster60StoryAccount.findUniqueOrThrow({where:{playerId:a.id}}),progress=JSON.parse(row.state);
+  expect(progress.departure.requestId).toBe(command.requestId);expect(!!progress.accepted.STORY_01.unitXpPolicy).toBe(activation==='before');expect(await db.roster60Battle.count({where:{playerId:a.id}})).toBe(0);expect(await xp(a.units[0].id)).toBe(0n);
+  if(activation==='after')f.set(fixture('adventure').get()!);else f.set(null);
+  const fresh=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});let b:any;
+  try{b=await new RosterStory(fresh,()=>f.catalog,()=>basePolicy,f.content,()=>commanderPolicy,()=>f.get()).createBattle(a.id,command);}finally{await fresh.$disconnect();}
+  expect(b.state.adventureId).toBe(oldRun.id);expect(await f.story().createBattle(a.id,command)).toEqual(b);expect(await db.roster60Adventure.count({where:{playerId:a.id}})).toBe(1);expect(await db.roster60Battle.count({where:{playerId:a.id}})).toBe(1);
+  b=await win(f,a.id,b);const paid=await settle(f,a.id,b);expect(await xp(a.units[0].id)).toBe(0n);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(101n);await returnRun(f,a.id,paid);expect(await xp(a.units[0].id)).toBe(101n);
+ });
  it('two encounters in one adventure accumulate only actual shares and clamp each unit across pending rewards',async()=>{
   const f=fixture('adventure'),a=await actor(3),q=f.content.quests.find((q:any)=>q.id==='STORY_01'),second=f.content.encounters.find((e:any)=>e.id==='STORY_02_01');
   Object.assign(second,{speciesId:'u07',mode:'adventure',kind:'ordinary',level:1,hpMultiplier:1,powerMultiplier:1});q.objective={kind:'adventure_win',wins:2,encounterIds:['STORY_01_01','STORY_02_01']};

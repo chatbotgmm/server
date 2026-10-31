@@ -24,7 +24,7 @@ final class VillageGroundShadows {
       float width=(float)shadow.widthRatio*sw*scale,height=width*source.height()/source.width();
       float x=(button.getLeft()+button.getRight())*.5f,y=button.getBottom()-view.labelHeight(button)-view.labelGap();
       target.set(x-width*(float)shadow.anchorX,y-height*(float)shadow.anchorY,x+width*(1-(float)shadow.anchorX),y+height*(1-(float)shadow.anchorY));
-      if(!RectF.intersects(target,view.field))return;paint.setAlpha((int)Math.round(255*shadow.opacity));canvas.drawBitmap(atlas,source,target,paint);
+      if(!RectF.intersects(target,view.visibleWorld()))return;paint.setAlpha((int)Math.round(255*shadow.opacity));canvas.drawBitmap(atlas,source,target,paint);
     paint.setAlpha(255);
   }
 }

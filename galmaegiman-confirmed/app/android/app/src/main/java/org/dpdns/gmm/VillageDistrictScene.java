@@ -37,7 +37,7 @@ final class VillageDistrictScene {
     if(view.layout.layeredWorld){drawLayered(canvas,view,depth);return;}
     if(view.layout.continuousFoundation){
       for(VillageLayout.DistrictScenery item:view.layout.districtScenery){
-        Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image)||!RectF.intersects(target,view.field))continue;
+        Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image)||!RectF.intersects(target,view.visibleWorld()))continue;
         int save=canvas.save();canvas.clipRect(view.field.left,Math.max(view.field.height()*(float)item.clipTop,target.top+target.height()*(float)item.clipSourceTop),view.field.right,view.field.bottom);
         paint.setAlpha(255);if("harbor-water".equals(item.id))drawWater(canvas,image);else {
           canvas.drawBitmap(image,source,target,paint);
@@ -83,7 +83,7 @@ final class VillageDistrictScene {
       Bitmap image=view.assets.get(item.asset);if(!depth.equals(item.depth)||image==null||!geometry(view,item,image))continue;
       float left=target.left,right=target.right,top=target.top,bottom=target.bottom;
       for(int repeat=-1;repeat<=1;repeat++){
-        target.set(left+repeat*period,top,right+repeat*period,bottom);if(!RectF.intersects(target,view.field))continue;
+        target.set(left+repeat*period,top,right+repeat*period,bottom);if(!RectF.intersects(target,view.visibleWorld()))continue;
         int save=canvas.save();canvas.clipRect(view.field.left,Math.max(view.field.height()*(float)item.clipTop,target.top+target.height()*(float)item.clipSourceTop),view.field.right,view.field.bottom);
         paint.setAlpha(255);canvas.drawBitmap(image,source,target,paint);
         if("layered-join-approved-market".equals(item.id))drawLayeredWater(canvas,image);
@@ -95,9 +95,9 @@ final class VillageDistrictScene {
   boolean waterVisible(NativeVillageHomeView view){
     if(view.layout.layeredWorld){VillageLayout.DistrictScenery panel=view.layout.districtScenery("layered-join-approved-market");
       if(panel==null||view.assets.get(panel.asset)==null||!geometry(view,panel,view.assets.get(panel.asset)))return false;
-      layeredWaterClip();return RectF.intersects(waterClip,view.field);
+      layeredWaterClip();return RectF.intersects(waterClip,view.visibleWorld());
     }
-    VillageLayout.DistrictScenery water=view.layout.districtScenery("harbor-water");return water!=null&&view.assets.get(water.asset)!=null&&geometry(view,water,view.assets.get(water.asset))&&RectF.intersects(target,view.field);}
+    VillageLayout.DistrictScenery water=view.layout.districtScenery("harbor-water");return water!=null&&view.assets.get(water.asset)!=null&&geometry(view,water,view.assets.get(water.asset))&&RectF.intersects(target,view.visibleWorld());}
   void layeredWaterClip(){waterClip.set(target.left+target.width()*13/32f,target.top+target.height()*69/96f,target.left+target.width()*16/32f,target.top+target.height()*72/96f);}
   /** Cache the regular mesh at layout scale; update only four interior water vertices per frame.
    * Authored patch x=.40625..5,y=.71875..75 contains no rocks, posts or transparent boundary. */

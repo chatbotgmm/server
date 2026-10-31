@@ -1,3 +1,4 @@
+import {unitXpPacingReader} from './progression/unit-xp-pacing.js';
 import {commanderPolicyReader,readCommanderState,type CommanderPolicy} from './progression/commander.js';
 import {MenuAccess,menuChangeSchema} from './menu-access.js';
 import {registerStoryRoutes} from './story/routes.js';
@@ -46,11 +47,12 @@ export function registerRoster60(app:FastifyInstance,db:PrismaClient,root:string
     try{return await menus.change(id,menuChangeSchema.parse(req.body));}
     catch(e){if(e instanceof RosterError)return reply.code(e.status).send({error:e.code});if(e instanceof z.ZodError)return reply.code(400).send({error:'INVALID_REQUEST'});throw e;}
   });
+  const xpPacing=unitXpPacingReader(root,profile);
   const policyFile=resolve(root,profile?'data/test-profiles/'+profile+'/battle-policy.json':'data/roster60-battle-policy.json');
-  const battlePolicy=()=>{if(!existsSync(policyFile))return null;try{return JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}};
+  const battlePolicy=()=>{if(!existsSync(policyFile))return null;try{const policy=JSON.parse(readFileSync(policyFile,'utf8')) as BattlePolicy;const pacing=xpPacing();return pacing?{...policy,xpPacing:pacing}:policy;}catch{throw new RosterError(503,'BATTLE_POLICY_INVALID');}};
   const battle=new RosterBattle(db,catalog,battlePolicy);
   const normalXpFile=resolve(root,profile?'data/test-profiles/'+profile+'/normal-xp-policy.json':'data/roster60-normal-xp-policy.json');
-  const normalXpPolicy=()=>{if(!existsSync(normalXpFile))return null;try{return JSON.parse(readFileSync(normalXpFile,'utf8')) as NormalXpPolicy;}catch{throw new RosterError(503,'NORMAL_XP_POLICY_INVALID');}};
+  const normalXpPolicy=()=>{if(!existsSync(normalXpFile))return null;try{const policy=JSON.parse(readFileSync(normalXpFile,'utf8')) as NormalXpPolicy;const pacing=xpPacing();return pacing?{...policy,xpPacing:pacing}:policy;}catch{throw new RosterError(503,'NORMAL_XP_POLICY_INVALID');}};
   const commanderPolicy=commanderPolicyOverride??commanderPolicyReader(root,profile);
   const pvp=new RosterPvp(db,catalog,battlePolicy,clock,normalXpPolicy,accountLevelReader,undefined,commanderPolicy);
   let pvpTimer:ReturnType<typeof setInterval>|undefined,pvpWork:Promise<unknown>|undefined;

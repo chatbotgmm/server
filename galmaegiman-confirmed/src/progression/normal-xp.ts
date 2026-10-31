@@ -1,3 +1,4 @@
+import {pacedPool,validateUnitXpPacing,type UnitXpPacing} from './unit-xp-pacing.js';
 import type {Prisma} from '@prisma/client';
 import type {BattlePolicy,Fighter} from '../roster60-battle.js';
 import {RosterError,type RosterCatalog} from '../roster60-onboarding.js';
@@ -5,25 +6,26 @@ import {validatePresenceForfeitProof,type PresenceForfeitProof} from './roster60
 import {growthAt,instanceGrowthCurve,rosterMaxLevel,type GrowthPoint,type ReincarnationXpPolicy} from '../battle/roster60-rules.js';
 import {unitXpProgress,type XpProgress} from './xp-progress.js';
 
-type NormalXpPolicyBase={approved:boolean;version:string;catalogVersion:string;profileKind:'user-authorized-test-baseline'|'approved-production';productionBalanceApproved:boolean;testValues:boolean;scope:'normal';source:'duel-nearest-owned-start-level';participation:'actually-entered-owned-only';surrender:'confirmed-zero';draw:'undecided-no-award';legacyRoom:'unconfigured-no-retroactive-award';notes?:string[]};
+type NormalXpPolicyBase={approved:boolean;version:string;catalogVersion:string;profileKind:'user-authorized-test-baseline'|'approved-production';productionBalanceApproved:boolean;testValues:boolean;scope:'normal';source:'duel-nearest-owned-start-level';participation:'actually-entered-owned-only';surrender:'confirmed-zero';draw:'undecided-no-award';legacyRoom:'unconfigured-no-retroactive-award';notes?:string[];xpPacing?:UnitXpPacing};
 export type NormalXpLegacyPolicy=NormalXpPolicyBase&{rulesVersion?:'normal-xp-v1';lossFallback:{numerator:number;denominator:number;minimum:number};capOverflow:'pending-policy-ledger';eligibleReason:'BATTLE';timeout:'undecided-no-award';disconnect:'undecided-no-award'};
 export type NormalXpCurrentPolicy=NormalXpPolicyBase&{rulesVersion:'normal-xp-v2';outcomePercent:{win:100;loss:50};distribution:'equal-entered-owned';poolBasis:'highest-entered-start-level';remainder:'owned-id-ascending';capOverflow:'discard-overflow';eligibleReason:'BATTLE'|'BATTLE_OR_VALIDATED_GRACE_TIMEOUT';timeout:'undecided-no-award'|'validated-grace-survivor-only';disconnect:'undecided-no-award'|'validated-grace-survivor-only'};
 export type NormalXpPolicy=NormalXpLegacyPolicy|NormalXpCurrentPolicy;
-export type NormalXpMember={id:string;playerId:string;startingXp:string;growth:GrowthPoint[];reincarnation:number;reincarnationXpPolicy?:ReincarnationXpPolicy;sourceEncounterId:string;winXp:number;lossXp:number;lossFallbackUsed:boolean;level:number};
-export type NormalXpPlayerPlan={playerId:string;policy:NormalXpPolicy;members:NormalXpMember[]};
+export type NormalXpMember={id:string;playerId:string;startingXp:string;growth:GrowthPoint[];reincarnation:number;reincarnationXpPolicy?:ReincarnationXpPolicy;sourceEncounterId:string;winXp:number;lossXp:number;lossFallbackUsed:boolean;level:number;nearestTierMinimum?:number};
+export type NormalXpPlayerPlan={playerId:string;policy:NormalXpPolicy;members:NormalXpMember[];enemyLevel?:number};
 // The container format stays compatible with queued/active v1 rooms; each plan pins its source policy.
 export type NormalXpRoomSnapshot={version:'normal-xp-room-v1';players:NormalXpPlayerPlan[]};
 type MemberReference={id:string;playerId:string;xp:string};
 const fail=(code:string,status=503):never=>{throw new RosterError(status,code);};
 const safeXp=(n:number)=>Number.isSafeInteger(n)&&n>=0&&n<=2_000_000_000;
 const currentPolicy=(p:NormalXpPolicy):p is NormalXpCurrentPolicy=>p.rulesVersion==='normal-xp-v2';
-const effectiveVersion=(p:NormalXpPolicy)=>currentPolicy(p)?p.version:p.version+':confirmed-v2';
+const effectiveVersion=(p:NormalXpPolicy)=>(currentPolicy(p)?p.version:p.version+':confirmed-v2')+(p.xpPacing?':'+p.xpPacing.version:'');
 const compareOwned=(a:string,b:string)=>a<b?-1:a>b?1:0;
 
 /** Legacy input is accepted only to read an already pinned queue/room, never for a new admission. */
 export function validateNormalXpPolicy(p:NormalXpPolicy|null,catalogVersion:string,allowPinnedLegacy=false):asserts p is NormalXpPolicy{
  if(!p||p.approved!==true)return fail('NORMAL_XP_POLICY_PENDING');
  if(!p.version||p.catalogVersion!==catalogVersion||!['user-authorized-test-baseline','approved-production'].includes(p.profileKind)||p.productionBalanceApproved!==(p.profileKind==='approved-production')||p.testValues!==!p.productionBalanceApproved||p.scope!=='normal'||p.source!=='duel-nearest-owned-start-level'||p.participation!=='actually-entered-owned-only'||p.surrender!=='confirmed-zero'||p.draw!=='undecided-no-award'||p.legacyRoom!=='unconfigured-no-retroactive-award')return fail('NORMAL_XP_POLICY_INVALID');
+ if(p.xpPacing!==undefined)validateUnitXpPacing(p.xpPacing,catalogVersion);
  if(currentPolicy(p)){
   if(p.outcomePercent?.win!==100||p.outcomePercent?.loss!==50||p.distribution!=='equal-entered-owned'||p.poolBasis!=='highest-entered-start-level'||p.remainder!=='owned-id-ascending'||p.capOverflow!=='discard-overflow')return fail('NORMAL_XP_POLICY_INVALID');
   const presence=p.eligibleReason==='BATTLE_OR_VALIDATED_GRACE_TIMEOUT'&&p.timeout==='validated-grace-survivor-only'&&p.disconnect==='validated-grace-survivor-only';
@@ -73,7 +75,7 @@ export function normalXpGrant(member:Pick<NormalXpMember,'startingXp'|'growth'|'
 }
 
 /** Account pool, then outcome ratio, then equal shares. Reserves and duplicate entered IDs add no XP. */
-export function normalXpShares(members:NormalXpMember[],enteredIds:readonly string[],outcome:'win'|'loss'){
+export function normalXpShares(members:NormalXpMember[],enteredIds:readonly string[],outcome:'win'|'loss',pacing?:{policy:UnitXpPacing;enemyLevel:number}){
  if(new Set(members.map(m=>m.id)).size!==members.length)return fail('NORMAL_XP_SNAPSHOT_INVALID');
  const ids=[...new Set(enteredIds)].sort(compareOwned),byId=new Map(members.map(m=>[m.id,m]));
  if(ids.some(id=>typeof id!=='string'||!byId.has(id)||id.startsWith('AI:')))return fail('NORMAL_XP_MEMBERS_INVALID');
@@ -82,8 +84,9 @@ export function normalXpShares(members:NormalXpMember[],enteredIds:readonly stri
  // Highest entered starting level is an explicit test proposal for the still-unapproved base amount.
  if(entered.some(m=>m.playerId!==entered[0].playerId||!safeXp(m.winXp)||m.winXp<1||!Number.isSafeInteger(m.level)||m.level<1||m.level>99||!m.sourceEncounterId))return fail('NORMAL_XP_SNAPSHOT_INVALID');
  const basis=[...entered].sort((a,b)=>b.level-a.level||compareOwned(a.id,b.id))[0];
- const poolXp=outcome==='win'?basis.winXp:Math.floor(basis.winXp/2),each=Math.floor(poolXp/ids.length),remainder=poolXp%ids.length;
- return {baseXp:basis.winXp,poolXp,sourceEncounterId:basis.sourceEncounterId,shares:new Map(ids.map((id,index)=>[id,each+(index<remainder?1:0)]))};
+ const baseXp=pacing?pacedPool(entered.map(m=>({...m,ownedId:m.id})),pacing.enemyLevel,basis.winXp,pacing.policy):basis.winXp;
+ const poolXp=outcome==='win'?baseXp:Math.floor(baseXp/2),each=Math.floor(poolXp/ids.length),remainder=poolXp%ids.length;
+ return {baseXp,poolXp,sourceEncounterId:basis.sourceEncounterId,shares:new Map(ids.map((id,index)=>[id,each+(index<remainder?1:0)]))};
 }
 
 /** Called before queue ownership is claimed. Every reward source and growth curve is pinned here. */
@@ -94,9 +97,10 @@ export async function prepareNormalXpPlayer(tx:Prisma.TransactionClient,playerId
   const owned=await tx.roster60Owned.findFirst({where:{id:member.id,playerId}});if(!owned||owned.totalXp.toString()!==member.xp)return fail('UNIT_STATE_CHANGED',409);
   const definition=catalog.characters.find(c=>c.id===owned.speciesId);if(!definition)return fail('BATTLE_UNIT_DATA_PENDING');
   const level=growthAt(Number(owned.totalXp),definition.growth,owned.reincarnation,definition.reincarnationXpPolicy).level,source=normalXpSource(battlePolicy,level,config);
-  const entry:NormalXpMember={id:member.id,playerId,startingXp:member.xp,growth:structuredClone(definition.growth),reincarnation:owned.reincarnation,reincarnationXpPolicy:structuredClone(definition.reincarnationXpPolicy),level,...source};
+  const entry:NormalXpMember={id:member.id,playerId,startingXp:member.xp,growth:structuredClone(definition.growth),reincarnation:owned.reincarnation,reincarnationXpPolicy:structuredClone(definition.reincarnationXpPolicy),level,...source,...(config.xpPacing?{nearestTierMinimum:battlePolicy.encounters.find(e=>e.id===source.sourceEncounterId)!.level}:{})};
   normalXpGrant(entry,source.winXp);normalXpGrant(entry,source.lossXp);plan.push(entry);
  }
+ if(config.xpPacing)pacedPool(plan.map(m=>({...m,ownedId:m.id})),99,Math.max(...plan.map(m=>m.winXp)),config.xpPacing);
  return {playerId,policy:structuredClone(config),members:plan};
 }
 
@@ -136,7 +140,7 @@ export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string
   const own={status:plan?terminalStatus:unconfiguredStatus,xpAwarded:0,xpDeferred:0,xpDiscarded:0,xpRequested:0,policyVersion:targetPolicyVersion,sourcePolicyVersion:plan?.policy.version??null,rulesVersion:'normal-xp-v2' as 'normal-xp-v2'|'legacy-record',testValues:plan?.policy.testValues??false,participation:'actually-entered-owned-only' as const,units:[] as NormalXpSettlement['players'][string]['units']};result.players[playerId]=own;
   const entered=[...new Set(state.entered?.[side]??[])];
   if(plan&&(new Set(plan.members.map(m=>m.id)).size!==plan.members.length||plan.members.length!==refs.length||plan.members.some(m=>m.playerId!==playerId||!refs.some(ref=>ref.id===m.id&&ref.xp===m.startingXp))))return fail('NORMAL_XP_SNAPSHOT_INVALID');
-  const pool=plan&&eligible&&outcome!=='draw'?normalXpShares(plan.members,entered,outcome):null;
+  const pool=plan&&eligible&&outcome!=='draw'?normalXpShares(plan.members,entered,outcome,plan.policy.xpPacing?{policy:plan.policy.xpPacing,enemyLevel:plan.enemyLevel??fail('NORMAL_XP_SNAPSHOT_INVALID')}:undefined):null;
   for(const member of refs){
    if(member.id.startsWith('AI:'))return fail('NORMAL_XP_MEMBERS_INVALID');
    const pinned=plan?.members.find(m=>m.id===member.id&&m.playerId===playerId&&m.startingXp===member.xp);

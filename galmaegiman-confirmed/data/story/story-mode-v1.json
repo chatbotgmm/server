@@ -1889,8 +1889,8 @@
       "mode": "story",
       "winXp": 0,
       "lossXp": 0,
-      "hpMultiplier": 1.5,
-      "powerMultiplier": 1.5,
+      "hpMultiplier": 1.2,
+      "powerMultiplier": 1.2,
       "villainProfileId": "record"
     },
     {
@@ -1901,8 +1901,8 @@
       "mode": "story",
       "winXp": 0,
       "lossXp": 0,
-      "hpMultiplier": 1.5,
-      "powerMultiplier": 1.5,
+      "hpMultiplier": 1.2,
+      "powerMultiplier": 1.2,
       "villainProfileId": "guide"
     },
     {
@@ -1924,8 +1924,8 @@
       "mode": "story",
       "winXp": 0,
       "lossXp": 0,
-      "hpMultiplier": 1.5,
-      "powerMultiplier": 1.5,
+      "hpMultiplier": 1.2,
+      "powerMultiplier": 1.2,
       "villainProfileId": "engineer"
     },
     {
@@ -1991,8 +1991,8 @@
       "mode": "story",
       "winXp": 0,
       "lossXp": 0,
-      "hpMultiplier": 1.5,
-      "powerMultiplier": 1.5,
+      "hpMultiplier": 1.2,
+      "powerMultiplier": 1.2,
       "villainProfileId": "escort"
     },
     {
@@ -2014,8 +2014,8 @@
       "mode": "story",
       "winXp": 0,
       "lossXp": 0,
-      "hpMultiplier": 1.5,
-      "powerMultiplier": 1.5,
+      "hpMultiplier": 1.2,
+      "powerMultiplier": 1.2,
       "villainProfileId": "dark_first"
     },
     {

@@ -114,7 +114,12 @@ public class OpponentProjectionPanelTest {
         Rect commands=NativeHomePartyFeedbackTest.bounds(h.root.findViewWithTag("roster60-command-rail"),h.root);
         Rect hold=NativeHomePartyFeedbackTest.bounds(ui.hold,h.root);
         assertTrue(art.contains(info));assertFalse(Rect.intersects(info,commands));assertFalse(Rect.intersects(info,hold));
-        assertTrue(info.left>=art.left+h.dp(6)+Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale));
+        // The approved interaction is a transparent target on the painted HUD,
+        // not the retired separate button to the right of that HUD.
+        assertEquals(art.left+h.dp(6),info.left);assertEquals(art.top+h.dp(4),info.top);
+        assertEquals(Math.round(Roster60HudGeometry.enemyWidth(ui.art.getWidth(),h.getResources().getDisplayMetrics().density,ui.scale)),info.width());
+        assertEquals(Math.round(Math.min(72*h.getResources().getDisplayMetrics().density*ui.scale,ui.art.getHeight()*.26f)),info.height());
+        assertEquals("",ui.opponentInfo.getText().toString());
         assertTrue("Info has a real minimum tap target",info.width()>=h.dp(48)&&info.height()>=h.dp(48));assertEquals("No bottom panel consumes stage height",ui.stageOverlay.getHeight(),ui.art.getHeight());
         assertTrue(info.left>=h.root.getPaddingLeft()&&info.right<=h.root.getWidth()-h.root.getPaddingRight());
         assertTrue(info.bottom<=h.root.getHeight()-h.root.getPaddingBottom());

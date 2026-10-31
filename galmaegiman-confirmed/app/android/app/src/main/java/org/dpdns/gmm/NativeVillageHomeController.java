@@ -20,6 +20,7 @@ final class NativeVillageHomeController {
   String problem="";
   String mainStoryTarget="";
   String savedCamera="";
+  String savedInspection="";
   int readGeneration;
   static final long STORY_FRESH_MS=30_000;
   JSONObject storySnapshot;
@@ -40,7 +41,8 @@ final class NativeVillageHomeController {
     if(owner.isEmpty()){h.login();return;}
     view=new NativeVillageHomeView(h,this,layout);h.root.addView(view,new FrameLayout.LayoutParams(-1,-1));
     try{savedCamera=preferences.getString(scope+":camera","0");double saved=Double.parseDouble(savedCamera);if(Double.isFinite(saved))view.camera.setCameraUnits(saved);}catch(Exception invalid){savedCamera="";}
-    view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,view::scheduleArtworkRefresh);
+    try{float scale=Float.parseFloat(preferences.getString(scope+":zoom","1")),pan=Float.parseFloat(preferences.getString(scope+":zoom-pan","0.5"));view.inspection.restore(scale,pan);view.desiredInspection.restore(view.inspection.scale(),view.inspection.panNormalized());savedInspection=view.inspection.scale()+"|"+view.inspection.panNormalized();}catch(Exception invalid){view.inspection.reset();view.desiredInspection.reset();savedInspection="";}
+    view.assets.setViewport(view.assetCameraUnits(),view.assetViewportUnits());view.assets.load(layout,this::current,view::scheduleArtworkRefresh);
     refresh();
   }
   boolean current() { return !paused&&view!=null&&epoch==h.epoch&&owner.equals(h.api.token())&&!owner.isEmpty()
@@ -123,8 +125,8 @@ final class NativeVillageHomeController {
   }
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
-  void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits());if(!position.equals(savedCamera)&&preferences.edit().putString(scope+":camera",position).commit())savedCamera=position;}}
-  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.cancelArtworkRefresh();view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
+  void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits()),inspection=view.inspection.scale()+"|"+view.inspection.panNormalized();if((!position.equals(savedCamera)||!inspection.equals(savedInspection))&&preferences.edit().putString(scope+":camera",position).putString(scope+":zoom",Float.toString(view.inspection.scale())).putString(scope+":zoom-pan",Float.toString(view.inspection.panNormalized())).commit()){savedCamera=position;savedInspection=inspection;}}}
+  void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.cancelArtworkRefresh();view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.cancelWorldGestures();view.desiredCamera.setCameraUnits(view.camera.cameraUnits());view.desiredInspection.restore(view.inspection.scale(),view.inspection.panNormalized());view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;
     if(!owner.equals(h.api.token())){
@@ -137,7 +139,7 @@ final class NativeVillageHomeController {
     }
     if(epoch!=h.epoch)return;
     if(!paused&&(reading||freshStorySnapshot()!=null))return;
-    paused=false;if(view!=null){view.assets.setViewport(view.camera.cameraUnits(),view.field.width()>0?view.field.width()/view.unitPixels():1);view.assets.load(layout,this::current,view::scheduleArtworkRefresh);loadCurrentStatue();refresh();}
+    paused=false;if(view!=null){view.assets.setViewport(view.assetCameraUnits(),view.assetViewportUnits());view.assets.load(layout,this::current,view::scheduleArtworkRefresh);loadCurrentStatue();refresh();}
   }
   void resident(String id){
     if(!current()||h.busy||h.updateBlocks()||view.blocksClick())return;saveCamera();view.stopMotion();
@@ -185,5 +187,5 @@ final class NativeVillageHomeController {
     String[] actions={"daily","profile","rebirth","settings","refresh"};
     menu=new GameDialog(h).navy().setTitle("마을 메뉴").setItems(labels,(dialog,index)->{if(!current())return;if("refresh".equals(actions[index]))refresh();else navigate(actions[index]);}).setNegativeButton("닫기",null).show();
   }
-  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){menu.dismiss();menu=null;return true;}if(view.shortcuts.getVisibility()==android.view.View.VISIBLE&&view.shortcuts.expanded){view.shortcuts.collapse();return true;}if(view.questTracker.getVisibility()==android.view.View.VISIBLE&&view.questTracker.expanded){view.questTracker.collapse();return true;}return false;}
+  boolean back(){if(!current())return false;if(h.rosterStory!=null&&h.rosterStory.villageOverlayOpen()){h.rosterStory.back();return true;}if(menu!=null&&menu.isShowing()){view.clearObservation();menu.dismiss();menu=null;return true;}if(view.shortcuts.getVisibility()==android.view.View.VISIBLE&&view.shortcuts.expanded){view.shortcuts.collapse();return true;}if(view.questTracker.getVisibility()==android.view.View.VISIBLE&&view.questTracker.expanded){view.questTracker.collapse();return true;}return false;}
 }

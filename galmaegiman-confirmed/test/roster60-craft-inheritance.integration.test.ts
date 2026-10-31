@@ -199,7 +199,9 @@ suite('authenticated one-skill combination inheritance',()=>{
    expect(view.battle.state.fighters[0].skills.some((value:any)=>value.id==='water_4')).toBe(mode==='normal');
    expect(view.battle.state.fighters[0].attack.id).toBe(definition('u09').attack.id);
    const opponentView:any=await pvp.current(other),publicState=JSON.stringify(opponentView.battle.state);
-   for(const hidden of [rows[0].id,rows[1].id,'skillInheritanceJson','sourceSpeciesId','sourceSlot','requiredLevel','ownResistance',skillInheritanceVersion])expect(publicState).not.toContain(hidden);
+   for(const hidden of [rows[0].id,rows[1].id,'skillInheritanceJson','sourceSpeciesId','sourceSlot','requiredLevel',skillInheritanceVersion])expect(publicState).not.toContain(hidden);
+   expect(opponentView.battle.state.fighters[1].ownResistance).toBeUndefined();
+   expect(opponentView.battle.state.fighters[0].ownResistance).toEqual(definition('u02').defense);
    expect(opponentView.battle.state.fighters[1].defense).toBeUndefined();
    if(mode==='rank')expect(opponentView.battle.state.fighters[1].skills.some((value:any)=>value.id==='water_4')).toBe(false);
    await pvp.accept(player,{requestId:randomUUID(),battleId:view.battle.battleId,revision:view.battle.revision,accept:false});

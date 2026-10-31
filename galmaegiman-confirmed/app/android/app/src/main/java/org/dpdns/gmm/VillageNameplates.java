@@ -16,7 +16,7 @@ final class VillageNameplates {
   static int cell(String asset){
     switch(asset){case "recruit":return 0;case "hideout":return 1;case "archive":return 2;case "mailbox":return 3;case "harbor":return 4;case "market":return 5;case "blacksmith":return 6;case "merchant":return 7;case "librarian":return 8;case "patrol":return 9;default:return -1;}
   }
-  static int statusCell(String status){return "AVAILABLE".equals(status)?10:("READY".equals(status)||"COMPLETED".equals(status))?11:-1;}
+  static int statusCell(String status){return "AVAILABLE".equals(status)?10:"READY".equals(status)?11:-1;}
   void draw(Canvas canvas,Bitmap atlas,int cell,RectF destination){
     if(atlas==null||cell<0||cell>11)return;
     int cw=atlas.getWidth()/2,ch=atlas.getHeight()/6,col=cell%2,row=cell/2;

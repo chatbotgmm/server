@@ -9,6 +9,7 @@ import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.TextView;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -120,6 +121,32 @@ public class NativeOwnedGullsTest {
       view.stats.performClick();int reads=api.calls.size();view.refresh();assertEquals(reads,api.calls.size());assertTrue(view.refreshQueued);view.closeDetails();assertEquals(reads+1,api.calls.size());assertNull(view.shown);assertEquals("",view.vitals.getText().toString());api.lastList().reply.done(list(summary("b","u01",15),summary("a","u01",2)),null);JSONObject upgraded=unit("b","u01",15);upgraded.put("reincarnation",2);api.last("b").reply.done(detail(upgraded),null);old.reply.done(detail(unit("b","u01",9)),null);
       assertEquals("b",view.selectedId);assertEquals(0,view.index);assertEquals(15,view.shown.getInt("level"));assertTrue(NativeOwnedGulls.detailText(view.shown,0).contains("환생 2회"));assertTrue(view.vitals.getText().toString().contains("HP 15"));
       view.pause();view.resume();assertNull(view.shown);api.lastList().reply.done(list(summary("b","u01",16),summary("a","u01",2)),null);respond(api,"b","u01",16);assertEquals("b",view.selectedId);assertEquals(16,view.shown.getInt("level"));
+    }
+  }
+  /** Authoritative read DTOs can add partial XP without changing either level or species. */
+  @Test public void sameLevelXpRefreshAndReopenKeepTheExactOwnedIndividual()throws Exception{
+    try(ActivityController<MainActivity> activity=fixture.flow.start()){
+      MainActivity h=activity.get();Api api=prepare(h);
+      NativeOwnedGulls view=open(h,api,summary("a","u01",9),summary("b","u01",9));
+      respond(api,"a","u01",9);Call staleB=api.last("b");staleB.reply.done(detail(unit("b","u01",9)),null);
+      view.step(1);assertEquals("b",view.selectedId);assertEquals(900,view.shown.getJSONObject("growth").getInt("totalXp"));
+      view.refresh();assertNull(view.shown);assertTrue(view.details.isEmpty());
+      api.lastList().reply.done(list(summary("a","u01",9),summary("b","u01",9)),null);
+      JSONObject gained=unit("b","u01",9);gained.put("growth",MainActivity.obj("totalXp",915,"xp",25,"xpToNext",5,"levelStartTotalXp",890,"nextLevelTotalXp",920));
+      api.last("b").reply.done(detail(gained),null);respond(api,"a","u01",9);
+      assertEquals("b",view.shown.getString("ownedId"));assertEquals(9,view.shown.getInt("level"));
+      view.stats.performClick();TextView body=view.modal.getWindow().getDecorView().findViewWithTag("owned-gulls-detail-body");
+      assertTrue(body.getText().toString().contains("누적 XP 915"));assertTrue(body.getText().toString().contains("다음 레벨까지 5"));view.closeDetails();
+      staleB.reply.done(detail(unit("b","u01",9)),null);assertEquals(915,view.shown.getJSONObject("growth").getInt("totalXp"));
+      view.step(-1);assertEquals("a",view.selectedId);assertEquals(900,view.shown.getJSONObject("growth").getInt("totalXp"));
+      view.step(1);assertEquals(915,view.shown.getJSONObject("growth").getInt("totalXp"));
+      view.pause();view.resume();assertNull(view.shown);assertTrue(view.details.isEmpty());
+      api.lastList().reply.done(list(summary("b","u01",9),summary("a","u01",9)),null);api.last("b").reply.done(detail(gained),null);
+      assertEquals("b",view.selectedId);assertEquals(915,view.shown.getJSONObject("growth").getInt("totalXp"));
+      NativeOwnedGulls reopened=open(h,api,summary("a","u01",9),summary("b","u01",9));assertNotSame(view,reopened);assertEquals("b",reopened.selectedId);
+      api.last("b").reply.done(detail(gained),null);respond(api,"a","u01",9);
+      staleB.reply.done(detail(unit("b","u01",9)),null);assertEquals("b",reopened.shown.getString("ownedId"));assertEquals(915,reopened.shown.getJSONObject("growth").getInt("totalXp"));
+      for(Call call:api.calls)assertTrue("Only list/exact-owned reads are allowed",call.path.equals("native/roster60/owned")||call.path.equals("native/roster60/owned/read"));
     }
   }
   @Test public void lateImageForPreviousSpeciesCannotOverwriteTheNewIndividual()throws Exception{

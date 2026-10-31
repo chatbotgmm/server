@@ -150,6 +150,6 @@ final class NativeRoster60PvpBattle extends NativeRoster60Battle {
  void schedule(){poll.removeCallbacksAndMessages(null);if(current()&&!paused)poll.postDelayed(this::resume,1500);}
  @Override void pause(){if(readyView!=null)readyView.stop();paused=true;poll.removeCallbacksAndMessages(null);super.pause();}
  @Override void lockPresentation(){super.lockPresentation();if(accept!=null){accept.setEnabled(false);decline.setEnabled(false);waitingSurrender.setEnabled(false);}}
- @Override boolean back(){if(presenting()){pause();h.home();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.home();return true;}
+ @Override boolean back(){if(dismissOpenResistanceDialog())return true;if(presenting()){pause();h.home();return true;}if(!choiceKind.isEmpty()){closeChoices();return true;}if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}pause();h.home();return true;}
 }
 

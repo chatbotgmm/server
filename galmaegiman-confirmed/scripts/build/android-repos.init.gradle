@@ -1,0 +1,15 @@
+allprojects {
+    tasks.withType(Test).configureEach {
+        systemProperty 'user.home', '/workspace/scratch/java-user'
+    }
+    buildscript.repositories.configureEach { repo ->
+        if (repo instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository && repo.name == 'Google') {
+            repo.url = uri('https://dl.google.com/dl/android/maven2/')
+        }
+    }
+    repositories.configureEach { repo ->
+        if (repo instanceof org.gradle.api.artifacts.repositories.MavenArtifactRepository && repo.name == 'Google') {
+            repo.url = uri('https://dl.google.com/dl/android/maven2/')
+        }
+    }
+}

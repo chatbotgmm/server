@@ -7,18 +7,20 @@ import type {AccountLevelReader} from './roster60-rank.js';
 import {validatePresenceForfeitProof} from './roster60-presence.js';
 import type {XpProgress,XpProgressPoint} from './xp-progress.js';
 
+export type CommanderRewards={storyQuest:number;residentQuest:number;independentAdventureReturn:number;normalWin:number;normalLoss:number;normalProvenTimeoutSurvivor:number};
+export type CommanderRewardSchedule={version:string;rewards:CommanderRewards};
 export type CommanderPolicy={
  approved:true;version:string;profileKind:'user-authorized-test-baseline';productionBalanceApproved:false;testValues:true;
  name:'방범대장';eventBasis:'one-account-event';unitXpRelationship:'independent-not-sum-not-split';unitReincarnation:'account-retained';
  initialization:'test-only-zero-no-backfill';legacyEvents:'no-retroactive-reconstruction';totalXpPolicy:'retain-lifetime-total';curveOverflow:'last-known-level-extension-pending';
  growth:{level:number;totalXp:number}[];
  story:{contentVersion:string;mainQuestIds:string[];residentQuestIds:string[]};
- rewards:{storyQuest:number;residentQuest:number;independentAdventureReturn:number;normalWin:number;normalLoss:number;normalProvenTimeoutSurvivor:number};
+ rewards:CommanderRewards;rewardSchedule?:CommanderRewardSchedule;
  budget:{requiredIndependentAdventures:number};notes?:string[];
 };
 export type CommanderEvent={kind:'STORY_QUEST'|'RESIDENT_QUEST'|'ADVENTURE_RETURN'|'NORMAL_PLAY';eventId:string;outcome:'completed'|'win'|'loss'|'draw'|'surrender'|'departed'|'aborted';reason?:string;linkedQuestId?:string|null;timeoutGenerated?:boolean;terminationProof?:unknown;side?:0|1};
 export type CommanderState={name:'방범대장';level:number|null;totalXp:string|null;nextLevelXp:string|null;xpToNext:string|null;maxLevel:number|null;policyVersion:string|null;revision:number|null;initialized:boolean;status:'READY'|'POLICY_PENDING'|'POLICY_MISMATCH'|'CURVE_EXTENSION_PENDING'|'DATA_INVALID';testValues:boolean;productionBalanceApproved:boolean;initialization:'TEST_ZERO_NO_BACKFILL'|'UNCONFIGURED';unitXpIndependent:true;totalXpPolicy:'retain-lifetime-total'};
-export type CommanderXpResult={status:'APPLIED'|'RECORDED_ZERO'|'POLICY_PENDING';reason:string;xpAwarded:number;recordedXp:number;requestedXp:number;level:number|null;totalXp:string|null;policyVersion:string|null;replayed:boolean;commander:CommanderState;xpProgress?:XpProgress};
+export type CommanderXpResult={status:'APPLIED'|'RECORDED_ZERO'|'POLICY_PENDING';reason:string;xpAwarded:number;recordedXp:number;requestedXp:number;level:number|null;totalXp:string|null;policyVersion:string|null;rewardScheduleVersion?:string;replayed:boolean;commander:CommanderState;xpProgress?:XpProgress};
 export const commanderSigned64Maximum=9_223_372_036_854_775_807n;
 const fail=(code:string,status=503):never=>{throw new RosterError(status,code);};
 const record=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
@@ -26,6 +28,10 @@ const safeAmount=(value:unknown):value is number=>typeof value==='number'&&Numbe
 const id=(value:unknown):value is string=>typeof value==='string'&&value.length>0&&value.length<=300;
 const kinds=['STORY_QUEST','RESIDENT_QUEST','ADVENTURE_RETURN','NORMAL_PLAY'];
 const outcomes=['completed','win','loss','draw','surrender','departed','aborted'];
+const rewardKeys=['storyQuest','residentQuest','independentAdventureReturn','normalWin','normalLoss','normalProvenTimeoutSurvivor'] as const;
+function validRewards(raw:unknown):raw is CommanderRewards{
+ return record(raw)&&Object.keys(raw).length===rewardKeys.length&&rewardKeys.every(key=>safeAmount(raw[key]))&&raw.normalLoss===Math.floor((raw.normalWin as number)/2)&&raw.normalProvenTimeoutSurvivor===raw.normalWin;
+}
 
 /** This initial profile deliberately cannot masquerade as approved production balance.
  * Production rollout needs its own explicit initialization and growth policy.
@@ -39,13 +45,17 @@ export function validateCommanderPolicy(raw:unknown):CommanderPolicy{
  const main=raw.story.mainQuestIds,side=raw.story.residentQuestIds;
  if(!Array.isArray(main)||!Array.isArray(side)||!main.length||main.some(x=>!id(x))||side.some(x=>!id(x))||new Set([...main,...side]).size!==main.length+side.length)return fail('COMMANDER_POLICY_INVALID');
  const rewards=raw.rewards;
- if(!record(rewards)||Object.keys(rewards).length!==6||!['storyQuest','residentQuest','independentAdventureReturn','normalWin','normalLoss','normalProvenTimeoutSurvivor'].every(key=>safeAmount(rewards[key]))||!record(raw.budget)||!safeAmount(raw.budget.requiredIndependentAdventures))return fail('COMMANDER_POLICY_INVALID');
- if(rewards.normalLoss!==Math.floor((rewards.normalWin as number)/2)||rewards.normalProvenTimeoutSurvivor!==rewards.normalWin)return fail('COMMANDER_POLICY_INVALID');
+ if(!validRewards(rewards)||!record(raw.budget)||!safeAmount(raw.budget.requiredIndependentAdventures))return fail('COMMANDER_POLICY_INVALID');
+ if(raw.rewardSchedule!==undefined){const schedule=raw.rewardSchedule;
+  if(!record(schedule)||Object.keys(schedule).sort().join()!=='rewards,version'||!id(schedule.version)||!validRewards(schedule.rewards))return fail('COMMANDER_REWARD_SCHEDULE_INVALID');
+  const scheduled=schedule.rewards;if(rewardKeys.some(key=>scheduled[key]<rewards[key]))return fail('COMMANDER_REWARD_SCHEDULE_INVALID');
+ }
  return raw as CommanderPolicy;
 }
 
-/** Stable semantic fingerprint: arbitrary object key order and notes/budget
- * presentation metadata never alter an account's growth contract.
+/** Keep the existing account contract stable. An optional reward schedule is
+ * pinned in each newly admitted activity, not in the lifetime account row.
+ * Changing base rewards or growth still requires an explicit account migration.
  */
 export function commanderPolicyFingerprint(policy:CommanderPolicy):string{
  validateCommanderPolicy(policy);
@@ -58,7 +68,14 @@ export function commanderPolicyFingerprint(policy:CommanderPolicy):string{
 export function commanderPolicyReader(root:string,profile?:string):()=>CommanderPolicy|null{
  if(profile&&profile!=='five-stat-device-test-v1')throw Error('UNKNOWN_ROSTER60_PROFILE');
  const file=resolve(root,profile?'data/test-profiles/'+profile+'/commander-policy.json':'data/roster60-commander-policy.json');
- return ()=>{if(!existsSync(file))return null;let raw:unknown;try{raw=JSON.parse(readFileSync(file,'utf8'));}catch{return fail('COMMANDER_POLICY_INVALID');}return validateCommanderPolicy(raw);};
+ const scheduleFile=resolve(root,profile?'data/test-profiles/'+profile+'/commander-reward-schedule.json':'data/roster60-commander-reward-schedule.json');
+ return ()=>{if(!existsSync(file))return null;let raw:unknown;try{raw=JSON.parse(readFileSync(file,'utf8'));}catch{return fail('COMMANDER_POLICY_INVALID');}
+  const policy=validateCommanderPolicy(raw);if(!existsSync(scheduleFile))return policy;
+  let schedule:unknown;try{schedule=JSON.parse(readFileSync(scheduleFile,'utf8'));}catch{return fail('COMMANDER_REWARD_SCHEDULE_INVALID');}
+  // No existing queue, accepted quest, run or receipt is rewritten by this read.
+  if(policy.rewardSchedule!==undefined)return fail('COMMANDER_REWARD_SCHEDULE_CONFLICT');
+  return validateCommanderPolicy({...policy,rewardSchedule:schedule});
+ };
 }
 
 export function commanderLevelAt(totalXp:bigint,policy:CommanderPolicy){
@@ -105,21 +122,22 @@ function eventFingerprint(event:CommanderEvent){
 }
 export function commanderEventReward(event:CommanderEvent,policy:CommanderPolicy):{requestedXp:number;reason:string}{
  validateEvent(event);validateCommanderPolicy(policy);
+ const rewards=policy.rewardSchedule?.rewards??policy.rewards;
  if(event.kind==='STORY_QUEST'||event.kind==='RESIDENT_QUEST'){
   const keys=event.kind==='STORY_QUEST'?policy.story.mainQuestIds:policy.story.residentQuestIds;
   if(!keys.some(key=>event.eventId===policy.story.contentVersion+':'+key))return fail('COMMANDER_QUEST_SOURCE_INVALID',409);
-  return event.outcome==='completed'?{requestedXp:event.kind==='STORY_QUEST'?policy.rewards.storyQuest:policy.rewards.residentQuest,reason:'QUEST_COMPLETED'}:{requestedXp:0,reason:'QUEST_NOT_COMPLETED'};
+  return event.outcome==='completed'?{requestedXp:event.kind==='STORY_QUEST'?rewards.storyQuest:rewards.residentQuest,reason:'QUEST_COMPLETED'}:{requestedXp:0,reason:'QUEST_NOT_COMPLETED'};
  }
  if(event.kind==='ADVENTURE_RETURN'){
   if(event.linkedQuestId)return {requestedXp:0,reason:'QUEST_LINKED_ADVENTURE_ZERO'};
-  return event.outcome==='completed'&&event.reason==='WIN_RETURN'?{requestedXp:policy.rewards.independentAdventureReturn,reason:'INDEPENDENT_ADVENTURE_COMPLETED'}:{requestedXp:0,reason:'ADVENTURE_NO_CLEAR_ZERO'};
+  return event.outcome==='completed'&&event.reason==='WIN_RETURN'?{requestedXp:rewards.independentAdventureReturn,reason:'INDEPENDENT_ADVENTURE_COMPLETED'}:{requestedXp:0,reason:'ADVENTURE_NO_CLEAR_ZERO'};
  }
  if(event.timeoutGenerated)return {requestedXp:0,reason:'AUTOMATIC_TURN_ZERO'};
  if(event.reason==='TIMEOUT'){
   const proof=event.terminationProof;
-  return event.outcome==='win'&&validatePresenceForfeitProof(proof)&&event.side===proof.survivorSide?{requestedXp:policy.rewards.normalProvenTimeoutSurvivor,reason:'PROVEN_TIMEOUT_SURVIVOR'}:{requestedXp:0,reason:'TIMEOUT_NON_SURVIVOR_ZERO'};
+  return event.outcome==='win'&&validatePresenceForfeitProof(proof)&&event.side===proof.survivorSide?{requestedXp:rewards.normalProvenTimeoutSurvivor,reason:'PROVEN_TIMEOUT_SURVIVOR'}:{requestedXp:0,reason:'TIMEOUT_NON_SURVIVOR_ZERO'};
  }
- if(event.reason==='BATTLE'&&(event.outcome==='win'||event.outcome==='loss'))return {requestedXp:event.outcome==='win'?policy.rewards.normalWin:policy.rewards.normalLoss,reason:event.outcome==='win'?'NORMAL_WIN':'NORMAL_LOSS'};
+ if(event.reason==='BATTLE'&&(event.outcome==='win'||event.outcome==='loss'))return {requestedXp:event.outcome==='win'?rewards.normalWin:rewards.normalLoss,reason:event.outcome==='win'?'NORMAL_WIN':'NORMAL_LOSS'};
  return {requestedXp:0,reason:'NORMAL_NON_COMPLETION_ZERO'};
 }
 
@@ -140,7 +158,7 @@ export async function awardCommanderXp(tx:Prisma.TransactionClient,playerId:stri
  const changed=await tx.commanderAccount.updateMany({where:{playerId,policyVersion:policy.version,policyFingerprint,revision:account.revision,totalXp:account.totalXp},data:{totalXp:ending,revision:{increment:1}}});
  if(changed.count!==1)return fail('COMMANDER_CONCURRENT_WRITE',409);
  const commander=accountState({totalXp:ending,revision:account.revision+1,policyVersion:policy.version,policyFingerprint},policy);
- const result:CommanderXpResult={status:reward.requestedXp?'APPLIED':'RECORDED_ZERO',reason:reward.reason,xpAwarded:reward.requestedXp,recordedXp:reward.requestedXp,requestedXp:reward.requestedXp,level:commander.level,totalXp:commander.totalXp,policyVersion:policy.version,replayed:false,commander,xpProgress:commanderXpProgress(account.totalXp,ending,policy)};
+ const result:CommanderXpResult={status:reward.requestedXp?'APPLIED':'RECORDED_ZERO',reason:reward.reason,xpAwarded:reward.requestedXp,recordedXp:reward.requestedXp,requestedXp:reward.requestedXp,level:commander.level,totalXp:commander.totalXp,policyVersion:policy.version,...(policy.rewardSchedule?{rewardScheduleVersion:policy.rewardSchedule.version}:{}),replayed:false,commander,xpProgress:commanderXpProgress(account.totalXp,ending,policy)};
  await tx.commanderXpLedger.create({data:{playerId,eventKind:event.kind,eventId:event.eventId,fingerprint,policyVersion:policy.version,policyFingerprint,outcome:event.outcome,reason:event.reason??'',status:result.status,requestedXp:reward.requestedXp,appliedXp:reward.requestedXp,startingXp:account.totalXp,endingXp:ending,result:JSON.stringify(result)}});
  return result;
 }
@@ -150,7 +168,8 @@ export async function awardCommanderXp(tx:Prisma.TransactionClient,playerId:stri
  */
 export function simulateCommanderBudget(policy:CommanderPolicy,requiredQuestLinkedAdventureReturns=0){
  validateCommanderPolicy(policy);if(!safeAmount(requiredQuestLinkedAdventureReturns))return fail('COMMANDER_BUDGET_INVALID');
- const mainXp=policy.story.mainQuestIds.length*policy.rewards.storyQuest,residentXp=policy.story.residentQuestIds.length*policy.rewards.residentQuest,independentAdventureXp=policy.budget.requiredIndependentAdventures*policy.rewards.independentAdventureReturn;
+ const rewards=policy.rewardSchedule?.rewards??policy.rewards;
+ const mainXp=policy.story.mainQuestIds.length*rewards.storyQuest,residentXp=policy.story.residentQuestIds.length*rewards.residentQuest,independentAdventureXp=policy.budget.requiredIndependentAdventures*rewards.independentAdventureReturn;
  if(!Number.isSafeInteger(mainXp+residentXp+independentAdventureXp))return fail('COMMANDER_BUDGET_INVALID');
  const mainLevel=commanderLevelAt(BigInt(mainXp),policy).level,totalXp=mainXp+residentXp+independentAdventureXp,totalLevel=commanderLevelAt(BigInt(totalXp),policy).level;
  return {testValues:true,productionBalanceApproved:false,mainQuestCount:policy.story.mainQuestIds.length,residentQuestCount:policy.story.residentQuestIds.length,mainXp,residentXp,requiredQuestLinkedAdventureReturns,questLinkedAdventureXp:0,requiredIndependentAdventures:policy.budget.requiredIndependentAdventures,independentAdventureXp,totalXp,mainLevel,totalLevel,mainOnlyBelow60:mainLevel<60,completeBudgetReaches60:totalLevel>=60};

@@ -83,7 +83,7 @@ test('no random or turn defense reveal; stats after first round and stable polli
  assert.equal(initial.statsKnown,false);assert.equal(initial.stats,null);assert.equal(known(initial).length,0);
  assert.deepEqual(Object.keys(r.state.fighters[1].stats).sort(),['hp','mp']);
  assert.equal(r.state.fighters[1].defense,undefined);assert.equal(r.state.fighters[1].suitability,undefined);assert.equal(r.state.fighters[1].ownedId,undefined);assert.equal(r.state.decision.speeds,undefined);
- const own=JSON.parse(h.row.state).fighters[0];delete own.defense;assert.deepEqual(r.state.fighters[0],own);
+ const own=JSON.parse(h.row.state).fighters[0];own.ownResistance={...own.defense};delete own.defense;assert.deepEqual(r.state.fighters[0],own);
  for(let turn=1;turn<=3;turn++){
   r=await h.service.action('player',{battleId:'b',revision:h.row.revision,requestId:'turn'+turn,action:{kind:'focus'}});
   const i=r.state.opponentIntel;assert.equal(i.completedTurns,turn);assert.equal(i.statsKnown,true);assert.deepEqual(i.stats,JSON.parse(h.row.state).fighters[1].stats);assert.equal(known(i).length,0);
@@ -112,6 +112,8 @@ test('PvP pending/read projections are viewer-correct, private-free and cannot t
   const r=await h.view(side),other=1-side;const i=r.state.opponentIntel;
   assert.equal(i.name,h.state.parties[other][0].name);assert.equal(i.statsKnown,false);assert.equal(i.knownDefenseCount,0);
   assert.equal(r.state.fighters[0].defense,undefined);assert.deepEqual(r.state.fighters[0].suitability,h.state.parties[side][0].suitability);
+  assert.deepEqual(r.state.fighters[0].ownResistance,h.state.parties[side][0].defense);
+  assert.equal(r.state.fighters[1].ownResistance,undefined);
   const serialized=JSON.stringify(r);assert.ok(!serialized.includes(h.state.parties[other][0].ownedId));assert.ok(!serialized.includes(h.state.parties[other][1].ownedId));assert.ok(!serialized.includes('private-pending'));assert.equal(r.seed,undefined);
   assert.deepEqual((await h.view(side)).state.opponentIntel,i);
  }

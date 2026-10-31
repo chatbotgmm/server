@@ -1,3 +1,4 @@
+import {pacedBattleXpPlan,calculatePacedBattleXp} from './progression/unit-xp-pacing.js';
 import {storyUnitXpPlan,calculateStoryUnitXp,addStoryUnitXpEscrow,storyUnitXpReturn,type StoryUnitXpResult} from './progression/story-unit-xp.js';
 import {isCurrentRoster60Party} from './roster60-party-policy.js';
 import {checkedAdventureRewards,validateRewardRecipients,checkedRewardTotal} from './roster60-adventure-rewards.js';
@@ -67,16 +68,20 @@ export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:
  // Recover the quest marker from a server-created battle snapshot for an older active run.
  if(snap.story?.version==='story-battle-v1'&&snap.story.questId){if(saved.storyQuestId&&saved.storyQuestId!==snap.story.questId)return fail('ADVENTURE_STORY_CONTEXT_CHANGED');if(!saved.storyQuestId){saved.storyQuestId=snap.story.questId;saved.commanderPolicy=null;}}
  if(saved.party.length!==party.length||saved.party.some((f:Fighter)=>!party.some(x=>x.ownedId===f.ownedId)))return fail('ADVENTURE_STATE_CHANGED');
- const lost=party.every(f=>f.hp<=0),unitPlan=storyUnitXpPlan(row,snap);let xp=0;let xpByOwnedId:Record<string,number>={};let unitReward:StoryUnitXpResult|null=null;
+ const lost=party.every(f=>f.hp<=0),paced=pacedBattleXpPlan(row,snap),unitPlan=storyUnitXpPlan(row,snap);let xp=0;let xpByOwnedId:Record<string,number>={};let unitReward:StoryUnitXpResult|ReturnType<typeof calculatePacedBattleXp>|null=null;
  if(!lost&&state.outcome==='win'&&!state.surrendered){
   const evidence=saved.commanderReturnEvidence,wins=evidence?.version===commanderReturnEvidenceVersion&&Number.isSafeInteger(evidence.wins)&&evidence.wins>=0?evidence.wins:0;
   if(!Number.isSafeInteger(wins+1))return fail('INVALID_REWARD');saved.commanderReturnEvidence={version:commanderReturnEvidenceVersion,wins:wins+1};
  }
- if(unitPlan){
+ if(paced){
+  const effective:Record<string,string>={};for(const member of paced.members){const original=saved.members.find((m:any)=>m.ownedId===member.ownedId),amount=pending.xp[member.ownedId]??0;if(!original||original.startingXp!==member.startingXp||original.reincarnation!==member.reincarnation||JSON.stringify(original.growth)!==JSON.stringify(member.growth)||JSON.stringify(original.reincarnationXpPolicy??null)!==JSON.stringify(member.reincarnationXpPolicy??null)||!Number.isSafeInteger(amount)||amount<0)return fail('ADVENTURE_STATE_CHANGED');effective[member.ownedId]=(BigInt(member.startingXp)+BigInt(amount)).toString();}
+  const reward=calculatePacedBattleXp(paced,row,state,effective);unitReward=reward;xp=reward.xpAccepted;xpByOwnedId=reward.xpByOwnedId;
+  if(!lost)for(const [id,amount] of Object.entries(xpByOwnedId)){pending.xp[id]=(pending.xp[id]??0)+amount;if(!Number.isSafeInteger(pending.xp[id])||pending.xp[id]>2_000_000_000)return fail('INVALID_REWARD');}
+ }else if(unitPlan){
   if(saved.storyQuestId!==unitPlan.questId)return fail('STORY_UNIT_XP_CONTEXT_INVALID');
   const effective:Record<string,string>={};for(const member of unitPlan.members){const original=saved.members.find((m:any)=>m.ownedId===member.ownedId),amount=pending.xp[member.ownedId]??0;if(!original||original.startingXp!==member.startingXp||original.reincarnation!==member.reincarnation||JSON.stringify(original.growth)!==JSON.stringify(member.growth)||JSON.stringify(original.reincarnationXpPolicy??null)!==JSON.stringify(member.reincarnationXpPolicy??null))return fail('ADVENTURE_STATE_CHANGED');if(!Number.isSafeInteger(amount)||amount<0)return fail('INVALID_REWARD');const next=BigInt(member.startingXp)+BigInt(amount);if(next>BigInt(Number.MAX_SAFE_INTEGER))return fail('INVALID_XP');effective[member.ownedId]=next.toString();}
-  unitReward=calculateStoryUnitXp(unitPlan,row,state,effective);xp=unitReward.xpAccepted;xpByOwnedId=unitReward.xpByOwnedId;
-  if(!lost)addStoryUnitXpEscrow(saved,pending,unitPlan,unitReward);
+  const reward=calculateStoryUnitXp(unitPlan,row,state,effective);unitReward=reward;xp=reward.xpAccepted;xpByOwnedId=reward.xpByOwnedId;
+  if(!lost)addStoryUnitXpEscrow(saved,pending,unitPlan,reward);
  }else if(!lost&&state.outcome==='win'&&!state.surrendered){
   xp=snap.encounter.winXp;
   // Before participation was added, persisted server switch events are the authoritative fallback.
@@ -88,5 +93,5 @@ export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:
  for(const m of saved.members){const changed=await tx.roster60Owned.updateMany({where:{id:m.ownedId,playerId:row.playerId,status:'BATTLE',totalXp:BigInt(m.startingXp)},data:{status:lost?'AVAILABLE':'ADVENTURE'}});if(changed.count!==1)return fail('UNIT_STATE_CHANGED');}
  const settlement=lost?{kind:'forced-return',lostRewards:pending}:null;
  const changed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId:row.playerId,revision:run.revision,status:'ACTIVE',activeBattleId:row.id},data:{activeBattleId:null,revision:{increment:1},state:JSON.stringify({...saved,party}),pendingRewards:JSON.stringify(lost?{xp:{}}:pending),status:lost?'LOST':'ACTIVE',settlement:settlement?JSON.stringify(settlement):null}});if(changed.count!==1)return fail('ADVENTURE_STATE_CHANGED');
- return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:unitPlan?'story-unit-equal-entered-v1':'adventure-participation-100-reserve-50-v1',...(unitReward?{xpDiscarded:unitReward.xpDiscarded,xpDeferred:0,unitXp:{...unitReward,delivery:'pending-return'}}:{}),adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
+ return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:paced?paced.policy.version:unitPlan?'story-unit-equal-entered-v1':'adventure-participation-100-reserve-50-v1',...(unitReward?{xpDiscarded:unitReward.xpDiscarded,xpDeferred:0,unitXp:{...unitReward,delivery:'pending-return'}}:{}),adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
 }

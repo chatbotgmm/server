@@ -46,6 +46,27 @@ suite('account observed reactions commit with actual battle transitions (isolate
   expect(await db.roster60ObservedDefense.count({where:{playerId:id}})).toBe(0);
   const item=await collection(e,id);expect((item as any).defense).toBeUndefined();expect(item.defenseKnowledge.knownDefenseCount).toBe(0);
  });
+ it('only the authenticated own party exposes each owned instance current battle-local resistance through replacement and reconnect',async()=>{
+  const e=environment(),id=await account(),foreign=await account(),first=await owned(id),reserve=await owned(id);
+  let v:any=await e.service.create(id,{requestId:randomUUID(),ownedId:first.id,reserveIds:[reserve.id],encounterId:'observe'});
+  const row=await db.roster60Battle.findUniqueOrThrow({where:{id:v.battleId}}),state=JSON.parse(row.state);
+  const catalogBefore=structuredClone(e.catalog.characters[0].defense);
+  state.fighters[0].defense.FIRE='immune';state.reserves[0].defense.FIRE='reflect';
+  // Same species does not authorize importing another instance's current table.
+  state.fighters[1].speciesId=state.fighters[0].speciesId;state.fighters[1].defense.FIRE='weak';
+  await db.roster60Battle.update({where:{id:v.battleId},data:{state:JSON.stringify(state)}});
+  v=await e.service.read(id,v.battleId);expect(v.state.fighters[0].ownedId).toBe(first.id);expect(v.state.fighters[0].ownResistance).toEqual(state.fighters[0].defense);
+  expect(v.state.fighters[0].defense).toBeUndefined();expect(v.state.fighters[1].ownResistance).toBeUndefined();expect(v.state.fighters[1].defense).toBeUndefined();
+  expect(v.state.reserves[0].ownedId).toBe(reserve.id);expect(v.state.reserves[0].defense).toBeUndefined();expect(v.state.reserves[0].ownResistance).toEqual(state.reserves[0].defense);
+  expect(v.state.reserves[0].ownResistance.FIRE).toBe('reflect');expect(v.state.fighters[0].ownResistance.FIRE).toBe('immune');
+  await expect(e.service.read(foreign,v.battleId)).rejects.toMatchObject({code:'BATTLE_NOT_FOUND'});
+  const next:any=await e.service.action(id,{requestId:randomUUID(),battleId:v.battleId,revision:v.revision,action:{kind:'switch',targetOwnedId:reserve.id}});
+  expect(next.state.fighters[0].ownedId).toBe(reserve.id);expect(next.state.fighters[0].ownResistance.FIRE).toBe('reflect');expect(next.state.fighters[1].ownResistance).toBeUndefined();expect(knowledge(next).knownDefenseCount).toBe(0);
+  expect(next.state.reserves[0].ownedId).toBe(first.id);expect(next.state.reserves[0].ownResistance.FIRE).toBe('immune');expect(next.state.reserves[0].defense).toBeUndefined();
+  const fresh=new RosterBattle(db,()=>e.catalog,()=>e.policy);const resumed:any=await fresh.read(id,v.battleId);expect(resumed.state.fighters[0].ownResistance).toEqual(next.state.fighters[0].ownResistance);
+  expect(resumed.state.reserves[0].ownResistance).toEqual(next.state.reserves[0].ownResistance);
+  expect(e.catalog.characters[0].defense).toEqual(catalogBefore);expect((await db.roster60Owned.findUniqueOrThrow({where:{id:reserve.id}})).totalXp).toBe(0n);
+ });
  it('records only each executed attacking element including NORMAL/zero immune/reflect; reconnect, reencounter and collection persist for that account',async()=>{
   const e=environment(),id=await account(),other=await account();let v=await create(e,id);
   const expected={NORMAL:'normal',FIRE:'weak',WATER:'resist',LIGHTNING:'immune',ICE:'reflect'};
@@ -145,7 +166,7 @@ suite('account observed reactions commit with actual battle transitions (isolate
   expect(Object.values(knowledge(replay).defenses).every(value=>value==='unknown')).toBe(true);
   expect(await db.roster60ObservedDefense.count({where:{playerId:id}})).toBe(1);
  });
- async function pair(e:ReturnType<typeof environment>){
+ async function pair(e:ReturnType<typeof environment>,withReserves=false){
   // Only the PvP observation fixture needs a complete normal-XP cap curve.
   // Preserve every existing growth point and combat stat; appended thresholds
   // are synthetic test data and do not change the short PvE fixtures above.
@@ -158,16 +179,45 @@ suite('account observed reactions commit with actual battle transitions (isolate
   // 관측 경계 시험용의 명시적 일반게임 경험치 원본이다. 운영 수치가 아니다.
   const pvpPolicy={...e.policy,encounters:[...e.policy.encounters,{id:'observation-normal-xp-fixture',speciesId:'u02',level:1,tutorial:false,mode:'duel',winXp:1,lossXp:1}]};
   const a=await account(),b=await account(),pvp=new RosterPvp(db,()=>e.catalog,()=>pvpPolicy,Date.now,()=>({...normalXpPolicy,catalogVersion:e.catalog.version}));
-  await pvp.party(a,[(await owned(a)).id]);await pvp.party(b,[(await owned(b,'u02')).id]);
+  const aIds=[(await owned(a)).id],bIds=[(await owned(b,'u02')).id];
+  if(withReserves){aIds.push((await owned(a)).id);bIds.push((await owned(b,'u02')).id);}
+  await pvp.party(a,aIds);await pvp.party(b,bIds);
   await pvp.join(a,{requestId:randomUUID(),mode:'normal'});const matched:any=await pvp.join(b,{requestId:randomUUID(),mode:'normal'}),battleId=matched.battle.battleId;
   await pvp.accept(a,{requestId:randomUUID(),battleId,revision:0,accept:true});const v:any=await pvp.accept(b,{requestId:randomUUID(),battleId,revision:0,accept:true});
-  return {a,b,pvp,battleId,revision:v.revision};
+  return {a,b,pvp,battleId,revision:v.revision,aIds,bIds,pvpPolicy};
  }
+ it('PvP reserve details use each viewer own snapshot without leaking the other reserve or reprojecting same-species instances',async()=>{
+  const e=environment(),p=await pair(e,true),row=await db.roster60PvpMatch.findUniqueOrThrow({where:{id:p.battleId}}),state=JSON.parse(row.state);
+  state.parties[0][0].defense.FIRE='immune';state.parties[0][1].defense.FIRE='reflect';
+  state.parties[1][0].defense.FIRE='weak';state.parties[1][1].defense.FIRE='resist';
+  state.parties[0][1].hp=374;state.parties[0][1].mp=39;state.parties[1][1].hp=243;state.parties[1][1].mp=17;
+  await db.roster60PvpMatch.update({where:{id:p.battleId},data:{state:JSON.stringify(state)}});
+  for(const [id,ids,otherIds] of [[p.a,p.aIds,p.bIds],[p.b,p.bIds,p.aIds]] as const){
+   const side=row.player0Id===id?0:1,visible:any=(await p.pvp.current(id) as any).battle;
+   expect(visible.state.fighters[0].ownedId).toBe(ids[0]);expect(visible.state.fighters[0].ownResistance).toEqual(state.parties[side][0].defense);
+   expect(visible.state.reserves).toHaveLength(1);expect(visible.state.reserves[0].ownedId).toBe(ids[1]);
+   expect(visible.state.reserves[0].ownResistance).toEqual(state.parties[side][1].defense);
+   expect(visible.state.reserves[0].ownResistance).not.toEqual(visible.state.fighters[0].ownResistance);
+   expect(visible.state.reserves[0]).toMatchObject({hp:state.parties[side][1].hp,mp:state.parties[side][1].mp});
+   expect(visible.state.reserves[0].defense).toBeUndefined();expect(visible.state.fighters[0].defense).toBeUndefined();
+   expect(visible.state.fighters[1].defense).toBeUndefined();expect(visible.state.fighters[1].ownResistance).toBeUndefined();
+   for(const foreignId of otherIds)expect(JSON.stringify(visible)).not.toContain(foreignId);
+   const fresh=new RosterPvp(db,()=>e.catalog,()=>p.pvpPolicy,Date.now,()=>({...normalXpPolicy,catalogVersion:e.catalog.version}));
+   const resumed:any=(await fresh.current(id) as any).battle;expect(resumed.state.reserves[0].ownResistance).toEqual(visible.state.reserves[0].ownResistance);
+  }
+  const after=await db.roster60PvpMatch.findUniqueOrThrow({where:{id:p.battleId}});
+  expect(JSON.parse(after.state).parties).toEqual(state.parties);expect(after.snapshot).toBe(row.snapshot);
+  await expect(p.pvp.action(await account(),{requestId:randomUUID(),battleId:p.battleId,revision:p.revision,action:{kind:'focus'}})).rejects.toMatchObject({code:'BATTLE_NOT_FOUND'});
+ });
  it('PvP stores only the attacking account observation; pending/replay and opposing view reveal no other account map',async()=>{
   const e=environment(),p=await pair(e),request={requestId:randomUUID(),battleId:p.battleId,revision:p.revision,action:{kind:'skill' as const,skillId:'FIRE'}};
   const pending=await p.pvp.action(p.a,request);expect(await p.pvp.action(p.a,request)).toEqual(pending);expect(await db.roster60ObservedDefense.count({where:{playerId:p.a}})).toBe(0);
   await p.pvp.action(p.b,{...request,requestId:randomUUID(),action:{kind:'focus'}});
   const own:any=(await p.pvp.current(p.a) as any).battle,other:any=(await p.pvp.current(p.b) as any).battle;
+  const persisted=await db.roster60PvpMatch.findUniqueOrThrow({where:{id:p.battleId}}),parties=JSON.parse(persisted.state).parties;
+  const ownSide=persisted.player0Id===p.a?0:1;
+  expect(own.state.fighters[0].ownResistance).toEqual(parties[ownSide][0].defense);expect(other.state.fighters[0].ownResistance).toEqual(parties[1-ownSide][0].defense);
+  expect(own.state.fighters[1].ownResistance).toBeUndefined();expect(other.state.fighters[1].ownResistance).toBeUndefined();
   expect(knowledge(own).defenses.FIRE).toBe('weak');expect(knowledge(other).knownDefenseCount).toBe(0);
   expect(await db.roster60ObservedDefense.count({where:{playerId:p.a}})).toBe(1);expect(await db.roster60ObservedDefense.count({where:{playerId:p.b}})).toBe(0);
   expect(other.state.events.flatMap((r:any)=>r.events).every((x:any)=>!x.observedDefense)).toBe(true);

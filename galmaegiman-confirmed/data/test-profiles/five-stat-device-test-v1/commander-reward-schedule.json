@@ -1,0 +1,11 @@
+{
+  "version": "commander-reward-uplift-20261030-v1",
+  "rewards": {
+    "storyQuest": 250,
+    "residentQuest": 600,
+    "independentAdventureReturn": 150,
+    "normalWin": 150,
+    "normalLoss": 75,
+    "normalProvenTimeoutSurvivor": 150
+  }
+}

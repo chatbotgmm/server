@@ -1,0 +1,100 @@
+import {afterAll,afterEach,beforeAll,beforeEach,describe,expect,it} from 'vitest';
+import {PrismaClient} from '@prisma/client';
+import Fastify from 'fastify';
+import {readFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import {RosterBattle,fighter,type BattlePolicy} from '../src/roster60-battle.js';
+import {RosterAdventure} from '../src/roster60-adventure.js';
+import {RosterStory} from '../src/story/service.js';
+import {RosterOwned} from '../src/roster60-owned.js';
+import {registerRoster60} from '../src/roster60-routes.js';
+import {instanceGrowthCurve} from '../src/battle/roster60-rules.js';
+import {commanderPolicyReader} from '../src/progression/commander.js';
+import type {UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
+
+const suite=process.env.TEST_DB_URL?describe:describe.skip;
+const load=(path:string)=>JSON.parse(readFileSync(path,'utf8'));
+const originalCatalog=load('data/test-profiles/five-stat-device-test-v1/catalog.json');
+const originalBattle=load('data/test-profiles/five-stat-device-test-v1/battle-policy.json');
+const pacing=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing;
+const content=load('data/story/story-mode-v1.json');
+const storyUnitPolicy=load('data/test-profiles/five-stat-device-test-v1/story-unit-xp-policy.json');
+const request=()=>randomUUID();
+suite('new battle reward pacing, real persisted settlement and existing receipt boundaries',()=>{
+ let db:PrismaClient,catalog:any,policy:BattlePolicy;const players=new Set<string>();
+ const originalProfile=process.env.ROSTER60_PROFILE,originalStory=process.env.ROSTER60_STORY_PROFILE;
+ beforeAll(()=>{const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('disposable DB only');db=new PrismaClient({datasources:{db:{url}}});});
+ beforeEach(()=>{catalog=structuredClone(originalCatalog);policy=structuredClone(originalBattle);for(const unit of catalog.characters){if(unit.id==='u45')unit.attack.power=1_000_000;if(unit.id==='u07'){unit.attack.power=0;unit.skills=[];for(const stats of unit.combatGrowth)stats.hp=1;unit.levelOneStats.hp=1;}}});
+ afterEach(async()=>{await db.dailyProgress.deleteMany({where:{playerId:{in:[...players]}}});await db.auditEvent.deleteMany({where:{playerId:{in:[...players]}}});await db.player.deleteMany({where:{id:{in:[...players]}}});players.clear();if(originalProfile===undefined)delete process.env.ROSTER60_PROFILE;else process.env.ROSTER60_PROFILE=originalProfile;if(originalStory===undefined)delete process.env.ROSTER60_STORY_PROFILE;else process.env.ROSTER60_STORY_PROFILE=originalStory;});
+ afterAll(async()=>{await db.$disconnect();});
+ const battle=()=>new RosterBattle(db,()=>catalog,()=>policy);
+ const adventure=()=>new RosterAdventure(db,()=>catalog,fighter,undefined,commanderPolicyReader(process.cwd(),'five-stat-device-test-v1'));
+ async function actor(level=15,count=3,cycle=0,start?:bigint){const player=await db.player.create({data:{identity:'pacing-integration:'+request()}});players.add(player.id);const def=catalog.characters.find((u:any)=>u.id==='u45'),curve=instanceGrowthCurve(def.growth,cycle),xp=start??BigInt(curve[level-1].totalXp);const units=[];for(let i=0;i<count;i++)units.push(await db.roster60Owned.create({data:{playerId:player.id,speciesId:'u45',totalXp:xp,reincarnation:cycle,source:request()}}));return {id:player.id,units,start:xp};}
+ async function create(a:Awaited<ReturnType<typeof actor>>,adventureId?:string){return battle().create(a.id,{requestId:request(),ownedId:a.units[0].id,reserveIds:a.units.slice(1).map(u=>u.id),encounterId:policy.encounters[0].id,...(adventureId?{adventureId}:{})}) as Promise<any>;}
+ // Only terminal combat facts are shortened in this disposable DB fixture. No XP,
+ // reward policy, growth threshold, receipt or settlement is fabricated by it.
+ async function terminal(a:Awaited<ReturnType<typeof actor>>,b:any,outcome:'win'|'loss'|'escaped'='win',entered=a.units.map(u=>u.id)){
+  const row=await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}}),state=JSON.parse(row.state);
+  state.outcome=outcome;state.surrendered=outcome==='escaped';state.participation=entered.map(ownedId=>({ownedId,kind:'switch',turn:0}));
+  if(outcome==='loss')for(const unit of [state.fighters[0],...state.reserves])unit.hp=0;
+  await db.roster60Battle.update({where:{id:row.id},data:{state:JSON.stringify(state),status:'FINISHED'}});
+  return battle().read(a.id,row.id) as Promise<any>;
+ }
+ async function settle(a:Awaited<ReturnType<typeof actor>>,b:any){const command={requestId:request(),battleId:b.battleId,revision:b.revision},result:any=await battle().settle(a.id,command);expect(await battle().settle(a.id,command)).toEqual(result);expect(await battle().settle(a.id,{...command,requestId:request()})).toEqual(result);return result;}
+ const storedXp=async(a:Awaited<ReturnType<typeof actor>>)=>Promise.all(a.units.map(async u=>(await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp));
+ function encounter(mode:'duel'|'adventure'='duel',level=15,winXp=600,lossXp=200){policy.encounters=[{id:'pacing-source',speciesId:'u07',level,tutorial:false,mode,winXp,lossXp}];}
+
+ it('preserves an already active old battle while the next single PvE uses the new floor and retains its initial-owned recipient rule',async()=>{
+  encounter('duel',40,2400,800);const old=await actor(40),oldBattle=await create(old),snapshot=(await db.roster60Battle.findUniqueOrThrow({where:{id:oldBattle.battleId}})).snapshot;
+  policy={...policy,xpPacing:structuredClone(pacing)};const oldPaid=await settle(old,await terminal(old,oldBattle));
+  expect(oldPaid.settlement.xpAwarded).toBe(2400);expect(await storedXp(old)).toEqual([old.start+2400n,old.start,old.start]);
+  expect((await db.roster60Battle.findUniqueOrThrow({where:{id:oldBattle.battleId}})).snapshot).toBe(snapshot);
+  const next=await actor(40),nextBattle=await create(next),pinned=JSON.parse((await db.roster60Battle.findUniqueOrThrow({where:{id:nextBattle.battleId}})).snapshot);
+  expect(pinned.unitXpPacing).toMatchObject({policy:{version:pacing.version},recipientMode:'initial-owned',requireSurvivor:false,enemyLevel:40});
+  delete policy.xpPacing;const paid=await settle(next,await terminal(next,nextBattle));expect(paid.settlement.xpAwarded).toBe(2530);
+  expect(await storedXp(next)).toEqual([next.start+2530n,next.start,next.start]);
+  const fresh=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});try{const view:any=await new RosterOwned(fresh,()=>catalog).read(next.id,next.units[0].id);expect(view.unit.growth.totalXp).toBe(Number(next.start)+2530);expect(await new RosterBattle(fresh,()=>catalog,()=>policy).settle(next.id,{requestId:request(),battleId:nextBattle.battleId,revision:paid.revision})).toEqual(paid);}finally{await fresh.$disconnect();}
+ });
+
+ it('keeps direct practice loss at its old one-third ratio and escape zero, without adding a story loss policy',async()=>{
+  encounter('duel',24,600,200);policy.xpPacing=structuredClone(pacing);
+  for(const [outcome,expected] of [['win',1176],['loss',392],['escaped',0]] as const){const a=await actor(24),b=await create(a),paid=await settle(a,await terminal(a,b,outcome));expect(paid.settlement.xpAwarded).toBe(expected);expect(await storedXp(a)).toEqual([a.start+BigInt(expected),a.start,a.start]);}
+  encounter('duel',1,60,20);const high=await actor(59),paid=await settle(high,await terminal(high,await create(high)));expect(paid.settlement.xpAwarded).toBe(60); // Client-selected low practice cannot borrow Lv59 quota.
+ });
+
+ it.each([0,1])('ordinary adventure caps its pending reward once at cycle %s and only persists it on normal return',async cycle=>{
+  const def=catalog.characters.find((u:any)=>u.id==='u45'),curve=instanceGrowthCurve(def.growth,cycle),cap=BigInt(curve[(cycle?99:60)-1].totalXp);
+  encounter('adventure',60,60,0);policy.xpPacing=structuredClone(pacing);const a=await actor(cycle?98:59,3,cycle,cap-1n),run:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)}),b=await create(a,run.adventureId),paid=await settle(a,await terminal(a,b));
+  expect(paid.settlement).toMatchObject({xpAwarded:0,xpEscrowed:3,unitXp:{delivery:'pending-return',xpAccepted:3}});expect(paid.settlement.xpDiscarded).toBeGreaterThan(0);expect(await storedXp(a)).toEqual(a.units.map(()=>cap-1n));
+  const before:any=await adventure().read(a.id,run.adventureId),command={requestId:request(),adventureId:run.adventureId,revision:before.revision},returned:any=await adventure().return(a.id,command);expect(await adventure().return(a.id,command)).toEqual(returned);expect(await storedXp(a)).toEqual(a.units.map(()=>cap));
+  expect(await db.roster60RebirthAccount.findUnique({where:{playerId:a.id}})).toBeNull();expect((await db.roster60Owned.findMany({where:{playerId:a.id}})).every(u=>u.reincarnation===cycle)).toBe(true);
+  const cappedRun:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)}),capped=await settle(a,await terminal(a,await create(a,cappedRun.adventureId)));expect(capped.settlement).toMatchObject({xpEscrowed:0,xpAwarded:0});
+ });
+
+ it('keeps ordinary adventure reserve half-source XP and whole-party defeat discards pending rewards',async()=>{
+  encounter('adventure',15,600,0);policy.xpPacing=structuredClone(pacing);const a=await actor(),run:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)});
+  const paid=await settle(a,await terminal(a,await create(a,run.adventureId),'win',[a.units[0].id]));expect(paid.settlement.xpByOwnedId).toEqual({[a.units[0].id]:600,[a.units[1].id]:300,[a.units[2].id]:300});
+  const lost=await settle(a,await terminal(a,await create(a,run.adventureId),'loss'));expect(lost.settlement.adventureStatus).toBe('LOST');expect(lost.settlement.pendingRewards).toEqual({xp:{}});expect(await storedXp(a)).toEqual(a.units.map(()=>a.start));
+ });
+
+ it('new accepted-quest and independent black material battles share the general floor, retain zero story losses and deliver on return',async()=>{
+  policy.xpPacing=structuredClone(pacing);const campaign=structuredClone(content);campaign.scenes=campaign.scenes.map((s:any)=>({...s,lines:[s.lines[0]]}));const first=campaign.encounters.find((e:any)=>e.id==='STORY_01_01');Object.assign(first,{speciesId:'u07',level:15,hpMultiplier:1,powerMultiplier:1});
+  const commander=commanderPolicyReader(process.cwd(),'five-stat-device-test-v1'),story=()=>new RosterStory(db,()=>catalog,()=>policy,campaign,commander,()=>storyUnitPolicy);
+  const a=await actor();let journal:any=await story().state(a.id);journal=await story().open(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01',phase:'intro'});await story().accept(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01'});
+  for(const quest of [true,false]){const b:any=await story().createBattle(a.id,{requestId:request(),...(quest?{questId:'STORY_01'}:{encounterId:'STORY_01_01'}),ownedIds:a.units.map(u=>u.id)}),paid=await settle(a,await terminal(a,b));expect(paid.settlement).toMatchObject({xpAwarded:0,unitXp:{delivery:'pending-return'}});expect(paid.settlement.xpEscrowed).toBe(1743);const r:any=await adventure().read(a.id,b.state.adventureId),returned:any=await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});expect(returned.settlement.commanderReward.xpAwarded).toBe(quest?0:150);}
+  expect(await storedXp(a)).toEqual(a.units.map(()=>a.start+1162n));
+  for(const outcome of ['loss','escaped'] as const){const b:any=await story().createBattle(a.id,{requestId:request(),encounterId:'STORY_01_01',ownedIds:a.units.map(u=>u.id)}),paid=await settle(a,await terminal(a,b,outcome));expect(paid.settlement.xpEscrowed).toBe(0);expect(await storedXp(a)).toEqual(a.units.map(()=>a.start+1162n));if(outcome==='escaped'){const r:any=await adventure().read(a.id,b.state.adventureId),returned:any=await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});expect(returned.settlement.commanderReward.xpAwarded).toBe(0);}}
+ });
+
+ it('the real profile reader and authenticated routes pin both new schedules, while client XP fields remain rejected',async()=>{
+  process.env.ROSTER60_PROFILE='five-stat-device-test-v1';delete process.env.ROSTER60_STORY_PROFILE;const a=await actor(40,1),app=Fastify();registerRoster60(app,db,process.cwd(),r=>r.headers.authorization===a.id?a.id:null,()=>true);
+  const post=(path:string,payload:any)=>app.inject({method:'POST',url:'/my/api/native/roster60/'+path,headers:{authorization:a.id},payload});
+  try{
+   const denied=await post('battle/create',{requestId:request(),ownedId:a.units[0].id,encounterId:'training-40',xpAwarded:99999});expect(denied.statusCode).toBe(400);
+   const created=await post('battle/create',{requestId:request(),ownedId:a.units[0].id,encounterId:'training-40'});expect(created.statusCode).toBe(200);const b=created.json(),row=await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}});expect(JSON.parse(row.snapshot).unitXpPacing.policy.version).toBe(pacing.version);
+   const finished=await terminal(a,b),paid=await post('battle/settle',{requestId:request(),battleId:b.battleId,revision:finished.revision});expect(paid.statusCode).toBe(200);expect(paid.json().settlement.xpAwarded).toBe(2530);
+   expect((await post('pvp/party',{ownedIds:a.units.map(u=>u.id)})).statusCode).toBe(200);expect((await post('pvp/join',{requestId:request(),mode:'normal'})).statusCode).toBe(200);const queue=await db.roster60PvpQueue.findUniqueOrThrow({where:{playerId:a.id}});expect(JSON.parse(queue.normalXpSnapshot!).policy.xpPacing.version).toBe(pacing.version);expect(JSON.parse(queue.commanderXpSnapshot!).policy.rewardSchedule.rewards.normalWin).toBe(150);
+   await post('pvp/cancel',{requestId:request()});
+  }finally{await app.close();}
+ });
+});

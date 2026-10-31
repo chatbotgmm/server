@@ -275,7 +275,7 @@ final class NativeRoster60StoryController {
     if(view!=null)view.pauseTyping();android.widget.FrameLayout destination=villageMode?overlay.formationContent():view.content;destination.removeAllViews();
     preparation=new Roster60PreparationView(h,units,ids,quest==null?"모험 출항 준비":quest.optString("title","부탁 출항 준비"),chosen->{
       if(current()&&!waiting())mutate(encounterId.isEmpty()?"battle/create":"adventure/create",encounterId.isEmpty()?h.obj("questId",quest.optString("id"),"ownedIds",chosen):h.obj("encounterId",encounterId,"ownedIds",chosen));
-    },()->{if(current()){preparation=null;formation=null;render();}},this::current,policy);
+    },()->{if(current()){preparation=null;formation=null;render();}},this::current,policy,villageMode);
     preparation.recommendation(quest);
     destination.addView(preparation,new android.widget.FrameLayout.LayoutParams(-1,-1));
   }

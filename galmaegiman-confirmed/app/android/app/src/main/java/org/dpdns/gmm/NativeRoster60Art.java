@@ -21,6 +21,11 @@ final class NativeRoster60Art extends View {
  final Path lightningPath=new Path();
  final ColorFilter hitTint=new PorterDuffColorFilter(0xffffe8c3,PorterDuff.Mode.SRC_ATOP);
  final Typeface regular,bold;
+ int safeLeft,safeTop,safeRight,safeBottom;
+ void setSafeArea(int left,int top,int right,int bottom){
+  if(safeLeft==left&&safeTop==top&&safeRight==right&&safeBottom==bottom)return;
+  safeLeft=left;safeTop=top;safeRight=right;safeBottom=bottom;invalidate();
+ }
  void clearFrame(){frameBefore=null;frameAfter=null;frameEvent=null;progress=0;invalidate();}
  void frame(JSONObject before,JSONObject after,JSONObject event,float value){
   boolean eventChanged=frameEvent!=event;
@@ -128,10 +133,16 @@ final class NativeRoster60Art extends View {
  // 화면 배율(휴대폰 가로=1). HP/MP 패널과 글자를 같은 비율로 키운다.
  float scale=1;
  void setScale(float s){if(Math.abs(s-scale)<.01f)return;scale=s;invalidate();}
+ RectF hudRect(boolean self,float w,float h,RectF out){
+  float d=density(),availableWidth=Math.max(0,w-safeLeft-safeRight),availableHeight=Math.max(0,h-safeTop-safeBottom);
+  float width=Roster60HudGeometry.enemyWidth(availableWidth,d,scale),height=Math.min(72*d*scale,availableHeight*.26f);
+  float x=self?w-safeRight-width-6*d:safeLeft+6*d,y=self?h-safeBottom-height-4*d:safeTop+4*d;
+  out.set(x,y,x+width,y+height);return out;
+ }
  void hud(Canvas c,JSONObject fighter,boolean self,float w,float h){
   if(fighter==null||uncertain(self?0:1))return;float d=getResources().getDisplayMetrics().density;
-  float width=Roster60HudGeometry.enemyWidth(w,d,scale),height=Math.min(72*d*scale,h*.26f),x=self?w-width-6*d:6*d,y=self?h-height-4*d:4*d;
-  RectF box=hudBounds;box.set(x,y,x+width,y+height);if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
+  RectF box=hudRect(self,w,h,hudBounds);float width=box.width(),height=box.height(),x=box.left,y=box.top;
+  if(hpSkin!=null)hpSkin.surface(c,box);else{paint.setColor(0xfff4e4ba);c.drawRoundRect(box,6*d,6*d,paint);}
   float font=Math.min(13*scale*getResources().getDisplayMetrics().scaledDensity,height*.23f);paint.setColor(JournalTheme.INK);paint.setTextSize(font);paint.setTypeface(bold);
   String name=(self?"출전 · ":"상대 · ")+fighter.optString("name")+"  Lv"+fighter.optInt("level",1);float fit=Math.min(1,(width-32*d*scale)/Math.max(1,paint.measureText(name)));paint.setTextSize(font*fit);c.drawText(name,x+16*d*scale,y+height*.30f,paint);
   JSONObject stats=fighter.optJSONObject("stats");if(stats==null)return;

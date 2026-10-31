@@ -20,6 +20,7 @@ final class NativeVillageQuestTracker extends LinearLayout {
   final SharedPreferences preferences;
   final String key;
   final Button toggle,select;
+  final LinearLayout header;
   final ScrollView scroll;
   final LinearLayout list;
   final TextView notice;
@@ -38,15 +39,15 @@ final class NativeVillageQuestTracker extends LinearLayout {
   }
   NativeVillageQuestTracker(MainActivity h,Host host,SharedPreferences preferences,String scope){
     super(h);this.h=h;this.host=host;this.preferences=preferences;key=scope;
-    setTag("village-quest-tracker");setOrientation(VERTICAL);setClickable(true);setPadding(h.dp(4),h.dp(4),h.dp(4),h.dp(4));
-    setBackground(NavyWorkbenchTheme.surface(h,0xf2102433,NavyWorkbenchTheme.LINE,10));
+    setTag("village-quest-tracker");setOrientation(VERTICAL);setPadding(0,h.dp(4),0,h.dp(4));
     expanded=preferences.getBoolean(key+":expanded",false);initialized=preferences.contains(key+":selected");
     try{JSONArray saved=new JSONArray(preferences.getString(key+":selected","[]"));for(int i=0;i<saved.length()&&selected.size()<2;i++){String id=saved.optString(i);if(!id.isEmpty()&&!selected.contains(id))selected.add(id);}}catch(Exception invalid){selected.clear();initialized=false;}
-    LinearLayout header=new LinearLayout(h);header.setOrientation(HORIZONTAL);addView(header,new LayoutParams(-1,h.dp(48)));
+    header=new LinearLayout(h);header.setOrientation(HORIZONTAL);header.setBackground(NavyWorkbenchTheme.surface(h,0xf2102433,NavyWorkbenchTheme.LINE,10));
+    LayoutParams headerBox=new LayoutParams(h.dp(176),h.dp(48));headerBox.gravity=Gravity.RIGHT;addView(header,headerBox);
     toggle=h.button("목표 ▴",this::toggle);toggle.setTag("quest-tracker-toggle");NativeVillageShortcuts.flatButton(h,toggle);header.addView(toggle,new LayoutParams(0,-1,1));
-    select=h.button("주민 선택",this::chooseResidents);select.setTag("quest-tracker-select-residents");NativeVillageShortcuts.flatButton(h,select);select.setTextSize(h.uiText(12));header.addView(select,new LayoutParams(h.dp(88),-1));
+    select=h.button("추적할 부탁",this::chooseResidents);select.setTag("quest-tracker-select-residents");NativeVillageShortcuts.flatButton(h,select);select.setTextSize(h.uiText(14));
     list=new LinearLayout(h);list.setOrientation(VERTICAL);list.setTag("quest-tracker-list");
-    scroll=new ScrollView(h);scroll.setFillViewport(false);scroll.addView(list,new ScrollView.LayoutParams(-1,-2));addView(scroll,new LayoutParams(-1,0,1));
+    scroll=new ScrollView(h);scroll.setFillViewport(false);scroll.setBackground(NavyWorkbenchTheme.surface(h,0xf2102433,NavyWorkbenchTheme.LINE,10));scroll.addView(list,new ScrollView.LayoutParams(-1,-2));addView(scroll,new LayoutParams(-1,0,1));
     notice=label("목표를 확인하고 있어요.",12);notice.setTag("quest-tracker-notice");render();
   }
   TextView label(String text,int size){TextView value=h.text(text,size);value.setTextColor(NavyWorkbenchTheme.TEXT);value.setIncludeFontPadding(false);value.setPadding(0,h.dp(1),0,h.dp(1));return value;}
@@ -82,6 +83,7 @@ final class NativeVillageQuestTracker extends LinearLayout {
       ListView choices=((AlertDialog)dialog).getListView();
       if(on&&choices.getCheckedItemCount()>2)choices.setItemChecked(index,false);
     }).setPositiveButton("선택 저장",null).setNegativeButton("취소",null).show();
+    showing.setCanceledOnTouchOutside(true);
     pinDialog=showing;
     showing.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v->{
       if(ticket!=generation||!host.current())return;
@@ -96,10 +98,11 @@ final class NativeVillageQuestTracker extends LinearLayout {
   void collapse(){if(expanded){expanded=false;preferences.edit().putBoolean(key+":expanded",false).apply();render();}}
   void render(){
     if(list==null)return;list.removeAllViews();cards.clear();
+    list.addView(select,new LayoutParams(-1,h.dp(48)));
     if(main!=null)addQuest(main);
     for(String id:selected){JSONObject quest=eligible.get(id);if(quest!=null)addQuest(quest);}
     if(cards.isEmpty())list.addView(notice,new LayoutParams(-1,-2));
-    scroll.setVisibility(expanded?VISIBLE:GONE);select.setVisibility(expanded?VISIBLE:GONE);select.setEnabled(snapshot!=null&&!eligible.isEmpty());
+    scroll.setVisibility(expanded?VISIBLE:GONE);select.setEnabled(snapshot!=null&&!eligible.isEmpty());
     toggle.setText("목표 "+cards.size()+(expanded?" ▴":" ▾"));toggle.setContentDescription("퀘스트 목표 "+(expanded?"접기":"펼치기")+" · "+cards.size()+"개");requestLayout();
   }
   void addQuest(JSONObject quest){
@@ -150,12 +153,21 @@ final class NativeVillageQuestTracker extends LinearLayout {
   }
   static boolean whole(Object value){if(!(value instanceof Number))return false;double n=((Number)value).doubleValue();return Double.isFinite(n)&&n>=0&&n==Math.rint(n)&&n<=Integer.MAX_VALUE;}
   RectF panelBounds(RectF safe){return panelBounds(h,safe,expanded);}
+  @Override protected void onMeasure(int widthSpec,int heightSpec){
+    LayoutParams box=(LayoutParams)header.getLayoutParams();box.width=Math.min(h.dp(176),Math.max(1,MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight()));
+    super.onMeasure(widthSpec,heightSpec);
+  }
   static RectF panelBounds(MainActivity h,RectF safe,boolean expanded){
     float right=safe.right-h.dp(8),top=safe.top+h.dp(64),width=Math.min(h.dp(expanded?304:176),Math.max(h.dp(48),safe.width()-h.dp(16)));
     float height=expanded?Math.min(h.dp(296),Math.max(h.dp(56),safe.bottom-h.dp(8)-top)):h.dp(56);
     return new RectF(right-width,top,right,Math.min(safe.bottom-h.dp(8),top+height));
   }
-  boolean contains(float x,float y){return getVisibility()==VISIBLE&&x>=getLeft()&&x<getRight()&&y>=getTop()&&y<getBottom();}
+  boolean contains(float x,float y){
+    if(getVisibility()!=VISIBLE)return false;
+    float localX=x-getLeft(),localY=y-getTop();
+    return inside(header,localX,localY)||expanded&&inside(scroll,localX,localY);
+  }
+  static boolean inside(View child,float x,float y){return child.getVisibility()==VISIBLE&&x>=child.getLeft()&&x<child.getRight()&&y>=child.getTop()&&y<child.getBottom();}
   void setHomeVisible(boolean visible){setVisibility(visible?VISIBLE:INVISIBLE);if(!visible){if(pinDialog!=null)pinDialog.dismiss();if(village!=null&&(!host.current()||village.storyOverlayCoversHud()))clearHighlight(village);}}
   @Override protected void onDetachedFromWindow(){if(pinDialog!=null)pinDialog.dismiss();if(village!=null)clearHighlight(village);super.onDetachedFromWindow();}
 
@@ -177,7 +189,7 @@ final class NativeVillageQuestTracker extends LinearLayout {
     FocusHighlight(NativeVillageHomeView village,Button button){this.village=village;this.button=button;retire=()->clearHighlight(village);}
     @Override public void draw(Canvas canvas){
       if(!village.owner.current()||!village.sceneReady()||button.getVisibility()!=View.VISIBLE)return;
-      RectF target=button==village.statue?village.landmarkRect():village.imageSlot(button);if(!RectF.intersects(target,village.field))return;
+      RectF world=button==village.statue?village.landmarkRect():village.imageSlot(button);RectF target=village.screenRect(world);if(!RectF.intersects(target,village.field))return;
       int saved=canvas.save();canvas.clipRect(village.field);target.inset(-village.h.dp(4),-village.h.dp(4));paint.setColor(NavyWorkbenchTheme.GOLD_EDGE);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(village.h.dp(3));canvas.drawRoundRect(target,village.h.dp(10),village.h.dp(10),paint);canvas.restoreToCount(saved);
     }
     @Override public void setAlpha(int alpha){paint.setAlpha(alpha);invalidateSelf();}

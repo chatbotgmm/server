@@ -32,10 +32,24 @@ final class NativeVillageStoryOverlay {
   String whole="",lineKey="";
   int letters;
   boolean typing,closed;
+  boolean fullscreenBound,restoreFullscreenPending;
+  final View.OnLayoutChangeListener fullscreenResize=(view,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
+    if(right-left!=oldRight-oldLeft||bottom-top!=oldBottom-oldTop)applyFullscreen();
+  };
   NativeVillageStoryOverlay(MainActivity h,NativeRoster60StoryController owner){
     this.h=h;this.owner=owner;
-    dialog=new Dialog(h);dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    root=new FrameLayout(h);root.setTag("village-story-overlay");root.setBackgroundColor(0x24000000);root.setClickable(true);
+    dialog=new Dialog(h){
+      @Override public void onAttachedToWindow(){super.onAttachedToWindow();applyFullscreen();}
+      @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)applyFullscreen();}
+      @Override public void onDetachedFromWindow(){super.onDetachedFromWindow();stop();}
+      @Override public void onBackPressed(){requestBack();}
+    };dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+    root=new FrameLayout(h){
+      @Override protected void onVisibilityChanged(View changed,int state){
+        super.onVisibilityChanged(changed,state);
+        if(state==View.VISIBLE&&isAttachedToWindow()&&isShown())applyFullscreen();
+      }
+    };root.setTag("village-story-overlay");root.setBackgroundColor(0x24000000);root.setClickable(true);
     row=new LinearLayout(h);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.BOTTOM);
     int margin=h.dp(18);row.setPadding(margin,margin,margin,margin);
     root.addView(row,new FrameLayout.LayoutParams(-1,-1));
@@ -52,24 +66,42 @@ final class NativeVillageStoryOverlay {
     notice=text("",12);notice.setTag("village-dialogue-notice");panel.addView(notice);
     choices=new LinearLayout(h);choices.setOrientation((owner.villageExploration||owner.villageHistory)?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);choices.setTag("village-dialogue-choices");
     if(owner.villageExploration||owner.villageHistory){ScrollView list=new ScrollView(h);list.setTag("village-exploration-list");list.addView(choices,new ScrollView.LayoutParams(-1,-2));panel.addView(list,new LinearLayout.LayoutParams(-1,h.dp(144)));}else panel.addView(choices);
-    close=h.button("닫기",owner::back);close.setTag("village-dialogue-close");
-    if(owner.villageExploration)NativeVillageShortcuts.flatButton(h,close);
-    FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);
+    close=h.button("×",this::requestBack);close.setTag("village-dialogue-close");styleClose();
+    root.addView(close,closePlacement());
+    root.addOnLayoutChangeListener((v,l,t,r,b,oldL,oldT,oldR,oldB)->placeOverlayControls());
     dialog.setContentView(root);dialog.setCanceledOnTouchOutside(false);dialog.setCancelable(false);
-    dialog.setOnKeyListener((d,key,event)->{if(key==KeyEvent.KEYCODE_BACK){if(event.getAction()==KeyEvent.ACTION_UP)owner.back();return true;}return false;});
-    dialog.setOnDismissListener(d->{stop();});
+    dialog.setOnKeyListener((d,key,event)->{if(key==KeyEvent.KEYCODE_BACK){if(event.getAction()==KeyEvent.ACTION_UP)dialog.onBackPressed();return true;}return false;});
+    dialog.setOnDismissListener(d->{if(!dialog.isShowing())stop();});
   }
   TextView text(String value,int size){TextView v=h.text(value,size);v.setTextColor(0xfffff1d2);v.setSingleLine(false);v.setHorizontallyScrolling(false);v.setPadding(h.dp(4),h.dp(4),h.dp(4),h.dp(4));return v;}
   void open(){
+    if(!sameFullscreenOwner()||owner.overlay!=this)return;
+    closed=false;restoreFullscreenPending=true;
+    if(!fullscreenBound){h.root.addOnLayoutChangeListener(fullscreenResize);fullscreenBound=true;}
     dialog.show();Window window=dialog.getWindow();
-    if(window!=null){window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));window.setDimAmount(0);window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);window.setLayout(-1,-1);window.getDecorView().setSystemUiVisibility(h.getWindow().getDecorView().getSystemUiVisibility());}
-    handler.postDelayed(guard,250);refreshVillageHud();
+    if(window!=null){window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));window.setDimAmount(0);window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);window.setLayout(-1,-1);}
+    applyFullscreen();handler.removeCallbacks(guard);handler.postDelayed(guard,250);refreshVillageHud();
+  }
+  /** Each modal owns its own Window; Activity legacy flags do not carry its insets request. */
+  boolean sameFullscreenOwner(){
+    return h.rosterStory==owner&&!owner.owner.isEmpty()&&owner.owner.equals(h.api.token())
+        &&owner.epoch==h.epoch&&"home".equals(h.screen)&&!h.isFinishing()&&!h.isDestroyed();
+  }
+  void applyFullscreen(){
+    if(!closed&&owner.overlay==this&&sameFullscreenOwner()&&dialog.isShowing()&&root.isShown())h.immersive(dialog.getWindow());
+  }
+  void requestBack(){if(!closed&&owner.overlay==this&&sameFullscreenOwner()&&dialog.isShowing())owner.back();}
+  void restoreHostFullscreen(){
+    if(!restoreFullscreenPending)return;
+    restoreFullscreenPending=false;
+    // A detached old account/window must not change the policy of a replacement screen.
+    if(sameFullscreenOwner()&&(owner.overlay==null||owner.overlay==this))h.immersive();
   }
   /** 대화창이 열리고 닫힐 때 마을 오른쪽 위 아이콘 표시를 다시 맞춘다. */
   void refreshVillageHud(){if(h.villageHome!=null&&h.villageHome.view!=null)h.villageHome.view.updateLoadingState();}
   boolean isShowing(){return !closed&&dialog.isShowing();}
   final Runnable guard=new Runnable(){public void run(){if(closed)return;if(!owner.current()){owner.closeVillage();return;}handler.postDelayed(this,250);}};
-  void stop(){boolean wasOpen=!closed;closed=true;typing=false;handler.removeCallbacksAndMessages(null);clearPortrait();if(wasOpen)refreshVillageHud();}
+  void stop(){boolean wasOpen=!closed;closed=true;typing=false;handler.removeCallbacksAndMessages(null);if(fullscreenBound){h.root.removeOnLayoutChangeListener(fullscreenResize);fullscreenBound=false;}clearPortrait();if(wasOpen)refreshVillageHud();restoreHostFullscreen();}
   void close(){stop();dialog.dismiss();}
   void loading(String message){notice.setText(message);for(int i=0;i<choices.getChildCount();i++)enableChoices(choices.getChildAt(i),false);}
   void enableChoices(View view,boolean enabled){view.setEnabled(enabled);if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)enableChoices(group.getChildAt(i),enabled);}}
@@ -102,7 +134,7 @@ final class NativeVillageStoryOverlay {
     }catch(IllegalStateException unavailable){/* No invented substitute face. */}
   }
   void show(JSONObject state){
-    if(row.getParent()==null){root.removeAllViews();root.addView(row,new FrameLayout.LayoutParams(-1,-1));FrameLayout.LayoutParams closeBox=new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT);closeBox.setMargins(0,h.dp(8),h.dp(12),0);root.addView(close,closeBox);}
+    if(row.getParent()==null){root.removeAllViews();root.addView(row,new FrameLayout.LayoutParams(-1,-1));root.addView(close,closePlacement());}
     pauseTyping();choices.removeAllViews();notice.setText(owner.problem);
     if(owner.villageExploration){exploration(state);return;}
     if(owner.villageDeparture){departure(state);return;}
@@ -221,5 +253,28 @@ final class NativeVillageStoryOverlay {
   final Runnable tick=new Runnable(){public void run(){if(!owner.current()||!typing)return;letters=Math.min(whole.length(),letters+2);speech.setText(whole.substring(0,letters));if(letters<whole.length())handler.postDelayed(this,24);else typing=false;}};
   boolean finishTyping(){if(!typing)return false;pauseTyping();letters=whole.length();speech.setText(whole);return true;}
   void pauseTyping(){typing=false;handler.removeCallbacks(tick);}
-  FrameLayout formationContent(){pauseTyping();root.removeAllViews();root.addView(close,new FrameLayout.LayoutParams(h.dp(72),h.dp(44),Gravity.TOP|Gravity.RIGHT));FrameLayout content=new FrameLayout(h);FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(-1,-1);box.topMargin=h.dp(52);root.addView(content,0,box);return content;}
+  void styleClose(){
+    close.setText("×");close.setContentDescription("닫기");close.setTextSize(24);close.setBackgroundTintList(null);close.setTextColor(NavyWorkbenchTheme.TEXT);close.setPadding(0,0,0,0);
+    android.graphics.drawable.StateListDrawable closeBackground=new android.graphics.drawable.StateListDrawable();
+    closeBackground.addState(new int[]{android.R.attr.state_pressed},NavyWorkbenchTheme.surface(h,0x88315866,0,24));
+    closeBackground.addState(new int[]{},new ColorDrawable(Color.TRANSPARENT));close.setBackground(closeBackground);
+  }
+  FrameLayout.LayoutParams closePlacement(){
+    FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(h.dp(48),h.dp(48),Gravity.TOP|Gravity.RIGHT);
+    box.setMargins(0,h.root.getPaddingTop()+h.dp(4),h.root.getPaddingRight()+h.dp(8),0);return box;
+  }
+  FrameLayout.LayoutParams preparationPlacement(){
+    FrameLayout.LayoutParams box=new FrameLayout.LayoutParams(-1,-1);box.setMargins(h.root.getPaddingLeft(),h.root.getPaddingTop()+h.dp(56),h.root.getPaddingRight(),h.root.getPaddingBottom());return box;
+  }
+  void placeOverlayControls(){
+    if(close.getParent()!=root)return;
+    FrameLayout.LayoutParams before=(FrameLayout.LayoutParams)close.getLayoutParams(),after=closePlacement();
+    if(before.width!=after.width||before.height!=after.height||before.topMargin!=after.topMargin||before.rightMargin!=after.rightMargin)close.setLayoutParams(after);
+    View content=root.findViewWithTag("village-preparation-content");
+    if(content!=null){before=(FrameLayout.LayoutParams)content.getLayoutParams();after=preparationPlacement();if(before.leftMargin!=after.leftMargin||before.topMargin!=after.topMargin||before.rightMargin!=after.rightMargin||before.bottomMargin!=after.bottomMargin)content.setLayoutParams(after);}
+  }
+  FrameLayout formationContent(){
+    pauseTyping();root.removeAllViews();root.addView(close,closePlacement());
+    FrameLayout content=new FrameLayout(h);content.setTag("village-preparation-content");root.addView(content,0,preparationPlacement());return content;
+  }
 }

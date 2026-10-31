@@ -61,6 +61,7 @@ final class NativeRoster60StoryBattle extends NativeRoster60Battle {
   @Override void pause(){reconnect.removeCallbacks(checkOwnBattle);super.pause();}
   @Override boolean back(){
     if(!current())return false;
+    if(dismissOpenResistanceDialog())return true;
     if(!choiceKind.isEmpty()){closeChoices();return true;}
     if(panel!=null){panel.cancelInteraction();if(panel.showCommands())return true;}
     // Leaving the view does not abandon or settle a battle. The server checkpoint is resumed later.
