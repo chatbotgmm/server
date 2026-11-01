@@ -1,0 +1,24 @@
+diff --git a/galmaegiman-confirmed/src/app.ts b/galmaegiman-confirmed/src/app.ts
+index c676e23..94044ea 100644
+--- a/galmaegiman-confirmed/src/app.ts
++++ b/galmaegiman-confirmed/src/app.ts
+@@ -18,14 +18,18 @@ import { battleRoster } from './battle/prototype.js';
+ import { registerDuel } from './duel.js';
+ import { registerMy, type KakaoLogin } from './my.js';
+ import { registerDesignReview } from './design-review.js';
++import { registerContentAdmin } from './content-admin/wiring.js';
++import type { PrincipalResolver } from './content-admin/access.js';
+ export const VERSION='0.16.2';
+ // menuLocks is accepted for old callers only and has no effect on menu entry.
+-export interface AppOptions {roster60AccountLevelReader?:AccountLevelReader;webGameMaintenance?:boolean;menuLocks?:boolean;gameResetSessionCutoff?:number;secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig}
++export interface AppOptions {roster60AccountLevelReader?:AccountLevelReader;webGameMaintenance?:boolean;menuLocks?:boolean;gameResetSessionCutoff?:number;secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig;contentAdmin?:{mediaRoot:string;principals?:PrincipalResolver}}
+ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
+   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
+   const app=Fastify({logger:options.log?{redact:['req.headers.cookie','req.headers["x-gmm-s"]','req.body.password','req.body.username','res.headers["set-cookie"]']}:false,bodyLimit:32_768,trustProxy:false});
+   registerWebMaintenance(app,options.webGameMaintenance??false);
+   await app.register(rateLimit,{global:false});
++  // 공지·이미지 관리 API(/api/v1/...). 설정이 없으면 등록하지 않는다. principals 가 없으면 관리자 API 는 모두 거부.
++  if(options.contentAdmin)await registerContentAdmin(app,{db,mediaRoot:options.contentAdmin.mediaRoot,staticRoots:[resolve(options.root??process.cwd(),'public'),resolve(options.root??process.cwd(),'dist')],principals:options.contentAdmin.principals});
+   registerDesignReview(app,{root:options.root??process.cwd()});
+   app.get('/health',async()=>({ok:true,mode:'KAKAO_CHANNEL',edition:'GALMAEMI_118',version:VERSION}));
+   app.get('/ready',async(_req,reply)=>{
