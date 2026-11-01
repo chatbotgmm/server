@@ -1,0 +1,318 @@
+{
+  "defectCapture": "/workspace/scratch/gmm109-integrated-evidence/captures-integrated-check/village-v109/phone-915x412-district-1.png",
+  "defect": "Visible source-left hard vertical skyline and ground edge at screen x238; also phone unit1 x610. Original7imagegen source files preserved.",
+  "edits": [
+    {
+      "name": "layered-approved-v7-seam-r1",
+      "generatedPath": "/workspace/generated_images/exec-744d7263-5ec8-49df-82a2-62642b2b496c.png",
+      "prompt": "Localized production PNG alpha-contour repair on the FIRST image. The SECOND image is only a native game screenshot showing the defect at x~238: the scene starts at a hard vertical line in the upper skyline. Keep the same 2171x724 ultra-wide3:1 canvas, camera angle, colors, architecture, water, all paving, lighting, and every pixel-design in the right88percent unchanged as closely as possible. Only repair the LEFTMOST12percent (roughly source x0..260) of the FIRST image: the upper-left tall observatory/cliff/wall silhouette currently hits the left canvas edge and creates a vertical cut when overlaid on another village layer. Remove the upper-left edge structures into genuine TRANSPARENCY and rebuild a low natural irregular slope/foliage/stone contour rising gradually toward x260, with softly feathered transparent alpha along this narrow irregular silhouette. At x0 the entire upper70percent must be fully TRANSPARENT so neighboring layer shows through, and the skyline must never begin with a straight vertical edge. Preserve the low stone foreground and lower paving position, do not move the existing buildings elsewhere, do not introduce new landmarks. Keep all sky truly transparent. This is an alpha-silhouette repair, not a scene redesign. No blue sky plane, no white or checkerboard matte, no UI, letters, text, characters, people, NPC, buttons or nameplates. Preserve the isolated transparent game layer.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r1.png",
+      "activeRuntime": false,
+      "width": 2170,
+      "height": 725,
+      "bytes": 2422585,
+      "sha256": "734aa95388bb9e3da9a6814a2ee1fa632f1aa8ef81084d7f628d10a1b0eb09ef",
+      "gitBlobSha": "7b8dd82c5a1e2574828e25460b361e6e32857262",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        0,
+        66,
+        2170,
+        725
+      ]
+    },
+    {
+      "name": "layered-approved-v7-seam-r2",
+      "generatedPath": "/workspace/generated_images/exec-14b456af-5422-48da-a7fc-880efc31f127.png",
+      "prompt": "Make ONE precise technical alpha-channel edit to this transparent game scenery PNG. Retain the existing artwork, all architecture, sea, ground stone shapes, colors and landmarks and wide3:1 canvas. The ONLY change is a transparency feather on the LEFT edge across its FULL height, including the bottom paving: make source x0..25 pixels FULLY TRANSPARENT from top to bottom; progressively increase opacity from zero near x25 to fully opaque by x250 (about12percent of width), using a slightly irregular natural soft transition so there is no straight vertical cut. Do not erase or alter anything to the right of x260. Keep all original RGB artwork to the right intact. The upper-left low sloping roof/foliage silhouette is already repaired and must remain low. The bottom ground should blend into another cobbled terrain layer behind it, so the alpha feather must also apply to the bottom row and left foreground floor. This must be genuine transparent alpha, not a painted dark gradient, white fade, fog, blur or checkerboard. No background color. No characters, NPC, UI, letters or new objects. Preserve image content dimensions and produce a transparent ultra-wide3:1 production game layer; ideal2172x724.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r2.png",
+      "activeRuntime": false,
+      "width": 2170,
+      "height": 725,
+      "bytes": 2207190,
+      "sha256": "0f9889aca25d14a0067e2809d63f4b220365dbd67b64a963e20eaceb0d812c97",
+      "gitBlobSha": "973080eade52b3e1277e47dda1c7046ce56e4713",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        229,
+        63,
+        2170,
+        725
+      ]
+    },
+    {
+      "name": "layered-approved-v7-seam-r3",
+      "generatedPath": "/workspace/generated_images/exec-1e94e7c8-c189-47c6-bf21-08e9642e14fc.png",
+      "prompt": "Repair the excessive LEFT-edge transparency of this production game PNG while retaining its artwork. The alpha fade in the source is MUCH TOO WIDE and fades away the stairs/buildings. Make the transparency transition very NARROW: leftmost25px are transparent, x50 should be about50percent opaque, x100 about90percent opaque, and ALL actual stone/ground/foliage pixels at x150 and farther right must be100percent opaque (alpha255), while naturally empty sky above the skyline stays fully transparent. The LEFT stone/paving image must have reached full opacity by only7percent of the entire image width. This applies through the entire image height including the bottom paving row. Preserve the repaired low irregular sloping upper-left skyline, keep all sky transparent, preserve all architecture, colors, sea, ground and lighting exactly. Do not add new scenery, do not move landmarks, do not create any haze/blur or painted gradient. This is only a narrow alpha edge correction. Keep landscape3:1 canvas, transparent background. No UI/text/people/characters. Most of the image must remain solid opaque artwork, with only its natural empty sky and a narrow soft left alpha margin transparent.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r3.png",
+      "activeRuntime": false,
+      "width": 2169,
+      "height": 725,
+      "bytes": 2323433,
+      "sha256": "0c173795aa58b192efef41f367250f49e3f4f8b3dbc56326a7e2354b5fd14e72",
+      "gitBlobSha": "a75acf3aa95ff694258c11a30034f9d85586161e",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        155,
+        59,
+        2169,
+        725
+      ],
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r3.png",
+      "measuredAlpha": {
+        "200": {
+          "0": 0,
+          "100": 0,
+          "150": 0,
+          "180": 101,
+          "200": 251,
+          "230": 253,
+          "260": 253
+        },
+        "300": {
+          "0": 0,
+          "100": 0,
+          "150": 13,
+          "180": 209,
+          "200": 252,
+          "230": 253,
+          "260": 253
+        },
+        "500": {
+          "0": 0,
+          "100": 0,
+          "150": 4,
+          "180": 141,
+          "200": 252,
+          "230": 253,
+          "260": 253
+        },
+        "700": {
+          "0": 0,
+          "100": 0,
+          "150": 6,
+          "180": 143,
+          "200": 247,
+          "230": 253,
+          "260": 253
+        }
+      }
+    },
+    {
+      "name": "layered-approved-v7-seam-r4",
+      "generatedPath": "/workspace/generated_images/exec-110a510e-2475-4380-b969-43d3eb7209be.png",
+      "prompt": "Precise localized production cutout cleanup. FIRST image is the transparent game layer. SECOND image is a real native screenshot: its hill at phone x370~400 has an ugly DARK FUZZY HALO that looks like pasted artwork. Repair only that top-left hillside boundary in the FIRST image (roughly x140..450,y100..360). REMOVE the black/charcoal outline, shadow, smudging and broad feather around the hill/tree edge. Keep exactly the existing low irregular hill slope and foliage silhouette, but clean its contour into natural sunlit olive-green foliage and pale stone against fully transparent sky. All landscape content immediately INSIDE the contour must be solid opaque natural color, and OUTSIDE must be perfectly transparent with only crisp1-2pixel anti-alias, no wide feather, no drop shadow, no black or brown matte, no blur, glow, haze or dark fringe. Do not repaint the sky; it must remain alpha0. Keep every building, lighthouse, landform, tree position, water, camera, style and canvas layout. The bottom-ground left-edge transparency transition is intentionally correct: DO NOT change ground or its alpha below y500. Do not modify the rest of the image beyond the small upper-left hillside boundary. Wide3:1 transparent PNG game asset, original near2170x725 size. No text/UI/NPC/characters/new objects.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r4.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r4.png",
+      "activeRuntime": false,
+      "reviewBasis": "Parent and independent reviewer rejected r3 black halo in final-1 actual native u02 phone x350..400/y55..145 and tablet x645..700/y85..230. R4 removes only dark fringe with crisp upper contour; native preview pending.",
+      "width": 2169,
+      "height": 725,
+      "bytes": 2304548,
+      "sha256": "e15e2425f289a66772d03d2a5bea2dd9216d3ca0d9ad804a891414c6eb060a7c",
+      "gitBlobSha": "1c6f41782b59f75b963054135d6ee0b7835a5923",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        145,
+        56,
+        2169,
+        725
+      ],
+      "measuredAlpha": {
+        "150": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 0,
+          "180": 0,
+          "200": 0,
+          "230": 0,
+          "260": 242
+        },
+        "180": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 0,
+          "180": 0,
+          "200": 251,
+          "230": 253,
+          "260": 253
+        },
+        "200": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 0,
+          "180": 202,
+          "200": 253,
+          "230": 253,
+          "260": 253
+        },
+        "300": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 252,
+          "160": 253,
+          "180": 254,
+          "200": 253,
+          "230": 253,
+          "260": 253
+        },
+        "500": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 252,
+          "160": 252,
+          "180": 253,
+          "200": 253,
+          "230": 253,
+          "260": 253
+        },
+        "700": {
+          "100": 0,
+          "130": 0,
+          "140": 0,
+          "150": 251,
+          "160": 252,
+          "180": 253,
+          "200": 253,
+          "230": 253,
+          "260": 253
+        }
+      },
+      "scopeDeviation": "Generator also sharpened lower-left alpha transition despite explicit preserve-ground-alpha instruction; geometry/colors remain consistent and edge stays within overlapping scenery. Actual world-ground preview must determine acceptance."
+    },
+    {
+      "name": "layered-approved-v7-seam-r5",
+      "generatedPath": "/workspace/generated_images/exec-3ee23d85-2ab2-4a09-942b-cc9e3f299ae2.png",
+      "prompt": "Localized alpha-only ground-edge repair, combining the TWO supplied versions of the SAME game asset. FIRST IMAGE (r4) is the BASE: its upper skyline edge is clean and correct. SECOND IMAGE (r3) is ONLY the REFERENCE for its softer BOTTOM-LEFT GROUND ALPHA. The current base has an unwanted HARD VERTICAL CUT at x140..150 on its bottom paving. Make its lower-left edge fade smoothly into transparent alpha like the second image, ONLY within the small region x130..230,y500..725. At y700: alpha should be0 by x140, about10 atx150, about140 atx180, about245atx200 and253atx230. Blend the repair gently into neighboring rows at y500 so there is no horizontal seam. This exact small lower-left strip is the ONLY edit. Preserve the FIRST image's clean solid upper hill contour and natural colors at y0..500 completely; DO NOT feather, darken, blur, repaint or add any shadow around the upper-left hillside. Keep every building, lighthouse, tree, landform, water, paving shapes, camera, image dimensions and colors of the FIRST image. No added or moved objects. Alpha feather means true transparent PNG alpha, NOT painted dark/gray/black gradient, white haze, blur, rectangle or checkerboard. Preserve the base's transparent sky. Final goal: the clean upper silhouette of first image plus the softly blending lower-left paving transparency of second image. Wide3:1 transparent game layer near2169x725.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r5.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r5.png",
+      "activeRuntime": true,
+      "referencePaths": [
+        "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r4.png",
+        "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r3.png"
+      ],
+      "reviewBasis": "R4nativepreviewconfirmedcleanupperedgebutphone x338/y391+andtabletx590/y670+hadstraightgroundcolorseam. Parent authorizedr5lowerleftalpha repair usingr4base+r3groundreference.",
+      "nativePreview": "pending",
+      "width": 2168,
+      "height": 725,
+      "bytes": 2274699,
+      "sha256": "c89831b5d00d2490708c6d3bed8191a1c26add1198bd8ada27d195f96181975d",
+      "gitBlobSha": "a6042fa1512a8547731792f2529384af17ef9f37",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        145,
+        55,
+        2168,
+        725
+      ],
+      "measuredAlpha": {
+        "180": {
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 0,
+          "180": 0,
+          "200": 252,
+          "230": 253,
+          "260": 253,
+          "280": 253,
+          "300": 253
+        },
+        "200": {
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 0,
+          "180": 250,
+          "200": 253,
+          "230": 253,
+          "260": 253,
+          "280": 253,
+          "300": 253
+        },
+        "300": {
+          "130": 0,
+          "140": 0,
+          "150": 155,
+          "160": 241,
+          "180": 253,
+          "200": 253,
+          "230": 253,
+          "260": 253,
+          "280": 254,
+          "300": 253
+        },
+        "500": {
+          "130": 0,
+          "140": 0,
+          "150": 15,
+          "160": 40,
+          "180": 113,
+          "200": 236,
+          "230": 253,
+          "260": 253,
+          "280": 253,
+          "300": 254
+        },
+        "600": {
+          "130": 0,
+          "140": 0,
+          "150": 5,
+          "160": 20,
+          "180": 82,
+          "200": 183,
+          "230": 251,
+          "260": 253,
+          "280": 253,
+          "300": 253
+        },
+        "700": {
+          "130": 0,
+          "140": 0,
+          "150": 0,
+          "160": 4,
+          "180": 34,
+          "200": 78,
+          "230": 167,
+          "260": 242,
+          "280": 251,
+          "300": 253
+        }
+      },
+      "scopeDeviation": "Generated bottom-row feather extends farther than target: y700/x230alpha167 andx260alpha242 rather than full opacity atx230. Upper-left silhouette stays crisp; actual native preview must check no ground gap/ghosting."
+    }
+  ],
+  "r3ActualRejection": {
+    "phoneCapture": "attempts/final-1/captures/actual-art/phone-915x412-layered-u02.00.png",
+    "tabletCapture": "attempts/final-1/captures/actual-art/layered-tablet-1280x720-layered-u02.00.png",
+    "parentDecision": "Unacceptable dark broad halo resembles pasted background. Localizedr4required; original andr1-r3 retained."
+  },
+  "r4ActualRejection": {
+    "phoneCapture": "captures-final-preview/village-v109/phone-915x412-district-1.png",
+    "tabletCapture": "captures-final-preview/village-v109/village-1280x720-district-1.png",
+    "parentDecision": "Upperhalo fixed; lowerleftgroundalpha sharpened unexpectedly creating visible vertical pavingcolorboundary;localizedr5authorized."
+  }
+}

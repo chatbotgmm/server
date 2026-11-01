@@ -93,6 +93,11 @@ tasks.register('bundleGameArt', Sync) {
         include '*.png'
         into 'native/village-loop-v2/assets'
     }
+    // v7 keeps editable source/provenance separate; only manifest-selected runtime PNGs enter APK.
+    from('../../../art/gpt/village-v7-20261031/runtime') {
+        include '*.png'
+        into 'native/village-loop-v2/assets'
+    }
     // Only runtime surfaces and 128px focus thumbnails; references/editable sources stay out of APK.
     from('../../../art/gpt/ui-v3-20261025/runtime') {
         include 'optimized/ui/bg-harbor.webp', 'optimized/ui/icon-attack.webp', 'optimized/ui/icon-goldenstrike.webp', 'optimized/ui/icon-shield.webp', 'optimized/ui/icon-item.webp', 'optimized/ui/icon-switch.webp', 'optimized/ui/icon-surrender.webp', 'android-ninepatch/*.9.png', 'config/runtime-asset-map.json'
@@ -192,8 +197,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Play 출시 번들은 올린 번호보다 커야 해서 -PgmmVersionCode=79 처럼 지정한다. 기본값은 기존 78.
-        versionCode((project.findProperty('gmmVersionCode') ?: '107') as int)
-        versionName "2.2.5-native"
+        versionCode((project.findProperty('gmmVersionCode') ?: '110') as int)
+        versionName "2.2.8-native"
         // 카카오 로그인 복귀 주소(서버가 gmmrevised://auth로 돌려보낸다). 미리보기판도 같은 주소를 써서 카카오 로그인이 된다.
         // 정식 앱과 함께 설치돼 있으면 로그인 복귀 때 Android가 어느 앱으로 열지 묻는다 → 로그인을 시작한 앱을 고른다.
         manifestPlaceholders = [authScheme: "gmmrevised", combatReviewEnabled: (project.findProperty('gmmApplicationId') == 'org.dpdns.gmm.combatreview').toString()]

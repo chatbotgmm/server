@@ -53,16 +53,17 @@ public class NativeVillageFourDistrictReviewTest {
   try(ActivityController<NativeVillageHomeTest.RouteHost> activity=fixture.routeHost()){
    NativeVillageHomeTest.RouteHost h=activity.get();fixture.prepare(h);NativeVillageHomeView v=fixture.open(h,NativeVillageHomeTest.PHONE);h.record=true;settle(h,v,NativeVillageHomeTest.PHONE,4.25);
    android.widget.Button boat=v.buildingButtons.get("harbor");android.graphics.RectF art=NativeVillageHomeTest.shownArt(v,boat);android.graphics.PointF hidden=null,visible=null;
-   for(float y=Math.max(art.top,v.safe.top);y<Math.min(art.bottom,v.safe.bottom);y+=2)for(float x=Math.max(art.left,v.safe.left);x<Math.min(art.right,v.safe.right);x+=2){
+   for(float y=Math.max(art.top,v.worldSafe.top);y<Math.min(art.bottom,v.worldSafe.bottom);y+=2)for(float x=Math.max(art.left,v.worldSafe.left);x<Math.min(art.right,v.worldSafe.right);x+=2){
+    android.graphics.PointF screen=v.inspection.toScreen(x,y,new android.graphics.PointF());if(NativeVillageHomeTest.coveredByFixedIcon(v,screen.x,screen.y))continue;
     if(NativeVillageHomeTest.sourceAlphaAt(v,boat,x,y)<200)continue;
     if(v.districtScene.covers(v,"terrace",x,y)){hidden=new android.graphics.PointF(x,y);assertFalse(v.rawAlphaHitWorldButton(boat,x-boat.getLeft(),y-boat.getTop()));}
     else if(v.alphaHitWorldButton(boat,x-boat.getLeft(),y-boat.getTop()))visible=new android.graphics.PointF(x,y);
    }
    assertNotNull("Actual authored quay hides part of the opaque hull",hidden);assertNotNull("Boat retains exposed clickable artwork",visible);
-   NativeVillageHomeTest.tapAt(v,hidden.x,hidden.y);assertNull(v.owner.menu);assertTrue(h.routes.isEmpty());
-   NativeVillageHomeTest.tapAt(v,visible.x,visible.y);assertNotNull(v.owner.menu);assertTrue(v.owner.menu.isShowing());v.owner.menu.dismiss();v.owner.menu=null;
+   android.graphics.PointF screen=v.inspection.toScreen(hidden.x,hidden.y,new android.graphics.PointF());NativeVillageHomeTest.tapAt(v,screen.x,screen.y);assertNull(v.owner.menu);assertTrue(h.routes.isEmpty());
+   v.inspection.toScreen(visible.x,visible.y,screen);NativeVillageHomeTest.tapAt(v,screen.x,screen.y);assertNotNull(v.owner.menu);assertTrue(v.owner.menu.isShowing());v.owner.menu.dismiss();v.owner.menu=null;
    android.graphics.RectF label=v.labelRect(new android.graphics.RectF(boat.getLeft(),boat.getTop(),boat.getRight(),boat.getBottom()),boat);
-   NativeVillageHomeTest.tapAt(v,label.centerX(),label.centerY());assertNotNull(v.owner.menu);assertTrue(v.owner.menu.isShowing());
+   v.inspection.toScreen(label.centerX(),label.centerY(),screen);NativeVillageHomeTest.tapAt(v,screen.x,screen.y);assertNotNull(v.owner.menu);assertTrue(v.owner.menu.isShowing());
   }
  }
  @Test public void completedStatueKeepsCanonicalFullCanvasOnPlazaAtBothProfiles()throws Exception{

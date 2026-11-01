@@ -3,6 +3,7 @@ package org.dpdns.gmm;
 import static org.junit.Assert.*;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
 import java.nio.file.Files;
@@ -80,7 +81,7 @@ public class NativeVillageQuestHeaderTest {
       assertFalse("Transparent side of the expanded header is not an overlay target",tracker.contains(blankX,blankY));
       double before=village.camera.cameraUnits(),desired=village.desiredCamera.cameraUnits();drag(village,blankX,blankY);assertNotEquals(desired,village.desiredCamera.cameraUnits(),.000001);
       LocalGameArtTest.drain();layout(h,NativeVillageHomeTest.PHONE);assertNotEquals(before,village.camera.cameraUnits(),.000001);
-      village.stopMotion();float bodyX=tracker.getRight()-h.dp(40),bodyY=tracker.getTop()+h.dp(120);assertTrue(tracker.contains(bodyX,bodyY));
+      village.stopMotion();float bodyX=tracker.getRight()-h.dp(40),bodyY=tracker.getBottom()-h.dp(16);assertTrue(tracker.contains(bodyX,bodyY));assertFalse("The pass-through point avoids the new fixed quarter arrows",new RectF(village.nextQuarter.getLeft(),village.nextQuarter.getTop(),village.nextQuarter.getRight(),village.nextQuarter.getBottom()).contains(bodyX,bodyY));
       before=village.camera.cameraUnits();desired=village.desiredCamera.cameraUnits();drag(village,bodyX,bodyY);assertEquals("Expanded content owns its drag",before,village.camera.cameraUnits(),0);assertEquals(desired,village.desiredCamera.cameraUnits(),0);
       tracker.collapse();layout(h,NativeVillageHomeTest.PHONE);assertFalse(tracker.contains(bodyX,bodyY));
       before=village.camera.cameraUnits();desired=village.desiredCamera.cameraUnits();drag(village,bodyX,bodyY);assertNotEquals("Collapsed content must pass the physical drag to the camera",desired,village.desiredCamera.cameraUnits(),.000001);

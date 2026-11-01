@@ -11,6 +11,7 @@ final class BattlePlayback {
   final BattleView view;
   final MainActivity host;
   final Paint paint = new Paint(3);
+  final BattleContactShadow contactShadow = new BattleContactShadow();
   ValueAnimator animator;
   Runnable advance;
   String effect = "", label = "";
@@ -397,10 +398,8 @@ final class BattlePlayback {
 
   void fighter(Canvas c, JSONObject fighter, RectF area, int index) {
     if ((playing && down[index]) || (!playing && fighter.optInt("hp") <= 0)) return;
-    Paint shadow = view.scene.p;
-    shadow.setColor(0x35484139);
-    c.drawOval(new RectF(area.left+area.width()*.15f,area.bottom-host.dp(10),
-        area.right-area.width()*.15f,area.bottom+host.dp(2)),shadow);
+    contactShadow.draw(c, area, host.getResources().getDisplayMetrics().density,
+        playing && index == side && effect.equals("faint") ? (int) (255 * (1 - progress)) : 255);
     RectF moved = new RectF(area);
     if (playing && index == side) {
       float pulse = (float) Math.sin(progress * Math.PI);

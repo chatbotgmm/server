@@ -34,7 +34,7 @@ public class NativeVillageCompletionMarkerTest {
   void ready(MainActivity h,NativeVillageStoryOverlayTest.Api api)throws Exception{
     status(api.story,"blacksmith","READY");status(api.story,"merchant","READY");api.story.put("revision",4);assertTrue(h.villageHome.publishStorySnapshot(api.story));
   }
-  void check(MainActivity h,String id,int cell){assertEquals(id,cell,resident(h,id).statusCell());assertEquals(id,cell<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(cell),resident(h,id).statusLane(),.001f);}
+  void check(MainActivity h,String id,int cell){assertEquals(id,cell,resident(h,id).statusCell());float scale=h.villageHome.view.inspection.scale();assertEquals(id,cell<0?0:(h.dp(3)+h.dp(18)*VillageNameplates.aspect(cell))/scale,resident(h,id).statusLane(),.001f);}
   @Test public void onlyAvailableAndReadyAreActionableAtlasMarks(){
     assertEquals(10,VillageNameplates.statusCell("AVAILABLE"));assertEquals(11,VillageNameplates.statusCell("READY"));
     for(String value:new String[]{"ACTIVE","COMPLETED","LOCKED","UNKNOWN",""})assertEquals(value,-1,VillageNameplates.statusCell(value));

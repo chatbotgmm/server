@@ -30,14 +30,14 @@ final class VillageObservationContent {
   // Bounds are measured in each unmodified PNG, not inferred from a building's input region.
   static final List<Observation> OBSERVATIONS = Collections.unmodifiableList(Arrays.asList(
       new Observation("stone-wall-planter", "돌담 아래 화분",
-          "둥근 화분에 흰 꽃과 푸른 꽃이 모여 있어요. 돌 사이에도 작은 잎이 돋아 있어요.",
-          "layered-join-patrol-approved", 510f / 1254, 900f / 1254, 620f / 1254, 1020f / 1254),
+          "둥근 화분에 흰 꽃과 푸른 꽃이 모여 있어요. 깨끗한 돌계단 앞을 작게 꾸미고 있어요.",
+          "layered-join-patrol-approved", 445f / 1254, 823f / 1254, 640f / 1254, 1004f / 1254),
       new Observation("quay-rope", "부두의 밧줄",
           "굵은 밧줄이 나무 기둥을 감고 있어요. 기둥 사이에서는 돌 가장자리를 따라 낮게 늘어져 있어요.",
           "layered-quay", 1540f / 2169, 570f / 725, 1810f / 2169, 654f / 725),
       new Observation("house-lantern", "돌벽의 등불",
-          "검은 테두리 안에서 노란 불빛이 빛나요. 벽을 타고 오른 덩굴 사이에 걸려 있어요.",
-          "layered-join-market-patrol-wrap", 590f / 1254, 660f / 1254, 665f / 1254, 765f / 1254)));
+          "검은 테두리 안에서 노란 불빛이 빛나요. 돌문 옆에 걸려 길을 따뜻하게 밝히고 있어요.",
+          "layered-join-market-patrol-wrap", 725f / 1254, 577f / 1254, 829f / 1254, 752f / 1254)));
 
   private VillageObservationContent() {}
 

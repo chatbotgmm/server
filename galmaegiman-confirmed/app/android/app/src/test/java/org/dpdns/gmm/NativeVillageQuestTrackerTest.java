@@ -163,7 +163,7 @@ public class NativeVillageQuestTrackerTest {
       int reads=api.paths.size();double unit=village.unitPixels(),x=village.layout.resident("guard").x,center=village.field.width()/unit/2;
       for(double from:new double[]{7.8,-.2,8007.8,-8000.2}){
         village.stopMotion();village.camera.setCameraUnits(from);village.layoutWorld();LocalGameArtTest.drain();double expected=village.camera.nearestEquivalent(x-center);
-        assertTrue(NativeVillageQuestTracker.focus(village,"resident:guard"));assertEquals(Math.round((expected-from)*unit),village.scroller.getFinalX());assertTrue(Math.abs(village.scroller.getFinalX()/unit)<=4+.01);assertEquals("Focus must not reset the unbounded camera to one base loop",from,village.camera.cameraUnits(),1e-9);
+        assertTrue(NativeVillageQuestTracker.focus(village,"resident:guard"));assertEquals(Math.round((expected-from)*unit*village.inspection.scale()),village.scroller.getFinalX());assertTrue(Math.abs(village.scroller.getFinalX()/(unit*village.inspection.scale()))<=4+.01);assertEquals("Focus must not reset the unbounded camera to one base loop",from,village.camera.cameraUnits(),1e-9);
       }
       village.stopMotion();assertFalse(NativeVillageQuestTracker.focus(village,"resident:missing"));assertTrue(api.writes.isEmpty());assertEquals(reads,api.paths.size());assertNull(h.rosterStory);
       assertTrue(NativeVillageQuestTracker.highlights.containsKey(village));

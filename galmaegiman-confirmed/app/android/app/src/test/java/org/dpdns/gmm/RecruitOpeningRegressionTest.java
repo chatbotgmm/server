@@ -150,23 +150,18 @@ public class RecruitOpeningRegressionTest {
   }
 
   void carousel(NativeRecruitSession ui, MainActivity h, int count) throws Exception {
-    layout(h);
-    ui.rail.bindVisible();
-    LocalGameArtTest.drain();
-    layout(h);
-    assertNull(ui.openingEnvelope);
-    assertNull(ui.openingLayer);
-    assertEquals(View.VISIBLE, ui.rail.getVisibility());
-    assertEquals(View.GONE, ui.emptyStage.getVisibility());
-    assertTrue(ui.rail instanceof CraftResultCarousel);
-    assertEquals(count, ui.slots.size());
-    assertEquals(count, ui.rail.row.getChildCount());
-    ImageView illustration = ui.slots.get(ui.selected).findViewWithTag("recruit-registration-card");
-    assertNotNull("The final result is the production registration view", illustration);
-    assertNotNull("The production character artwork is loaded", illustration.getDrawable());
-    assertTrue(ui.confirmControl.isEnabled());
-    assertEquals("전부 합격", ui.confirmControl.getText().toString());
-    assertEquals("No additional opening/claim button", 1, ui.controls.getChildCount());
+    layout(h);LocalGameArtTest.drain();layout(h);
+    assertNull(ui.openingEnvelope);assertNull(ui.openingLayer);
+    assertTrue("Verified opening reveals the result grid",ui.overviewMode);
+    assertEquals(View.INVISIBLE,ui.rail.getVisibility());assertEquals(View.GONE,ui.emptyStage.getVisibility());
+    assertNotNull(ui.overview);assertEquals(View.VISIBLE,ui.overview.getVisibility());
+    assertEquals(count,ui.candidates.length());assertSame(ui.candidates,ui.overview.rows);
+    ui.overview.bindVisible();LocalGameArtTest.drain();layout(h);
+    assertEquals(count,ui.overview.tiles.size());assertFalse(ui.overview.tiles.isEmpty());
+    assertNotNull("Original candidate front art is loaded in the grid",ui.overview.tiles.get(0).image.getDrawable());
+    assertEquals(View.GONE,ui.overviewControl.getVisibility());assertFalse(ui.overviewBack.isEnabled());
+    assertTrue(ui.confirmControl.isEnabled());assertEquals("전부 합격",ui.confirmControl.getText().toString());
+    assertEquals("No redundant open-result or switch-view button",1,ui.controls.getChildCount());
   }
 
   void png(MainActivity h, String name) throws Exception {
@@ -574,6 +569,8 @@ public class RecruitOpeningRegressionTest {
       api.pending.done(started(api.bodies.get(0), 3, "actions"), null);
       envelope(ui, h).clock.end();
       carousel(ui, h, 3);
+      ui.chooseOverviewCandidate("actions-0");layout(h);LocalGameArtTest.drain();layout(h);
+      assertFalse("Card-specific effects are exercised from the explicit registration detail",ui.overviewMode);
       Button refresh = ui.slots.get(0).findViewWithTag("recruit-reroll");
       refresh.performClick();
       JSONObject rerollRequest = api.bodies.get(1);
@@ -608,7 +605,13 @@ public class RecruitOpeningRegressionTest {
       ui.confirmCandidates();
       assertEquals("Claims remain blocked during rejection too", 3, api.paths.size());
       ui.finishRejectionEffect();
+      layout(h);
+      assertFalse("Finishing a card effect keeps the current registration detail",ui.overviewMode);
+      assertNull(ui.rejectionEffect);assertEquals(2,ui.candidates.length());assertEquals(3,api.paths.size());
+      assertEquals(View.VISIBLE,ui.overviewControl.getVisibility());assertEquals("결과 목록",ui.overviewControl.getText().toString());
+      ui.overviewControl.performClick();
       carousel(ui, h, 2);
+      assertEquals("Returning to results only navigates",3,api.paths.size());
       JSONArray claimRows = new JSONArray(ui.candidates.toString());
       ui.confirmCandidates();
       assertTrue(api.paths.get(3).endsWith("/claim-all"));

@@ -31,7 +31,9 @@ public class LoginEntryAlignmentTest {
   new NativeHomePartyFeedbackTest.Profile("phone-915",915,412,160,1,0,0,0,0),
   new NativeHomePartyFeedbackTest.Profile("short-780",780,319,160,1,0,0,0,0),
   new NativeHomePartyFeedbackTest.Profile("font130-915",915,412,160,1.3f,0,0,0,0),
+  new NativeHomePartyFeedbackTest.Profile("short-font130-780",780,319,160,1.3f,0,0,0,0),
   new NativeHomePartyFeedbackTest.Profile("notch-915",915,412,160,1,44,12,24,16),
+  new NativeHomePartyFeedbackTest.Profile("dense-font130-2048",2048,838,420,1.3f,73,26,26,26),
   new NativeHomePartyFeedbackTest.Profile("tablet-1280",1280,720,160,1,0,0,0,0)};
  @Before public void setup(){helper.isolate();helper.configure(PROFILES[0]);}
  @After public void restore()throws Exception{LocalGameArtTest.drain();helper.restore();}
@@ -44,12 +46,23 @@ public class LoginEntryAlignmentTest {
   JSONArray evidence=new JSONArray();
   for(NativeHomePartyFeedbackTest.Profile profile:PROFILES){helper.configure(profile);
    try(ActivityController<MainActivity> c=helper.flow.start()){
-    MainActivity h=c.get();NativeReviewDeepLinkTest.Recording api=anonymous(h);h.titleScreen();helper.layout(h,profile);
+    MainActivity h=c.get();NativeReviewDeepLinkTest.Recording api=anonymous(h);h.titleScreen();helper.settle(h,profile);
     TitleView title=(TitleView)h.root.getChildAt(0);Button first=title.enter;Rect before=NativeHomePartyFeedbackTest.bounds(first,h.root);float font=first.getTextSize();
+    NativeVillageHomeArtTest.requireFonts(h);assertNotNull("The real bundled harbor must finish before title capture",title.ambient.currentScene);assertNotNull(title.ambient.current);assertSame(title.ambient.current,title.ambient.currentScene.backdrop);assertNotNull(title.guardianArt);
+    Rect beforeFirst=NativeHomePartyFeedbackTest.bounds(title.titleFirst,h.root),beforeSecond=NativeHomePartyFeedbackTest.bounds(title.titleSecond,h.root),beforeCaption=NativeHomePartyFeedbackTest.bounds(title.caption,h.root);
+    RectF beforeGuardian=title.guardianBox(title.ambient.current);LocalTimeTheme.Phase beforePhase=title.ambient.currentPhase;
     assertEquals("게임 시작",first.getText().toString());NativeNoScrollReviewTest.assertFullyVisible(first,h.root);capture(h,profile.name+"-title");
     Bitmap firstNormal=background(first,false),firstPressed=background(first,true);first.setPressed(false);
-    first.performClick();assertEquals("login",h.screen);helper.layout(h,profile);ShadowLooper.idleMainLooper(16,TimeUnit.MILLISECONDS);helper.layout(h,profile);
+    first.performClick();assertEquals("login",h.screen);helper.settle(h,profile);
     TitleView login=(TitleView)h.root.getChildAt(0);Button second=login.enter;Rect after=NativeHomePartyFeedbackTest.bounds(second,h.root);
+    assertNotNull("The real bundled harbor must finish before login capture",login.ambient.currentScene);assertNotNull(login.ambient.current);assertSame(login.ambient.current,login.ambient.currentScene.backdrop);assertNotNull(login.guardianArt);assertEquals(beforePhase,login.ambient.currentPhase);
+    assertEquals("One actual title composition, without a separate paper form",1,h.root.getChildCount());assertNull(h.loginScroll);
+    assertEquals(beforeFirst,NativeHomePartyFeedbackTest.bounds(login.titleFirst,h.root));assertEquals(beforeSecond,NativeHomePartyFeedbackTest.bounds(login.titleSecond,h.root));assertEquals(beforeCaption,NativeHomePartyFeedbackTest.bounds(login.caption,h.root));assertEquals(beforeGuardian,login.guardianBox(login.ambient.current));
+    assertEquals(View.VISIBLE,login.caption.getVisibility());assertEquals(View.VISIBLE,login.titleFirst.getVisibility());assertEquals(View.VISIBLE,login.titleSecond.getVisibility());
+    assertEquals("뒤로",login.settings.getText().toString());assertEquals(View.VISIBLE,login.loginNote.getVisibility());assertEquals("카카오 인증 후 돌아와요.",login.loginNote.getText().toString().replace('\n',' '));
+    Rect note=NativeHomePartyFeedbackTest.bounds(login.loginNote,h.root);assertTrue(note.top>=after.bottom+h.dp(4));assertTrue(h.safeBounds(profile.width,profile.height).contains(new RectF(note)));NativeNoScrollReviewTest.assertFullyVisible(login.loginNote,h.root);
+    for(View fixed:new View[]{login.caption,login.titleFirst,login.titleSecond,login.enter,login.settings,login.loginNote}){assertEquals("Measured and placed width share the same pixel edges: "+fixed.getTag(),fixed.getWidth(),fixed.getMeasuredWidth());assertEquals("Measured and placed height share the same pixel edges: "+fixed.getTag(),fixed.getHeight(),fixed.getMeasuredHeight());}
+    assertNotNull(login.loginNote.getLayout());assertEquals("Layout queries must not shrink the helper's measured width",login.loginNote.getWidth(),login.loginNote.getMeasuredWidth());assertEquals("The helper centers within the whole action lane",login.loginNote.getWidth(),login.loginNote.getLayout().getWidth());for(int line=0;line<login.loginNote.getLineCount();line++){assertEquals(0,login.loginNote.getLayout().getEllipsisCount(line));assertTrue(login.loginNote.getLayout().getLineWidth(line)<=login.loginNote.getWidth()+1);assertEquals(login.loginNote.getWidth()/2f,(login.loginNote.getLayout().getLineLeft(line)+login.loginNote.getLayout().getLineRight(line))/2f,1f);}assertTrue(login.loginNote.getLayout().getHeight()<=login.loginNote.getHeight());
     assertEquals(before,after);assertEquals(font,second.getTextSize(),.01f);assertSame(first.getTypeface(),second.getTypeface());assertEquals(first.getGravity(),second.getGravity());
     assertEquals(first.getPaddingLeft(),second.getPaddingLeft());assertEquals(first.getPaddingRight(),second.getPaddingRight());assertEquals(first.getPaddingTop(),second.getPaddingTop());assertEquals(first.getPaddingBottom(),second.getPaddingBottom());
     assertEquals(EntryActionUi.KAKAO_LABEL,second.getText().toString());assertEquals(EntryActionUi.KAKAO_INK,second.getCurrentTextColor());NativeNoScrollReviewTest.assertFullyVisible(second,h.root);
@@ -63,10 +76,17 @@ public class LoginEntryAlignmentTest {
     assertTrue("Kakao brand yellow remains the container",yellow>secondNormal.getWidth()*secondNormal.getHeight()/2);assertTrue("Kakao speech bubble remains visible",black>20);
     firstNormal.recycle();firstPressed.recycle();secondNormal.recycle();secondPressed.recycle();capture(h,profile.name+"-login");
     assertTrue("Presenting the entry stages never exchanges or signs in",api.paths.isEmpty());
-    evidence.put(MainActivity.obj("profile",profile.json(),"first",rect(before),"second",rect(after),"fontPx",font,"sameTypeface",true,"samePressedOutline",true,"kakaoYellowPixels",yellow,"kakaoBlackSymbolPixels",black));
+    evidence.put(MainActivity.obj("profile",profile.json(),"first",rect(before),"second",rect(after),"note",rect(note),"noteLayoutMatchesActionWidth",true,"realHarborReady",true,"harborPhase",login.ambient.currentPhase.name(),"harborDecodedWidth",login.ambient.current.getWidth(),"harborDecodedHeight",login.ambient.current.getHeight(),"sameGuardianAndBrandingGeometry",true,"largePaperForm",false,"fontPx",font,"sameTypeface",true,"samePressedOutline",true,"kakaoYellowPixels",yellow,"kakaoBlackSymbolPixels",black));
    }
   }
   Files.write(output().resolve("geometry.json"),MainActivity.obj("actualTitleToLoginTransition",true,"profiles",evidence).toString(2).getBytes(StandardCharsets.UTF_8));
+ }
+ @Test public void loginBackKeepsTheExistingCleanupAndDetachedBackCannotReplaceAnotherScreen()throws Exception{
+  try(ActivityController<MainActivity> c=helper.flow.start()){
+   MainActivity h=c.get();NativeReviewDeepLinkTest.Recording api=anonymous(h);android.content.SharedPreferences preferences=h.getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL),0);
+   preferences.edit().putString("linkCode","old-local-fixture").commit();h.login();helper.layout(h,PROFILES[0]);assertFalse(preferences.contains("linkCode"));Button old=h.root.findViewWithTag("login-back");assertNotNull(old);preferences.edit().putString("linkCode","back-local-fixture").commit();old.performClick();assertEquals("title",h.screen);assertFalse(preferences.contains("linkCode"));
+   h.login();helper.layout(h,PROFILES[0]);TitleView current=(TitleView)h.root.getChildAt(0);old.performClick();assertEquals("login",h.screen);assertSame(current,h.root.getChildAt(0));assertTrue(api.paths.isEmpty());
+  }
  }
  static void touch(MainActivity h,long down,long time,int action,float x,float y){MotionEvent e=MotionEvent.obtain(down,time,action,x,y,0);try{h.root.dispatchTouchEvent(e);}finally{e.recycle();}}
  @Test public void titleDoubleTapCannotPassThroughAndOAuthStartsOnlyOncePerReturn()throws Exception{

@@ -45,7 +45,7 @@ public class NativeVillageAmbientTest {
       MainActivity h=activity.get();fixture.prepare(h);NativeVillageHomeView v=loaded(h);
       v.moveCameraUnits(3.75-v.camera.cameraUnits());settleViewport(h,v);v.ambient.fixedTime=0L;
       VillageLayout.DistrictScenery water=v.layout.districtScenery("layered-join-approved-market");assertTrue(v.districtScene.geometry(v,water,v.assets.get(water.asset)));
-      v.districtScene.layeredWaterClip();android.graphics.RectF region=new android.graphics.RectF(v.districtScene.waterClip);
+      v.districtScene.layeredWaterClip();android.graphics.RectF region=v.screenRect(v.districtScene.waterClip);
       Bitmap first=NativeHomePartyFeedbackTest.render(h.root);v.ambient.fixedTime=2100L;Bitmap second=NativeHomePartyFeedbackTest.render(h.root);
       try{
         int changed=0;
@@ -140,7 +140,10 @@ public class NativeVillageAmbientTest {
     try(ActivityController<MainActivity> activity=helper.flow.start()){
       MainActivity h=activity.get();NativeVillageHomeTest.Api api=fixture.prepare(h);api.story.put("statue",new JSONObject().put("stage",1));
       NativeVillageHomeView v=fixture.open(h,profile);LocalGameArtTest.drain();helper.layout(h,profile);v.stopMotion();v.ambient.fixedTime=0L;
-      double camera=v.layout.landmark.x-v.field.width()/v.unitPixels()/2;v.moveCameraUnits(camera-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
+      double requestedCamera=v.layout.landmark.x-v.field.width()/v.unitPixels()/2;v.moveCameraUnits(requestedCamera-v.camera.cameraUnits());LocalGameArtTest.drain();helper.layout(h,profile);
+      // Moving from a nonzero camera adds a rounded delta. Accept its single ULP of
+      // positioning arithmetic, then require every stage to retain the exact settled value.
+      double camera=v.camera.cameraUnits();assertEquals("Initial camera reaches the requested statue framing",requestedCamera,camera,Math.ulp(requestedCamera));
       for(int stage=1;stage<=5;stage++){
         api.story.put("statue",new JSONObject().put("stage",stage));v.owner.refresh();LocalGameArtTest.drain();
         assertEquals(stage,v.owner.statueStage);assertEquals(camera,v.camera.cameraUnits(),0);assertTrue(v.assets.ready());
@@ -156,7 +159,7 @@ public class NativeVillageAmbientTest {
     }
   }
 
-  @Test public void imageLetteringAtlasAndStatusMarksStayBelowActualSpritesInEveryReviewProfile()throws Exception{
+  @Test public void actualLetteringAndStatusMarksStayOutsideSpritesInEveryReviewProfile()throws Exception{
     for(NativeHomePartyFeedbackTest.Profile profile:NativeVillageHomeTest.PROFILES){
       helper.configure(profile);
       try(ActivityController<MainActivity> activity=helper.flow.start()){
@@ -176,10 +179,11 @@ public class NativeVillageAmbientTest {
             android.graphics.RectF label=v.labelRect(object,button),art=NativeVillageHomeTest.shownArt(v,button);
             NativeVillageHomeView.WorldTarget wt=(NativeVillageHomeView.WorldTarget)button;
             if(wt.building!=null&&!wt.building.canvasLayer.isEmpty()){double[] content=v.layout.assets.get(wt.asset).contentBounds;art.bottom=art.top+art.height()*(float)content[3];}
-            assertTrue("Image nameplate is strictly below sprite feet",label.top>=art.bottom+v.labelGap()-1);
-            assertTrue("Image nameplate respects lower safe margin",label.bottom<=v.safe.bottom-h.dp(5));
+            if(wt.resident())assertTrue("Resident nameplate stays strictly above its sprite",label.bottom<=art.top-v.labelGap()+1);
+            else assertTrue("Facility nameplate is strictly below sprite feet",label.top>=art.bottom+v.labelGap()-1);
+            assertTrue("Nameplate respects lower safe margin",v.screenRect(label).bottom<=v.safe.bottom-h.dp(5));
             assertFalse(button.getContentDescription().toString().isEmpty());
-            if(v.safe.contains(label.centerX(),label.centerY()))assertTrue("Lower image nameplate remains a real tap target",v.alphaHitWorldButton(button,label.centerX()-button.getLeft(),label.centerY()-button.getTop()));
+            if(v.worldSafe.contains(label.centerX(),label.centerY()))assertTrue("The painted nameplate remains a real tap target",v.alphaHitWorldButton(button,label.centerX()-button.getLeft(),label.centerY()-button.getTop()));
           }
           NativeVillageHomeTest.assertNoOpaqueNeighborOverlap(v);
         }
@@ -198,20 +202,37 @@ public class NativeVillageAmbientTest {
       for(String status:new String[]{"LOCKED","AVAILABLE","ACTIVE","READY","COMPLETED","LOCKED"}){
         npc.put("status",status);v.owner.refresh();assertTrue("State changes request fresh label geometry",v.isLayoutRequested());helper.layout(h,NativeVillageHomeTest.PHONE);
         // V5: AVAILABLE 느낌표는 이름표 옆 칸 대신 주민 머리 위에 그린다.
-        int cell="AVAILABLE".equals(status)?-1:VillageNameplates.statusCell(status);float plateWidth=v.labelHeight(button)*VillageNameplates.aspect(VillageNameplates.cell(button.asset));
-        float lane=cell<0?0:h.dp(3)+h.dp(18)*VillageNameplates.aspect(cell);
+        int cell="AVAILABLE".equals(status)?-1:VillageNameplates.statusCell(status);
+        String semanticText=button.getText().toString();boolean available="AVAILABLE".equals(status);
+        assertEquals("The existing button text keeps the available-state semantic prefix",available,semanticText.startsWith("! "));
+        String visibleText=available?semanticText.substring(2):semanticText;
+        // Font hinting measures the actual drawing size; measuring large glyphs and then
+        // dividing their width can differ by a physical pixel from drawing smaller glyphs.
+        android.graphics.Paint font=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        font.setTypeface(button.getTypeface());font.setTextSize(button.getTextSize()/v.inspection.scale());
+        float textWidth=font.measureText(visibleText),plateWidth=textWidth+h.dp(24)/v.inspection.scale();
+        float lane=cell<0?0:(h.dp(3)+h.dp(18)*VillageNameplates.aspect(cell))/v.inspection.scale();
         assertEquals(lane,button.statusLane(),.001f);assertEquals(plateWidth+lane,v.labelWidth(button),.001f);
         android.graphics.RectF object=v.residentBounds.get("guard"),label=v.labelRect(object,button);
-        assertEquals("Plaque alone or the plaque+badge group is centered",object.centerX(),label.centerX(),.01f);
+        Bitmap lettering=NativeHomePartyFeedbackTest.render(h.root);
+        try{
+          assertEquals("Actual font lettering and padding define the plaque width",plateWidth,button.plateBounds.width(),.01f);
+          assertEquals("The head marker is not repeated in painted nameplate text",textWidth,button.letteringBounds.width(),.01f);
+          assertTrue("The original game font fits inside the visible plaque",button.plateBounds.contains(button.letteringBounds));
+          float paintedRight=cell<0?button.plateBounds.right:button.statusBounds.right;
+          assertEquals("The plaque and only its actual badge form one centered group",label.centerX(),button.getLeft()+(button.plateBounds.left+paintedRight)/2,.01f);
+          if(cell>=0)assertEquals("The badge has exactly its authored gap",h.dp(3)/v.inspection.scale(),button.statusBounds.left-button.plateBounds.right,.001f);
+        }finally{lettering.recycle();}
         if(cell<0)assertEquals("No invisible badge lane shifts an inactive plaque",plateWidth,label.width(),.1f);
         VillageLayout.Resident guard=null;for(VillageLayout.Resident r:v.layout.residents)if("guard".equals(r.id))guard=r;assertNotNull(guard);
         android.graphics.RectF marker=v.residentMarkerRect(guard);
         if("AVAILABLE".equals(status)){
           assertFalse("AVAILABLE shows the exclamation above the head",marker.isEmpty());
-          assertTrue("Head marker sits above the nameplate",marker.bottom<=label.top);
-          assertTrue("Head marker stays over the resident",marker.centerX()>=object.left&&marker.centerX()<=object.right);
+          assertFalse("The available marker never covers the moved head nameplate",android.graphics.RectF.intersects(marker,label));
+          if(marker.bottom<=label.top){android.graphics.RectF portrait=v.imageSlot(button);assertTrue("An upper marker stays over the original resident image",marker.centerX()>=portrait.left&&marker.centerX()<=portrait.right);}
+          else assertTrue("When the top edge is full the marker sits beside the nameplate",marker.right<=label.left||marker.left>=label.right);
           android.graphics.Bitmap with=NativeHomePartyFeedbackTest.render(h.root);android.graphics.Bitmap atlas=v.assets.images.remove("nameplates");android.graphics.Bitmap without=NativeHomePartyFeedbackTest.render(h.root);v.assets.images.put("nameplates",atlas);
-          int drawn=0;for(int y=Math.max(0,(int)marker.top);y<Math.min(with.getHeight(),(int)Math.ceil(marker.bottom));y++)for(int x=Math.max(0,(int)marker.left);x<Math.min(with.getWidth(),(int)Math.ceil(marker.right));x++)if(with.getPixel(x,y)!=without.getPixel(x,y))drawn++;
+          android.graphics.RectF markerScreen=v.screenRect(marker);int drawn=0;for(int y=Math.max(0,(int)markerScreen.top);y<Math.min(with.getHeight(),(int)Math.ceil(markerScreen.bottom));y++)for(int x=Math.max(0,(int)markerScreen.left);x<Math.min(with.getWidth(),(int)Math.ceil(markerScreen.right));x++)if(with.getPixel(x,y)!=without.getPixel(x,y))drawn++;
           with.recycle();without.recycle();assertTrue("Head exclamation is actually painted",drawn>10);
         }else assertTrue("Only AVAILABLE draws a head marker",marker.isEmpty());
       }

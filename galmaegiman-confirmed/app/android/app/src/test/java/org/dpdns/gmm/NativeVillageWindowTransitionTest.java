@@ -115,7 +115,7 @@ public class NativeVillageWindowTransitionTest {
    assertEquals("A physical resize preserves the initial completeness gate for newly exposed edges",View.VISIBLE,view.loadingPanel.getVisibility());
    assertEquals(original,view.camera.cameraUnits(),0);source.finishAll(view.assets);layout(h);
    assertTrue(view.sceneReady());assertTrue(view.targetReady);assertEquals(View.GONE,view.loadingPanel.getVisibility());
-   assertEquals(view.field.width()/view.unitPixels(),view.committedViewportUnits,0);capture(h,"08-expanded-viewport-complete");
+   assertEquals(view.visibleWorld().width()/view.unitPixels(),view.committedViewportUnits,0);capture(h,"08-expanded-viewport-complete");
   }
  }
 }

@@ -42,7 +42,12 @@ public class VillageLayoutTest {
         String digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));assertEquals(source.getString("sourceSha256"),digest);
       }
       if(asset.id.startsWith("statue-stage-")){assertEquals(1024,source.getInt("sourceWidth"));assertEquals(1536,source.getInt("sourceHeight"));assertArrayEquals(new double[]{0,0,1,1},asset.crop,0);}
-      if(asset.id.equals("archive")){assertArrayEquals(new double[]{0,0,1,1},asset.crop,0);assertEquals("layered-approved",actual.building("archive").canvasLayer);}
+      if(asset.id.equals("archive")){
+        // The original 2171x724 transparent library now fits independently. These
+        // are its inspected alpha>=128 bounds, not the whole panorama canvas.
+        assertArrayEquals(new double[]{410d/2171,17d/724,1234d/2171,602d/724},asset.crop,0);
+        assertEquals("The library is an independent actor rather than a scenery-wide hit target","",actual.building("archive").canvasLayer);
+      }
       if(fallback.assets.containsKey(asset.id))assertFalse(fallback.assets.get(asset.id).verified);
     }
     assertEquals(6,fallback.buildings.size());assertFalse(fallback.continuousFoundation);assertTrue(actual.continuousFoundation);
@@ -96,7 +101,7 @@ public class VillageLayoutTest {
   }
   @Test public void sceneScaleRatiosAreExplicitAndInvalidOrMissingRatiosAreRejected()throws Exception{
     VillageLayout layout=VillageLayout.parse(raw()),fallback=VillageLayout.referenceLayout();
-    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.4883188211654387,.5970471633629528,.8080110497237569,.595721476510067,.16,.5136245819397994};
+    String[] ids={"recruit","hideout","archive","market","mailbox","harbor"};double[] heights={.52,.60,.55,.595721476510067,.16,.5136245819397994};
     for(int i=0;i<ids.length;i++){assertEquals(heights[i],layout.building(ids[i]).heightRatio,0);assertTrue(fallback.building(ids[i]).heightRatio>=.1&&fallback.building(ids[i]).heightRatio<=.75);}
     assertEquals(.24,layout.resident("blacksmith").heightRatio,0);assertEquals(.21,layout.resident("librarian").heightRatio,0);
     assertEquals(.23,layout.resident("guard").heightRatio,0);assertEquals(.22493195855474427,layout.resident("merchant").heightRatio,0); // New standing crop preserves the original upper-body scale.

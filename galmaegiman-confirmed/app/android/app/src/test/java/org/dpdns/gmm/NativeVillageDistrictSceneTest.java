@@ -124,11 +124,11 @@ public class NativeVillageDistrictSceneTest {
         android.widget.Button tower=v.buildingButtons.get("hideout"),guard=v.residentButtons.get("guard");
         android.graphics.RectF label=v.labelRect(new android.graphics.RectF(tower.getLeft(),tower.getTop(),tower.getRight(),tower.getBottom()),tower);
         int overlaps=0;float hitX=0,hitY=0;
-        for(float y=Math.max(label.top,v.safe.top);y<Math.min(label.bottom,v.safe.bottom);y++)for(float x=Math.max(label.left,v.safe.left);x<Math.min(label.right,v.safe.right);x++)if(NativeVillageHomeTest.sourceAlphaAt(v,guard,x,y)>=128){
+        for(float y=Math.max(label.top,v.worldSafe.top);y<Math.min(label.bottom,v.worldSafe.bottom);y++)for(float x=Math.max(label.left,v.worldSafe.left);x<Math.min(label.right,v.worldSafe.right);x++)if(NativeVillageHomeTest.sourceAlphaAt(v,guard,x,y)>=128){
           overlaps++;hitX=x;hitY=y;assertTrue(v.alphaHitWorldButton(tower,x-tower.getLeft(),y-tower.getTop()));assertFalse(v.alphaHitWorldButton(guard,x-guard.getLeft(),y-guard.getTop()));
         }
         assertTrue("Fixture genuinely exercises sprite over visible caption lane",overlaps>0);
-        NativeVillageHomeTest.tapAt(v,hitX,hitY);assertEquals(java.util.Collections.singletonList("party"),h.routes);
+        android.graphics.PointF screen=v.inspection.toScreen(hitX,hitY,new android.graphics.PointF());NativeVillageHomeTest.tapAt(v,screen.x,screen.y);assertEquals(java.util.Collections.singletonList("party"),h.routes);
       }finally{if(actualPatrol==null)v.assets.images.remove("patrol");else v.assets.images.put("patrol",actualPatrol);opaque.recycle();}
 
     }
@@ -152,7 +152,7 @@ public class NativeVillageDistrictSceneTest {
       Bitmap scratch=Bitmap.createBitmap(Math.max(1,v.getWidth()),Math.max(1,v.getHeight()),Bitmap.Config.ARGB_8888);
       for(VillageLayout.Resident resident:v.layout.residents){
         v.groundShadows.target.setEmpty();v.groundShadows.drawActor(new Canvas(scratch),v,resident);
-        if(!v.groundShadows.target.isEmpty()&&android.graphics.RectF.intersects(v.groundShadows.target,v.field)){android.graphics.RectF r=new android.graphics.RectF(v.groundShadows.target);r.inset(-2,-2);r.offset(v.getLeft(),v.getTop());allowed.add(r);}
+        if(!v.groundShadows.target.isEmpty()&&android.graphics.RectF.intersects(v.groundShadows.target,v.visibleWorld())){android.graphics.RectF r=v.screenRect(v.groundShadows.target);r.inset(-2,-2);r.offset(v.getLeft(),v.getTop());allowed.add(r);}
       }
       scratch.recycle();
       assertFalse("At least one resident contact shadow is on screen",allowed.isEmpty());

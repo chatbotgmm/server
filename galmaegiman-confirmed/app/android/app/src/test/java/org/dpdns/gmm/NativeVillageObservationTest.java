@@ -49,12 +49,12 @@ public class NativeVillageObservationTest {
   }
   // Independently recorded bounds from the three visually inspected, unmodified source PNGs.
   static final Feature[] FEATURES = {
-      new Feature("stone-wall-planter","layered-join-patrol-approved","layered-join-patrol-approved.png",
-          1254,1254,510,900,620,1020,2.333333333333333,1),
+      new Feature("stone-wall-planter","layered-join-patrol-approved","layered-join-patrol-approved-v7.png",
+          1254,1254,445,823,640,1004,2.333333333333333,1),
       new Feature("quay-rope","layered-quay","layered-quay-v5.png",
           2169,725,1540,570,1810,654,2.666666666666666,3),
-      new Feature("house-lantern","layered-join-market-patrol-wrap","layered-join-market-patrol-wrap.png",
-          1254,1254,590,660,665,765,-.33333333333333215,1)
+      new Feature("house-lantern","layered-join-market-patrol-wrap","layered-join-market-patrol-wrap-v7.png",
+          1254,1254,725,577,829,752,-.33333333333333215,1)
   };
 
   @Before public void setup() { exploration.setup(); }

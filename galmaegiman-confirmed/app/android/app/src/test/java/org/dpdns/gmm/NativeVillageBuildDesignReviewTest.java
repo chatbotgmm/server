@@ -216,7 +216,8 @@ public class NativeVillageBuildDesignReviewTest {
       assertSame("World building names keep the actual game font", h.font, name.getTypeface());
       assertFalse("Building names are simple one-line UI text without the former subtitle",
           name.getText().toString().contains("\n"));
-      assertFalse("The former building caption is removed", name.getText().toString().contains(building.sub));
+      assertEquals("Facility plaque states its actual function",NativeVillageHomeView.facilityCaption(building),name.getText().toString());
+      assertTrue("Original building identity remains accessible",name.getContentDescription().toString().contains(building.name));
       checkWorldName(view, name, view.buildingBounds.get(building.id), h, rows);
     }
     for (VillageLayout.Resident resident : view.layout.residents) {
@@ -231,24 +232,29 @@ public class NativeVillageBuildDesignReviewTest {
   void checkWorldName(NativeVillageHomeView view, Button name, RectF object,
       MainActivity h, JSONArray rows) throws Exception {
     RectF label = view.labelRect(object, name);
-    assertEquals("Image nameplate is below its picture at the target bottom", object.bottom, label.bottom, .01f);
-    assertTrue("Name text region stays inside its world target", object.contains(label));
-    assertEquals("Image nameplate uses the bottom lane", android.view.Gravity.BOTTOM,
-        name.getGravity() & android.view.Gravity.VERTICAL_GRAVITY_MASK);
-    assertTrue("World name has no paper button surface",
-        name.getBackground() instanceof android.graphics.drawable.ColorDrawable);
-    assertEquals("World name background is fully transparent", 0,
-        Color.alpha(((android.graphics.drawable.ColorDrawable) name.getBackground()).getColor()));
-    if (!view.field.contains(object)) return;
-    assertNotNull("Actual lettering atlas must be decoded before design approval",view.assets.get("nameplates"));
-    assertTrue("Nameplate never overlays the actual image",label.top>=view.imageSlot(name).bottom+view.labelGap()-1);
-    assertTrue("Nameplate bottom respects the system safe area",label.bottom<=view.safe.bottom-h.dp(5));
-    assertEquals("Atlas frame preserves readable image height",view.labelHeight(name),label.height(),1);
-    assertEquals("Atlas frame preserves source-lettering proportions",view.labelWidth(name),label.width(),1);
+    NativeVillageHomeView.WorldTarget target=(NativeVillageHomeView.WorldTarget)name;
+    boolean resident=target.resident();
+    if(resident){
+      assertEquals("Resident label uses a separate head lane",object.top,label.top,.01f);
+      assertTrue("Head label never covers the resident picture",label.bottom+view.labelGap()<=view.imageSlot(name).top+1);
+    }else{
+      assertEquals("Facility plaque stays below its picture",object.bottom,label.bottom,.01f);
+      assertTrue("Facility plaque never covers the building: "+target.asset+" label="+label+" image="+view.imageSlot(name),label.top>=view.imageSlot(name).bottom+view.labelGap()-1);
+    }
+    assertTrue("Live caption stays inside its original interactive target",object.contains(label));
+    assertEquals("Caption gravity follows its visible lane",resident?android.view.Gravity.TOP:android.view.Gravity.BOTTOM,name.getGravity()&android.view.Gravity.VERTICAL_GRAVITY_MASK);
+    assertTrue("World target keeps a transparent surface",name.getBackground() instanceof android.graphics.drawable.ColorDrawable);
+    assertEquals("World target background is fully transparent",0,Color.alpha(((android.graphics.drawable.ColorDrawable)name.getBackground()).getColor()));
+    RectF screen=view.screenRect(label);
+    if(!view.safe.contains(screen))return;
+    assertTrue("Visible live text fits the painted plaque",target.plateBounds.contains(target.letteringBounds));
+    assertTrue("Readable label retains the same world action",view.alphaHitWorldButton(name,label.centerX()-name.getLeft(),label.centerY()-name.getTop()));
+    assertEquals("Caption respects the actual font height",view.labelHeight(name),label.height(),1);
+    assertEquals("Caption width follows actual game font metrics",view.labelWidth(name),label.width(),1);
     assertFalse("Accessible role/menu description is retained",name.getContentDescription().toString().isEmpty());
-    rows.put(MainActivity.obj("kind", "world-name-image", "tag", String.valueOf(name.getTag()),
-        "accessibleText", name.getContentDescription().toString(), "labelBounds", NativeHomePartyFeedbackTest.box(label),
-        "backgroundAlpha", 0, "verticalGravity", "BOTTOM", "letteringSource","nameplates.png"));
+    rows.put(MainActivity.obj("kind","world-live-caption","tag",String.valueOf(name.getTag()),"text",target.visibleCaption(),
+        "accessibleText",name.getContentDescription().toString(),"labelBounds",NativeHomePartyFeedbackTest.box(screen),
+        "backgroundAlpha",0,"verticalGravity",resident?"TOP":"BOTTOM","letteringSource","bundled game font","textPx",name.getTextSize()));
   }
 
   /** Pixel masks come from the production HUD method and production sprite destinations. */

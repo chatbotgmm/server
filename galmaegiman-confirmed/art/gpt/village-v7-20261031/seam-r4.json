@@ -1,0 +1,93 @@
+{
+  "name": "layered-approved-v7-seam-r4",
+  "generatedPath": "/workspace/generated_images/exec-110a510e-2475-4380-b969-43d3eb7209be.png",
+  "prompt": "Precise localized production cutout cleanup. FIRST image is the transparent game layer. SECOND image is a real native screenshot: its hill at phone x370~400 has an ugly DARK FUZZY HALO that looks like pasted artwork. Repair only that top-left hillside boundary in the FIRST image (roughly x140..450,y100..360). REMOVE the black/charcoal outline, shadow, smudging and broad feather around the hill/tree edge. Keep exactly the existing low irregular hill slope and foliage silhouette, but clean its contour into natural sunlit olive-green foliage and pale stone against fully transparent sky. All landscape content immediately INSIDE the contour must be solid opaque natural color, and OUTSIDE must be perfectly transparent with only crisp1-2pixel anti-alias, no wide feather, no drop shadow, no black or brown matte, no blur, glow, haze or dark fringe. Do not repaint the sky; it must remain alpha0. Keep every building, lighthouse, landform, tree position, water, camera, style and canvas layout. The bottom-ground left-edge transparency transition is intentionally correct: DO NOT change ground or its alpha below y500. Do not modify the rest of the image beyond the small upper-left hillside boundary. Wide3:1 transparent PNG game asset, original near2170x725 size. No text/UI/NPC/characters/new objects.",
+  "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r4.png",
+  "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r4.png",
+  "activeRuntime": true,
+  "reviewBasis": "Parent and independent reviewer rejected r3 black halo in final-1 actual native u02 phone x350..400/y55..145 and tablet x645..700/y85..230. R4 removes only dark fringe with crisp upper contour; native preview pending.",
+  "width": 2169,
+  "height": 725,
+  "bytes": 2304548,
+  "sha256": "e15e2425f289a66772d03d2a5bea2dd9216d3ca0d9ad804a891414c6eb060a7c",
+  "gitBlobSha": "1c6f41782b59f75b963054135d6ee0b7835a5923",
+  "alphaRange": [
+    0,
+    255
+  ],
+  "visibleBoundsAlpha32": [
+    145,
+    56,
+    2169,
+    725
+  ],
+  "measuredAlpha": {
+    "150": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 0,
+      "180": 0,
+      "200": 0,
+      "230": 0,
+      "260": 242
+    },
+    "180": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 0,
+      "180": 0,
+      "200": 251,
+      "230": 253,
+      "260": 253
+    },
+    "200": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 0,
+      "180": 202,
+      "200": 253,
+      "230": 253,
+      "260": 253
+    },
+    "300": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 252,
+      "160": 253,
+      "180": 254,
+      "200": 253,
+      "230": 253,
+      "260": 253
+    },
+    "500": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 252,
+      "160": 252,
+      "180": 253,
+      "200": 253,
+      "230": 253,
+      "260": 253
+    },
+    "700": {
+      "100": 0,
+      "130": 0,
+      "140": 0,
+      "150": 251,
+      "160": 252,
+      "180": 253,
+      "200": 253,
+      "230": 253,
+      "260": 253
+    }
+  },
+  "scopeDeviation": "Generator also sharpened lower-left alpha transition despite explicit preserve-ground-alpha instruction; geometry/colors remain consistent and edge stays within overlapping scenery. Actual world-ground preview must determine acceptance."
+}

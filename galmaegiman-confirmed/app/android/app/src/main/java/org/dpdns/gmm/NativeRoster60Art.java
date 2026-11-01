@@ -15,6 +15,7 @@ final class NativeRoster60Art extends View {
  // Display-only state: the presenter owns time, ordering, cancellation and final reconciliation.
  JSONObject frameBefore,frameAfter,frameEvent;float progress;
  final Paint fx=new Paint(Paint.ANTI_ALIAS_FLAG);
+ final BattleContactShadow contactShadow=new BattleContactShadow();
  // Frame scratch state stays with this View; art and effect semantics are unchanged.
  final RectF backgroundBounds=new RectF(),spriteBounds=new RectF(),hudBounds=new RectF();
  final RectF actorBounds=new RectF(),otherBounds=new RectF(),targetBounds=new RectF();
@@ -86,7 +87,7 @@ final class NativeRoster60Art extends View {
   for(int side=0;side<2;side++){JSONObject fighter=fighters.optJSONObject(side);String id=fighter.optString("speciesId"),variant=fighter.optString("artVariant"),key=Roster60BattleAppearance.key(side,id,variant);if(key.equals(ids[side]))continue;ids[side]=key;images[side]=null;shownSample[side]=Integer.MAX_VALUE;int generation=++imageGeneration[side];imagePending[side]=0;
    try{JSONObject v=entry(id).getJSONObject("views").getJSONObject(side==0?"rear":"front");String path=v.getString("file");if(path.contains("/")||path.contains(".."))throw new IOException("path");
     heights[side]=(float)v.getDouble("relativeHeight");String asset=Roster60BattleAppearance.asset(side,id,variant,path);Bitmap preview=LocalGameArt.peek(asset,4);if(preview!=null){images[side]=preview;shownSample[side]=4;}
-    JSONArray size=v.optJSONArray("size");int sample=getWidth()>0&&getHeight()>0?LocalGameArt.sampleForFit(size==null?512:size.optInt(0,512),size==null?512:size.optInt(1,512),Math.max(1,(int)(getWidth()*.64f)),Math.max(1,(int)(getHeight()*.49f*heights[side]))):2;
+    JSONArray size=v.optJSONArray("size");int sample=getWidth()>0&&getHeight()>0?LocalGameArt.sampleForFit(size==null?512:size.optInt(0,512),size==null?512:size.optInt(1,512),Math.max(1,(int)(getWidth()*.62f)),Math.max(1,(int)(getHeight()*.57f*heights[side]*(side==0?1:.72f)))):2;
     requestImage(side,key,asset,4,generation);if(sample!=4)requestImage(side,key,asset,sample,generation);
    }catch(Exception bad){LocalArtDiagnostics.failed(id+"/"+(side==0?"rear":"front"),bad);problem="전투 아트 준비 중";}
   }StringBuilder accessible=new StringBuilder();for(int i=0;i<fighters.length();i++){if(uncertain(i)){accessible.append(i==0?"출전 교체 확인 중. ":"상대 교체 확인 중. ");continue;}JSONObject f=fighters.optJSONObject(i),s=f.optJSONObject("stats");if(s!=null)accessible.append(f.optString("name")).append(" Lv").append(f.optInt("level")).append(" HP ").append(f.optInt("hp")).append("/").append(s.optInt("hp")).append(" MP ").append(f.optInt("mp")).append("/").append(s.optInt("mp")).append(". ");}setContentDescription(accessible);invalidate();readinessChanged();
@@ -96,11 +97,20 @@ final class NativeRoster60Art extends View {
  RectF destination(int side,float w,float h){return destination(side,w,h,new RectF());}
  RectF destination(int side,float w,float h,RectF out){
   float widest=1;for(int i=0;i<2;i++)if(images[i]!=null)widest=Math.max(widest,heights[i]*images[i].getWidth()/images[i].getHeight());
-  float base=Math.min(h*.49f,w*.64f/widest),height=base*heights[side],width=images[side]==null?0:height*images[side].getWidth()/images[side].getHeight();
-  float floor=h*(side==0?.91f:.67f),cx=Math.max(width/2,Math.min(w-width/2,w*(side==0?.35f:.77f)));out.set(cx-width/2,floor-height,cx+width/2,floor);return out;
+  // Keep authored species proportions, then project the opponent onto the farther ground plane.
+  // This changes fighter staging only: the background viewport and all HUD/command areas stay fixed.
+  float d=density(),hudWidth=Roster60HudGeometry.enemyWidth(Math.max(0,w-safeLeft-safeRight),d,scale);
+  // A wide species must still leave the self HUD clear. Reserve the attack lunge as well as a gap.
+  float nearRight=Math.max(1,w-safeRight-hudWidth-22*d);
+  float nearFactor=images[0]==null?1:heights[0]*images[0].getWidth()/images[0].getHeight();
+  float base=Math.min(Math.min(h*.57f,w*.62f/widest),nearRight/Math.max(.001f,nearFactor));
+  float height=base*heights[side]*(side==0?1:.72f),width=images[side]==null?0:height*images[side].getWidth()/images[side].getHeight();
+  float floor=h*(side==0?.93f:.64f),right=side==0?nearRight:w;
+  float cx=Math.max(width/2,Math.min(right-width/2,w*(side==0?.29f:.76f)));out.set(cx-width/2,floor-height,cx+width/2,floor);return out;
  }
  @Override protected void onDraw(Canvas c){super.onDraw(c);float w=getWidth(),h=getHeight();backgroundBounds.set(0,0,w,h);if(background!=null)c.drawBitmap(background,null,backgroundBounds,paint);else c.drawColor(0xff244b56);paint.setColor(0xffa6bdc9);paint.setTextSize(11*getResources().getDisplayMetrics().density);
-  for(int side=0;side<2;side++){
+  // Distant actor first, then the near actor: silhouettes remain correctly ordered during motion.
+  for(int side=1;side>=0;side--){
    if(uncertain(side)){caption(c,(side==0?"출전 · ":"상대 · ")+"교체 확인 중",w*(side==0?.28f:.75f),h*(side==0?.7f:.45f),w*.45f,12*scale*density(),0xffd7e6ed);continue;}
    JSONObject visible=fighter(snapshot,side);
    if(visible!=null&&visible.optInt("hp")<=0)continue;
@@ -120,6 +130,7 @@ final class NativeRoster60Art extends View {
     }
     if(before!=null&&after!=null&&before.optInt("hp")>0&&after.optInt("hp")==0&&progress>.83f){float t=clamp((progress-.83f)/.17f);alpha=Math.round(alpha*(1-t));dest.offset(0,24*d*t);}
    }
+   contactShadow.draw(c,dest,d,alpha);
    paint.setAlpha(alpha);c.drawBitmap(b,null,dest,paint);paint.setAlpha(255);
    // Brief hit silhouette uses the same approved bitmap, never substituted character art.
    if(frameEvent!=null&&!neutralSkill()&&side==targetSide()&&"skill".equals(frameEvent.optString("kind"))&&frameEvent.optInt("damage")>0&&progress>=.5f&&progress<.64f){

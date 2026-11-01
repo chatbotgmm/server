@@ -39,11 +39,32 @@ final class NativeVillageHomeController {
   }
   void attach() {
     if(owner.isEmpty()){h.login();return;}
-    view=new NativeVillageHomeView(h,this,layout);h.root.addView(view,new FrameLayout.LayoutParams(-1,-1));
+    view=new NativeVillageHomeView(h,this,layout);
+    view.pendingInitialPairFocus=!preferences.contains(scope+":camera");
     try{savedCamera=preferences.getString(scope+":camera","0");double saved=Double.parseDouble(savedCamera);if(Double.isFinite(saved))view.camera.setCameraUnits(saved);}catch(Exception invalid){savedCamera="";}
-    try{float scale=Float.parseFloat(preferences.getString(scope+":zoom","1")),pan=Float.parseFloat(preferences.getString(scope+":zoom-pan","0.5"));view.inspection.restore(scale,pan);view.desiredInspection.restore(view.inspection.scale(),view.inspection.panNormalized());savedInspection=view.inspection.scale()+"|"+view.inspection.panNormalized();}catch(Exception invalid){view.inspection.reset();view.desiredInspection.reset();savedInspection="";}
+    restoreInspection();
+    h.root.addView(view,new FrameLayout.LayoutParams(-1,-1));
     view.assets.setViewport(view.assetCameraUnits(),view.assetViewportUnits());view.assets.load(layout,this::current,view::scheduleArtworkRefresh);
     refresh();
+  }
+  static final String CAMERA_BASELINE=":camera-baseline-v109";
+  void restoreInspection(){
+    float scale=NativeVillageHomeView.DEFAULT_SCALE,pan=NativeVillageHomeView.DEFAULT_PAN;
+    boolean baseline=preferences.getBoolean(scope+CAMERA_BASELINE,false);
+    try{
+      if(preferences.contains(scope+":zoom")){
+        float savedScale=Float.parseFloat(preferences.getString(scope+":zoom","1"));
+        float savedPan=Float.parseFloat(preferences.getString(scope+":zoom-pan","0.5"));
+        // Older releases did not record whether an unchanged 1.0 view came from a pinch.
+        // Migrate that exact old default once; preserve every distinct saved inspection.
+        if(baseline||savedScale!=1f||savedPan!=.5f){scale=savedScale;pan=savedPan;}
+      }
+      view.inspection.restore(scale,pan);
+    }catch(Exception invalid){view.inspection.restore(NativeVillageHomeView.DEFAULT_SCALE,NativeVillageHomeView.DEFAULT_PAN);}
+    view.desiredInspection.restore(view.inspection.scale(),view.inspection.panNormalized());
+    savedInspection=view.inspection.scale()+"|"+view.inspection.panNormalized();
+    // Persist the migrated values together with the per-account marker before any pause/re-entry.
+    preferences.edit().putBoolean(scope+CAMERA_BASELINE,true).putString(scope+":zoom",Float.toString(view.inspection.scale())).putString(scope+":zoom-pan",Float.toString(view.inspection.panNormalized())).commit();
   }
   boolean current() { return !paused&&view!=null&&epoch==h.epoch&&owner.equals(h.api.token())&&!owner.isEmpty()
       &&"home".equals(h.screen)&&!h.isFinishing()&&!h.isDestroyed()&&h.root.indexOfChild(view)>=0; }
@@ -125,7 +146,7 @@ final class NativeVillageHomeController {
   }
   String residentStatus(String id){JSONObject npc=residents.get(id);return npc==null?"LOCKED":npc.optString("status","LOCKED");}
   String residentName(String id,String fallback){JSONObject npc=residents.get(id);return npc==null?fallback:npc.optString("name",fallback);}
-  void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits()),inspection=view.inspection.scale()+"|"+view.inspection.panNormalized();if((!position.equals(savedCamera)||!inspection.equals(savedInspection))&&preferences.edit().putString(scope+":camera",position).putString(scope+":zoom",Float.toString(view.inspection.scale())).putString(scope+":zoom-pan",Float.toString(view.inspection.panNormalized())).commit()){savedCamera=position;savedInspection=inspection;}}}
+  void saveCamera(){if(view!=null&&!owner.isEmpty()){String position=Double.toString(view.camera.cameraUnits()),inspection=view.inspection.scale()+"|"+view.inspection.panNormalized();if((!position.equals(savedCamera)||!inspection.equals(savedInspection))&&preferences.edit().putBoolean(scope+CAMERA_BASELINE,true).putString(scope+":camera",position).putString(scope+":zoom",Float.toString(view.inspection.scale())).putString(scope+":zoom-pan",Float.toString(view.inspection.panNormalized())).commit()){savedCamera=position;savedInspection=inspection;}}}
   void pause(){saveCamera();paused=true;invalidateStorySnapshot();storyWaiters.clear();if(view!=null){view.cancelArtworkRefresh();view.questTracker.setHomeVisible(false);view.shortcuts.collapse();view.stopMotion();view.cancelWorldGestures();view.desiredCamera.setCameraUnits(view.camera.cameraUnits());view.desiredInspection.restore(view.inspection.scale(),view.inspection.panNormalized());view.ambient.pause();view.assets.cancel();}if(menu!=null){menu.dismiss();menu=null;}}
   void resume(){
     if(!"home".equals(h.screen)||h.villageHome!=this)return;

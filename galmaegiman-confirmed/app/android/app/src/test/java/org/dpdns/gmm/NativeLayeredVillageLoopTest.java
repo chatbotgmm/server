@@ -74,6 +74,6 @@ public class NativeLayeredVillageLoopTest {
      ||path.endsWith("continuous-v5-harbor-open.png")||path.contains("companions-v3-background")
      ||path.contains("districts-v4-records-background")||path.endsWith("/terrain.png")||path.endsWith("/sea.png"));
   }
-  assertTrue(requests.stream().anyMatch(p->p.endsWith("layered-approved.png")));
+  assertTrue("Travel requests the active approved panorama declared by the manifest",requests.contains(layout.assets.get("layered-approved").path));
  }
 }

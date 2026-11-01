@@ -1,0 +1,263 @@
+{
+  "version": "village-v7-20261031",
+  "createdDate": "2026-10-31",
+  "generator": "image_gen.imagegen",
+  "approvedReference": "handoff/captures/art-concept/village-approved-direction-v4.png",
+  "runtimePolicy": "Source and runtime PNGs are byte-identical copies of imagegen output. No scripted image editing. Runtime crop is manifest metadata only. Existing live NPCs, real text labels, independent facility interactions and four-district 8U world remain.",
+  "assets": [
+    {
+      "name": "recruit-v7",
+      "generatedPath": "/workspace/generated_images/exec-8d3ba2e6-296f-4582-845f-998971f6ad47.png",
+      "prompt": "Create a production-ready isolated transparent game building asset matching the approved reference. Redraw ONLY the LEFT recruitment office: low broad cream-stone civic reception building, terracotta pitched roof, warm timber beams, modest navy blue awning, feather/gull pennant, a clearly visible application noticeboard with simple gull portrait silhouettes and blank parchment sheets, and open registration desk with quill and papers. Same coherent painterly Mediterranean coastal village style, 2.5D slightly elevated three-quarter front view, midday warm lighting from upper left, clean well-maintained stone walls. Very little vegetation, at most one small deliberate pot. Show the entire roof, sides and small foundation/contact shadow completely with generous transparent margins. The building and its tiny base should occupy most of a landscape canvas. TRANSPARENT background. NO village scenery, road panorama, people, NPC, gull character, UI, buttons, nameplates, letters, words, numbers or readable signs. All facility names will be real runtime text. Preserve recognizable architectural design of the reference left building; do not duplicate the tall right guild house.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/recruit-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/recruit-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2501854,
+      "sha256": "a8088fb8a1e00fa2430e32d8a3f0e012f9b053c4eb2fee4d1e5b964d502e4666",
+      "gitBlobSha": "0b114ee97606e25d342fd4c8a15d3bed47fe3f7b",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        254
+      ],
+      "visibleBoundsAlpha32": [
+        31,
+        33,
+        1516,
+        956
+      ],
+      "referencePaths": [
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "hideout-v7",
+      "generatedPath": "/workspace/generated_images/exec-b08d74cf-71ab-4de6-b456-441c8671404a.png",
+      "prompt": "Create a production-ready isolated transparent game building asset matching the approved reference. Redraw ONLY the RIGHT guard guild/team headquarters as a compact two-story cream-stone and timber house, asymmetrical terracotta pitched roof, wooden balcony, one navy pennant with simple gull insignia, and a visible team-planning map board by the open ground-floor entrance with small blue markers. Distinct tall headquarters silhouette, not another low recruitment counter or identical storefront. Same coherent painterly Mediterranean coastal village style, 2.5D slightly elevated three-quarter front view, midday warm lighting from upper left, clean well-maintained stone walls and timber. Very little vegetation, at most one small deliberate pot. Show the entire roof, balcony, sides and small foundation/contact shadow completely with generous transparent margins. The building and tiny base occupy most of a landscape canvas. TRANSPARENT background. NO village scenery, road panorama, people, NPC, gull character, UI, buttons, nameplates, letters, words, numbers or readable signs. All facility names will be real runtime text. Preserve recognizable architectural design of the reference right house.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/hideout-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/hideout-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2469739,
+      "sha256": "bd69155677b075dab10425d490cb8285c8b2dbe9f8739deebd65252842cd2d1a",
+      "gitBlobSha": "ca835e4dc9aa13761e5b55f68e12dc254c2c50f4",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        254
+      ],
+      "visibleBoundsAlpha32": [
+        192,
+        9,
+        1436,
+        1001
+      ],
+      "referencePaths": [
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "layered-patrol-v7",
+      "generatedPath": "/workspace/generated_images/exec-ca2f27c0-ea37-42ef-9288-ed752a0447a3.png",
+      "prompt": "Production-ready 2.5D side-scrolling game scenery layer. Edit the FIRST referenced source background using the SECOND approved style reference, but do not copy its foreground facilities or interface. Exactly preserve the ultra-wide 3:1 landscape canvas/aspect (2172x724 or equivalent 3:1). TRANSPARENT SKY above an irregular distant roof/hill silhouette; no painted blue sky because the game supplies it separately. Warm painterly Mediterranean coastal village: cream limestone blocks, terracotta tiles, weathered honey timber, restrained navy accents, upper-left midday light, perspective consistent with the original game layer. Major improvement: remove dense ivy, grass carpets, weeds, repetitive copy-pasted villas and repeated blue-shutter houses. Keep a sparse, varied, coherent architecture. Lower 40 percent must be a mostly clear broad clean pale-cobblestone plaza ready for separately rendered buildings and people. No grass in paving joints, no foreground bushes; at most a couple intentional small potted plants. At the left and right edges keep low cream stone and neutral cobbled ground to hide overlaps with neighboring panels; avoid prominent edge structures. No people, NPCs, gulls, portraits, readable text, signs, UI, buttons, nameplates, title, interface, characters, recruitment office, guild headquarters, or foreground actionable buildings. This is the quiet companions district backdrop. A small distinctive windmill on the left hillside, an airy glass greenhouse near the center, one modest stone gate on a terrace, a few cypress trees and distant rocky hills. Place these landmarks in the upper middle distance, different silhouettes and heights, and leave the foreground plaza wide open. Avoid stacking dozens of houses. Slightly overlapping alpha silhouette at edges should be natural stone terraces, not a hard rectangular wall.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-patrol-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-patrol-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 2171,
+      "height": 724,
+      "bytes": 2796775,
+      "sha256": "cbedf7bcdeb793c7c1c491283c8796aadfcaa414f5ace8976db24f69713ef04a",
+      "gitBlobSha": "89196176689f1d5bd9a74de265c7be1cca57bca8",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        0,
+        10,
+        2171,
+        724
+      ],
+      "referencePaths": [
+        "art/gpt/village-layered-20261028/layered-patrol.png",
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "layered-approved-v7",
+      "generatedPath": "/workspace/generated_images/exec-e50ebc7d-33db-4fb4-a267-23d9cd329e93.png",
+      "prompt": "Production-ready 2.5D side-scrolling game scenery layer. Edit the FIRST referenced source background using the SECOND approved style reference, but do not copy its foreground facilities or interface. Exactly preserve the ultra-wide 3:1 landscape canvas/aspect (2172x724 or equivalent 3:1). TRANSPARENT SKY above an irregular distant roof/hill silhouette; no painted blue sky because the game supplies it separately. Warm painterly Mediterranean coastal village: cream limestone blocks, terracotta tiles, weathered honey timber, restrained navy accents, upper-left midday light, perspective consistent with the original game layer. Major improvement: remove dense ivy, grass carpets, weeds, repetitive copy-pasted villas and repeated blue-shutter houses. Keep a sparse, varied, coherent architecture. Lower 40 percent must be a mostly clear broad clean pale-cobblestone plaza ready for separately rendered buildings and people. No grass in paving joints, no foreground bushes; at most a couple intentional small potted plants. At the left and right edges keep low cream stone and neutral cobbled ground to hide overlaps with neighboring panels; avoid prominent edge structures. No people, NPCs, gulls, portraits, readable text, signs, UI, buttons, nameplates, title, interface, characters, recruitment office, guild headquarters, or foreground actionable buildings. This is the memory garden and coastal approach backdrop. Low stepped civic stone terraces with a tiny distant round observatory dome at left, a far slender lighthouse on a sea cliff to the right, a calm bright blue bay visible on the right, open cream stone plaza lower foreground. No library building in foreground; that facility is drawn separately. A few cypress trees separated by visible stone architecture, no dense greenery. Diverse small background roofs only.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 2171,
+      "height": 724,
+      "bytes": 2692744,
+      "sha256": "07fa16f43daf3a78cec1fa2d342bec03b6a8415b1e22375d211714ac16e0e435",
+      "gitBlobSha": "967d9d105c628e08dc9db751436e8d4bcad2d013",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        0,
+        2,
+        2171,
+        724
+      ],
+      "referencePaths": [
+        "art/gpt/village-layered-20261028/layered-approved.png",
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "layered-market-v7",
+      "generatedPath": "/workspace/generated_images/exec-af1fb4f4-1733-4d0f-bb6e-d4a741d399c5.png",
+      "prompt": "Production-ready 2.5D side-scrolling game scenery layer. Edit the FIRST referenced source background using the SECOND approved style reference, but do not copy its foreground facilities or interface. Exactly preserve the ultra-wide 3:1 landscape canvas/aspect (2172x724 or equivalent 3:1). TRANSPARENT SKY above an irregular distant roof/hill silhouette; no painted blue sky because the game supplies it separately. Warm painterly Mediterranean coastal village: cream limestone blocks, terracotta tiles, weathered honey timber, restrained navy accents, upper-left midday light, perspective consistent with the original game layer. Major improvement: remove dense ivy, grass carpets, weeds, repetitive copy-pasted villas and repeated blue-shutter houses. Keep a sparse, varied, coherent architecture. Lower 40 percent must be a mostly clear broad clean pale-cobblestone plaza ready for separately rendered buildings and people. No grass in paving joints, no foreground bushes; at most a couple intentional small potted plants. At the left and right edges keep low cream stone and neutral cobbled ground to hide overlaps with neighboring panels; avoid prominent edge structures. No people, NPCs, gulls, portraits, readable text, signs, UI, buttons, nameplates, title, interface, characters, recruitment office, guild headquarters, or foreground actionable buildings. This is the market and workshop quarter backdrop. Sea on far left transitioning to tidy cream stone terraces and a small varied distant workshop quarter on the right: one low arched brick kiln, one sawtooth roof workshop, one slender bell tower. All buildings in upper middle distance with distinct silhouettes rather than repeated villas. Lower40percent is open clean cobbled paving for independent market and training facilities. Sparse deliberate potted plants only, no ivy.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-market-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-market-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 2172,
+      "height": 724,
+      "bytes": 2964918,
+      "sha256": "58e94d931881c3b5c62580757e6f8a00ea1f6d3b970eec815612c1f284bd8d87",
+      "gitBlobSha": "d36837371229ea99b374489287cf5c0d388ebf54",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        0,
+        44,
+        2172,
+        724
+      ],
+      "referencePaths": [
+        "art/gpt/village-layered-20261028/layered-market.png",
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "layered-join-patrol-approved-v7",
+      "generatedPath": "/workspace/generated_images/exec-e875acd2-90f5-4254-87af-a4328326e740.png",
+      "prompt": "Edit the first source game scenery cutout to match the second approved village style reference. Production square 1254x1254 transparent 2.5D scenery transition cutout. Replace the repetitive ivy-covered villa with a simple LOW cream limestone terrace and stepped courtyard: one modest freestanding rounded stone arch, tidy stairs ascending on the right, low retaining walls, a small terracotta flowerpot with white/blue flowers close to normalized center x0.45,y0.76; this one pot is an inspectable gameplay prop, render it clearly. Keep most upper-left and upper-right sky fully transparent and natural irregular outer silhouette. Pale warm cobbles across the bottom, irregular contact edge. Architecture middle ground upper maximum height about65percent; leave the bottom35percent open. Warm honey timber details and a small navy banner on arch allowed, minimal greenery, no grass or ivy carpets, not a repeated house. Light upper-left; painterly Mediterranean village consistent with reference. No sky plane, no people/NPC/gulls/characters, UI, text, letters, numbers, nameplates, facility icons, labels or buttons. No recruitment office or guild headquarters; they are separate game layers. Transparent background.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-join-patrol-approved-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-join-patrol-approved-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1904278,
+      "sha256": "35bb37645db12eb62235d4efe47af222fe8ae932d1450df891eb6c1afe158b1a",
+      "gitBlobSha": "7a979b24766e295ab986de98240766dcd01fc497",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        5,
+        337,
+        1251,
+        1199
+      ],
+      "referencePaths": [
+        "art/gpt/village-layered-20261028/layered-join-patrol-approved.png",
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    },
+    {
+      "name": "layered-join-market-patrol-wrap-v7",
+      "generatedPath": "/workspace/generated_images/exec-b14326eb-b720-4cd6-9517-a705e291a408.png",
+      "prompt": "Edit first source game scenery cutout to match second approved village style reference. Production square1254x1254 transparent2.5D scenery transition cutout. Replace repetitive ivy villa with a tidy small stone passage: low cream limestone arch wall with warm terracotta cap, short side stairs, a wooden pergola at far left, and one distinct glowing warm iron wall lantern close to normalized center x0.5,y0.57; this lantern is inspectable gameplay prop and must be clear. No large2story blue shutter villa. Restrained navy cloth accent, almost no foliage, at most one small terracotta pot. Pale clean cobblestone paving lower35percent; no grass between stones. Upper sides and sky fully transparent, irregular alpha outline and small ground footprint, no broad colored background rectangle. Same warm upper-left light and painterly Mediterranean2.5D slightly elevated view as approved reference. No villagewide panorama, no NPC, people, gulls, characters, UI, words, letters, numbers, signboards, nameplates or buttons. No foreground actionable facility. Transparent background.",
+      "sourcePath": "art/gpt/village-v7-20261031/source/layered-join-market-patrol-wrap-v7.png",
+      "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-join-market-patrol-wrap-v7.png",
+      "review": {
+        "sourcePixels": "directly-viewed",
+        "alpha": "PNG alpha range and threshold32 visible bounding box measured; transparent sky/background verified by actual image preview.",
+        "nativeIntegration": "pending-parent-native-test-and-capture"
+      },
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1690015,
+      "sha256": "bbb7ac36d226f73e7cef791dec831a866ca585c5ed6f4e7916041a8b7d02a971",
+      "gitBlobSha": "b8b551544996320362bead067a9bd4bfd081613f",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "visibleBoundsAlpha32": [
+        0,
+        394,
+        1252,
+        1235
+      ],
+      "referencePaths": [
+        "art/gpt/village-layered-20261028/layered-join-market-patrol-wrap.png",
+        "/workspace/scratch/gmm107-delivery/handoff/captures/art-concept/village-approved-direction-v4.png"
+      ]
+    }
+  ],
+  "integration": {
+    "manifest": "app/android/app/src/main/assets/native/village-loop-v2/manifest.json",
+    "bundleTask": "bundleGameArt",
+    "runtimeFolder": "art/gpt/village-v7-20261031/runtime",
+    "keptAssetIds": 30,
+    "keptFacilities": 7,
+    "keptResidents": 4,
+    "keptSceneryIncludingSky": 8,
+    "newPixelEditsByScript": false,
+    "sourceArtifactMeaning": "Generated edited source PNGs; original imagegen files retained at generatedPath. Runtime files are unchanged byte copies.",
+    "nativeQa": "pending parent native captures, seam, hit/label and memory tests",
+    "deviceQa": "not performed"
+  },
+  "activeOverride": {
+    "assetId": "layered-approved",
+    "evidence": "seam-edits.json",
+    "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r5.png",
+    "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r5.png",
+    "sha256": "c89831b5d00d2490708c6d3bed8191a1c26add1198bd8ada27d195f96181975d",
+    "originalSourcePreserved": true
+  },
+  "layoutAdjustment": {
+    "facility": "mailbox",
+    "oldX": 4.586666666666666,
+    "newX": 3.0,
+    "reason": "Retain the existing no-empty-1U interactive silhouette guard after independent smaller archive fitting and closer main-pair placement; reuse the existing mail facility in memory-district transition plaza.",
+    "avoidedPosition": 2.8,
+    "avoidedPositionReason": "New inspectable stone-wall-planter center~2.766U/foot~.80H would overlap existing mailbox picture at2.8U.",
+    "verifiedGeometry": "hideout-right2.0751 to mailbox-left2.94 is0.8649U; mailbox-right3.06 to archive-left3.4152 is0.3552U. Both below1U.",
+    "preserved": "Seven facilities/fourNPCs, all existing mail menus/actionIds/art/baseline/size and observations remain.",
+    "nativeGroundTouchObservationPreview": "pending-parent-quick-preview"
+  }
+}

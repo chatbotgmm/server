@@ -101,8 +101,9 @@ public class Roster60RecruitScreenTest {
    assertEquals(1,api.posts.size());assertEquals("MID",api.posts.get(0).getString("kind"));assertEquals(2,api.posts.get(0).getInt("times"));assertEquals("roster60-fixture",api.posts.get(0).getString("catalogVersion"));
    JSONObject cand=MainActivity.obj("speciesId","u25","name","룬장인","rarity","RARE","level",3);
    api.pending.done(MainActivity.obj("requestId",api.posts.get(0).getString("requestId"),"sessionId","s1","revision",0,"status","PENDING","rerolls",0,"rerollCost",3,"baseCost",6,"candidate",cand,"credits",4),null);idle();helper.layout(h,SIZES[0]);
-   assertNotNull("후보 등록증",h.root.findViewWithTag("recruit-registration-card"));
-   Button reroll=(Button)tag(h,"recruit-reroll");/* 새로고침은 오른쪽 위 작은 ↻ 버튼이고, 비용은 버튼 설명과 정보창에 있다 */assertEquals("↻",reroll.getText().toString());assertTrue("새로고침 = 중급 비용 절반",reroll.getContentDescription().toString().contains("지원서 3장"));
+   RecruitOverviewView results=(RecruitOverviewView)tag(h,"recruit-overview");assertTrue("후보 결과는 기본 격자로 열림",results.isShown());assertEquals(View.GONE,tag(h,"recruit-overview-toggle").getVisibility());assertEquals(1,results.tiles.size());results.choose(results.tiles.get(0),false);idle();helper.layout(h,SIZES[0]);
+   assertNotNull("선택한 후보의 원본 등록증",h.root.findViewWithTag("recruit-registration-card"));
+   Button reroll=(Button)tag(h,"recruit-reroll");assertEquals("리롤 · 지원서 3장",reroll.getText().toString());assertTrue("새로고침 = 중급 비용 절반",reroll.getContentDescription().toString().contains("지원서 3장"));
    helper.png(NativeHomePartyFeedbackTest.render(h.root),"roster60-session-candidate-915x412.png");
    /* 확인 버튼은 '전부 합격' 하나다. 남은 후보 회차를 한 번의 claim-all 요청으로 확정한다. */
    assertEquals("전부 합격",((Button)tag(h,"recruit-confirm")).getText().toString());tag(h,"recruit-confirm").performClick();idle();

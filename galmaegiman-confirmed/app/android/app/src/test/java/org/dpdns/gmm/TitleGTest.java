@@ -204,10 +204,13 @@ public class TitleGTest {
             backdrop.titleFirst,
             backdrop.titleSecond,
             backdrop.settings
-          }) assertEquals("로그인 폼 뒤에 제목/CTA를 중복 표시하지 않음", View.GONE, view.getVisibility());
+          }) assertEquals("로그인은 바로 전 시작 화면의 제목과 고정 구성을 유지", View.VISIBLE, view.getVisibility());
       assertTrue(
-          "왼쪽 로그인 폼을 가리지 않도록 원본은 오른쪽",
-          backdrop.guardianBox(null).left > host.safeBounds(915, 412).centerX());
+          "원본 캐릭터는 시작 화면과 같은 왼쪽에 유지",
+          backdrop.guardianBox(null).right < backdrop.mainBox().left);
+      assertEquals("뒤로", backdrop.settings.getText().toString());
+      assertEquals(View.VISIBLE, backdrop.loginNote.getVisibility());
+      assertNull("구형 기록부 로그인 판은 표시하지 않음", host.loginScroll);
       TitleView in = title(host, true);
       review.viewport(host, 915, 412);
       assertEquals("게임 시작", in.enter.getText().toString());

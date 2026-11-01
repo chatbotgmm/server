@@ -25,28 +25,30 @@ public class UserUiFeedbackRegressionTest {
       MainActivity h=c.get();RecruitCardRerollTest.Api api=new RecruitCardRerollTest.Api(h);
       NativeRecruitSession screen=recruit.open(h,api,RecruitCardRerollTest.rows(3),RecruitCardRerollTest.PHONE,100);
       assertNull(h.root.findViewWithTag("recruit-claim"));assertNull(h.root.findViewWithTag("recruit-claim-all"));
-      Button confirm=h.root.findViewWithTag("recruit-confirm");assertEquals("확인",confirm.getText().toString());assertEquals(View.VISIBLE,screen.selectedCandidate.getVisibility());assertTrue(screen.selectedCandidate.getText().toString().contains("확인 시 모두 합류"));
+      Button confirm=h.root.findViewWithTag("recruit-confirm");assertEquals("전부 합격",confirm.getText().toString());assertEquals(View.VISIBLE,screen.selectedCandidate.getVisibility());assertTrue(confirm.getContentDescription().toString().contains("남은 후보만 모두 합류"));
       confirm.performClick();confirm.performClick();assertEquals(1,api.paths.size());
       assertEquals("native/roster60/recruit/session/claim-all",api.paths.get(0));assertEquals(3,api.bodies.get(0).getJSONArray("sessions").length());
       api.pending.done(null,"network");assertEquals(3,screen.pendingRows().length());
       ((Button)h.root.findViewWithTag("recruit-retry")).performClick();assertEquals(api.bodies.get(0).toString(),api.bodies.get(1).toString());
     }
   }
-  @Test public void onePendingUsesExistingSingleClaimAndRerollIsSmallUpperRight()throws Exception{
+  @Test public void onePendingUsesExistingBulkContractAndRerollStaysBelowPicture()throws Exception{
     try(ActivityController<MainActivity> c=recruit.helper.flow.start()){
       MainActivity h=c.get();RecruitCardRerollTest.Api api=new RecruitCardRerollTest.Api(h);
       JSONArray rows=RecruitCardRerollTest.rows(3);rows.getJSONObject(0).put("status","CLAIMED");rows.getJSONObject(2).put("status","CLAIMED");
-      NativeRecruitSession screen=recruit.open(h,api,rows,RecruitCardRerollTest.PHONE,100);
+      NativeRecruitSession screen=recruit.open(h,api,rows,RecruitCardRerollTest.PHONE,100);recruit.center(screen,1);recruit.helper.layout(h,RecruitCardRerollTest.PHONE);
       Button refresh=recruit.reroll(screen,1);ImageView image=screen.slots.get(1).findViewWithTag("recruit-registration-card");
-      assertEquals(0,image.getPaddingTop());assertEquals(h.dp(48),refresh.getLayoutParams().width);assertTrue(refresh.getContentDescription().toString().contains("포기"));
+      assertEquals(0,image.getPaddingTop());new RecruitCandidateDecisionTest().assertBottomRefreshLabel(h,refresh);assertTrue(refresh.getContentDescription().toString().contains("포기"));
       ((Button)h.root.findViewWithTag("recruit-confirm")).performClick();
-      assertEquals(1,api.paths.size());assertEquals("native/roster60/recruit/session/action",api.paths.get(0));assertEquals("claim",api.bodies.get(0).getString("action"));assertEquals("session-1",api.bodies.get(0).getString("sessionId"));
+      assertEquals(1,api.paths.size());assertEquals("native/roster60/recruit/session/claim-all",api.paths.get(0));assertFalse(api.bodies.get(0).has("action"));JSONArray pending=api.bodies.get(0).getJSONArray("sessions");assertEquals(1,pending.length());assertEquals("session-1",pending.getJSONObject(0).getString("sessionId"));assertEquals(0,pending.getJSONObject(0).getInt("revision"));
     }
   }
   @Test public void storyKeepsDistinctRoutesWithoutGiantSaveDebugControl()throws Exception{
     NativeRoster60StoryTest story=new NativeRoster60StoryTest();
     try(ActivityController<MainActivity> c=recruit.helper.flow.start()){
-      MainActivity h=c.get();story.prepare(h);h.openRosterStory();
+      // These route controls belong to the retained journal presenter. The public entry
+      // opens the village story overlay, whose routes have their own integration tests.
+      MainActivity h=c.get();story.prepare(h);NativeRoster60StoryTest.openLegacy(h);
       assertNull(h.root.findViewWithTag("story-refresh"));assertNotNull(h.root.findViewWithTag("story-continue"));
       assertNotNull(h.root.findViewWithTag("story-free-adventure"));assertNotNull(h.root.findViewWithTag("story-play-menu"));
       h.rosterStory.view.notice.setText("연결 실패");assertEquals(View.VISIBLE,h.rosterStory.view.notice.getVisibility());

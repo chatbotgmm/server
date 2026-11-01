@@ -1074,12 +1074,12 @@ final class BattleView extends FrameLayout implements FullBleed {
       c.clipRect(0,0,world,h);
       JSONObject a = active(0), b = active(1);
       c.save();
-      c.translate(parallax.x, parallax.y);
-      playback.fighter(c, a, new RectF(world * .045f, h * .30f, world * .495f, h * .90f), 0);
-      c.restore();
-      c.save();
       c.translate(parallax.x * .6f, parallax.y * .6f);
       playback.fighter(c, b, new RectF(world * .51f, h * .07f, world * .95f, h * .53f), 1);
+      c.restore();
+      c.save();
+      c.translate(parallax.x, parallax.y);
+      playback.fighter(c, a, new RectF(world * .045f, h * .30f, world * .495f, h * .90f), 0);
       c.restore();
       c.save();
       c.translate(parallax.x * .8f, parallax.y * .8f);

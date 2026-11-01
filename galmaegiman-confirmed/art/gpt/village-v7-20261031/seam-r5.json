@@ -1,0 +1,104 @@
+{
+  "name": "layered-approved-v7-seam-r5",
+  "generatedPath": "/workspace/generated_images/exec-3ee23d85-2ab2-4a09-942b-cc9e3f299ae2.png",
+  "prompt": "Localized alpha-only ground-edge repair, combining the TWO supplied versions of the SAME game asset. FIRST IMAGE (r4) is the BASE: its upper skyline edge is clean and correct. SECOND IMAGE (r3) is ONLY the REFERENCE for its softer BOTTOM-LEFT GROUND ALPHA. The current base has an unwanted HARD VERTICAL CUT at x140..150 on its bottom paving. Make its lower-left edge fade smoothly into transparent alpha like the second image, ONLY within the small region x130..230,y500..725. At y700: alpha should be0 by x140, about10 atx150, about140 atx180, about245atx200 and253atx230. Blend the repair gently into neighboring rows at y500 so there is no horizontal seam. This exact small lower-left strip is the ONLY edit. Preserve the FIRST image's clean solid upper hill contour and natural colors at y0..500 completely; DO NOT feather, darken, blur, repaint or add any shadow around the upper-left hillside. Keep every building, lighthouse, tree, landform, water, paving shapes, camera, image dimensions and colors of the FIRST image. No added or moved objects. Alpha feather means true transparent PNG alpha, NOT painted dark/gray/black gradient, white haze, blur, rectangle or checkerboard. Preserve the base's transparent sky. Final goal: the clean upper silhouette of first image plus the softly blending lower-left paving transparency of second image. Wide3:1 transparent game layer near2169x725.",
+  "sourcePath": "art/gpt/village-v7-20261031/source/layered-approved-v7-seam-r5.png",
+  "runtimePath": "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r5.png",
+  "activeRuntime": true,
+  "referencePaths": [
+    "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r4.png",
+    "art/gpt/village-v7-20261031/runtime/layered-approved-v7-seam-r3.png"
+  ],
+  "reviewBasis": "R4nativepreviewconfirmedcleanupperedgebutphone x338/y391+andtabletx590/y670+hadstraightgroundcolorseam. Parent authorizedr5lowerleftalpha repair usingr4base+r3groundreference.",
+  "nativePreview": "pending",
+  "width": 2168,
+  "height": 725,
+  "bytes": 2274699,
+  "sha256": "c89831b5d00d2490708c6d3bed8191a1c26add1198bd8ada27d195f96181975d",
+  "gitBlobSha": "a6042fa1512a8547731792f2529384af17ef9f37",
+  "alphaRange": [
+    0,
+    255
+  ],
+  "visibleBoundsAlpha32": [
+    145,
+    55,
+    2168,
+    725
+  ],
+  "measuredAlpha": {
+    "180": {
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 0,
+      "180": 0,
+      "200": 252,
+      "230": 253,
+      "260": 253,
+      "280": 253,
+      "300": 253
+    },
+    "200": {
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 0,
+      "180": 250,
+      "200": 253,
+      "230": 253,
+      "260": 253,
+      "280": 253,
+      "300": 253
+    },
+    "300": {
+      "130": 0,
+      "140": 0,
+      "150": 155,
+      "160": 241,
+      "180": 253,
+      "200": 253,
+      "230": 253,
+      "260": 253,
+      "280": 254,
+      "300": 253
+    },
+    "500": {
+      "130": 0,
+      "140": 0,
+      "150": 15,
+      "160": 40,
+      "180": 113,
+      "200": 236,
+      "230": 253,
+      "260": 253,
+      "280": 253,
+      "300": 254
+    },
+    "600": {
+      "130": 0,
+      "140": 0,
+      "150": 5,
+      "160": 20,
+      "180": 82,
+      "200": 183,
+      "230": 251,
+      "260": 253,
+      "280": 253,
+      "300": 253
+    },
+    "700": {
+      "130": 0,
+      "140": 0,
+      "150": 0,
+      "160": 4,
+      "180": 34,
+      "200": 78,
+      "230": 167,
+      "260": 242,
+      "280": 251,
+      "300": 253
+    }
+  },
+  "scopeDeviation": "Generated bottom-row feather extends farther than target: y700/x230alpha167 andx260alpha242 rather than full opacity atx230. Upper-left silhouette stays crisp; actual native preview must check no ground gap/ghosting."
+}

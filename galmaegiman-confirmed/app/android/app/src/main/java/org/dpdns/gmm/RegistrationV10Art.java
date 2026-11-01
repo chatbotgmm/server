@@ -6,7 +6,7 @@ import org.json.*;
 import java.io.*;
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
-/** 방범대 등록증 v10 완성 카드(프레임·제목 포함). 모집 후보·수령 결과 전용, 전투 앞뒤 그림과 별개. */
+/** 방범대 등록증 v10 완성 카드. 모집 후보·수령 결과·도감에서 같은 원본을 사용하며 전투 앞뒤 그림과는 별개다. */
 final class RegistrationV10Art {
  static final String ROOT="native/registration-v10/";
  private static JSONObject cards;

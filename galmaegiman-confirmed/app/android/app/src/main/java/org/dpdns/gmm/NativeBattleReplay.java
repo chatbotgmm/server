@@ -175,6 +175,7 @@ final class NativeBattleReplay {
   }
   static final class Arena extends View {
     final MainActivity h;final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);JSONObject state;
+    final BattleContactShadow contactShadow=new BattleContactShadow();
     final Runnable skinReady=this::invalidate;
     Bitmap harbor(){Bitmap image=BattleSkin.peek("bg-harbor");if(image==null&&!BattleSkin.failed("bg-harbor"))BattleSkin.load(h,"bg-harbor",skinReady);return image;}
     Arena(MainActivity h,JSONObject state){super(h);this.h=h;this.state=state;setContentDescription("기록된 전투 장면");}
@@ -183,11 +184,11 @@ final class NativeBattleReplay {
       String background=BattleBackground.path(state.optString("scene","harbor"));
       Bitmap bg="harbor".equals(state.optString("scene","harbor"))?harbor():background==null?null:h.art.scene(background,this::invalidate);if(bg!=null)c.drawBitmap(bg,null,new RectF(0,0,w,height),p);else c.drawColor(0xff244b56);
       JSONArray teams=state.optJSONArray("teams");if(teams==null)return;
-      for(int side=0;side<2;side++){
+      for(int side=1;side>=0;side--){
         JSONObject t=teams.optJSONObject(side);if(t==null)continue;JSONArray fighters=t.optJSONArray("fighters");if(fighters==null)continue;JSONObject f=fighters.optJSONObject(t.optInt("active"));if(f==null)continue;
         String path=BattleReplayArt.path(f);Bitmap art=path.isEmpty()?null:h.art.scene(path,this::invalidate);
         RectF box=side==0?new RectF(w*.03f,height*.38f,w*.65f,height*.95f):new RectF(w*.39f,height*.03f,w*.97f,height*.58f);
-        if(art!=null){Rect src=h.art.alpha(art,path);float scale=Math.min(box.width()/src.width(),box.height()/src.height())*BattleReplayArt.scale(f);float bw=src.width()*scale,bh=src.height()*scale;p.setColorFilter(BattleReplayArt.tint(f));int save=c.save();c.clipRect(0,0,w,height);c.drawBitmap(art,src,new RectF(box.centerX()-bw/2,box.bottom-bh,box.centerX()+bw/2,box.bottom),p);c.restoreToCount(save);p.setColorFilter(null);}
+        if(art!=null){Rect src=h.art.alpha(art,path);float scale=Math.min(box.width()/src.width(),box.height()/src.height())*BattleReplayArt.scale(f);float bw=src.width()*scale,bh=src.height()*scale;RectF body=new RectF(box.centerX()-bw/2,box.bottom-bh,box.centerX()+bw/2,box.bottom);p.setColorFilter(BattleReplayArt.tint(f));int save=c.save();c.clipRect(0,0,w,height);contactShadow.draw(c,body,getResources().getDisplayMetrics().density,255);c.drawBitmap(art,src,body,p);c.restoreToCount(save);p.setColorFilter(null);}
         TemporaryUnitPresentation.badge(c, TemporaryUnitPresentation.label(f, state.optLong("serverNow")), box, 12 * getResources().getDisplayMetrics().scaledDensity, h.prose);
         p.setColor(0xfffff6df);p.setTextSize(h.dp(15));p.setShadowLayer(2,1,1,Color.BLACK);
         c.drawText(f.optString("name")+" "+f.optInt("hp")+"/"+f.optInt("maxHp"),h.dp(10),side==0?height-h.dp(10):h.dp(24),p);p.clearShadowLayer();

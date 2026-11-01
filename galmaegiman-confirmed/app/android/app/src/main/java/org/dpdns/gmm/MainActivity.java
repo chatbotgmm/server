@@ -863,49 +863,26 @@ public class MainActivity extends AppCompatActivity {
     epoch++;
     screen = "login";
     root.removeAllViews();
+    loginScroll = null;
     TitleView background = new TitleView(this, false);
     background.enter.setText(EntryActionUi.KAKAO_LABEL);
     EntryActionUi.style(this, background.enter, true);
     background.enter.setContentDescription("카카오톡으로 로그인 · 카카오 공식 인증");
     background.enter.setTag("login-kakao");
-    background.enter.setVisibility(View.VISIBLE);
     entryActions().bind(background.enter, true);
-    background.settings.setVisibility(View.GONE);
+    background.settings.setText("뒤로");
+    background.settings.setTag("login-back");
+    background.settings.setContentDescription("게임 시작 화면으로 돌아가기");
+    background.settings.setOnClickListener(v -> {
+      if (!screen.equals("login") || background.getParent() != root) return;
+      getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
+          .edit().remove("linkCode").apply();
+      titleScreen();
+    });
+    getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0)
+        .edit().remove("linkCode").apply();
     root.addView(background, new FrameLayout.LayoutParams(-1, -1));
-    View shade = new GameShade(this);
-    shade.setBackgroundColor(0x082b251d);
-    root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
-    LinearLayout form = new LinearLayout(this);
-    form.setOrientation(LinearLayout.VERTICAL);
-    form.setPadding(dp(20), dp(10), dp(20), dp(10));
-    JournalViewport scroll = new JournalViewport(this, "로그인", form);
-    loginScroll = scroll;
-    scroll.setBackground(new FrameDrawable(this, "dialog.webp"));
-    FrameLayout.LayoutParams bounds =
-        new FrameLayout.LayoutParams(
-            Math.min(dp(420), (int) (getResources().getDisplayMetrics().widthPixels * .7f)),
-            (int) (getResources().getDisplayMetrics().heightPixels * .88f),
-            Gravity.CENTER_VERTICAL | Gravity.LEFT);
-    bounds.leftMargin = dp(24);
-    root.addView(scroll, bounds);
-    root.post(this::resizeLogin);
-    LinearLayout head = new LinearLayout(this);
-    head.setGravity(Gravity.CENTER_VERTICAL);
-    form.addView(head);
-    getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
-    title = text("방범대 인사 기록부", 22);
-    title.setTypeface(headline);
-    head.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
-    Button close =
-        button(
-            "×",
-            () -> {
-              getSharedPreferences(NativeBackend.accountPreferences(BuildConfig.SERVER_URL), 0).edit().remove("linkCode").apply();
-              titleScreen();
-            });
-    close.setBackground(new GameButtonDrawable(this, GameButtonDrawable.PAPER));
-    head.addView(close, new LinearLayout.LayoutParams(dp(48), dp(48)));
-    form.addView(text("카카오 공식 인증 후 게임으로 돌아와요. 별도 채팅 코드는 필요하지 않아요.", 14));
+    title = text("갈매미맨 방범대", 24);
   }
 
   void resizeLogin() {

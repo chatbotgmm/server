@@ -17,10 +17,12 @@ final class TitleView extends FrameLayout implements FullBleed {
   final Runnable motionChanged;
   // 이전 검토 도구와의 호환 필드. 큰 설명판은 표시하지 않는다.
   final ScrollView journal;
-  final TextView caption, titleFirst, titleSecond;
+  final TextView caption, titleFirst, titleSecond, loginNote;
   final Paint paint = new Paint(3);
   final TitleHarborArt harbor = new TitleHarborArt();
   final RectF captionRect = new RectF(), firstRect = new RectF(), secondRect = new RectF();
+  final RectF loginNoteRect = new RectF();
+  int loginNoteHeight;
   Bitmap guardianArt;
   Rect guardianSource;
 
@@ -62,6 +64,13 @@ final class TitleView extends FrameLayout implements FullBleed {
     titleSecond.setTag("title-name-second");
     titleSecond.setSingleLine(true);
     addView(titleSecond);
+    loginNote = text("카카오 인증 후 돌아와요.", 14, false, 0xffead7ab);
+    loginNote.setTag("login-continuity-note");
+    loginNote.setGravity(Gravity.CENTER);
+    loginNote.setMaxLines(2);
+    NativeEconomy.wrapAtSpaces(loginNote, loginNote.getText().toString());
+    loginNote.setVisibility(loginBackdrop ? View.VISIBLE : View.GONE);
+    addView(loginNote);
     enter =
         host.button(
             "게임 시작",
@@ -98,14 +107,6 @@ final class TitleView extends FrameLayout implements FullBleed {
       account.setPadding(host.dp(12), host.dp(4), host.dp(12), host.dp(6));
       addView(account);
     }
-    if (loginBackdrop) {
-      caption.setVisibility(View.GONE);
-      titleFirst.setVisibility(View.GONE);
-      titleSecond.setVisibility(View.GONE);
-      enter.setVisibility(View.GONE);
-      settings.setVisibility(View.GONE);
-      if (account != null) account.setVisibility(View.GONE);
-    }
   }
 
   void guardianReady(Bitmap bitmap) {
@@ -132,18 +133,11 @@ final class TitleView extends FrameLayout implements FullBleed {
   @Override
   public boolean onInterceptTouchEvent(MotionEvent event) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    RectF region =
-        loginBackdrop
-            ? new RectF(
-                safe.left + safe.width() * .50f,
-                safe.top + safe.height() * .18f,
-                safe.right - host.dp(24),
-                safe.top + safe.height() * .86f)
-            : new RectF(
-                safe.left + safe.width() * .08f,
-                safe.top + safe.height() * .18f,
-                column(getWidth(), getHeight()).left - host.dp(6),
-                safe.top + safe.height() * .86f);
+    RectF region = new RectF(
+        safe.left + safe.width() * .08f,
+        safe.top + safe.height() * .18f,
+        column(getWidth(), getHeight()).left - host.dp(6),
+        safe.top + safe.height() * .86f);
     return parallax.intercept(event, region, true) || super.onInterceptTouchEvent(event);
   }
 
@@ -197,7 +191,10 @@ final class TitleView extends FrameLayout implements FullBleed {
   RectF mainBox() {
     RectF safe = host.safeBounds(getMeasuredWidth(), getMeasuredHeight());
     RectF box = column(getMeasuredWidth(), getMeasuredHeight());
-    box.bottom = safe.bottom - Math.max(host.dp(14), safe.height() * .085f);
+    // Both stages reserve the same helper lane, including on short screens with large text.
+    // The title-to-login action anchor therefore never jumps when the note becomes visible.
+    float noteLane = loginNoteHeight + host.dp(8);
+    box.bottom = safe.bottom - Math.max(noteLane, Math.max(host.dp(14), safe.height() * .085f));
     box.top = box.bottom - Math.max(host.dp(56), Math.min(host.dp(84), safe.height() * .14f));
     return box;
   }
@@ -221,10 +218,20 @@ final class TitleView extends FrameLayout implements FullBleed {
     return new RectF(captionRect);
   }
 
+  int snappedWidth(RectF box) {
+    return Math.max(1, Math.round(box.right) - Math.round(box.left));
+  }
+
+  int snappedHeight(RectF box) {
+    return Math.max(1, Math.round(box.bottom) - Math.round(box.top));
+  }
+
   void measure(View view, RectF box) {
+    // The measured size must use the same rounded edges as place(), rather than
+    // rounding the floating-point span independently and differing by one pixel.
     view.measure(
-        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(box.width())), MeasureSpec.EXACTLY),
-        MeasureSpec.makeMeasureSpec(Math.max(1, Math.round(box.height())), MeasureSpec.EXACTLY));
+        MeasureSpec.makeMeasureSpec(snappedWidth(box), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(snappedHeight(box), MeasureSpec.EXACTLY));
   }
 
   float fontHeight(float size) {
@@ -244,7 +251,14 @@ final class TitleView extends FrameLayout implements FullBleed {
   protected void onMeasure(int widthSpec, int heightSpec) {
     int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
     setMeasuredDimension(width, height);
-    RectF safe = host.safeBounds(width, height), body = column(width, height), main = mainBox();
+    RectF safe = host.safeBounds(width, height), body = column(width, height);
+    // Keep the text's internal layout at the full action width. Measuring in mainBox()
+    // would shrink it again during onLayout and visibly move the centered helper left.
+    loginNote.measure(
+        MeasureSpec.makeMeasureSpec(snappedWidth(body), MeasureSpec.EXACTLY),
+        MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+    loginNoteHeight = loginNote.getMeasuredHeight();
+    RectF main = mainBox();
     float captionLeft = body.left + Math.min(host.dp(24), safe.width() * .025f);
     caption.measure(
         MeasureSpec.makeMeasureSpec(
@@ -281,10 +295,13 @@ final class TitleView extends FrameLayout implements FullBleed {
         firstRect.bottom + gap + (float) Math.ceil(fontHeight(secondSize)) + host.dp(2));
     measure(titleFirst, firstRect);
     measure(titleSecond, secondRect);
-    EntryActionUi.fit(host, enter, Math.round(main.width()), Math.round(main.height()));
+    EntryActionUi.fit(host, enter, snappedWidth(main), snappedHeight(main));
     measure(enter, main);
     measure(settings, gearBox());
     if (account != null) measure(account, accountBox());
+    loginNoteRect.set(body.left, Math.round(main.bottom) + host.dp(5), body.right,
+        Math.round(main.bottom) + host.dp(5) + loginNote.getMeasuredHeight());
+    measure(loginNote, loginNoteRect);
     journal.measure(
         MeasureSpec.makeMeasureSpec(0, MeasureSpec.EXACTLY),
         MeasureSpec.makeMeasureSpec(0, MeasureSpec.EXACTLY));
@@ -304,6 +321,8 @@ final class TitleView extends FrameLayout implements FullBleed {
     place(enter, mainBox());
     place(settings, gearBox());
     if (account != null) place(account, accountBox());
+    if (loginBackdrop) place(loginNote, loginNoteRect);
+    else loginNote.layout(0, 0, 0, 0);
   }
 
   RectF backgroundBox(Bitmap background) {
@@ -314,15 +333,6 @@ final class TitleView extends FrameLayout implements FullBleed {
 
   RectF guardianBox(Bitmap background) {
     RectF safe = host.safeBounds(getWidth(), getHeight());
-    if (loginBackdrop) {
-      RectF backdrop = backgroundBox(background);
-      float foot = backdrop.top + backdrop.height() * JournalAmbient.HERO_FOOT;
-      return new RectF(
-          safe.left + safe.width() * .51f,
-          safe.top + safe.height() * .14f,
-          safe.right - host.dp(16),
-          Math.min(safe.bottom - host.dp(12), foot));
-    }
     RectF stage = new RectF(
         safe.left + safe.width() * .039f,
         safe.top + safe.height() * .12f,

@@ -76,6 +76,8 @@ public class NativeRecruitInertialRailTest {
     screen.open(MainActivity.obj("enabled", true, "catalogVersion", "offline-fixture",
         "offers", new JSONArray(), "sessions", candidates));
     helper.layout(h, profile);
+    if (screen.overviewMode) screen.hideOverview();
+    helper.layout(h, profile);
     screen.rail.bindVisible();
     helper.layout(h, profile);
     ShadowLooper.idleMainLooper(200, TimeUnit.MILLISECONDS);
@@ -312,11 +314,15 @@ public class NativeRecruitInertialRailTest {
       api.pending.done(success, null);
       helper.layout(h, PHONE);
       assertEquals(View.GONE, screen.emptyStage.getVisibility());
-      assertEquals(View.VISIBLE, screen.rail.getVisibility());
+      assertTrue("Recovered results use the default result grid",screen.overviewMode);
+      assertEquals(View.VISIBLE,screen.overview.getVisibility());
+      assertEquals(View.INVISIBLE,screen.rail.getVisibility());
       assertFalse(screen.noticeFailed);
       assertEquals("", screen.prefs.getString(screen.key, ""));
       assertNull(h.root.findViewWithTag("recruit-retry"));
-      assertEquals(1, screen.slots.size());
+      assertEquals(1,screen.overview.tiles.size());
+      assertSame(screen.candidates,screen.overview.rows);
+      assertEquals("session-0",screen.overview.tiles.get(0).sessionId);
       assertEquals("session-0", screen.state.getString("sessionId"));
       assertTrue(screen.prefs.getString(screen.key + ".result", "").contains("session-0"));
     }

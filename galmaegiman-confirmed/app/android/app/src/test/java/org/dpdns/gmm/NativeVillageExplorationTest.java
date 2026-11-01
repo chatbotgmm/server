@@ -272,7 +272,7 @@ public class NativeVillageExplorationTest {
       view.owner.pause(); api.account = "village-player.2.renewed"; view.owner.resume(); view = h.villageHome.view; settle(h, view, PHONE);
       assertEquals(scope, view.owner.scope); assertEquals(camera, view.camera.cameraUnits(), .000001); assertEquals(scale, view.inspection.scale(), .000001); assertEquals(pan, view.inspection.panNormalized(), .000001);
       view.owner.pause(); api.account = "other-explorer.1.signature"; view.owner.resume(); view = h.villageHome.view; settle(h, view, PHONE);
-      assertNotEquals(scope, view.owner.scope); assertEquals(0, view.camera.cameraUnits(), 0); assertEquals(1, view.inspection.scale(), 0); assertEquals(0, view.inspection.offsetY(), 0);
+      assertNotEquals(scope, view.owner.scope); assertEquals(0, view.camera.cameraUnits(), 0); assertEquals(NativeVillageHomeView.DEFAULT_SCALE, view.inspection.scale(), 0); assertEquals(NativeVillageHomeView.DEFAULT_PAN, view.inspection.panNormalized(), 0);
       camera(h, view, 1.25); view.zoomAt(1.1f, view.field.centerX(), view.field.centerY()); settle(h, view, PHONE);
       view.owner.pause(); api.account = "village-player.3.returned"; view.owner.resume(); view = h.villageHome.view; settle(h, view, PHONE);
       assertEquals(scope, view.owner.scope); assertEquals(camera, view.camera.cameraUnits(), .000001); assertEquals(scale, view.inspection.scale(), .000001); assertEquals(pan, view.inspection.panNormalized(), .000001);
@@ -302,7 +302,7 @@ public class NativeVillageExplorationTest {
           view.zoomAt(VillageInspectionViewport.MAX_SCALE / view.inspection.scale(), view.field.centerX(), view.field.centerY()); settle(h, view, profile);
           assertNoGap(view); assertFixed(controls);
           for (Button control : new Button[]{view.previousQuarter, view.nextQuarter}) {
-            assertEquals(h.dp(48), control.getWidth()); assertEquals(h.dp(48), control.getHeight());
+            assertEquals(h.dp(64), control.getWidth()); assertEquals(h.dp(48), control.getHeight());
             assertTrue(view.safe.contains(bounds(control))); NativeNoScrollReviewTest.assertFullyVisible(control, h.root);
             assertTrue(control.getContentDescription().toString().contains("90"));
           }

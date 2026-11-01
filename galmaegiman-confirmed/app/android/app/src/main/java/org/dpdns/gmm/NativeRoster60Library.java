@@ -10,28 +10,95 @@ import java.util.*;
 final class NativeRoster60Library {
  final MainActivity h; final SharedPreferences prefs; String owner,key;int epoch,index;String grade="";boolean ownedOnly;int detailPage;TextView detailBody;
  JSONObject catalog,offer;JSONArray visible=new JSONArray();LinearLayout root,details;ImageView art;TextView title,message;boolean busy;
+ NativeCatalogCarouselView collectionView; android.app.AlertDialog detailsDialog; androidx.activity.OnBackPressedCallback collectionBack;
+ String selectedSpecies="",detailsSpecies=""; boolean heldDescription; final int[] detailScroll=new int[4];
+ static final java.util.WeakHashMap<MainActivity,CollectionState> collectionStates=new java.util.WeakHashMap<>();
+ static final class CollectionState {String account,grade,species;boolean owned;int detail;final int[] scroll;CollectionState(NativeRoster60Library library){account=library.key;grade=library.grade;species=library.selectedSpecies;owned=library.ownedOnly;detail=library.detailPage;scroll=library.detailScroll;}}
  NativeRoster60Library(MainActivity h){this.h=h;prefs=h.getSharedPreferences("roster60_recruit",Context.MODE_PRIVATE);}
  boolean current(){return epoch==h.epoch&&owner.equals(h.api.token())&&!h.isDestroyed();}
  void base(String name,String screen){h.base(name,screen);owner=h.api.token();epoch=h.epoch;key=NativeProgression.accountKey(BuildConfig.SERVER_URL+"|"+owner);h.page.removeViewAt(h.page.getChildCount()-1);root=new LinearLayout(h);root.setOrientation(1);root.setPadding(h.dp(8),0,h.dp(8),0);root.setBackground(NavyWorkbenchTheme.surface(h,0xee102433,NavyWorkbenchTheme.EDGE,10));h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));message=h.text("불러오는 중…",12);message.setTextColor(NavyWorkbenchTheme.TEXT);root.addView(message);}
- void collection(){base("도감","collection");h.api.call("native/roster60/collection",null,(r,e)->{if(!current())return;if(e!=null){message.setText("도감 준비 중 · "+e);return;}catalog=r;showCollection();});}
- void showCollection(){message.setText(catalog.optBoolean("testBaseline")?"60종 · 시험 기본안":"60종 도감");
-  LinearLayout nav=new LinearLayout(h);root.addView(nav);nav.addView(h.button("등급",()->{JSONObject gs=catalog.optJSONObject("grades");ArrayList<String> ids=new ArrayList<>(),names=new ArrayList<>();ids.add("");names.add("전체");Iterator<String> it=gs.keys();while(it.hasNext()){String k=it.next();ids.add(k);names.add(gs.optString(k));}new GameDialog(h).navy().setTitle("등급 필터").setItems(names.toArray(new String[0]),(d,i)->{grade=ids.get(i);filter();}).show();}));nav.addView(h.button("보유 필터",()->{ownedOnly=!ownedOnly;filter();}));nav.addView(h.button("이전",()->{if(visible.length()>0){index=(index+visible.length()-1)%visible.length();bind();}}));nav.addView(h.button("다음",()->{if(visible.length()>0){index=(index+1)%visible.length();bind();}}));
-  LinearLayout columns=new LinearLayout(h);root.addView(columns,new LinearLayout.LayoutParams(-1,0,1));art=new ImageView(h);art.setScaleType(ImageView.ScaleType.FIT_CENTER);columns.addView(art,new LinearLayout.LayoutParams(0,-1,1));details=new LinearLayout(h);details.setOrientation(1);columns.addView(details,new LinearLayout.LayoutParams(0,-1,1));title=h.text("",16);title.setTextColor(NavyWorkbenchTheme.TEXT);title.setMaxLines(2);details.addView(title);
-  LinearLayout tabs=new LinearLayout(h);String[] labels={"능력치","적합도","방어","기술"};for(int i=0;i<labels.length;i++){final int page=i;Button tab=h.button(labels[i],()->{detailPage=page;bind();});NavyWorkbenchTheme.tab(h,tab,false);tab.setTextSize(12);tab.setMinWidth(0);tab.setMinimumWidth(0);tabs.addView(tab,new LinearLayout.LayoutParams(0,h.dp(48),1));}details.addView(tabs);
-  detailBody=new androidx.appcompat.widget.AppCompatTextView(h);detailBody.setTextSize(13);detailBody.setTypeface(h.prose);detailBody.setPadding(h.dp(8),h.dp(4),h.dp(8),h.dp(4));detailBody.setTextColor(NavyWorkbenchTheme.TEXT);detailBody.setTag("roster60-collection-details");detailBody.setGravity(Gravity.CENTER_VERTICAL);androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(detailBody,10,14,1,android.util.TypedValue.COMPLEX_UNIT_SP);details.addView(detailBody,new LinearLayout.LayoutParams(-1,0,1));
-  art.setOnLongClickListener(v->{if(visible.length()>0){JSONObject u=visible.optJSONObject(index);message.setText("길게 누르는 동안 설명 · "+u.optString("name")+"\n"+u.optString("concept",u.optString("role","기술 속성·적합도·방어는 오른쪽 정보 참조")));}return true;});art.setOnTouchListener((v,event)->{if(event.getActionMasked()==MotionEvent.ACTION_UP||event.getActionMasked()==MotionEvent.ACTION_CANCEL)message.setText("60종 · "+(ownedOnly?"보유만":"전체")+" · 길게 눌러 설명");return false;});filter();
+ void collection(){
+  base("도감","collection");CollectionState saved=collectionStates.get(h);
+  if(saved!=null&&key.equals(saved.account)){grade=saved.grade;ownedOnly=saved.owned;selectedSpecies=saved.species;if(detailPage==0)detailPage=saved.detail;System.arraycopy(saved.scroll,0,detailScroll,0,detailScroll.length);}
+  h.api.call("native/roster60/collection",null,(r,e)->{if(!current())return;if(e!=null){message.setText("도감 준비 중 · "+e);return;}catalog=r;showCollection();});
  }
- void filter(){visible=new JSONArray();JSONArray all=catalog.optJSONArray("characters");for(int i=0;i<all.length();i++){JSONObject u=all.optJSONObject(i);if((grade.isEmpty()||grade.equals(u.optString("rarity")))&&(!ownedOnly||u.optInt("ownedCount")>0))visible.put(u);}index=0;bind();}
- void bind(){LinearLayout tabs=(LinearLayout)details.getChildAt(1);for(int i=0;i<tabs.getChildCount();i++){Button tab=(Button)tabs.getChildAt(i);if(tab.isSelected()!=(i==detailPage)){NavyWorkbenchTheme.tab(h,tab,i==detailPage);tab.setSelected(i==detailPage);}}if(visible.length()==0){RegistrationV10Art.clear(art);Roster60Portrait.clear(art);setText(detailBody,"");setText(title,"해당 개체 없음");return;}JSONObject u=visible.optJSONObject(index);setText(title,u.optString("name")+" · "+catalog.optJSONObject("grades").optString(u.optString("rarity"))+"\n"+(index+1)+" / "+visible.length()+" · 보유 "+u.optInt("ownedCount"));art.setContentDescription(u.optString("name")+" 정면 · 길게 눌러 설명");
-  if(!Roster60Portrait.bind(h,art,u.optString("id")))message.setText("해당 아트 준비 중 · 기존 캐릭터로 대체하지 않습니다.");
-  JSONObject stats=u.optJSONObject("levelOneStats");StringBuilder body=new StringBuilder();
-  if(detailPage==0&&stats!=null)body.append("Lv1 기본 능력치\n체력 ").append(stats.optInt("hp")).append(" · MP ").append(stats.optInt("mp")).append("\n내구력 ").append(stats.optInt("durability")).append("\n저항력 ").append(stats.optInt("statusResistance")).append(" · 속도 ").append(stats.optInt("speed"));
+ void showCollection(){
+  // The catalog owns one full-height native card stage; only its information sheet scrolls vertically.
+  h.page.removeAllViews();h.page.setPadding(0,0,0,0);root.removeAllViews();root.setPadding(0,0,0,0);
+  h.page.addView(root,new LinearLayout.LayoutParams(-1,0,1));
+  art=new ImageView(h);title=h.text("해당 개체 없음",16);title.setTextColor(NavyWorkbenchTheme.TEXT);
+  detailBody=new androidx.appcompat.widget.AppCompatTextView(h);detailBody.setTextSize(14);detailBody.setTypeface(h.prose);
+  detailBody.setPadding(h.dp(8),h.dp(8),h.dp(8),h.dp(8));detailBody.setTextColor(NavyWorkbenchTheme.TEXT);detailBody.setTag("roster60-collection-details");
+  collectionView=new NativeCatalogCarouselView(this);root.addView(collectionView,new LinearLayout.LayoutParams(-1,-1));
+  collectionBack=new androidx.activity.OnBackPressedCallback(false){@Override public void handleOnBackPressed(){if(current()&&detailsShowing())dismissDetails();else{setEnabled(false);h.getOnBackPressedDispatcher().onBackPressed();}}};h.getOnBackPressedDispatcher().addCallback(h,collectionBack);
+  filter();
+ }
+ void rememberCollection(){if(current())collectionStates.put(h,new CollectionState(this));}
+ void gradePicker(){
+  if(collectionView==null||!collectionView.active()||detailsShowing())return;
+  JSONObject gs=catalog.optJSONObject("grades");ArrayList<String> ids=new ArrayList<>(),names=new ArrayList<>();ids.add("");names.add("전체");
+  if(gs!=null){Iterator<String> it=gs.keys();while(it.hasNext()){String k=it.next();ids.add(k);names.add(gs.optString(k));}}
+  new GameDialog(h).navy().setTitle("등급 필터").setItems(names.toArray(new String[0]),(d,i)->{if(!current()||collectionView==null||!collectionView.active())return;grade=ids.get(i);filter();}).show();
+ }
+ void filter(){
+  rememberDetailScroll();String before=selectedSpecies;String retain=selectedSpecies;if(retain.isEmpty()&&visible.length()>0&&index<visible.length()&&index>=0)retain=visible.optJSONObject(index).optString("id");
+  visible=new JSONArray();JSONArray all=catalog.optJSONArray("characters");
+  if(all!=null)for(int i=0;i<all.length();i++){JSONObject u=all.optJSONObject(i);if(u!=null&&(grade.isEmpty()||grade.equals(u.optString("rarity")))&&(!ownedOnly||u.optInt("ownedCount")>0))visible.put(u);}
+  index=0;for(int i=0;i<visible.length();i++)if(retain.equals(visible.optJSONObject(i).optString("id"))){index=i;break;}
+  String after=visible.length()==0?"":visible.optJSONObject(index).optString("id");if(!before.equals(after))java.util.Arrays.fill(detailScroll,0);
+  heldDescription=false;if(collectionView!=null)collectionView.setItems(visible);bind();if(collectionView!=null)collectionView.centerOn(index,false);
+ }
+ void bind(){
+  if(collectionView!=null)collectionView.showSelection(index);
+  if(visible.length()==0){RegistrationV10Art.clear(art);Roster60Portrait.clear(art);setText(detailBody,"");setText(title,"해당 개체 없음");selectedSpecies="";setText(message,"등급 또는 보유 필터를 바꿔 주세요.");rememberCollection();return;}
+  index=Math.max(0,Math.min(index,visible.length()-1));JSONObject u=visible.optJSONObject(index);selectedSpecies=u.optString("id");
+  if(collectionView==null&&!Roster60Portrait.bind(h,art,selectedSpecies))message.setText("해당 아트 준비 중 · 기존 캐릭터로 대체하지 않습니다.");
+  updateDetailBody();updateCollectionMessage();rememberCollection();
+ }
+ void updateCollectionMessage(){
+  if(visible.length()==0)return;JSONObject u=visible.optJSONObject(index);
+  if(collectionView!=null)collectionView.setDescriptionMode(heldDescription);
+  setText(message,heldDescription?"길게 누르는 동안 설명 · "+u.optString("name")+"\n"+u.optString("concept",u.optString("role","상세 정보에서 능력과 기술을 확인하세요.")):(index+1)+" / "+visible.length()+" · 보유 "+u.optInt("ownedCount")+" · 길게 눌러 설명");
+  message.setContentDescription(message.getText());
+ }
+ void showHeldDescription(){if(collectionView==null||!collectionView.active()||visible.length()==0||detailsShowing())return;heldDescription=true;updateCollectionMessage();}
+ void clearHeldDescription(){if(!heldDescription)return;heldDescription=false;if(current())updateCollectionMessage();}
+ void selectCatalog(int next,boolean center){
+  if(collectionView==null||!collectionView.active()||detailsShowing()||next<0||next>=visible.length()||(center&&collectionView.carousel.blocksClick()))return;
+  if(index!=next){rememberDetailScroll();index=next;java.util.Arrays.fill(detailScroll,0);heldDescription=false;}bind();if(center)collectionView.centerOn(index,true);
+ }
+ void page(int delta){
+  if(collectionView==null||!collectionView.active()||detailsShowing()||visible.length()<2)return;
+  collectionView.carousel.stopMotion();int next=(index+delta)%visible.length();if(next<0)next+=visible.length();selectCatalog(next,true);
+ }
+ void updateDetailBody(){
+  if(detailBody==null)return;if(visible.length()==0){setText(detailBody,"");return;}
+  JSONObject u=visible.optJSONObject(index),stats=u.optJSONObject("levelOneStats");StringBuilder body=new StringBuilder();
+  if(detailPage==0){body.append(u.optString("concept",u.optString("role","")));if(body.length()>0)body.append("\n\n");if(stats!=null)body.append("Lv1 기본 능력치\n체력 ").append(stats.optInt("hp")).append(" · MP ").append(stats.optInt("mp")).append("\n내구력 ").append(stats.optInt("durability")).append("\n저항력 ").append(stats.optInt("statusResistance")).append(" · 속도 ").append(stats.optInt("speed"));}
   else if(detailPage==1)body.append("적합도\n").append(map(u.optJSONObject("suitability")));
   else if(detailPage==2)body.append(observedDefenseText(u));
-  else if(detailPage==3){JSONArray skills=u.optJSONArray("skills");if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);body.append("Lv").append(sk.optInt("learnLevel",1)).append(" ").append(sk.optString("name")).append(" · MP ").append(sk.optInt("mpCost")).append('\n');}}
+  else if(detailPage==3){JSONArray skills=u.optJSONArray("skills");if(skills!=null)for(int i=0;i<skills.length();i++){JSONObject sk=skills.optJSONObject(i);if(sk!=null)body.append("Lv").append(sk.optInt("learnLevel",1)).append(" ").append(sk.optString("name")).append(" · MP ").append(sk.optInt("mpCost")).append('\n');}}
   setText(detailBody,body.length()==0?"준비 중":body.toString());
-
+  if(details!=null){for(int i=0;i<details.getChildCount();i++){View view=details.getChildAt(i);if(view instanceof Button){Button tab=(Button)view;NavyWorkbenchTheme.tab(h,tab,i==detailPage);tab.setSelected(i==detailPage);}}}
  }
+ boolean detailsShowing(){return detailsDialog!=null&&detailsDialog.isShowing();}
+ ScrollView detailScroller(){if(detailsDialog==null||detailsDialog.getWindow()==null)return null;return detailsDialog.getWindow().getDecorView().findViewWithTag("game-dialog-body-scroll");}
+ void rememberDetailScroll(){ScrollView scroll=detailScroller();if(scroll!=null&&detailsSpecies.equals(selectedSpecies)&&detailPage>=0&&detailPage<detailScroll.length)detailScroll[detailPage]=scroll.getScrollY();}
+ void showDetails(){
+  if(collectionView==null||!collectionView.active()||visible.length()==0||detailsShowing())return;
+  rememberDetailScroll();collectionView.carousel.stopMotion();collectionView.carousel.removeCallbacks(collectionView.carousel.settleTask);collectionView.carousel.settling=false;clearHeldDescription();
+  if(detailBody.getParent() instanceof ViewGroup)((ViewGroup)detailBody.getParent()).removeView(detailBody);
+  HorizontalScrollView header=new HorizontalScrollView(h);header.setHorizontalScrollBarEnabled(false);details=new LinearLayout(h);details.setTag("roster60-collection-detail-tabs");header.addView(details,new HorizontalScrollView.LayoutParams(-2,-2));
+  String[] labels={"능력치","적합도","방어","기술"};
+  for(int i=0;i<labels.length;i++){final int selected=i;Button tab=collectionView.button(labels[i],"roster60-collection-detail-"+i,()->{if(!current()||!detailsShowing())return;rememberDetailScroll();detailPage=selected;updateDetailBody();rememberCollection();ScrollView scroll=detailScroller();if(scroll!=null)scroll.post(()->{if(current()&&detailsShowing())scroll.scrollTo(0,detailScroll[detailPage]);});});details.addView(tab,new LinearLayout.LayoutParams(-2,-2));}
+  updateDetailBody();JSONObject u=visible.optJSONObject(index);
+  detailsSpecies=selectedSpecies;detailsDialog=new GameDialog(h).navy().setTitle(u.optString("name")+" · 상세 정보").setFixedHeader(header).setScrollBody(detailBody).setPositiveButton("닫기",(d,w)->rememberDetailScroll()).show();
+  // GameDialog applies its default navy text after show; restore selected/secondary tab contrast.
+  updateDetailBody();
+  if(collectionBack!=null)collectionBack.setEnabled(true);ScrollView scroll=detailScroller();if(scroll!=null)scroll.post(()->{if(current()&&detailsShowing())scroll.scrollTo(0,detailScroll[detailPage]);});
+ }
+ void dismissDetails(){rememberDetailScroll();if(detailsDialog!=null&&detailsDialog.isShowing())detailsDialog.dismiss();if(collectionBack!=null)collectionBack.setEnabled(false);}
+ void removeCollectionBack(){if(collectionBack!=null){collectionBack.remove();collectionBack=null;}}
  static void setText(TextView view,String text){if(!text.contentEquals(view.getText()))view.setText(text);}
  String observedDefenseText(JSONObject species){
   String[] values=Roster60OpponentIntel.collectionDefenses(species);int known=0;for(String value:values)if(!"unknown".equals(value))known++;
