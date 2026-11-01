@@ -178,7 +178,7 @@ public class PerformanceEvidenceTest {
   @Test public void recruitSelectionKeepsCandidateRail() throws Exception {
     try(ActivityController<MainActivity> c=helper.flow.start()) {
       MainActivity h=c.get();Api api=prepare(h);Hierarchy hierarchy=new Hierarchy(h);JSONArray samples=new JSONArray();
-      try {samples.put(sample(h,api,hierarchy,"recruit-open",h::draw,true));settle(h);View rail=h.root.findViewWithTag("recruit-candidate-rail");assertNotNull(rail);
+      try {samples.put(sample(h,api,hierarchy,"recruit-open",h::draw,true));settle(h);/* 새 화면: 결과가 있으면 먼저 결과 목록(격자)을 보여 주고, 카드를 눌러야 개별 등록증 레일로 들어간다. */View overview=h.root.findViewWithTag("recruit-overview");assertNotNull("결과 목록이 첫 화면",overview);assertEquals(View.VISIBLE,overview.getVisibility());samples.put(sample(h,api,hierarchy,"overview-open-certificate",()->{View tile=h.root.findViewWithTag("recruit-overview-item-0");assertNotNull(tile);assertTrue(tile.performClick());},false));settle(h);View rail=h.root.findViewWithTag("recruit-candidate-rail");assertNotNull(rail);assertEquals("카드를 누르면 등록증 레일로 전환",View.VISIBLE,rail.getVisibility());
         for(int i=0;i<7;i++){final int index=i%3;samples.put(sample(h,api,hierarchy,"candidate-select-"+index,()->{View slot=h.root.findViewWithTag("recruit-candidate-"+index);assertNotNull(slot);assertTrue(slot.performClick());},false));assertSame(rail,h.root.findViewWithTag("recruit-candidate-rail"));}
         assertTrue(api.calls.stream().noneMatch(x->x.optBoolean("bodyPresent")));write("recruit",h,samples);
       }finally{hierarchy.close();api.close();}

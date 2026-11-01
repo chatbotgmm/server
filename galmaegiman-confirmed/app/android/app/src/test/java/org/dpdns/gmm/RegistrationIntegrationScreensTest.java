@@ -100,14 +100,19 @@ public class RegistrationIntegrationScreensTest {
     return MainActivity.obj("characters", characters, "grades", MainActivity.obj("COMMON", "커먼", "RARE", "레어"));
   }
 
-  ImageView productPortrait(MainActivity host) {
-    ImageView found = null;
-    for (View view : geometry.descendants(host.root)) if (view instanceof ImageView
-        && view.getContentDescription() != null && view.getContentDescription().toString().contains(" 정면 · 길게 눌러 설명")) {
-      assertNull("Exactly one current product portrait is shown", found); found = (ImageView) view;
-    }
-    assertNotNull(found); return found;
+  /** 새 도감은 종 카드 캐러셀이라 여러 카드가 함께 보인다. 현재 선택된 카드의 실제 그림을 쓴다. */
+  NativeRoster60Library catalogOwner(MainActivity host) {
+    for (View view : geometry.descendants(host.root)) if (view instanceof NativeCatalogCarouselView) return ((NativeCatalogCarouselView) view).owner;
+    fail("도감 캐러셀 없음"); return null;
   }
+
+  ImageView productPortrait(MainActivity host) {
+    NativeRoster60Library library = catalogOwner(host);
+    ImageView found = host.root.findViewWithTag("roster60-collection-art-" + library.index);
+    assertNotNull("선택된 도감 카드의 그림", found); return found;
+  }
+
+  static String selectedName(NativeRoster60Library library) { return library.visible.optJSONObject(library.index).optString("name"); }
 
   @Test public void actualProductCollectionUsesRoster60DtoRealPortraitAndEveryOwnedMatchingId() throws Exception {
     for (float scale : new float[] {1, 1.3f}) {
@@ -118,23 +123,30 @@ public class RegistrationIntegrationScreensTest {
           assertTrue(host.roster60Menus()); host.collection(); layout(host, size[0], size[1]);
           LocalGameArtTest.drain(); layout(host, size[0], size[1]);
           assertEquals(List.of("native/roster60/collection"), api.reads);
+          NativeRoster60Library library = catalogOwner(host);
           ImageView art = productPortrait(host);
           assertNotNull("Product uses real packaged roster60 art, not missing v1 fallback", art.getDrawable());
-          NativeNoScrollReviewTest.assertFullyVisible(art, host.root);
+          assertTrue(art.getContentDescription().toString().contains("종 도감"));
           for (View view : geometry.descendants(host.root)) assertFalse("Retired v1 card is not a product screen", view instanceof RegistrationCardView.Artwork);
           Set<String> seen = new HashSet<>();
-          button(host.root, "보유 필터").performClick();
+          host.root.findViewWithTag("roster60-collection-owned").performClick();
           for (int i = 0; i < 9; i++) {
-            String shown = art.getContentDescription().toString();
-            assertFalse(shown.contains("대원 2 정면")); assertTrue("Every owned ID appears exactly once", seen.add(shown));
-            button(host.root, "다음").performClick();
+            String shown = selectedName(library);
+            assertNotEquals("현재 도감 대원 2", shown); assertTrue("Every owned species appears exactly once", seen.add(shown));
+            layout(host, size[0], size[1]); LocalGameArtTest.drain(); layout(host, size[0], size[1]);
+            assertNotNull("Selected owned card has real art", productPortrait(host).getDrawable());
+            host.root.findViewWithTag("roster60-collection-next").performClick();
           }
-          assertEquals(9, seen.size()); assertTrue(art.getContentDescription().toString().contains("대원 1 정면"));
-          button(host.root, "보유 필터").performClick();
-          button(host.root, "다음").performClick();
-          assertTrue("Unowned ID is restored when filter is cleared", art.getContentDescription().toString().contains("대원 2 정면"));
-          button(host.root, "기술").performClick();
-          assertSame("Detail tabs retain the same portrait view", art, productPortrait(host));
+          assertEquals(9, seen.size()); assertEquals("현재 도감 대원 1", selectedName(library));
+          host.root.findViewWithTag("roster60-collection-owned").performClick();
+          host.root.findViewWithTag("roster60-collection-next").performClick();
+          assertEquals("Unowned species is restored when filter is cleared", "현재 도감 대원 2", selectedName(library));
+          ImageView before = productPortrait(host);
+          host.root.findViewWithTag("roster60-collection-info").performClick();
+          assertTrue(library.detailsShowing());
+          library.detailsDialog.getWindow().getDecorView().findViewWithTag("roster60-collection-detail-3").performClick();
+          assertSame("Detail tabs retain the same portrait view", before, productPortrait(host));
+          library.dismissDetails();
           assertTrue("Filters, paging and detail views never save or spend", api.writes.isEmpty());
         }
       }
