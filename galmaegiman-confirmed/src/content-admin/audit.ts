@@ -3,11 +3,12 @@
  * 기록하는 값은 아래 허용 목록 필드뿐이다. 본문·비밀번호·토큰·요청 헤더·IP·이메일은 남기지 않는다.
  */
 export type AuditAction =
-  | 'notice.create' | 'notice.update' | 'notice.publish' | 'notice.hide' | 'notice.pin' | 'notice.restore'
+  | 'notice.create' | 'notice.update' | 'notice.publish' | 'notice.hide' | 'notice.restore'
   | 'media.upload' | 'media.retire';
 
 export type AuditDetail = {
   version?: number;
+  revision?: number;
   status?: string;
   pinned?: boolean;
   restoredFrom?: number;
@@ -28,7 +29,7 @@ export type AuditEntry = {
   detail: AuditDetail;
 };
 
-const ALLOWED_DETAIL = new Set<keyof AuditDetail>(['version', 'status', 'pinned', 'restoredFrom', 'imageCount', 'bytes', 'mime', 'width', 'height']);
+const ALLOWED_DETAIL = new Set<keyof AuditDetail>(['version', 'revision', 'status', 'pinned', 'restoredFrom', 'imageCount', 'bytes', 'mime', 'width', 'height']);
 
 /** 허용 목록 밖의 필드는 버린다(호출부 실수로 본문 같은 값이 섞여도 남지 않게). */
 export function safeDetail(detail: Record<string, unknown>): AuditDetail {

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {plainExcerpt, sanitizeNoticeHtml} from '../src/notices/sanitize.js';
+import {plainExcerpt, renderNoticeHtml, sanitizeNoticeHtml} from '../src/notices/sanitize.js';
 
 const attacks = [
   '<script>alert(1)</script>',
@@ -51,5 +51,19 @@ describe('공지 본문 정화(sanitize-html 허용 목록)', () => {
 
   it('요약은 태그 없는 글자만', () => {
     expect(plainExcerpt('<p>공지 <strong>본문</strong></p>')).toBe('공지 본문');
+  });
+});
+
+describe('본문 이미지 자리표시', () => {
+  const m1 = '11111111-1111-4111-8111-111111111111', m2 = '22222222-2222-4222-8222-222222222222';
+  it('연결된 이미지의 data-media-id 와 alt 만 남기고 src·이벤트는 지운다', () => {
+    const out = sanitizeNoticeHtml(`<img data-media-id="${m1}" alt="그림" src="javascript:alert(1)" onerror="x()" style="x"><img data-media-id="${m2}" alt="연결 안 됨"><img data-media-id="../../x" alt="경로">`, new Set([m1]));
+    expect(out).toBe(`<img data-media-id="${m1}" alt="그림" />`);
+  });
+  it('렌더할 때 서버가 정한 주소만 붙이고, 주소를 못 주면 지운다', () => {
+    const stored = `<p>a</p><img data-media-id="${m1}" alt="그림" /><img data-media-id="${m2}" alt="b" />`;
+    const out = renderNoticeHtml(stored, id => (id === m1 ? `/api/v1/media/${id}` : null));
+    expect(out).toBe(`<p>a</p><img data-media-id="${m1}" src="/api/v1/media/${m1}" alt="그림" loading="lazy" />`);
+    expect(renderNoticeHtml(stored, () => 'javascript:alert(1)')).not.toContain('javascript:');
   });
 });
