@@ -1,0 +1,80 @@
+
+// ---- 공지·이미지 관리(content-admin). 기존 표와 관계 없음. 계정·플레이어 표를 참조하지 않는다. ----
+// 공지 머리: 내용은 불변 판(ContentNoticeRevision)에 있고, revision=작업 판, publishedRevision=공개 판
+model ContentNotice {
+ id String @id
+ status String
+ version Int
+ revision Int
+ publishedRevision Int?
+ publishedAt DateTime?
+ createdAt DateTime
+ updatedAt DateTime
+ createdBy String
+ updatedBy String
+ revisions ContentNoticeRevision[]
+ @@index([status,publishedAt])
+}
+model ContentNoticeRevision {
+ noticeId String
+ revision Int
+ action String
+ title String
+ pinned Boolean
+ bodySource String
+ bodyHtml String
+ scriptSource String @default("")
+ restoredFrom Int?
+ editedBy String
+ editedAt DateTime
+ notice ContentNotice @relation(fields:[noticeId],references:[id],onDelete:Restrict)
+ images ContentNoticeImageRef[]
+ @@id([noticeId,revision])
+}
+model ContentMedia {
+ id String @id
+ format String
+ mime String
+ width Int
+ height Int
+ bytes Int
+ sha256 String
+ status String
+ createdBy String
+ createdAt DateTime
+ refs ContentNoticeImageRef[]
+ @@index([sha256])
+}
+// 판별 이미지 참조. 참조가 남아 있는 이미지 행은 지울 수 없다(ON DELETE RESTRICT).
+model ContentNoticeImageRef {
+ noticeId String
+ revision Int
+ position Int
+ mediaId String
+ alt String
+ revisionRow ContentNoticeRevision @relation(fields:[noticeId,revision],references:[noticeId,revision],onDelete:Restrict)
+ media ContentMedia @relation(fields:[mediaId],references:[id],onDelete:Restrict)
+ @@id([noticeId,revision,position])
+ @@unique([noticeId,revision,mediaId])
+ @@index([mediaId])
+}
+model ContentAdminRequest {
+ actorId String
+ requestId String
+ operation String
+ payloadHash String
+ status Int
+ response String
+ createdAt DateTime
+ @@id([actorId,requestId])
+}
+model ContentAdminAudit {
+ id String @id
+ at DateTime
+ actorId String
+ action String
+ targetType String
+ targetId String
+ detailJson String
+ @@index([at])
+}

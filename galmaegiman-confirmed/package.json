@@ -31,6 +31,8 @@
     "marked": "^15.0.12",
     "phaser": "^4.2.1",
     "prisma": "^6.16.2",
+    "sanitize-html": "2.18.1",
+    "sharp": "0.35.5",
     "three": "^0.186.1",
     "yaml": "^2.8.1",
     "zod": "^4.1.8"
@@ -38,6 +40,7 @@
   "devDependencies": {
     "@types/luxon": "^3.6.2",
     "@types/node": "^24.5.2",
+    "@types/sanitize-html": "2.16.2",
     "esbuild": "^0.28.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
