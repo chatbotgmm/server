@@ -1,14 +1,12 @@
 import {describe,it,expect} from 'vitest';
 import {loadGroupBotConfig,botEnv} from '../src/group/config.js';
-import {ContentPolicy,ContentPolicyError} from '../src/group/policy.js';
-import {buildResponse,buildWelcome,assertAllowedOutput,guardResponse,text,image,list,itemCard,say,quick,SAFE_FALLBACK,GroupResponseError,type GroupOutput} from '../src/group/response.js';
+import {buildResponse,buildWelcome,assertAllowedOutput,guardResponse,text,image,list,itemCard,quick,GroupResponseError,type GroupOutput} from '../src/group/response.js';
 import {buildMentions} from '../src/group/mentions.js';
 import {appLanding,LandingError} from '../src/group/landing.js';
 import {ProactiveGate,MemoryProactiveStore,kstMonth,proactiveEnabled,ProactiveError} from '../src/group/proactive.js';
 
 const config=loadGroupBotConfig();
-const devPolicy=new ContentPolicy(config,'dev');
-const deps={config,policy:devPolicy};
+const deps={config};
 
 describe('단체방 설정',()=>{
   it('data/group-bot.yaml을 읽고 카카오 최대치 안의 값만 받는다',()=>{
@@ -20,34 +18,6 @@ describe('단체방 설정',()=>{
     expect(botEnv('dev')).toBe('dev');expect(botEnv('prod')).toBe('prod');
     expect(()=>botEnv(undefined)).toThrow('BOT_ENV');expect(()=>botEnv('production')).toThrow();
   });
-});
-
-describe('금지 문구(ContentPolicy)',()=>{
-  it('광고·결제·대화내용 열람 표현을 찾는다(띄어쓰기 무시)',()=>{
-    expect(devPolicy.check('광고 보고 보상 받기').map(v=>v.reason)).toContain('AD');
-    expect(devPolicy.check('결제하면 더 받아요').map(v=>v.reason)).toContain('PURCHASE');
-    expect(devPolicy.check('대화 내용을 보고 추천해요').map(v=>v.reason)).toContain('MISLEADING');
-    expect(devPolicy.check('채팅 열람').map(v=>v.reason)).toContain('MISLEADING');
-    expect(devPolicy.check('고급 뽑기 10회').map(v=>v.reason)).toContain('GAMBLING');
-  });
-  it('허용 표현은 통과: 「챗봇에게 전달한 명령어」, 이용 횟수 안내',()=>{
-    expect(devPolicy.check('챗봇에게 전달한 명령어는 응답에만 써요')).toEqual([]);
-    expect(devPolicy.check('오늘은 10회까지 모집할 수 있어요')).toEqual([]);
-  });
-  it('개발은 예외로 멈추고, 운영은 기본 응답으로 바꾸고 이유 종류만 기록한다',()=>{
-    expect(()=>buildResponse([text('결제하고 모집하기')],[],deps)).toThrow(ContentPolicyError);
-    const logs:unknown[]=[];
-    const prod=new ContentPolicy(config,'prod',info=>logs.push(info));
-    const r=buildResponse([text('결제하고 모집하기')],[],{config,policy:prod});
-    expect(r.template.outputs).toEqual([{simpleText:{text:SAFE_FALLBACK}}]);
-    expect(logs).toEqual([{reasons:['PURCHASE']}]);
-    expect(JSON.stringify(logs)).not.toContain('모집하기');
-  });
-  it('버튼 문구·전송 문구·바로가기도 검사한다',()=>{
-    expect(()=>buildResponse([list('모집',[{title:'1'}],[say('구매하기','모집')])],[],deps)).toThrow(ContentPolicyError);
-    expect(()=>buildResponse([text('안녕')],[quick('모집','광고 보기')],deps)).toThrow(ContentPolicyError);
-  });
-  it('기본 응답 문구 자체는 금지어가 없다',()=>expect(devPolicy.check(SAFE_FALLBACK)).toEqual([]));
 });
 
 describe('허용 말풍선만',()=>{
@@ -127,7 +97,7 @@ describe('앱 랜딩 링크',()=>{
 });
 
 describe('선톡',()=>{
-  const make=(store=new MemoryProactiveStore(),now=new Date('2026-11-03T03:00:00Z'),enabled=true)=>new ProactiveGate({enabled,env:'prod',config,policy:devPolicy,store,now:()=>now});
+  const make=(store=new MemoryProactiveStore(),now=new Date('2026-11-03T03:00:00Z'),enabled=true)=>new ProactiveGate({enabled,env:'prod',config,store,now:()=>now});
   it('기본은 꺼져 있다',()=>{
     expect(proactiveEnabled(undefined)).toBe(false);expect(proactiveEnabled('1')).toBe(false);expect(proactiveEnabled('true')).toBe(true);
     return expect(make(undefined,undefined,false).approve('새 갈매미가 왔어요')).rejects.toThrow('꺼져');
@@ -141,14 +111,13 @@ describe('선톡',()=>{
     expect(kstMonth(new Date('2026-11-30T15:00:00Z'))).toBe('2026-12');
     await expect(make(store,new Date('2026-11-30T15:00:00Z')).approve('12월 첫 번째')).resolves.toEqual({month:'2026-12'});
     // 개발·운영은 따로 센다
-    const dev=new ProactiveGate({enabled:true,env:'dev',config,policy:devPolicy,store,now:()=>new Date('2026-11-03T03:00:00Z')});
+    const dev=new ProactiveGate({enabled:true,env:'dev',config,store,now:()=>new Date('2026-11-03T03:00:00Z')});
     await expect(dev.approve('개발 시험')).resolves.toEqual({month:'2026-11'});
   });
-  it('2줄 초과·이미지·금지 문구는 거절하고 횟수를 쓰지 않는다',async()=>{
+  it('2줄 초과·이미지는 거절하고 횟수를 쓰지 않는다',async()=>{
     const store=new MemoryProactiveStore(),g=make(store);
     await expect(g.approve('1\n2\n3')).rejects.toThrow('줄까지');
     await expect(g.approve('그림 선톡',{image:true})).rejects.toThrow('이미지');
-    await expect(g.approve('광고 보러 오세요')).rejects.toThrow(ContentPolicyError);
     expect(store.sent).toHaveLength(0);
   });
 });

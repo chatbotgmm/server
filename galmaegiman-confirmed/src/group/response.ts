@@ -1,9 +1,8 @@
-// 단체방 챗봇 응답 빌더. 허용 말풍선만 만들고(덱 32·33), 길이 상한(ResponseGuard, 덱 24·43)과
-// 금지 문구 검사(ContentPolicy, 덱 40·43·47)를 모든 응답에 적용해요.
+// 단체방 챗봇 응답 빌더. 허용 말풍선만 만들고(덱 32·33), 길이 상한(ResponseGuard, 덱 24·43)을 모든 응답에 적용해요.
+// 광고·구매 유도·대화 열람 오해 표현(덱 40·43·47)은 낱말 검사로 막지 않고, 그런 응답을 만들지 않는 것으로 지켜요.
 // 응답 JSON 필드는 카카오 공개 문서 「응답 타입별 JSON 포맷」 기준:
 // https://kakaobusiness.gitbook.io/main/tool/chatbot/skill_guide/answer_json_format
 import type { GroupBotConfig } from './config.js';
-import type { ContentPolicy } from './policy.js';
 
 // 버튼: 메시지 전송(버튼명 자동 전송, 덱 32·33)과 웹 링크만.
 // TODO(verify): share·block·operator 및 그룹 전용 버튼(도움말 guide·챗봇 멘션하기 mention)은 그룹챗봇 개발 가이드로 확인 후 추가
@@ -91,30 +90,15 @@ export function guardResponse(r:GroupSkillResponse,limits:GroupBotConfig['limits
     }
   }
 }
-// 사용자에게 보이는 글 전부(버튼 전송 문구는 채팅방에 사용자 발화로 보이므로 포함)
-export function visibleTexts(r:GroupSkillResponse):string[]{
-  const out:string[]=[];
-  const btn=(bs?:GroupButton[])=>{for(const b of bs??[])out.push(b.label,...(b.action==='message'?[b.messageText]:[]));};
-  for(const o of r.template.outputs){
-    if('simpleText' in o)out.push(o.simpleText.text);
-    else if('simpleImage' in o)out.push(o.simpleImage.altText);
-    else if('listCard' in o){out.push(o.listCard.header.title);for(const i of o.listCard.items)out.push(i.title,i.description??'',i.messageText??'');btn(o.listCard.buttons);}
-    else{const c=o.itemCard;out.push(c.title??'',c.description??'');for(const row of c.itemList)out.push(row.title,row.description);btn(c.buttons);}
-  }
-  for(const q of r.template.quickReplies)out.push(q.label,q.messageText);
-  return out.filter(Boolean);
-}
-export const SAFE_FALLBACK='지금은 답하기 어려워요. 잠시 뒤 다시 불러 주세요.';
-// 모든 단체방 응답은 이 함수로만 만들어요: 상한 검사 → 금지 문구 검사(운영에서 걸리면 안전한 기본 응답으로)
-export function buildResponse(outputs:GroupOutput[],quickReplies:GroupQuickReply[],deps:{config:GroupBotConfig;policy:ContentPolicy}):GroupSkillResponse{
+// 모든 단체방 응답은 이 함수로만 만들어요(상한을 넘으면 오류)
+export function buildResponse(outputs:GroupOutput[],quickReplies:GroupQuickReply[],deps:{config:GroupBotConfig}):GroupSkillResponse{
   const r:GroupSkillResponse={version:'2.0',template:{outputs,quickReplies}};
   guardResponse(r,deps.config.limits);
-  if(deps.policy.allow(visibleTexts(r)))return r;
-  return {version:'2.0',template:{outputs:[text(SAFE_FALLBACK)],quickReplies:[]}};
+  return r;
 }
 // 봇 입장 인사(덱 24·43: 채팅창 절반 이하). 일반 상한보다 짧게 따로 검사해요.
 // TODO(verify): '챗봇 멘션하기' 버튼의 JSON 형식은 그룹챗봇 개발 가이드 확인 후 추가
-export function buildWelcome(message:string,quickReplies:GroupQuickReply[],deps:{config:GroupBotConfig;policy:ContentPolicy}):GroupSkillResponse{
+export function buildWelcome(message:string,quickReplies:GroupQuickReply[],deps:{config:GroupBotConfig}):GroupSkillResponse{
   const {welcomeChars,welcomeLines}=deps.config.limits;
   if(len(message)>welcomeChars)fail(`입장 인사는 ${welcomeChars}자까지(${len(message)}자)`);
   if(lines(message)>welcomeLines)fail(`입장 인사는 ${welcomeLines}줄까지`);

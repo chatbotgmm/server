@@ -3,17 +3,14 @@ import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { z } from 'zod';
 const positive=z.number().int().positive();
-export const banReasons=['AD','PURCHASE','MISLEADING','GAMBLING','HARMFUL'] as const;
 const schema=z.object({
   version:z.literal('GROUP_BOT_V1'),
   limits:z.object({outputs:positive.max(3),textChars:positive.max(1000),textLines:positive,listItems:positive.max(5),itemCardItems:positive.max(10),
     quickReplies:positive.max(10),buttonLabel:positive.max(14),welcomeChars:positive,welcomeLines:positive}).strict(),
   mentions:z.object({perBubble:positive,maxBubbles:positive}).strict(),
   proactive:z.object({monthlyMax:positive,maxLines:positive}).strict(),
-  banned:z.array(z.object({phrase:z.string().trim().min(1),reason:z.enum(banReasons)}).strict()).min(1),
 }).strict();
 export type GroupBotConfig=z.infer<typeof schema>;
-export type BanReason=typeof banReasons[number];
 export function loadGroupBotConfig(root=process.cwd()):GroupBotConfig{
   return schema.parse(parse(readFileSync(`${root}/data/group-bot.yaml`,'utf8')));
 }
