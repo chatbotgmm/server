@@ -1,0 +1,12 @@
+./data/test-profiles/five-stat-device-test-v1/battle-policy.json
+./src/site.ts
+./dist/src/roster60-pvp.js
+./dist/src/roster60-augments.js
+./dist/src/roster60-current-augment-gate.js
+./dist/src/site.js
+./dist/src/battle/roster60-current-augment-catalog.js
+./dist/src/battle/roster60-current-augment-runtime.js
+./dist/src/roster60-battle.js
+./dist/src/story/routes.js
+./dist/src/story/service.js
+./dist/src/roster60-routes.js
