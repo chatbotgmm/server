@@ -14,8 +14,9 @@ import {createBattle,rerollAugment} from '../src/battle/engine.js';
 import {registerNative} from '../src/native.js';
 import Fastify from 'fastify';
 import {RealtimePvpService} from '../src/pvp/service.js';
-import {deserializeBattle} from '../src/battle/realtime-adapter.js';
-const C=loadContent(),R=loadBattleRules();
+import {createBattleService} from '../src/battle/service-factory.js';
+// 저장 전투는 운영과 같은 서비스(기본 V2)로 복원한다.
+const C=loadContent(),R=loadBattleRules(),battles=createBattleService(R);
 describe('진행 보상과 환생: 새 임시 SQLite 원자성',()=>{
  let db:PrismaClient,db2:PrismaClient,dir:string,game:GameService,now:Date,p:{id:string};
  beforeAll(async()=>{dir=mkdtempSync(join(tmpdir(),'progression-test-'));const url=`file:${join(dir,'isolated.db')}`;writeFileSync(join(dir,'isolated.db'),'');execFileSync(process.execPath,['node_modules/prisma/build/index.js','db','push','--skip-generate'],{env:{...process.env,DATABASE_URL:url},stdio:'pipe'});db=new PrismaClient({datasources:{db:{url}}});db2=new PrismaClient({datasources:{db:{url}}});for(const c of C.characters)await db.characterDefinition.create({data:{id:c.id,name:c.name,rarity:c.rarity,position:c.position,quote:c.quote,imageUrl:c.imageUrl}});},30000);
@@ -61,7 +62,7 @@ describe('진행 보상과 환생: 새 임시 SQLite 원자성',()=>{
    await command(p.id,{accept:true});const accepted=await command(other.id,{accept:true});
    const prep=await service.currentRoom(p.id,room.id);expect(prep.preparation?.available.some(x=>x.id===reborn.key)).toBe(true);
    await command(p.id,{prepare:{team:keys,ready:true}});await command(other.id,{prepare:{team:['D2','T2','E2'],ready:true}});
-   const stored=await db.realtimeRoom.findUniqueOrThrow({where:{id:room.id}}),battle=deserializeBattle(R,JSON.parse(stored.stateJson).battle),side=stored.player0Id===p.id?0:1;
+   const stored=await db.realtimeRoom.findUniqueOrThrow({where:{id:room.id}}),battle=battles.restore(JSON.parse(stored.stateJson).battle),side=stored.player0Id===p.id?0:1;
    expect(battle.sides[side].fighters[0].rec).toMatchObject({uid:reborn.key,ownedCharacterId:reborn.id,inheritedFrom:'D1',reincarnation:1,statBonusPct:5});
    const view=await service.currentRoom(p.id,room.id);expect(view.battle?.teams[0].fighters[0]).toMatchObject({id:reborn.id,name:`${reborn.name} +1`,image:`/thumbs/${reborn.id}.jpg`});await game.webProgressionAction(p.id,randomUUID(),'reroll');
    const first=await command(p.id,{reroll:0});const second=await command(p.id,{reroll:0});expect(second.battle?.bonusReroll.available).toBe(false);await expect(command(p.id,{reroll:0})).rejects.toThrow();

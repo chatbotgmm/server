@@ -14,6 +14,7 @@ import {loadBattleRules} from '../src/battle/load.js';
 import {createBattle,pending,pickAi} from '../src/battle/engine.js';
 import {applyEvent,type PvpEvent} from '../src/battle/replay.js';
 import {xpToNext,type UnitRecord} from '../src/battle/growth.js';
+import {V2_CLIENT_HEADERS,freestyleChoose} from './helpers/v2-client.js';
 const enabled=Boolean(process.env.TEST_DB_URL);
 const suite=enabled?describe:describe.skip;
 suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
@@ -1503,7 +1504,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     try{
       const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
-      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const headers={'x-gmm':'1','x-gmm-s':login.token,...V2_CLIENT_HEADERS};
       const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
       let b=await post('battle/start',{mode:'practice',roster:['D1','D1'],enemyRoster:['D1','D1'],level:30});
       expect(b.displayEventVersion).toBe(1);expect(b.displayEventSeq).toBe(0);expect(b.displayEvents).toEqual([]);expect(b.displayLogStart).toBe(0);
@@ -1543,7 +1544,8 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       let switched=false;
       for(let i=0;i<14&&b.phase!=='over';i++){
         let event:object;
-        if(b.phase==='choose')event={choose:{augment:b.teams[0].offers.find((x:any)=>x.id!=='rustle')?.id??b.teams[0].offers[0].id,...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}};
+        // V2 자유자재(reverse)를 고르면 다음 choose는 내 속성 선택이다(선택지 순서는 난수).
+        if(b.phase==='choose')event={choose:freestyleChoose(b.teams[0])??{augment:b.teams[0].offers.find((x:any)=>x.id!=='rustle')?.id??b.teams[0].offers[0].id,...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}};
         else if(!switched&&b.teams[0].legal.some((a:any)=>a.kind==='switch'&&a.to===1)){event={action:{kind:'switch',to:1}};switched=true;}
         else event={action:b.teams[0].legal.find((a:any)=>a.kind==='skill'&&a.skillId.startsWith('basic'))??b.teams[0].legal.find((a:any)=>a.kind==='skill')};
         const command={session:b.session,revision:b.revision,...event};b=await post('battle/turn',command);validate(b);
@@ -1567,10 +1569,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     try{
       const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
-      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const headers={'x-gmm':'1','x-gmm-s':login.token,...V2_CLIENT_HEADERS};
       const post=async(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
       let b=(await post('battle/start',{mode:'story',stage:'P-1'})).json();
       b=(await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment:b.teams[0].offers.find((x:any)=>x.id!=='rustle')?.id??b.teams[0].offers[0].id}})).json();
+      // V2 자유자재를 골랐다면 속성 선택까지 마쳐 실제 행동 단계에서 아이템 실패를 확인한다.
+      const own=freestyleChoose(b.teams[0]);if(own)b=(await post('battle/turn',{session:b.session,revision:b.revision,choose:own})).json();
+      expect(b.phase).toBe('action');
       const failed=await post('battle/turn',{session:b.session,revision:b.revision,action:{kind:'item',item:'potion'}});
       expect(failed.statusCode).toBe(400);
       const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
@@ -1585,7 +1590,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     try{
       const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}});
-      const headers={'x-gmm':'1','x-gmm-s':login.json().token};
+      const headers={'x-gmm':'1','x-gmm-s':login.json().token,...V2_CLIENT_HEADERS};
       const post=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
       expect((await app.inject({method:'GET',url:'/my/api/native/state',headers:{'x-gmm':'1'}})).statusCode).toBe(401);
       expect((await post('team',{keys:['o99999999']})).statusCode).toBe(400);
@@ -1604,7 +1609,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const still=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();expect(still.revision).toBe(1);expect(still.log).toEqual(current.log);
       const otherCode=(await send('웹 로그인','native-other')).text!.match(/\b\d{6}\b/)![0];
       const other=(await app.inject({method:'POST',url:'/my/api/login',payload:{code:otherCode},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json();
-      expect((await app.inject({method:'POST',url:'/my/api/native/battle/turn',payload:{session:start.session,revision:1,leave:true},headers:{'x-gmm':'1','x-gmm-s':other.token}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url:'/my/api/native/battle/turn',payload:{session:start.session,revision:1,leave:true},headers:{'x-gmm':'1','x-gmm-s':other.token,...V2_CLIENT_HEADERS}})).statusCode).toBe(400);
       const before=await game.webStory((await me()).id);
       await post('battle/turn',{session:start.session,revision:1,leave:true});expect(await game.webStory((await me()).id)).toEqual(before);
     }finally{await app.close();}
@@ -1616,7 +1621,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     try{
       const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=await app.inject({method:'POST',url:'/my/api/login',headers:{'x-gmm':'1','x-gmm-app':'1'},payload:{code}});
-      const headers={'x-gmm':'1','x-gmm-s':login.json().token};
+      const headers={'x-gmm':'1','x-gmm-s':login.json().token,...V2_CLIENT_HEADERS};
       const post=async(payload:object)=>(await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload})).json();
       const start=(await app.inject({method:'POST',url:'/my/api/native/battle/start',headers,payload:{mode:'practice'}})).json();
       expect(start.chooseDeadline-start.serverNow).toBeLessThanOrEqual(30000);
@@ -1625,9 +1630,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(reroll.chooseDeadline).toBe(start.chooseDeadline);
       clock=vi.spyOn(Date,'now').mockReturnValue(start.chooseDeadline+1);
       const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
-      expect(current.phase).toBe('action');expect(current.chooseDeadline).toBeUndefined();
       expect(current.revision).toBe(reroll.revision+1);
       const chosen=current.teams[0].augments.at(-1).id;
+      // V2: 무작위로 자유자재(reverse)가 확정되면 행동 전에 새 30초 속성 선택이 한 번 더 열린다.
+      if(chosen==='reverse'){expect(current.phase).toBe('choose');expect(current.teams[0].attributeSelection).toMatchObject({kind:'own-attribute'});expect(current.chooseDeadline).toBe(start.chooseDeadline+1+30000);}
+      else{expect(current.phase).toBe('action');expect(current.chooseDeadline).toBeUndefined();}
       expect(reroll.teams[0].offers.map((x:{id:string})=>x.id)).toContain(chosen);
       const duplicate=await post({session:start.session,revision:reroll.revision,choose:{augment:reroll.teams[0].offers[0].id}});
       expect(duplicate.revision).toBe(current.revision);expect(duplicate.teams[0].augments).toEqual(current.teams[0].augments);
@@ -1640,7 +1647,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const app=await buildApp(db,game,{secret:'native-idle-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
     try{
       const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];const token=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json().token;
-      const headers={'x-gmm':'1','x-gmm-s':token};const post=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
+      const headers={'x-gmm':'1','x-gmm-s':token,...V2_CLIENT_HEADERS};const post=(path:string,payload:object)=>app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});
       const b=(await post('battle/start',{mode:'story',stage:'P-1'})).json();
       for(const [path,payload] of [['heal',{key,item:'potion'}],['growth',{key,kind:'evolve',augment:'reflect'}],['team',{keys:[key]}]] as const){const r=await post(path,payload);expect(r.statusCode).toBe(400);expect(r.json().error).toContain('진행 중인 전투');}
       expect((await app.inject({method:'POST',url:'/my/api/items/use-field',headers,payload:{id:'potion'}})).statusCode).toBe(400);
@@ -1658,10 +1665,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const R=loadBattleRules();await game.webSaveStory(p.id,{units:{[key]:{level:5,xp:xpToNext(R,5)-1,stage:0,evoAugs:[]}},team:[key],cleared:[],hp:{[key]:{f:1,at:Date.now()}}});
     const app=await buildApp(db,game,{secret:'native-test-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
     try{const code=(await send('웹 로그인')).text!.match(/\b\d{6}\b/)![0];const token=(await app.inject({method:'POST',url:'/my/api/login',payload:{code},headers:{'x-gmm':'1','x-gmm-app':'1'}})).json().token;
-      const headers={'x-gmm':'1','x-gmm-s':token};const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
+      const headers={'x-gmm':'1','x-gmm-s':token,...V2_CLIENT_HEADERS};const post=async(path:string,payload:object)=>{const r=await app.inject({method:'POST',url:`/my/api/native/${path}`,headers,payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
       let b=await post('battle/start',{mode:'story',stage:'P-1'}),last:object={};
       for(let g=0;g<100&&b.phase!=='over';g++){
-        const event=b.phase==='choose'?{choose:{...(b.teams[0].offers.length?{augment:b.teams[0].offers[0].id}:{}),...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:{hp:number})=>f.hp>0)}:{})}}:{action:b.teams[0].legal.find((a:{kind:string})=>a.kind==='skill')};
+        const event=b.phase==='choose'?{choose:freestyleChoose(b.teams[0])??{...(b.teams[0].offers.length?{augment:b.teams[0].offers[0].id}:{}),...(b.teams[0].needSwitch?{switchTo:b.teams[0].fighters.findIndex((f:{hp:number})=>f.hp>0)}:{})}}:{action:b.teams[0].legal.find((a:{kind:string})=>a.kind==='skill')};
         last={session:b.session,revision:b.revision,...event};b=await post('battle/turn',last);
       }
       expect(b.phase).toBe('over');expect(b.result.xp).toBeGreaterThan(0);const saved=await game.webStory(p.id) as {units:Record<string,{level:number}>;hp:Record<string,{f:number}>};expect(saved.units[key].level).toBeGreaterThan(5);expect(saved.hp[key].f).toBe(1);

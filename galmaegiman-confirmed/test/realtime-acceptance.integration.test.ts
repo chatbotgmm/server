@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import {loadContent} from '../src/content.js';
 import {RealtimePvpService} from '../src/pvp/service.js';
 import {registerRealtimePvp} from '../src/pvp/routes.js';
+import {V2_CLIENT_HEADERS} from './helpers/v2-client.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('explicit match acceptance (isolated SQLite)',()=>{
  let db:PrismaClient,service:RealtimePvpService,now:number;
@@ -19,8 +20,8 @@ suite('explicit match acceptance (isolated SQLite)',()=>{
  async function noSettlement(){expect(await db.rankedMatch.count()).toBe(0);expect(await db.rankedSettlement.count()).toBe(0);expect(await db.casualHumanSettlement.count()).toBe(0);expect(await db.realtimeItemEscrow.count()).toBe(0);expect(await db.realtimeLineup.count()).toBe(0);}
  it('requires protocol 3 on attempt route without changing service attempt arguments',async()=>{
   const p=await player(),app=Fastify();registerRealtimePvp(app,service,()=>p.id,()=>true);service.stop();
-  try{for(const payload of [{mode:'normal'},{mode:'normal',protocol:2}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',payload})).statusCode).toBe(400);
-   const r=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',payload:{mode:'normal',protocol:3}});expect(r.statusCode).toBe(200);expect(r.json()).toHaveProperty('attemptId');
+  try{for(const payload of [{mode:'normal'},{mode:'normal',protocol:2}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers:V2_CLIENT_HEADERS,payload})).statusCode).toBe(400);
+   const r=await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers:V2_CLIENT_HEADERS,payload:{mode:'normal',protocol:3}});expect(r.statusCode).toBe(200);expect(r.json()).toHaveProperty('attemptId');
   }finally{await app.close();}
  });
  it.each(['rank','normal'] as const)('%s creates private 10-second acceptance before battle/preparation',async mode=>{
