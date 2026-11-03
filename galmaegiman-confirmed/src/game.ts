@@ -1141,6 +1141,10 @@ export class GameService {
       await tx.comment.deleteMany({where});
       for(const m of [tx.progressionReceipt,tx.progressionMilestone,tx.progressionState,tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
         await m.deleteMany({where});
+      await tx.groupUserKey.deleteMany({where});
+      await tx.roomMember.deleteMany({where});
+      await tx.roomWeek.deleteMany({where});
+      await tx.roomDex.updateMany({where:{firstPlayerId:p.id},data:{firstPlayerId:null}});
       await tx.player.delete({where:{id:p.id}});
       return true;
     });
@@ -1168,6 +1172,39 @@ export class GameService {
     return {nickname:p.nickname,snack:p.snack,peanut:p.peanut,credits:p.credits,kakao:kakao>0,claimReadyAt:new Date((p.lastClaimAt?.getTime()??0)+this.content.economy.tickets.cooldownHours*3_600_000).toISOString(),dex,dexTotal:this.content.characters.length,units,
       battleTeam:ids(p.battleTeam),party:ids(p.partyDraft),previousParty:previous?(previous.unitIds as string[]).filter(id=>this.content.map.has(id)):[],
       trip:trip?{startedAt:trip.startedAt.toISOString(),endsAt:trip.endsAt.toISOString(),units:(trip.unitIds as string[]).map(id=>this.content.map.get(id)?.name??id),ids:trip.unitIds as string[]}:null};
+  }
+  // 닉네임 바꾸기(카톡 「닉네임」·단체방 공용). 이미 같은 이름이면 false, 바꿨으면 true, 쓸 수 없는 이름은 GameError
+  private async changeNickname(tx:Tx,p:Player,name:string){
+    if(!/^[가-힣a-zA-Z0-9 ]{2,10}$/u.test(name))throw new GameError('닉네임은 2~10자, 한글·영문·숫자(띄어쓰기 가능)만 쓸 수 있어요.');
+    // 공개 랭킹에서 운영자인 척하지 못하게 막는 이름
+    const plain=name.replace(/\s+/g,'').toLowerCase();
+    if(['관리자','운영자','운영진','운영팀','관리팀','개발자','공식','갈매미맨','admin','official','staff'].some(w=>plain.includes(w))||/^(gm|dev)\d*$/.test(plain))throw new GameError(`「${name}」은(는) 운영진과 헷갈릴 수 있어서 쓸 수 없어요.`);
+    if(name===p.nickname)return false;
+    if(await tx.player.findUnique({where:{nickname:name}}))throw new GameError(`「${name}」은(는) 이미 누가 쓰고 있어요.`);
+    await tx.player.update({where:{id:p.id},data:{nickname:name}});
+    await this.audit(tx,p,'NICKNAME',{from:p.nickname,to:name});
+    return true;
+  }
+  // ───────── 단체방(그룹) 챗봇용(src/group/) ─────────
+  // 단체방에서 처음 부른 사람의 플레이어(없으면 가입 보상과 함께 만듦). 카톡 요청과 같은 줄에서 처리
+  groupEnsurePlayer(identity:string):Promise<string>{
+    const task=this.tail.then(()=>this.db.$transaction(async tx=>(await this.player(tx,identity,this.clock())).id,{maxWait:500,timeout:2500}));
+    this.tail=task.catch(()=>{});
+    return task;
+  }
+  async groupSetNickname(playerId:string,raw:string){
+    const name=raw.normalize('NFKC').trim().replace(/\s+/g,' ');
+    return this.webRun(playerId,(tx,p)=>this.changeNickname(tx,p,name));
+  }
+  // 모집권 받기 결과를 글 대신 숫자로(단체방은 응답 문구를 따로 만듦)
+  async groupClaim(playerId:string){
+    return this.webRun(playerId,async(tx,p,now)=>{
+      const wait=this.claimWait(p,now);
+      if(wait)return {claimed:false as const,waitMs:wait,credits:p.credits};
+      await this.claim(tx,p,now);
+      const credits=(await tx.player.findUniqueOrThrow({where:{id:p.id},select:{credits:true}})).credits;
+      return {claimed:true as const,amount:credits-p.credits,credits,cooldownHours:this.content.economy.tickets.cooldownHours};
+    });
   }
   // 웹 요청도 카톡 요청과 같은 줄에 세워(동시에 처리되지 않게) 한 거래로 실행
   private webRun<T>(playerId:string,fn:(tx:Tx,p:Player,now:Date)=>Promise<T>):Promise<T>{
@@ -2256,14 +2293,7 @@ export class GameService {
     if(command==='닉네임'||command==='닉네임설정'){
       const name=query.normalize('NFKC').trim().replace(/\s+/g,' ');
       if(!name)return {text:`🏷 닉네임: ${p.nickname??'(없음)'}\n랭킹에 표시돼요. 바꾸려면: 닉네임 갈매미왕\n(2~10자, 한글·영문·숫자)`,choices:[choice('랭킹'),...menu]};
-      if(!/^[가-힣a-zA-Z0-9 ]{2,10}$/u.test(name))throw new GameError('닉네임은 2~10자, 한글·영문·숫자(띄어쓰기 가능)만 쓸 수 있어요.');
-      // 공개 랭킹에서 운영자인 척하지 못하게 막는 이름
-      const plain=name.replace(/\s+/g,'').toLowerCase();
-      if(['관리자','운영자','운영진','운영팀','관리팀','개발자','공식','갈매미맨','admin','official','staff'].some(w=>plain.includes(w))||/^(gm|dev)\d*$/.test(plain))throw new GameError(`「${name}」은(는) 운영진과 헷갈릴 수 있어서 쓸 수 없어요.`);
-      if(name===p.nickname)return {text:`이미 「${name}」이에요.`,choices:[choice('랭킹'),...menu]};
-      if(await tx.player.findUnique({where:{nickname:name}}))throw new GameError(`「${name}」은(는) 이미 누가 쓰고 있어요.`);
-      await tx.player.update({where:{id:p.id},data:{nickname:name}});
-      await this.audit(tx,p,'NICKNAME',{from:p.nickname,to:name});
+      if(!await this.changeNickname(tx,p,name))return {text:`이미 「${name}」이에요.`,choices:[choice('랭킹'),...menu]};
       const step=await this.tutorialStep(tx,p,GameService.tutorialSteps.findIndex(t=>t.go.message==='닉네임')+1);
       return {text:`🏷 닉네임을 「${name}」(으)로 정했어요.${step.length?`\n\n${step[0]}`:''}`,choices:[choice('랭킹'),...menu]};
     }

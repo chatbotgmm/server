@@ -407,3 +407,77 @@ model ProgressionMilestone {
   claimedAt DateTime @default(now())
   @@id([playerId, milestoneId])
 }
+
+// ───────── 단체방(그룹) 챗봇 (src/group/) ─────────
+// Player FK 없이 앱 계층에서 존재를 검증하고, 계정 삭제(webDeleteAccount) 때 함께 지웁니다.
+// env: dev | prod — 개발채널·운영채널은 서로 다른 채널이라 키 공간을 나눕니다(가이드 덱 5·14·21·35).
+// 카카오 유저 키 → 플레이어. 봇·채널이 바뀌면 키 값이 바뀌므로(덱 28) 키마다 한 줄씩 쌓아 이력이 남습니다.
+model GroupUserKey {
+  id        String   @id @default(uuid())
+  env       String
+  kind      String // botUserKey | plusfriendUserKey | appUserId
+  value     String
+  playerId  String
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  @@unique([env, kind, value])
+  @@index([playerId])
+}
+
+// 채팅방(botGroupKey). settings: 방 설정 JSON
+model GroupRoom {
+  id        String   @id @default(uuid())
+  env       String
+  groupKey  String
+  settings  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@unique([env, groupKey])
+}
+
+// 방에서 챗봇을 한 번이라도 부른 사람
+model RoomMember {
+  roomId       String
+  playerId     String
+  joinedAt     DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  @@id([roomId, playerId])
+  @@index([playerId])
+}
+
+// 방 공동 도감에서 '이 방에서 처음 발견'한 기록(방 단체방 명령으로 얻었을 때만). firstPlayerId는 탈퇴하면 null
+model RoomDex {
+  roomId        String
+  characterId   String
+  firstPlayerId String?
+  firstAt       DateTime @default(now())
+
+  @@id([roomId, characterId])
+  @@index([firstPlayerId])
+}
+
+// 방 주간 순위(한국 시간 월요일 시작 주, week = 그 주 월요일 yyyy-MM-dd)
+model RoomWeek {
+  roomId   String
+  playerId String
+  week     String
+  finds    Int    @default(0) // 이 방에서 새로 발견(내 도감 첫 등록)
+  crafts   Int    @default(0)
+  recruits Int    @default(0)
+
+  @@id([roomId, playerId, week])
+  @@index([playerId])
+}
+
+// 선톡 발송 기록(덱 42: 월 최대 2회). month = 한국 시간 yyyy-MM
+model ProactiveLog {
+  id      String   @id @default(uuid())
+  env     String
+  month   String
+  summary String
+  sentAt  DateTime @default(now())
+
+  @@index([env, month])
+}

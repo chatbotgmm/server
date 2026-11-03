@@ -16,8 +16,9 @@ import { battleRoster } from './battle/prototype.js';
 import { registerDuel } from './duel.js';
 import { registerMy, type KakaoLogin } from './my.js';
 import { registerDesignReview } from './design-review.js';
+import { registerGroupBot, type GroupRouteOptions } from './group/routes.js';
 export const VERSION='0.16.2';
-export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig}
+export interface AppOptions {secret:string;botId?:string;log?:boolean;baseUrl:()=>Promise<string>;root?:string;kakaoLogin?:KakaoLogin;fetch?:typeof fetch;reviewLogin?:import('./review-auth.js').ReviewConfig;group?:GroupRouteOptions}
 export async function buildApp(db:PrismaClient,game:GameService,options:AppOptions){
   if(options.secret.length<32)throw new Error('SKILL_SECRET을 최소 32자로 설정하세요.');
   const app=Fastify({logger:options.log?{redact:['req.headers.cookie','req.headers["x-gmm-s"]','req.body.password','req.body.username','res.headers["set-cookie"]']}:false,bodyLimit:32_768,trustProxy:false});
@@ -106,6 +107,8 @@ export async function buildApp(db:PrismaClient,game:GameService,options:AppOptio
     if(hits.size>5000)for(const [k,v] of hits)if(!v.some(t=>now-t<60_000))hits.delete(k);
     return true;
   };
+  // 단체방(그룹) 챗봇: GROUP_SKILL_SECRET·BOT_ENV가 있을 때만 켬(src/group/routes.ts)
+  if(options.group)registerGroupBot(app,db,game,{root:options.root,...options.group});
   for(const path of ['/kakao/skill','/kakao'])app.post(path,{
     // 카카오가 보내는 요청만 키 검증 후 처리. 외부 전달 헤더를 사용자 권한으로 쓰지 않습니다.
     onRequest:async(req,reply)=>{

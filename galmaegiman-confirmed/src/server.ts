@@ -6,16 +6,20 @@ import { GameService } from './game.js';
 import {assertProgressionSchema} from './progression.js';
 import {reviewConfig} from './review-auth.js';
 import { buildApp } from './app.js';
+import { assertGroupSchema } from './group/schema.js';
+import { botEnv } from './group/config.js';
 const env=z.object({
   DATABASE_URL:z.string().startsWith('file:'),
   HOST:z.literal('127.0.0.1').default('127.0.0.1'),
   PORT:z.coerce.number().int().min(1024).max(65535).default(3000),
   SKILL_SECRET:z.string().min(32),KAKAO_BOT_ID:z.string().optional(),
   PUBLIC_BASE_URL:z.string().optional(),ADMIN_CODE:z.preprocess(v=>v===''?undefined:v,z.string().min(16).optional()),LOG_ENABLED:z.enum(['true','false']).default('true'),
+  // 단체방 챗봇: 비밀값을 넣으면 켜지고, 그때 BOT_ENV(dev|prod)가 꼭 있어야 해요
+  GROUP_SKILL_SECRET:z.preprocess(v=>v===''?undefined:v,z.string().min(32).optional()),GROUP_BOT_ID:z.preprocess(v=>v===''?undefined:v,z.string().optional()),BOT_ENV:z.preprocess(v=>v===''?undefined:v,z.string().optional()),
   KAKAO_REST_KEY:z.preprocess(v=>v===''?undefined:v,z.string().min(10).optional()),KAKAO_CLIENT_SECRET:z.preprocess(v=>v===''?undefined:v,z.string().min(10).optional()),
 }).parse(process.env);
 const db=new PrismaClient();
-try{await assertProgressionSchema(db);}catch(e){await db.$disconnect();throw e;}
+try{await assertProgressionSchema(db);await assertGroupSchema(db);}catch(e){await db.$disconnect();throw e;}
 const content=loadContent();
 const edition=await db.appMeta.findUnique({where:{key:'edition'}});
 const hash=await db.appMeta.findUnique({where:{key:'contentHash'}});
@@ -30,7 +34,8 @@ async function baseUrl(){
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash?u.origin:'';}catch{return '';}
 }
 const app=await buildApp(db,new GameService(db,content,undefined,undefined,undefined,undefined,env.ADMIN_CODE),{secret:env.SKILL_SECRET,botId:env.KAKAO_BOT_ID,baseUrl,log:env.LOG_ENABLED==='true',
-  reviewLogin:reviewConfig(process.env),kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
+  reviewLogin:reviewConfig(process.env),
+  group:env.GROUP_SKILL_SECRET?{secret:env.GROUP_SKILL_SECRET,env:botEnv(env.BOT_ENV),botId:env.GROUP_BOT_ID}:undefined,kakaoLogin:env.KAKAO_REST_KEY?{restKey:env.KAKAO_REST_KEY,clientSecret:env.KAKAO_CLIENT_SECRET}:undefined});
 let closing=false;
 const close=async()=>{if(closing)return;closing=true;await app.close();await db.$disconnect();};
 process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());
