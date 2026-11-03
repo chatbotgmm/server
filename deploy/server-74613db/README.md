@@ -1,3 +1,12 @@
+# ⚠️ 배포 보류 — 이 묶음을 운영 서버에 풀지 마세요 (2026-11-03 확인)
+
+운영 서버 실행 폴더(907e737-20261029T230140Z)는 11-02 22:35에 서버에서 직접 바뀐 파일이 있다(GMM111 증강 작업).
+새 파일: dist/src/roster60-current-augment-gate.js, dist/src/battle/roster60-current-augment-catalog.js,
+dist/src/battle/roster60-current-augment-runtime.js. 바뀐 파일: site.js, roster60-battle.js, roster60-routes.js,
+story/routes.js, story/service.js, .env 등. 환경값 ROSTER60_CURRENT_V3_ENABLED=true(zz-gmm111-current-v3.conf).
+이 변경의 소스는 저장소에 없고, 이 묶음(GMM110 기반)은 같은 파일을 덮어써 그 기능을 지운다.
+→ GMM111 서버 소스를 저장소에 올린 뒤 경험치 변경을 그 위에 합쳐 새 묶음을 만든다.
+
 # 서버 배포 묶음 (코드 커밋 74613db, claude/xp-finisher-split)
 
 - 원본 코드 커밋: 74613db4b6d2f051b7e72b4e8d42afd863cf3fb9
