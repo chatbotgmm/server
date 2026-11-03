@@ -1,5 +1,5 @@
 // Versioned opt-in catalog. Importing it never activates V2 in an existing battle.
-// V1 data/battle.yaml and its 24 IDs remain unchanged. reverse(자유자재)는 새 전투에서 뺐다(retiredAugmentsV2). Numeric semantics are implemented by ID.
+// V1 data/battle.yaml and its 24 IDs remain unchanged. 유닛 속성을 바꾸는 reverse(자유자재)·camo(보호색)는 새 전투에서 뺐다(retiredAugmentsV2). Numeric semantics are implemented by ID.
 export type CatalogTier='silver'|'gold'|'prismatic';
 export interface CatalogAugment {id:string;tier:CatalogTier;version:2;name:string;desc:string;p:Record<string,number>;effect?:'choose-own-attribute'}
 export interface AugmentCatalogV2 {version:2;augments:CatalogAugment[]}
@@ -248,14 +248,6 @@ export const augmentCatalogV2:AugmentCatalogV2={
       "p": {
         "turns": 3
       }
-    },
-    {
-      "id": "camo",
-      "tier": "gold",
-      "version": 2,
-      "name": "보호색",
-      "desc": "선두 속성을 상대에게 강한 속성으로 변경",
-      "p": {}
     },
     {
       "id": "dual",
@@ -624,10 +616,12 @@ export const augmentCatalogV2:AugmentCatalogV2={
 // 기본 스키마를 외부 변경으로부터 보호해 ID·등급·허용 키 검증을 고정해요.
 for(const a of augmentCatalogV2.augments){Object.freeze(a.p);Object.freeze(a);}
 Object.freeze(augmentCatalogV2.augments);Object.freeze(augmentCatalogV2);
-// 새 전투에서 뺀 증강. 이미 저장된 전투의 규칙 스냅샷(이전 60종)을 그대로 읽고 마무리하려고 정의만 남긴다.
+// 새 전투에서 뺀 증강. 이미 저장된 전투의 규칙 스냅샷(이전 60종·59종)을 그대로 읽고 마무리하려고 정의만 남긴다.
 // 새 카탈로그(augmentCatalogV2)에는 없으므로 새 전투의 선택지로 나오지 않는다.
+// 유닛 속성을 바꾸는 증강은 공격 기술 속성은 그대로 둬서 상성 표시와 실제 피해가 달라지므로 뺐다.
 export const retiredAugmentsV2:readonly CatalogAugment[]=Object.freeze([
   Object.freeze({id:'reverse',tier:'prismatic' as const,effect:'choose-own-attribute' as const,version:2 as const,name:'자유자재',desc:'상대 속성을 확인한 뒤 내 유닛의 속성을 선택',p:Object.freeze({})}),
+  Object.freeze({id:'camo',tier:'gold' as const,version:2 as const,name:'보호색',desc:'선두 속성을 상대에게 강한 속성으로 변경',p:Object.freeze({})}),
 ]);
 const augmentTemplatesV2:readonly CatalogAugment[]=Object.freeze([...augmentCatalogV2.augments,...retiredAugmentsV2]);
 export const augmentTemplateV2=(id:string)=>augmentTemplatesV2.find(a=>a.id===id);

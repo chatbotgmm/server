@@ -163,26 +163,27 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     const mine=await restarted.currentRoom(p.a.id,p.roomId),foe=await restarted.currentRoom(p.b.id,p.roomId);
     expect(mine.mySubmitted).toBe(true);expect(foe.opponentReady).toBe(true);expect(mine.deadline).toBe(v.deadline);
   });
-  it('a room saved with the previous 60-augment catalog still finishes reverse(자유자재) after the server drops it',async()=>{
-    // 배포 전 서버(reverse 포함 60종)가 만든 방을 배포 후 서버가 이어받는 상황. 새 전투에는 reverse가 없다.
+  it('a room saved with the previous 60-augment catalog still finishes reverse and camo after the server drops them',async()=>{
+    // 배포 전 서버(reverse·camo 포함 60종)가 만든 방을 배포 후 서버가 이어받는 상황. 새 전투에는 둘 다 없다.
     const old={version:2 as const,weights:{silver:1,gold:1,prismatic:1},sequenceProfile:balancedSixProfile,catalog:{version:2 as const,augments:[...augmentCatalogV2.augments,...retiredAugmentsV2]}};
     await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now,old);
     const p=await pair(),before=createBattleService(loadBattleRules(process.cwd()),old);
-    // 선택지 순서는 난수라서 reverse를 양쪽 첫 선택지로 고정한다.
-    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=before.restore(s.battle);
-    for(const side of b.sides)side.offers=['reverse',...side.offers!.filter(id=>id!=='reverse')].slice(0,side.offers!.length);
+    // 선택지 순서는 난수라서 한쪽은 reverse, 다른 쪽은 camo를 첫 선택지로 고정한다.
+    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=before.restore(s.battle),forced=['reverse','camo'];
+    for(const [i,side] of b.sides.entries())side.offers=[forced[i],...side.offers!.filter(id=>!forced.includes(id))].slice(0,side.offers!.length);
     s.battle=serializeServiceBattle(b);await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});
     await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now);
-    expect(createBattleService(loadBattleRules(process.cwd())).R.battleAug.has('reverse')).toBe(false);
+    for(const id of forced)expect(createBattleService(loadBattleRules(process.cwd())).R.battleAug.has(id)).toBe(false);
     expect((await actionPhase(p)).phase).toBe('action');
     const after=createBattleService(loadBattleRules(process.cwd())).restore(JSON.parse((await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}})).stateJson).battle);
-    for(const side of after.sides){expect(side.augs).toContain('reverse');expect(side.freestyle?.chosen).toBeTruthy();expect(side.fighters[side.active].attr).toBe(side.freestyle!.chosen);}
+    expect(after.sides[0].augs).toContain('reverse');expect(after.sides[0].freestyle?.chosen).toBeTruthy();expect(after.sides[0].fighters[after.sides[0].active].attr).toBe(after.sides[0].freestyle!.chosen);
+    expect(after.sides[1].augs).toContain('camo');expect(after.log.some(l=>l.includes('속성이')&&l.includes('바뀌었어요'))).toBe(true);
   });
-  it('new rooms never offer the dropped reverse augment',async()=>{
+  for(const dropped of ['reverse','camo'])it(`new rooms never offer the dropped ${dropped} augment`,async()=>{
     const p=await pair();
-    for(const id of [p.a.id,p.b.id]){const v=await service.currentRoom(id,p.roomId);expect(v.battle!.teams[0].offers.map((o:any)=>o.id)).not.toContain('reverse');}
+    for(const id of [p.a.id,p.b.id]){const v=await service.currentRoom(id,p.roomId);expect(v.battle!.teams[0].offers.map((o:any)=>o.id)).not.toContain(dropped);}
     const v=await service.currentRoom(p.a.id,p.roomId);
-    await expect(service.command(p.a.id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{choose:{augment:'reverse'}}})).rejects.toThrow();
+    await expect(service.command(p.a.id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{choose:{augment:dropped}}})).rejects.toThrow();
   });
   it('three missed action turns settle a deterministic double-timeout void once',async()=>{
     const p=await pair();await actionPhase(p);

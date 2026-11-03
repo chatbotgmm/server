@@ -10,7 +10,6 @@ import {registerNative} from '../src/native.js';
 import {RealtimePvpService} from '../src/pvp/service.js';
 import {loadBattleRules} from '../src/battle/load.js';
 import {loadStory} from '../src/battle/story.js';
-import {choose,aiChoose} from '../src/battle/engine.js';
 import {learnChances,learnLeft,type UnitRecord} from '../src/battle/growth.js';
 import {V2_CLIENT_HEADERS} from './helpers/v2-client.js';
 import {createBattleService} from '../src/battle/service-factory.js';
@@ -142,13 +141,13 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  it('새 V2 전투는 뺀 reverse(자유자재)를 제시하지 않고 직접 골라도 거절한다',async()=>{
+  for(const augment of ['reverse','camo'] as const)it(`새 V2 전투는 속성을 바꾸는 ${augment} 증강을 제시하지 않고 직접 골라도 거절한다`,async()=>{
     try{
-      const battles=createBattleService(R);expect(battles.R.battleAug.has('reverse')).toBe(false);
-      for(let seed=0;seed<500;seed++){const b=battles.create([record('D1')],[record('T1')],seed);expect(b.sides.flatMap(s=>s.offers??[])).not.toContain('reverse');}
+      const battles=createBattleService(R);expect(battles.R.battleAug.has(augment)).toBe(false);
+      for(let seed=0;seed<500;seed++){const b=battles.create([record('D1')],[record('T1')],seed);expect(b.sides.flatMap(s=>s.offers??[])).not.toContain(augment);}
       const b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:['T1'],level:15});
-      expect(b.teams[0].offers.map((o:any)=>o.id)).not.toContain('reverse');
-      const r=await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload:{session:b.session,revision:b.revision,choose:{augment:'reverse'}}});
+      expect(b.teams[0].offers.map((o:any)=>o.id)).not.toContain(augment);
+      const r=await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload:{session:b.session,revision:b.revision,choose:{augment}}});
       expect(r.statusCode).toBe(400);expect((await get('battle/current')).revision).toBe(b.revision);
     }finally{await app.close();}
   });
@@ -156,12 +155,15 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
   for(const augment of ['neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
     try{
       const enemy=[...R.units.keys()].find(id=>R.typeMult(R.unitDef('D1')!.attr,R.unitDef(id)!.attr)>1)!;
-      const mine=record('D1'),foe=record(enemy),battles=createBattleService(R);let seed=0;
-      // 운영 기본(V2) 전투로 시드를 찾는다.
-      for(;seed<2000;seed++){const b=battles.create([mine],[foe],seed);if(!b.sides[0].offers!.includes(augment))continue;choose(b,0,{augment});if(b.sides[1].offers)aiChoose(b,1);break;}
+      // V2 선택지는 유닛이 배운 기술(증강 자격)에 따라 달라지므로, 실제 서버 연습 전투로 해당 증강이 나오는 시드를 찾는다.
+      let b:any,seed=0;
+      for(;seed<2000;seed++){
+        vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
+        b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
+        if(b.teams[0].offers.some((o:any)=>o.id===augment))break;
+        await post('battle/turn',{session:b.session,revision:b.revision,leave:true});
+      }
       expect(seed).toBeLessThan(2000);
-      vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
-      let b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
       b=await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment}});
       const me=b.teams[0].fighters[0],basic=me.skills.find((sk:any)=>sk.id.startsWith('basic'));
       expect(me.matchup.attack.multiplier).toBe(basic.preview.multiplier);
