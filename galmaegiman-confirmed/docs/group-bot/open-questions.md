@@ -3,8 +3,8 @@
 카카오(chatbot@kakaocorp.com) 또는 「그룹챗봇 개발 가이드」로 확인해야 하는 항목입니다. 확인되면 이 문서와 코드의 `TODO(verify)`를 함께 지웁니다.
 
 - 덱: 「카카오톡 그룹 챗봇(beta) 가이드」(2026, 카카오). 괄호 숫자는 슬라이드 번호.
-- 2026-11-03 기준으로 덱(Google 슬라이드)은 이 작업 환경에서 열리지 않았습니다(Drive: 찾을 수 없음, 웹: 401). 덱 내용은 운영자가 정리한 지시문에서 옮긴 것입니다.
-- 그룹챗봇 개발 가이드는 웹에서 공개 문서를 찾지 못했습니다.
+- 덱(Google 슬라이드)은 이 작업 환경에서 직접 열리지 않았습니다(Drive: 찾을 수 없음, 웹: 401). 덱 내용은 다른 Claude 세션("File analysis", 2026-11-03)이 브라우저에서 뽑은 슬라이드 1~48의 **글자**를 근거로 합니다. 그 세션은 슬라이드 속 그림(예시 JSON 화면 등)을 보지 않았고, 27번의 개발 가이드 링크 주소도 뽑지 못했습니다.
+- 그룹챗봇 개발 가이드(27번 "그룹챗봇 가이드 보러가기")는 아직 못 읽었습니다. 웹에서 공개 문서도 찾지 못했습니다.
 
 ## 1. 덱 안에서 서로 다르게 적힌 것 (단정하지 않음)
 
@@ -18,7 +18,7 @@
 
 | 항목 | 지금 아는 것 | 근거 수준 |
 |---|---|---|
-| 방 키 `botGroupKey` 위치 | 덱(28): `chat.properties.botGroupKey`. 다른 개발자의 공개 PR: `userRequest.chat.properties.botGroupKey`와 `chat.id`(type `botGroupKey`) | 둘 다 공식 문서 아님 |
+| 방 키 `botGroupKey` 위치 | 덱(28) 글자 순서: `userRequest` → block(id, name) / user.properties(botUserKey, plusfreindUserKey, appUserId, appUserStatus) / chat.properties(botGroupKey) / utterance, params, lang, timezone. 그래서 `userRequest.chat.properties.botGroupKey`로 보이지만, 같은 장의 [예시] JSON은 그림이라 읽지 못함(추정). 다른 개발자의 공개 PR: `userRequest.chat.properties.botGroupKey`와 `chat.id`(type `botGroupKey`) | 둘 다 공식 문서 아님 |
 | 유저 키 `botUserKey`·`plusfriendUserKey` 위치 | 덱(28): `user.properties` 아래 | 중첩 경로 미확인 |
 | `appUserId`·`appUserStatus` | 덱(28): 카카오 로그인 가입자만(`registered`) | 앱 로그인 회원번호(`KakaoLink.kakaoId`)와 같은 값인지 미확인 |
 | 멘션이 요청에 오는 형식 | 모름 | — |
@@ -28,7 +28,7 @@
 
 | 항목 | 상태 | 코드 위치 |
 |---|---|---|
-| '피드형' 말풍선이 어느 JSON 타입인지(basicCard? carousel?) | 공개 문서에 '피드형'이라는 말 없음. 확인 전까지 만들지 않음 | `src/group/response.ts` `ALLOWED_OUTPUTS` |
+| '피드형' 말풍선이 어느 JSON 타입인지(basicCard? carousel?) | 덱(32) 그림 이름표: 텍스트, 텍스트(링크), 이미지, 리스트, 피드, 리스트(랭킹). 공개 JSON 문서에는 '피드형'이라는 말이 없음. 확인 전까지 만들지 않음 | `src/group/response.ts` `ALLOWED_OUTPUTS` |
 | 카드 넘기기(carousel) 허용 여부 | 미확인. 지금은 막음 | 같은 곳 |
 | 버튼 동작: share·block·operator, 그룹 전용 '도움말'·'챗봇 멘션하기' 버튼 | 미확인. 지금은 message·webLink만 | `GroupButton` |
 | 멘션을 응답에 넣는 형식 | 미확인. 15명/45명 나누기만 구현 | `src/group/mentions.ts` |
@@ -38,7 +38,7 @@
 
 | 항목 | 상태 |
 |---|---|
-| 선톡 '월 2회'의 기준(봇 전체인지 방마다인지) | 미확인. 지금은 개발·운영 환경별 봇 전체 기준으로 셈(`src/group/proactive.ts`) |
+| 선톡 '월 2회'의 기준(봇 전체인지 방마다인지) | 덱(42): "발송횟수는 최대 월2회로 제한", 발송 채팅방 목록은 카카오가 "호출유저를 기준으로 중복필터링하여 전달". 기준 단위는 적혀 있지 않음. 지금은 개발·운영 환경별 봇 전체 기준으로 셈(`src/group/proactive.ts`) |
 | Event API 호출 형식, 대상 방 목록 추출 요청 방법 | 미확인. 발송 코드 없음(판단·횟수 예약만) |
 | '알림' 기능 개발 가이드 | 미확인 |
 | 사행성 표현('뽑기' 등) 기준 | 근거는 입점 미팅 개인 후기 1건뿐(velog, 2026-03-12). 카카오 문서로 확인 안 됨 |
