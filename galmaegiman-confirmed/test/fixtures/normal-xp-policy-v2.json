@@ -1,0 +1,35 @@
+{
+  "approved": true,
+  "version": "normal-completion-xp-test-v2-presence-v1",
+  "rulesVersion": "normal-xp-v2",
+  "catalogVersion": "five-stat-device-test-v1",
+  "profileKind": "user-authorized-test-baseline",
+  "productionBalanceApproved": false,
+  "testValues": true,
+  "scope": "normal",
+  "source": "duel-nearest-owned-start-level",
+  "participation": "actually-entered-owned-only",
+  "outcomePercent": {
+    "win": 100,
+    "loss": 50
+  },
+  "distribution": "equal-entered-owned",
+  "poolBasis": "highest-entered-start-level",
+  "remainder": "owned-id-ascending",
+  "capOverflow": "discard-overflow",
+  "eligibleReason": "BATTLE_OR_VALIDATED_GRACE_TIMEOUT",
+  "surrender": "confirmed-zero",
+  "draw": "undecided-no-award",
+  "timeout": "validated-grace-survivor-only",
+  "disconnect": "validated-grace-survivor-only",
+  "legacyRoom": "unconfigured-no-retroactive-award",
+  "notes": [
+    "정상 승리 100%·정상 패배 50%, 실제 출전한 해당 사람의 소유 개체에게 균등 분배는 확정이다. AI와 사람 상대에 같은 기준을 쓴다.",
+    "계정별 기본 XP 총량은 미정이다. 실제 출전 개체 중 최고 시작 레벨의 기존 duel winXp를 원천으로 고르는 방식은 명시적 시험 제안이다.",
+    "패배 총량은 기본량의 50%를 정수 내림한다. 기본량 1이면 패배량은 0이며 최소 1 보완을 하지 않는다.",
+    "총량을 참가자 수로 나눈 정수 나머지는 소유 개체 ID 오름차순으로 1씩 배분한다. 미출전 예비는 총량과 분배에 영향을 주지 않는다.",
+    "각 개체의 현재 60/99레벨 상한까지만 적용하고 초과는 버린다. 보류·은행·이월·자동 환생·다른 참가자에게 재분배하지 않는다.",
+    "미정산 v1 계획은 고정된 기본 원천량과 성장 곡선을 보존하면서 확정 v2 비율·분배·상한 규칙으로 정산한다. 이미 확정된 원장/영수증은 다시 지급하거나 변경하지 않는다.",
+    "서버가 재접속 유예 만료와 정상 잔류 상대를 증명한 TIMEOUT만 잔류 승리 100%·이탈 0으로 정산한다. 단순 입력 지연·증거 없는 timeout·서버 장애·무승부에는 지급하지 않는다."
+  ]
+}

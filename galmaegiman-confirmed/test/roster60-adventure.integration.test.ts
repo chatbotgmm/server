@@ -67,7 +67,18 @@ suite('authenticated adventure escrow and escape',()=>{
    expect((await db.player.findUniqueOrThrow({where:{id:player}})).snack).toBe(before.snack+7);
   }finally{await db.realtimeItemEscrow.deleteMany({where:{roomId}});}
  });
- it('records voluntary/forced entries per battle, floors reserve XP, escrows each share and settles once',async()=>{
+ it('an adventure battle created before the finisher rule keeps its pinned 100% entered and 50% reserve split',async()=>{
+  const units=[];for(let i=0;i<3;i++)units.push(await db.roster60Owned.create({data:{playerId:player,speciesId:'u01',source:randomUUID()}}));
+  const ids=units.map(u=>u.id);let run=await ok('adventure/start',{requestId:randomUUID(),ownedIds:ids});run=await read(run);
+  let v=await battle(run,'adventure-odd');
+  // 배포 전 서버가 만든 전투 스냅샷을 재현한다: 정산 규칙은 전투 생성 때 고정된 값을 따른다.
+  const row=await db.roster60Battle.findUniqueOrThrow({where:{id:v.battleId}}),snap=JSON.parse(row.snapshot);expect(snap.xpRecipient).toBe('adventure-finisher-100-rest-50-v1');
+  snap.xpRecipient='adventure-participation-100-reserve-50-v1';await db.roster60Battle.update({where:{id:v.battleId},data:{snapshot:JSON.stringify(snap)}});
+  v=await act(v,{kind:'switch',targetOwnedId:ids[1]});v=await act(v,{kind:'attack'});
+  const settled=await settle(v);expect(settled.settlement.xpPolicy).toBe('adventure-participation-100-reserve-50-v1');
+  expect(settled.settlement.xpByOwnedId).toEqual({[ids[0]]:11,[ids[1]]:11,[ids[2]]:5});
+ });
+ it('records voluntary/forced entries per battle, gives the finisher full XP and every other member floored half, escrows each share and settles once',async()=>{
   const units=[];for(let i=0;i<4;i++)units.push(await db.roster60Owned.create({data:{playerId:player,speciesId:'u01',source:randomUUID()}}));
   const ids=units.map(u=>u.id);let run=await ok('adventure/start',{requestId:randomUUID(),ownedIds:ids.slice(0,3)});
   // Pinned pre-policy four-member adventure fixture retains the existing XP contract.
@@ -82,11 +93,12 @@ suite('authenticated adventure escrow and escape',()=>{
   v=await act(v,{kind:'switch',targetOwnedId:ids[2]});expect(v.state.participation.at(-1).kind).toBe('forced-switch');
   v=await act(v,{kind:'switch',targetOwnedId:ids[0]});v=await act(v,{kind:'switch',targetOwnedId:ids[2]});v=await act(v,{kind:'attack'});
   const request={requestId:randomUUID(),battleId:v.battleId,revision:v.revision};const settled=await ok('battle/settle',request);
-  const first={[ids[0]]:11,[ids[1]]:11,[ids[2]]:11,[ids[3]]:5};expect(settled.settlement.xpByOwnedId).toEqual(first);
+  // 새 모험 전투: 이긴 순간 나와 있던 ids[2]는 winXp 11 전액, 출전했던 ids[0]·ids[1]과 미출전 ids[3]은 floor(11/2)=5.
+  const first={[ids[0]]:5,[ids[1]]:5,[ids[2]]:11,[ids[3]]:5};expect(settled.settlement.xpByOwnedId).toEqual(first);expect(settled.settlement.xpPolicy).toBe('adventure-finisher-100-rest-50-v1');
   expect(await ok('battle/settle',request)).toEqual(settled);expect(await ok('battle/settle',{...request,requestId:randomUUID()})).toEqual(settled);
   run=await read(run);expect(run.pendingRewards.xp).toEqual(first);expect((await db.roster60Owned.findMany({where:{id:{in:ids}}})).every(u=>u.totalXp===0n)).toBe(true);
   v=await battle(run,'adventure-odd');expect(v.state.participation).toEqual([{ownedId:ids[2],kind:'start',turn:0}]);await settle(await act(v,{kind:'attack'}));
-  run=await read(run);const totals={[ids[0]]:16,[ids[1]]:16,[ids[2]]:22,[ids[3]]:10};expect(run.pendingRewards.xp).toEqual(totals);
+  run=await read(run);const totals={[ids[0]]:10,[ids[1]]:10,[ids[2]]:22,[ids[3]]:10};expect(run.pendingRewards.xp).toEqual(totals);
   const ret={requestId:randomUUID(),adventureId:run.adventureId,revision:run.revision};const returned=await ok('adventure/return',ret);expect(await ok('adventure/return',ret)).toEqual(returned);
   for(const u of units)expect((await db.roster60Owned.findUniqueOrThrow({where:{id:u.id}})).totalXp).toBe(BigInt(totals[u.id]));
  });

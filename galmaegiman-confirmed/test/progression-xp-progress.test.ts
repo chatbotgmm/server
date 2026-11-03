@@ -8,7 +8,7 @@ import type {RosterCatalog} from '../src/roster60-onboarding.js';
 import type {BattlePolicy} from '../src/roster60-battle.js';
 
 const read=(name:string)=>JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/'+name,'utf8'));
-const catalog=read('catalog.json') as RosterCatalog,battle=read('battle-policy.json') as BattlePolicy,policy=read('normal-xp-policy.json') as NormalXpCurrentPolicy;
+const catalog=read('catalog.json') as RosterCatalog,battle=read('battle-policy.json') as BattlePolicy,policy=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8')) as NormalXpCurrentPolicy;
 
 describe('server receipt XP progress is a read-only projection of pinned growth',()=>{
  it('actual per-instance thresholds agree just before and after every 60/99-level boundary',()=>{

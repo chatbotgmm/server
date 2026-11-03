@@ -4,9 +4,10 @@ import {RosterError} from '../roster60-onboarding.js';
 import {growthAt,instanceGrowthCurve,rosterMaxLevel,type GrowthPoint,type ReincarnationXpPolicy} from '../battle/roster60-rules.js';
 import type {State} from '../roster60-battle.js';
 import {normalXpGrant} from './normal-xp.js';
+import {FINISHER_SPLIT_DISTRIBUTION,finisherSplitShares} from './finisher-split.js';
 
 /** An additive reward schedule, captured only when a new battle/queue is created. */
-export type UnitXpPacing={approved:true;version:string;catalogVersion:string;winsPerLevel:2;difficulty:'owned-level-capped-by-enemy';distribution:'equal-actually-entered';existingRewards:'keep-higher';capOverflow:'discard-overflow'};
+export type UnitXpPacing={approved:true;version:string;catalogVersion:string;winsPerLevel:2|1.5;difficulty:'owned-level-capped-by-enemy';distribution:'equal-actually-entered'|'finisher-full-rest-half';existingRewards:'keep-higher';capOverflow:'discard-overflow'};
 export type PacingMember={ownedId:string;playerId:string;startingXp:string;growth:GrowthPoint[];reincarnation:number;reincarnationXpPolicy?:ReincarnationXpPolicy};
 export type PacedBattleXpPlan={version:'paced-battle-xp-v1';battleId:string;playerId:string;policy:UnitXpPacing;enemyLevel:number;sourceWinXp:number;sourceLossXp:number;baseline:'total'|'per-entered';reserveHalf:boolean;recipientMode?:'initial-owned'|'entered';requireSurvivor?:boolean;members:PacingMember[]};
 const fail=(code='UNIT_XP_PACING_INVALID'):never=>{throw new RosterError(503,code);};
@@ -14,7 +15,7 @@ const amount=(n:unknown):n is number=>Number.isSafeInteger(n)&&Number(n)>=0&&Num
 const level=(n:unknown):n is number=>Number.isSafeInteger(n)&&Number(n)>=1&&Number(n)<=99;
 export function validateUnitXpPacing(raw:unknown,catalogVersion:string):UnitXpPacing{
  const p=raw as UnitXpPacing;const keys=['approved','version','catalogVersion','winsPerLevel','difficulty','distribution','existingRewards','capOverflow'];
- if(!p||Array.isArray(p)||Object.keys(p).sort().join()!==keys.sort().join()||p.approved!==true||typeof p.version!=='string'||!p.version||p.catalogVersion!==catalogVersion||p.winsPerLevel!==2||p.difficulty!=='owned-level-capped-by-enemy'||p.distribution!=='equal-actually-entered'||p.existingRewards!=='keep-higher'||p.capOverflow!=='discard-overflow')return fail();
+ if(!p||Array.isArray(p)||Object.keys(p).sort().join()!==keys.sort().join()||p.approved!==true||typeof p.version!=='string'||!p.version||p.catalogVersion!==catalogVersion||!(p.winsPerLevel===2&&p.distribution==='equal-actually-entered'||p.winsPerLevel===1.5&&p.distribution===FINISHER_SPLIT_DISTRIBUTION)||p.difficulty!=='owned-level-capped-by-enemy'||p.existingRewards!=='keep-higher'||p.capOverflow!=='discard-overflow')return fail();
  return p;
 }
 export function unitXpPacingReader(root:string,profile?:string):()=>UnitXpPacing|null{
@@ -33,12 +34,18 @@ export function pacedUnitWin(member:Pick<PacingMember,'startingXp'|'growth'|'rei
  const difficulty=nearestTierMinimum!==undefined&&enemyLevel>=nearestTierMinimum?grown.level:Math.min(grown.level,enemyLevel);
  const curve=instanceGrowthCurve(member.growth,member.reincarnation,member.reincarnationXpPolicy);
  if(curve.length<rosterMaxLevel(member.reincarnation)||!curve[difficulty])return fail();
- return Math.ceil((curve[difficulty].totalXp-curve[difficulty-1].totalXp)/policy.winsPerLevel);
+ // 정수만으로 나눈다(2승: /2, 1.5승: ×2/3). 나누어떨어지면 부동소수 오차 없이 그 값이다.
+ return Math.ceil((curve[difficulty].totalXp-curve[difficulty-1].totalXp)*2/(policy.winsPerLevel*2));
 }
 export function pacedPool(members:(Pick<PacingMember,'startingXp'|'growth'|'reincarnation'|'reincarnationXpPolicy'>&{nearestTierMinimum?:number})[],enemyLevel:number,legacyPool:number,policy:UnitXpPacing){
  if(!amount(legacyPool)||!members.length)return fail();
  const floor=Math.max(...members.map(member=>pacedUnitWin(member,enemyLevel,policy,member.nearestTierMinimum)))*members.length;
  const total=Math.max(legacyPool,floor);if(!amount(total))return fail();return total;
+}
+/** 마무리 전액 판: 기존 보상과 마무리 유닛의 「적정 레벨 승리 N번에 1레벨」 최소값 중 큰 값. */
+export function pacedFinisherWin(finisher:Pick<PacingMember,'startingXp'|'growth'|'reincarnation'|'reincarnationXpPolicy'>,enemyLevel:number,legacyWin:number,policy:UnitXpPacing,nearestTierMinimum?:number){
+ if(!amount(legacyWin))return fail();
+ const total=Math.max(legacyWin,pacedUnitWin(finisher,enemyLevel,policy,nearestTierMinimum));if(!amount(total))return fail();return total;
 }
 export function createPacedBattleXpPlan(input:Omit<PacedBattleXpPlan,'version'>):PacedBattleXpPlan{
  validateUnitXpPacing(input.policy,input.policy.catalogVersion);
@@ -61,6 +68,14 @@ export function calculatePacedBattleXp(plan:PacedBattleXpPlan,row:{ownedId:strin
  if(plan.recipientMode==='initial-owned'){entered.clear();entered.add(row.ownedId);}
  const ids=[...entered].sort(),members=ids.map(id=>plan.members.find(m=>m.ownedId===id)!);
  const alive=[state.fighters[0],...(state.reserves??[])].some(f=>f.hp>0),win=state.outcome==='win'&&!state.surrendered&&(!plan.requireSurvivor||alive),loss=state.outcome==='loss'&&!state.surrendered;
+ // 마무리 전액 판(연습전 제외): 이긴 순간 나와 있던 유닛 W 전액, 편성된 나머지는 절반. 패배는 0.
+ if(plan.policy.distribution===FINISHER_SPLIT_DISTRIBUTION&&plan.recipientMode!=='initial-owned'){
+  const finisherId=state.fighters[0].ownedId!,finisher=plan.members.find(m=>m.ownedId===finisherId)??fail('UNIT_XP_PACING_PARTICIPATION_INVALID');
+  const shares=win?finisherSplitShares(pacedFinisherWin(finisher,plan.enemyLevel,plan.sourceWinXp,plan.policy),plan.members.map(m=>m.ownedId),finisherId):new Map<string,number>();
+  const result={policyVersion:plan.policy.version,requestedXp:0,xpAccepted:0,xpDiscarded:0,xpDeferred:0 as const,xpByOwnedId:{} as Record<string,number>,requestedXpByOwnedId:{} as Record<string,number>,units:[] as {ownedId:string;startingXp:string;endingXp:string;requestedXp:number;appliedXp:number;discardedXp:number;status:string}[]};
+  for(const member of plan.members){const requestedXp=shares.get(member.ownedId)??0,start=effectiveStartingXp?.[member.ownedId]??member.startingXp,grant=normalXpGrant({...member,startingXp:start},requestedXp),discardedXp=grant.requestedXp-grant.appliedXp;result.requestedXp+=requestedXp;result.xpAccepted+=grant.appliedXp;result.xpDiscarded+=discardedXp;result.xpByOwnedId[member.ownedId]=grant.appliedXp;result.requestedXpByOwnedId[member.ownedId]=requestedXp;result.units.push({ownedId:member.ownedId,startingXp:start,endingXp:grant.endingXp,requestedXp,appliedXp:grant.appliedXp,discardedXp,status:grant.status});}
+  return result;
+ }
  const legacy=plan.sourceWinXp*(plan.baseline==='per-entered'?ids.length:1),winPool=pacedPool(members,plan.enemyLevel,legacy,plan.policy);
  // Preserve each mode's existing loss ratio. Story/adventure loss remains zero.
  const total=win?winPool:loss&&plan.sourceWinXp>0?Number(BigInt(winPool)*BigInt(plan.sourceLossXp)/BigInt(plan.sourceWinXp)):0;

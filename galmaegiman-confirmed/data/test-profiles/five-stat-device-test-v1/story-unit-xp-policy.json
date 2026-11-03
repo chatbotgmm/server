@@ -1,13 +1,13 @@
 {
   "approved": true,
-  "version": "story-unit-xp-campaign-test-v1",
+  "version": "story-unit-xp-campaign-test-v2",
   "profileKind": "user-authorized-test-baseline",
   "productionBalanceApproved": false,
   "testValues": true,
   "catalogVersion": "five-stat-device-test-v1",
   "contentVersion": "story-progression-test-v1",
   "scope": "accepted-quest-battles-only",
-  "distribution": "equal-actually-entered",
+  "distribution": "finisher-full-rest-half",
   "loss": "zero-existing-story",
   "surrender": "zero",
   "draw": "zero",
@@ -124,13 +124,11 @@
     }
   },
   "notes": [
-    "All amounts and the +3-level reward pacing buffer are isolated test proposals, not production balance approval.",
-    "Uses the original non-reincarnated u01 growth thresholds: three actually entered sample units share 655359 XP, 218453 each at level 60. This is not a promise that all owned units reach 60.",
-    "The three-member sample starts u01/u02/u03 at level 1 with zero XP as an explicit ownership fixture; the third member is not a guaranteed onboarding grant.",
-    "Also check the guaranteed-ownership u01 plus common-choice u02 sample with the same rewards; two entered units receive larger shares and may reach the cap earlier.",
-    "After each rewarding quest, target the next actual encounter level plus 3, advance at least one level when equal, reach level 59 before the last boss and level 60 after it.",
-    "Two-fight adventures split a quest reward into multiples of three; HP carries between fights and unit levels change only on normal return. No mid-adventure XP level-up is assumed.",
-    "Enemy HP, power, level, defense, encounter order, prerequisites and Gang gates are unchanged. No repeat quest, extra normal battle, random drop, healing item or automatic reincarnation is budgeted.",
+    "모든 금액은 시험값이며 운영 밸런스 승인이 아니다(productionBalanceApproved:false).",
+    "v2 분배: 이긴 전투에서 마무리 유닛(이긴 순간 나와 있던 내 유닛)은 해당 전투 winXp 전액, 편성된 나머지 유닛(출전하지 않은 예비 포함)은 각각 winXp의 절반(내림)을 받는다. 패배·항복·무승부는 0이다.",
+    "이미 v1(실제 출전 개체 균등 분배)으로 고정된 의뢰·전투는 v1로 정산한다. 새로 고정되는 의뢰부터 v2를 쓴다.",
+    "v1 기준으로 맞춘 레벨 진행 목표(다음 전투 레벨+3, 마지막 보스 전 59 등)는 v2로 다시 계산하지 않았다. 개체당 받는 양이 v1보다 많아 더 빨리 성장할 수 있다.",
+    "각 개체의 60/99레벨 상한까지만 적용하고 초과는 버린다. 모험형 의뢰는 정상 귀환 때 지급하고 전멸하면 잃는다.",
     "Main commander events remain 4200 XP/level 43 and the existing four residents add 1800, total 6000/level 61, independently of this unit XP policy."
   ]
 }

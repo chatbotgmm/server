@@ -17,7 +17,8 @@ const source='data/test-profiles/five-stat-device-test-v1/';
 const commanderPolicy=validateCommanderPolicy(JSON.parse(readFileSync(source+'commander-policy.json','utf8')));
 const baseCatalog=JSON.parse(readFileSync(source+'catalog.json','utf8'));
 const baseBattlePolicy=JSON.parse(readFileSync(source+'battle-policy.json','utf8'));
-const normalXpPolicy=JSON.parse(readFileSync(source+'normal-xp-policy.json','utf8'));
+// 이미 v2로 고정된 방의 정산 규칙으로 검증한다(이 시험의 대상은 v2 계약). 새 배포 정책(v3)은 test/finisher-split.test.ts·normal-xp.integration.test.ts에서 검증한다.
+const normalXpPolicy=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8'));
 const presencePolicy:PresencePolicy={version:'roster60-presence-policy-v1',leaseMs:10,totalAbsentMs:25,monitorGapMs:20};
 const request=()=>randomUUID();
 type Actor={id:string;ids:string[];headers?:Record<string,string>};

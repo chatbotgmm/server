@@ -1,4 +1,5 @@
 import {pacedBattleXpPlan,calculatePacedBattleXp} from './progression/unit-xp-pacing.js';
+import {ADVENTURE_FINISHER_SPLIT_POLICY,FINISHER_SPLIT_DISTRIBUTION,finisherSplitShares} from './progression/finisher-split.js';
 import {storyUnitXpPlan,calculateStoryUnitXp,addStoryUnitXpEscrow,storyUnitXpReturn,type StoryUnitXpResult} from './progression/story-unit-xp.js';
 import {isCurrentRoster60Party} from './roster60-party-policy.js';
 import {checkedAdventureRewards,validateRewardRecipients,checkedRewardTotal} from './roster60-adventure-rewards.js';
@@ -87,11 +88,12 @@ export async function settleAdventureBattle(tx:Prisma.TransactionClient,row:{id:
   // Before participation was added, persisted server switch events are the authoritative fallback.
   const entered=[row.ownedId,...(state.participation??[]).map(p=>p.ownedId)];
   for(const turn of state.events as {events?:{actor?:string;kind?:string;to?:string}[]}[])for(const e of turn.events??[])if(e.actor==='self'&&['switch','forced-switch'].includes(e.kind??'')&&e.to)entered.push(e.to);
-  xpByOwnedId=adventureBattleXp(xp,saved.members.map((m:{ownedId:string})=>m.ownedId),entered);
+  // 전투 생성 때 고정한 규칙을 따른다. 새 전투: 마무리 전액·편성 나머지 절반. 예전 전투: 출전 100%·예비 50%.
+  xpByOwnedId=snap.xpRecipient===ADVENTURE_FINISHER_SPLIT_POLICY?Object.fromEntries(finisherSplitShares(xp,saved.members.map((m:{ownedId:string})=>m.ownedId),state.fighters[0].ownedId!)):adventureBattleXp(xp,saved.members.map((m:{ownedId:string})=>m.ownedId),entered);
   for(const [id,amount] of Object.entries(xpByOwnedId)){pending.xp[id]=(pending.xp[id]??0)+amount;if(!Number.isSafeInteger(pending.xp[id])||pending.xp[id]>2_000_000_000)return fail('INVALID_REWARD');}
  }
  for(const m of saved.members){const changed=await tx.roster60Owned.updateMany({where:{id:m.ownedId,playerId:row.playerId,status:'BATTLE',totalXp:BigInt(m.startingXp)},data:{status:lost?'AVAILABLE':'ADVENTURE'}});if(changed.count!==1)return fail('UNIT_STATE_CHANGED');}
  const settlement=lost?{kind:'forced-return',lostRewards:pending}:null;
  const changed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId:row.playerId,revision:run.revision,status:'ACTIVE',activeBattleId:row.id},data:{activeBattleId:null,revision:{increment:1},state:JSON.stringify({...saved,party}),pendingRewards:JSON.stringify(lost?{xp:{}}:pending),status:lost?'LOST':'ACTIVE',settlement:settlement?JSON.stringify(settlement):null}});if(changed.count!==1)return fail('ADVENTURE_STATE_CHANGED');
- return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:paced?paced.policy.version:unitPlan?'story-unit-equal-entered-v1':'adventure-participation-100-reserve-50-v1',...(unitReward?{xpDiscarded:unitReward.xpDiscarded,xpDeferred:0,unitXp:{...unitReward,delivery:'pending-return'}}:{}),adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
+ return {outcome:state.outcome,xpAwarded:0,xpEscrowed:xp,xpByOwnedId,xpPolicy:paced?paced.policy.version:unitPlan?(unitPlan.policy.distribution===FINISHER_SPLIT_DISTRIBUTION?'story-unit-finisher-100-rest-50-v1':'story-unit-equal-entered-v1'):snap.xpRecipient===ADVENTURE_FINISHER_SPLIT_POLICY?ADVENTURE_FINISHER_SPLIT_POLICY:'adventure-participation-100-reserve-50-v1',...(unitReward?{xpDiscarded:unitReward.xpDiscarded,xpDeferred:0,unitXp:{...unitReward,delivery:'pending-return'}}:{}),adventureId:run.id,adventureStatus:lost?'LOST':'ACTIVE',pendingRewards:lost?{xp:{}}:pending};
 }

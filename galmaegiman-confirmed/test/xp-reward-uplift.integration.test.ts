@@ -10,13 +10,14 @@ import {RosterOwned} from '../src/roster60-owned.js';
 import {registerRoster60} from '../src/roster60-routes.js';
 import {instanceGrowthCurve} from '../src/battle/roster60-rules.js';
 import {commanderPolicyReader} from '../src/progression/commander.js';
-import type {UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
+import {pacedUnitWin,type UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 const load=(path:string)=>JSON.parse(readFileSync(path,'utf8'));
 const originalCatalog=load('data/test-profiles/five-stat-device-test-v1/catalog.json');
 const originalBattle=load('data/test-profiles/five-stat-device-test-v1/battle-policy.json');
-const pacing=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing;
+// 「승리 2번에 1레벨·출전 개체 균등」 예전 판을 검증한다(이미 고정된 전투는 이 판으로 정산). 새 배포 판은 test/finisher-split.test.ts에서 검증한다.
+const pacing=load('test/fixtures/unit-xp-pacing-policy-two-wins.json') as UnitXpPacing;
 const content=load('data/story/story-mode-v1.json');
 const storyUnitPolicy=load('data/test-profiles/five-stat-device-test-v1/story-unit-xp-policy.json');
 const request=()=>randomUUID();
@@ -86,14 +87,39 @@ suite('new battle reward pacing, real persisted settlement and existing receipt 
   for(const outcome of ['loss','escaped'] as const){const b:any=await story().createBattle(a.id,{requestId:request(),encounterId:'STORY_01_01',ownedIds:a.units.map(u=>u.id)}),paid=await settle(a,await terminal(a,b,outcome));expect(paid.settlement.xpEscrowed).toBe(0);expect(await storedXp(a)).toEqual(a.units.map(()=>a.start+1162n));if(outcome==='escaped'){const r:any=await adventure().read(a.id,b.state.adventureId),returned:any=await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});expect(returned.settlement.commanderReward.xpAwarded).toBe(0);}}
  });
 
+ it('배포 판(1.5승 최소·마무리 전액): 모험은 마무리 유닛이 max(원천, 적정 레벨 최소)를 받고 나머지는 절반, 낮은 적은 적 레벨 기준, 전멸은 0',async()=>{
+  const deployed=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+  const floorAt=(a:Awaited<ReturnType<typeof actor>>,enemyLevel:number)=>pacedUnitWin({startingXp:a.start.toString(),growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy},enemyLevel,deployed);
+  for(const [enemyLevel,winXp] of [[15,10],[15,5000],[5,10]] as const){
+   encounter('adventure',enemyLevel,winXp,0);policy.xpPacing=structuredClone(deployed);const a=await actor(),run:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)});
+   const paid=await settle(a,await terminal(a,await create(a,run.adventureId),'win',[a.units[0].id])),w=Math.max(winXp,floorAt(a,enemyLevel));
+   // 1.5승 최소 = ceil(다음 레벨 필요 XP×2/3). 적이 낮으면 적 레벨 기준이라 최소가 작다.
+   expect(floorAt(a,enemyLevel)).toBe(Math.ceil((instanceGrowthCurve(def.growth,0)[Math.min(15,enemyLevel)].totalXp-instanceGrowthCurve(def.growth,0)[Math.min(15,enemyLevel)-1].totalXp)*2/3));
+   expect(paid.settlement.xpByOwnedId).toEqual({[a.units[0].id]:w,[a.units[1].id]:Math.floor(w/2),[a.units[2].id]:Math.floor(w/2)});expect(paid.settlement.xpPolicy).toBe(deployed.version);
+   const lost=await settle(a,await terminal(a,await create(a,run.adventureId),'loss'));expect(lost.settlement.adventureStatus).toBe('LOST');expect(await storedXp(a)).toEqual(a.units.map(()=>a.start));
+  }
+ });
+
+ it('배포 판: 수락한 의뢰 전투는 마무리 유닛이 max(스토리 보상, 적정 레벨 최소), 나머지는 절반을 귀환 때 받는다',async()=>{
+  const deployed=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+  policy.xpPacing=structuredClone(deployed);const campaign=structuredClone(content);campaign.scenes=campaign.scenes.map((s:any)=>({...s,lines:[s.lines[0]]}));const first=campaign.encounters.find((e:any)=>e.id==='STORY_01_01');Object.assign(first,{speciesId:'u07',level:15,hpMultiplier:1,powerMultiplier:1});
+  const commander=commanderPolicyReader(process.cwd(),'five-stat-device-test-v1'),story=()=>new RosterStory(db,()=>catalog,()=>policy,campaign,commander,()=>storyUnitPolicy);
+  const a=await actor();let journal:any=await story().state(a.id);journal=await story().open(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01',phase:'intro'});await story().accept(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01'});
+  const b:any=await story().createBattle(a.id,{requestId:request(),questId:'STORY_01',ownedIds:a.units.map(u=>u.id)}),paid=await settle(a,await terminal(a,b,'win',[a.units[0].id]));
+  const w=Math.max(storyUnitPolicy.rewards.STORY_01_01.winXp,pacedUnitWin({startingXp:a.start.toString(),growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy},15,deployed));
+  expect(paid.settlement).toMatchObject({xpAwarded:0,xpEscrowed:w+2*Math.floor(w/2),unitXp:{delivery:'pending-return'}});
+  const r:any=await adventure().read(a.id,b.state.adventureId);await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});
+  expect(await storedXp(a)).toEqual([a.start+BigInt(w),a.start+BigInt(Math.floor(w/2)),a.start+BigInt(Math.floor(w/2))]);
+ });
+
  it('the real profile reader and authenticated routes pin both new schedules, while client XP fields remain rejected',async()=>{
-  process.env.ROSTER60_PROFILE='five-stat-device-test-v1';delete process.env.ROSTER60_STORY_PROFILE;const a=await actor(40,1),app=Fastify();registerRoster60(app,db,process.cwd(),r=>r.headers.authorization===a.id?a.id:null,()=>true);
+  process.env.ROSTER60_PROFILE='five-stat-device-test-v1';delete process.env.ROSTER60_STORY_PROFILE;const a=await actor(40,1),app=Fastify(),deployed=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing;expect(deployed).toMatchObject({winsPerLevel:1.5,distribution:'finisher-full-rest-half'});registerRoster60(app,db,process.cwd(),r=>r.headers.authorization===a.id?a.id:null,()=>true);
   const post=(path:string,payload:any)=>app.inject({method:'POST',url:'/my/api/native/roster60/'+path,headers:{authorization:a.id},payload});
   try{
    const denied=await post('battle/create',{requestId:request(),ownedId:a.units[0].id,encounterId:'training-40',xpAwarded:99999});expect(denied.statusCode).toBe(400);
-   const created=await post('battle/create',{requestId:request(),ownedId:a.units[0].id,encounterId:'training-40'});expect(created.statusCode).toBe(200);const b=created.json(),row=await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}});expect(JSON.parse(row.snapshot).unitXpPacing.policy.version).toBe(pacing.version);
-   const finished=await terminal(a,b),paid=await post('battle/settle',{requestId:request(),battleId:b.battleId,revision:finished.revision});expect(paid.statusCode).toBe(200);expect(paid.json().settlement.xpAwarded).toBe(2530);
-   expect((await post('pvp/party',{ownedIds:a.units.map(u=>u.id)})).statusCode).toBe(200);expect((await post('pvp/join',{requestId:request(),mode:'normal'})).statusCode).toBe(200);const queue=await db.roster60PvpQueue.findUniqueOrThrow({where:{playerId:a.id}});expect(JSON.parse(queue.normalXpSnapshot!).policy.xpPacing.version).toBe(pacing.version);expect(JSON.parse(queue.commanderXpSnapshot!).policy.rewardSchedule.rewards.normalWin).toBe(150);
+   const created=await post('battle/create',{requestId:request(),ownedId:a.units[0].id,encounterId:'training-40'});expect(created.statusCode).toBe(200);const b=created.json(),row=await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}});expect(JSON.parse(row.snapshot).unitXpPacing.policy.version).toBe(deployed.version);
+   const finished=await terminal(a,b),paid=await post('battle/settle',{requestId:request(),battleId:b.battleId,revision:finished.revision});expect(paid.statusCode).toBe(200);expect(paid.json().settlement.xpAwarded).toBe(Math.ceil(5060*2/3));
+   expect((await post('pvp/party',{ownedIds:a.units.map(u=>u.id)})).statusCode).toBe(200);expect((await post('pvp/join',{requestId:request(),mode:'normal'})).statusCode).toBe(200);const queue=await db.roster60PvpQueue.findUniqueOrThrow({where:{playerId:a.id}});expect(JSON.parse(queue.normalXpSnapshot!).policy.xpPacing.version).toBe(deployed.version);expect(JSON.parse(queue.commanderXpSnapshot!).policy.rewardSchedule.rewards.normalWin).toBe(150);
    await post('pvp/cancel',{requestId:request()});
   }finally{await app.close();}
  });

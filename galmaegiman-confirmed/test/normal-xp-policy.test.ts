@@ -5,7 +5,8 @@ import type {BattlePolicy} from '../src/roster60-battle.js';
 import type {GrowthPoint} from '../src/battle/roster60-rules.js';
 
 const read=(name:string)=>JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/'+name,'utf8'));
-const config=read('normal-xp-policy.json') as NormalXpCurrentPolicy;
+// 이미 v2로 고정된 대기·대전의 정산 규칙을 검증한다. 새 배포 정책(v3)은 test/finisher-split.test.ts에서 검증한다.
+const config=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8')) as NormalXpCurrentPolicy;
 const battlePolicy=read('battle-policy.json') as BattlePolicy;
 const catalog=read('catalog.json');
 const curve:GrowthPoint[]=Array.from({length:99},(_,i)=>({totalXp:i*100,maxMp:i+10}));

@@ -1,0 +1,10 @@
+{
+  "approved": true,
+  "version": "unit-xp-two-wins-20261030-v1",
+  "catalogVersion": "five-stat-device-test-v1",
+  "winsPerLevel": 2,
+  "difficulty": "owned-level-capped-by-enemy",
+  "distribution": "equal-actually-entered",
+  "existingRewards": "keep-higher",
+  "capOverflow": "discard-overflow"
+}

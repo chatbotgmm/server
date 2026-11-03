@@ -9,8 +9,10 @@ import type {NormalXpPolicy} from '../src/progression/normal-xp.js';
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 const originalCatalog=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8'));
 const originalBattle=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/battle-policy.json','utf8'));
-const originalNormal=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8'));
-const pacing=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json','utf8'));
+// 이미 v2로 고정된 대기·대전의 정산 규칙을 검증한다. 새 배포 정책(v3)은 test/finisher-split.test.ts에서 검증한다.
+const originalNormal=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8'));
+// 「승리 2번에 1레벨·출전 개체 균등」 예전 판을 검증한다(이미 고정된 전투는 이 판으로 정산). 새 배포 판은 test/finisher-split.test.ts에서 검증한다.
+const pacing=JSON.parse(readFileSync('test/fixtures/unit-xp-pacing-policy-two-wins.json','utf8'));
 const request=()=>randomUUID();
 type Actor={id:string;ids:string[];starting:bigint[]};
 

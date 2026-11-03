@@ -9,8 +9,9 @@ const read=(name:string)=>JSON.parse(readFileSync('data/test-profiles/five-stat-
 const catalog=read('catalog.json');
 const growth:GrowthPoint[]=catalog.characters.find((unit:any)=>unit.id==='u01').growth;
 const battle=read('battle-policy.json') as BattlePolicy;
-const normal=read('normal-xp-policy.json') as NormalXpCurrentPolicy;
-const policy=read('unit-xp-pacing-policy.json') as UnitXpPacing;
+const normal=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8')) as NormalXpCurrentPolicy;
+// 「승리 2번에 1레벨·출전 개체 균등」 예전 판을 검증한다(이미 고정된 전투는 이 판으로 정산). 새 배포 판은 test/finisher-split.test.ts에서 검증한다.
+const policy=JSON.parse(readFileSync('test/fixtures/unit-xp-pacing-policy-two-wins.json','utf8')) as UnitXpPacing;
 const owner='pacing-owner';
 const row={id:'pacing-battle',playerId:owner,ownedId:'owned-a'};
 function owned(ownedId:string,level:number,reincarnation=0):PacingMember{

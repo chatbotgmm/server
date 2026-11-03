@@ -18,7 +18,8 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
  let db:PrismaClient,app:ReturnType<typeof Fastify>,root:string,svc:RosterPvp,now:number,catalog:any,battlePolicy:any,xpPolicy:NormalXpPolicy|null;
  const originalCatalog=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8'));
  const originalBattle=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/battle-policy.json','utf8'));
- const originalXp=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8')) as NormalXpPolicy;
+ // 이미 v2로 고정된 대기·대전의 정산 규칙을 검증한다. 새 배포 정책(v3)은 test/finisher-split.test.ts에서 검증한다.
+ const originalXp=JSON.parse(readFileSync('test/fixtures/normal-xp-policy-v2.json','utf8')) as NormalXpPolicy;
  const owners=new Set<string>(),priorProfile=process.env.ROSTER60_PROFILE,priorStory=process.env.ROSTER60_STORY_PROFILE;
  const request=()=>randomUUID();
  const service=(client=db)=>new RosterPvp(client,()=>catalog,()=>battlePolicy,()=>now,()=>xpPolicy,async()=>60);
@@ -100,6 +101,28 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
   expect((await post('pvp/join',{requestId:request(),mode:'normal',xpAwarded:9999})).statusCode).toBe(400);
   const denied=await post('pvp/join',{requestId:request(),mode:'normal'});expect(denied.statusCode).toBe(503);expect(denied.json().error).toBe('NORMAL_XP_POLICY_PENDING');expect((await db.roster60Owned.findUniqueOrThrow({where:{id:a.ids[0]}})).status).toBe('AVAILABLE');expect(await db.roster60PvpQueue.count({where:{playerId:a.id}})).toBe(0);
   const rank=await post('pvp/join',{requestId:request(),mode:'rank'});expect(rank.statusCode).toBe(503);expect(rank.json()).toMatchObject({error:'ACCOUNT_LEVEL_POLICY_PENDING'});expect(await db.roster60PvpQueue.count({where:{playerId:a.id}})).toBe(0);expect((await post('pvp/cancel',{requestId:request()})).statusCode).toBe(200);expect(await delta(a)).toBe(0n);expect(await db.roster60NormalXpLedger.count({where:{playerId:a.id}})).toBe(0);
+ });
+
+ it('배포 정책 v3: 이긴 편은 마무리 개체 전액·미출전 포함 나머지 절반, 진 편은 0을 한 번만 지급한다',async()=>{
+  xpPolicy=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8'));expect(xpPolicy).toMatchObject({rulesVersion:'normal-xp-v3'});
+  const a=await user([1,1]),b=await user([1,1]),room=await pair(a,b);const done=await natural(room,a,b);
+  expect(done.winner.state.outcome).toBe('win');expect(done.loser.state.outcome).toBe('loss');
+  // a.ids[0]이 이긴 순간 나와 있던 마무리 개체(기본량 60), a.ids[1]은 출전하지 않은 예비(30).
+  expect(await delta(a)).toBe(60n);expect(await delta(a,1)).toBe(30n);expect(await delta(b)).toBe(0n);expect(await delta(b,1)).toBe(0n);
+  expect(done.winner.settlement).toMatchObject({xpAwarded:90,xpDeferred:0});expect(done.loser.settlement).toMatchObject({xpAwarded:0});
+  for(const [u,battle] of [[a,done.winner],[b,done.loser]] as const)await ack(u.id,battle);
+  expect(await svc.action(done.finalOwner,done.finalAction)).toEqual(done.receipt);expect(await rows(room)).toHaveLength(4);expect((await rows(room)).filter(r=>r.status==='NOT_ENTERED')).toHaveLength(0);
+  expect(await delta(a)).toBe(60n);expect(await delta(a,1)).toBe(30n);expect(await delta(b)).toBe(0n);
+ });
+
+ it('배포 정책 v3: AI 상대 승리도 같은 기준이고, v2로 먼저 고정된 대기는 v2로 정산한다',async()=>{
+  const v3=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json','utf8'));
+  battlePolicy.encounters=battlePolicy.encounters.filter((e:any)=>e.mode==='duel'&&e.level===1).map((e:any)=>({...e,enemySpeciesIds:['u07']}));
+  xpPolicy=v3;const winner=await user([1,1]),winRoom=await ai(winner),win=await natural(winRoom,winner);
+  expect(win.winner.settlement).toMatchObject({xpAwarded:90,rating:null});expect(await delta(winner)).toBe(60n);expect(await delta(winner,1)).toBe(30n);await ack(winner.id,win.winner);
+  // v2 정책일 때 대기에 들어간 뒤 서버 정책이 v3로 바뀌어도, 고정된 v2(출전 개체 균등, 미출전 0)로 정산한다.
+  xpPolicy=structuredClone(originalXp);const pinned=await user([1,1]),pinnedRoom=await ai(pinned);xpPolicy=v3;svc=service();
+  const old=await natural(pinnedRoom,pinned);expect(old.winner.settlement).toMatchObject({xpAwarded:60});expect(await delta(pinned)).toBe(60n);expect(await delta(pinned,1)).toBe(0n);
  });
 
  it('사람 일반게임의 정상 승리·정상 패배는 각각 양의 XP를 한 번 지급하고 본인 단위 DTO만 공개한다',async()=>{

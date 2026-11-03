@@ -57,10 +57,12 @@ suite('accepted quest unit XP settlement and account-event separation',()=>{
   expect(await Promise.all(a.units.map(unit=>xp(unit.id)))).toEqual(before);
   const requestId=request(),paid:any=await settle(f,a.id,b,requestId);
   expect(await settle(f,a.id,b,requestId)).toEqual(paid);expect(await settle(f,a.id,b)).toEqual(paid);
-  const amount=configured.rewards.STORY_01_01.winXp,entered=a.units.slice(0,2).map(unit=>unit.id).sort();
-  const expected=Object.fromEntries(a.units.map(unit=>[unit.id,startingXp+BigInt(entered.includes(unit.id)?Math.floor(amount/2)+(unit.id===entered[0]?amount%2:0):0)]));
-  expect(paid.settlement.policyVersion).toBe(configured.version);expect(paid.settlement.xpAwarded).toBe(amount);
-  expect(paid.settlement.unitXp.units.reduce((sum:number,unit:any)=>sum+unit.appliedXp,0)).toBe(amount);
+  // 배포 정책 v2: 이긴 순간 나와 있던 units[1]은 전액, 출전했던 units[0]과 미출전 units[2]는 절반(내림).
+  expect(configured.distribution).toBe('finisher-full-rest-half');
+  const amount=configured.rewards.STORY_01_01.winXp,finisher=a.units[1].id,total=amount+2*Math.floor(amount/2),entered=a.units.slice(0,2).map(unit=>unit.id).sort();
+  const expected=Object.fromEntries(a.units.map(unit=>[unit.id,startingXp+BigInt(unit.id===finisher?amount:Math.floor(amount/2))]));
+  expect(paid.settlement.policyVersion).toBe(configured.version);expect(paid.settlement.xpAwarded).toBe(total);
+  expect(paid.settlement.unitXp.units.reduce((sum:number,unit:any)=>sum+unit.appliedXp,0)).toBe(total);
   const fresh=new PrismaClient({datasources:{db:{url:process.env.TEST_DB_URL!}}});
   try{
    const reader=new RosterOwned(fresh,()=>f.catalog),reopened=[];

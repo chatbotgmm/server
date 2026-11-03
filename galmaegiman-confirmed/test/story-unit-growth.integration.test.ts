@@ -1,7 +1,7 @@
 import {afterAll,beforeAll,describe,expect,it} from 'vitest';
 import {PrismaClient} from '@prisma/client';
 import {createHash,randomUUID} from 'node:crypto';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {RosterStory} from '../src/story/service.js';
 import {RosterAdventure} from '../src/roster60-adventure.js';
@@ -19,7 +19,9 @@ suite('original story campaign growth through real service actions and normal re
  beforeAll(()=>{
   const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('isolated disposable campaign DB only');
   db=new PrismaClient({datasources:{db:{url}}});inputs=loadStoryGrowthInputs();output=process.env.STORY_GROWTH_EVIDENCE??join(dirname(url.slice('file:'.length)),'story-unit-growth');mkdirSync(output,{recursive:true});
-  expect(inputs.unitPolicy).toEqual(proposeStoryUnitXpPolicy(inputs.catalog,inputs.content).policy);
+  // 생성 스크립트는 v1(출전 개체 균등) 정책을 만든다. 배포 파일은 같은 금액에 분배만 v2(마무리 전액·나머지 절반)로 바꾼 판이다.
+  const proposed=proposeStoryUnitXpPolicy(inputs.catalog,inputs.content).policy;expect(JSON.parse(readFileSync('test/fixtures/story-unit-xp-policy-v1.json','utf8'))).toEqual(proposed);
+  expect(inputs.unitPolicy).toMatchObject({distribution:'finisher-full-rest-half'});expect({...inputs.unitPolicy,version:proposed.version,distribution:proposed.distribution,notes:proposed.notes}).toEqual(proposed);
   expect(inputs.content.encounters).toHaveLength(27);expect(inputs.content.encounters.every(e=>e.winXp===0&&e.lossXp===0)).toBe(true);
  });
  afterAll(async()=>{if(db){await db.playerItem.deleteMany({where:{playerId:{in:owners}}});await db.dailyProgress.deleteMany({where:{playerId:{in:owners}}});await db.auditEvent.deleteMany({where:{playerId:{in:owners}}});await db.player.deleteMany({where:{id:{in:owners}}});await db.$disconnect();}});

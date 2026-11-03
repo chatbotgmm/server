@@ -1,5 +1,6 @@
 import {createPacedBattleXpPlan,pacedBattleXpPlan,calculatePacedBattleXp,validateUnitXpPacing,type UnitXpPacing} from './progression/unit-xp-pacing.js';
 import {normalXpGrant} from './progression/normal-xp.js';
+import {ADVENTURE_FINISHER_SPLIT_POLICY} from './progression/finisher-split.js';
 import {restoreBlackStoryAppearance,type BattleArtVariant} from './battle/roster60-appearance.js';
 import {isCurrentRoster60Party,roster60PartyPolicy} from './roster60-party-policy.js';
 import {createStoryUnitXpPlan,storyUnitXpPlan,calculateStoryUnitXp,type StoryUnitXpMember} from './progression/story-unit-xp.js';
@@ -146,7 +147,7 @@ export class RosterBattle {
    const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};
    const lock=await tx.roster60Owned.updateMany({where:{id:owned.id,playerId,status:sourceStatus,locked:false,totalXp:owned.totalXp},data:{status:'BATTLE'}});if(lock.count!==1)return fail('UNIT_UNAVAILABLE');
    for(const member of members.slice(1)){const locked=await tx.roster60Owned.updateMany({where:{id:member.ownedId,playerId,status:sourceStatus,locked:false,totalXp:BigInt(member.startingXp)},data:{status:'BATTLE'}});if(locked.count!==1)return fail('UNIT_UNAVAILABLE');}
-   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,...(storyExtension?{story:storyExtension.story}:{}),...(unitXpPlan?{storyUnitXp:unitXpPlan}:{}),...(unitXpPacing?{unitXpPacing}:{}),adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?'adventure-participation-100-reserve-50-v1':'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
+   const row=await tx.roster60Battle.create({data:{id,playerId,ownedId:owned.id,seed,snapshot:JSON.stringify({policy:p,encounter,items,members,observedDefense,...(storyExtension?{story:storyExtension.story}:{}),...(unitXpPlan?{storyUnitXp:unitXpPlan}:{}),...(unitXpPacing?{unitXpPacing}:{}),adventureId:run?.id,escapePolicy:adventureEscapePolicy,xpRecipient:run?ADVENTURE_FINISHER_SPLIT_POLICY:'initial-owned-existing-v1',growth:def.growth,startingXp:owned.totalXp.toString()}),state:JSON.stringify(state)}});
    if(run){const claimed=await tx.roster60Adventure.updateMany({where:{id:run.id,playerId,revision:run.revision,status:'ACTIVE',activeBattleId:null},data:{activeBattleId:id,revision:{increment:1}}});if(claimed.count!==1)return fail('ADVENTURE_STATE_CHANGED');}
    return this.view(row);
   });

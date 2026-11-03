@@ -176,8 +176,8 @@ suite('normal/rank: real localhost HTTP, ordinary login and disposable SQLite',(
   expect(await db.roster60ObservedDefense.count({where:{playerId:a.id,speciesId:'u02',element:'NORMAL'}})).toBe(1);
   expect(await db.roster60ObservedDefense.count({where:{playerId:b.id}})).toBe(0);
   const rows=await db.roster60Owned.findMany({where:{playerId:{in:[a.id,b.id]}},select:{id:true,totalXp:true},orderBy:{id:'asc'}});
-  // 일반게임의 레벨8 단독 출전은 기존 레벨10 승리 원천600을 쓰고, 확정된 정상 패배50%로300을 받는다.
-  expect(rows).toEqual(mode==='rank'?ownXp:ownXp.map(u=>({...u,totalXp:u.totalXp+BigInt(a.ownedIds.includes(u.id)?600:300)})));
+  // 배포 정책 v3: 레벨8 단독 출전 승자는 마무리 개체로 기존 레벨10 원천 600 전액, 진 편은 0이다.
+  expect(rows).toEqual(mode==='rank'?ownXp:ownXp.map(u=>({...u,totalXp:u.totalXp+BigInt(a.ownedIds.includes(u.id)?600:0)})));
   const rating=mode==='rank'?await db.rankedProfile.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}}):await db.casualHumanRating.findMany({where:{playerId:{in:[a.id,b.id]}},orderBy:{playerId:'asc'}});
   const winner=rating.find(r=>r.playerId===a.id)!,loser=rating.find(r=>r.playerId===b.id)!;
   expect(winner.games).toBe(1);expect(winner.wins).toBe(1);expect(loser.games).toBe(1);expect(loser.losses).toBe(1);
