@@ -1632,9 +1632,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const current=(await app.inject({method:'GET',url:'/my/api/native/battle/current',headers})).json();
       expect(current.revision).toBe(reroll.revision+1);
       const chosen=current.teams[0].augments.at(-1).id;
-      // V2: 무작위로 자유자재(reverse)가 확정되면 행동 전에 새 30초 속성 선택이 한 번 더 열린다.
-      if(chosen==='reverse'){expect(current.phase).toBe('choose');expect(current.teams[0].attributeSelection).toMatchObject({kind:'own-attribute'});expect(current.chooseDeadline).toBe(start.chooseDeadline+1+30000);}
-      else{expect(current.phase).toBe('action');expect(current.chooseDeadline).toBeUndefined();}
+      expect(current.phase).toBe('action');expect(current.chooseDeadline).toBeUndefined();
       expect(reroll.teams[0].offers.map((x:{id:string})=>x.id)).toContain(chosen);
       const duplicate=await post({session:start.session,revision:reroll.revision,choose:{augment:reroll.teams[0].offers[0].id}});
       expect(duplicate.revision).toBe(current.revision);expect(duplicate.teams[0].augments).toEqual(current.teams[0].augments);

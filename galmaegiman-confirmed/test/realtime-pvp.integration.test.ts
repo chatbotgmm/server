@@ -8,6 +8,8 @@ import {buildApp} from '../src/app.js';
 import {loadBattleRules} from '../src/battle/load.js';
 import {createBattleService,serializeServiceBattle} from '../src/battle/service-factory.js';
 import {V2_CLIENT_HEADERS,freestyleChoose} from './helpers/v2-client.js';
+import {augmentCatalogV2,retiredAugmentsV2} from '../src/battle/augment-catalog-v2.js';
+import {balancedSixProfile} from '../src/battle/augment-sequence.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('durable realtime two-human PvP (isolated SQLite)',()=>{
@@ -161,15 +163,26 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     const mine=await restarted.currentRoom(p.a.id,p.roomId),foe=await restarted.currentRoom(p.b.id,p.roomId);
     expect(mine.mySubmitted).toBe(true);expect(foe.opponentReady).toBe(true);expect(mine.deadline).toBe(v.deadline);
   });
-  it('V2 freestyle augment adds one own-attribute selection before the action phase',async()=>{
-    // 선택지 순서는 난수라서 자유자재(reverse)가 첫 선택지일 때만 나던 경로를 양쪽에 고정해 매번 확인한다.
-    const p=await pair(),battles=createBattleService(loadBattleRules(process.cwd()));
-    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=battles.restore(s.battle);
+  it('a room saved with the previous 60-augment catalog still finishes reverse(자유자재) after the server drops it',async()=>{
+    // 배포 전 서버(reverse 포함 60종)가 만든 방을 배포 후 서버가 이어받는 상황. 새 전투에는 reverse가 없다.
+    const old={version:2 as const,weights:{silver:1,gold:1,prismatic:1},sequenceProfile:balancedSixProfile,catalog:{version:2 as const,augments:[...augmentCatalogV2.augments,...retiredAugmentsV2]}};
+    await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now,old);
+    const p=await pair(),before=createBattleService(loadBattleRules(process.cwd()),old);
+    // 선택지 순서는 난수라서 reverse를 양쪽 첫 선택지로 고정한다.
+    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=before.restore(s.battle);
     for(const side of b.sides)side.offers=['reverse',...side.offers!.filter(id=>id!=='reverse')].slice(0,side.offers!.length);
     s.battle=serializeServiceBattle(b);await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});
+    await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now);
+    expect(createBattleService(loadBattleRules(process.cwd())).R.battleAug.has('reverse')).toBe(false);
     expect((await actionPhase(p)).phase).toBe('action');
-    const after=battles.restore(JSON.parse((await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}})).stateJson).battle);
+    const after=createBattleService(loadBattleRules(process.cwd())).restore(JSON.parse((await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}})).stateJson).battle);
     for(const side of after.sides){expect(side.augs).toContain('reverse');expect(side.freestyle?.chosen).toBeTruthy();expect(side.fighters[side.active].attr).toBe(side.freestyle!.chosen);}
+  });
+  it('new rooms never offer the dropped reverse augment',async()=>{
+    const p=await pair();
+    for(const id of [p.a.id,p.b.id]){const v=await service.currentRoom(id,p.roomId);expect(v.battle!.teams[0].offers.map((o:any)=>o.id)).not.toContain('reverse');}
+    const v=await service.currentRoom(p.a.id,p.roomId);
+    await expect(service.command(p.a.id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{choose:{augment:'reverse'}}})).rejects.toThrow();
   });
   it('three missed action turns settle a deterministic double-timeout void once',async()=>{
     const p=await pair();await actionPhase(p);

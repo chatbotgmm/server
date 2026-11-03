@@ -142,27 +142,30 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  for(const augment of ['reverse','neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
+  it('새 V2 전투는 뺀 reverse(자유자재)를 제시하지 않고 직접 골라도 거절한다',async()=>{
+    try{
+      const battles=createBattleService(R);expect(battles.R.battleAug.has('reverse')).toBe(false);
+      for(let seed=0;seed<500;seed++){const b=battles.create([record('D1')],[record('T1')],seed);expect(b.sides.flatMap(s=>s.offers??[])).not.toContain('reverse');}
+      const b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:['T1'],level:15});
+      expect(b.teams[0].offers.map((o:any)=>o.id)).not.toContain('reverse');
+      const r=await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload:{session:b.session,revision:b.revision,choose:{augment:'reverse'}}});
+      expect(r.statusCode).toBe(400);expect((await get('battle/current')).revision).toBe(b.revision);
+    }finally{await app.close();}
+  });
+
+  for(const augment of ['neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
     try{
       const enemy=[...R.units.keys()].find(id=>R.typeMult(R.unitDef('D1')!.attr,R.unitDef(id)!.attr)>1)!;
       const mine=record('D1'),foe=record(enemy),battles=createBattleService(R);let seed=0;
-      // 운영 기본(V2) 전투로 시드를 찾는다. AI가 상성 배율을 바꾸는 증강(속성 선택·무속성·상대 날씨·약점 방어)을 고르는 시드는 건너뛴다.
-      for(;seed<2000;seed++){const b=battles.create([mine],[foe],seed);if(!b.sides[0].offers!.includes(augment))continue;choose(b,0,{augment});if(b.sides[1].offers)aiChoose(b,1);if(!b.sides[1].augs.some(id=>['reverse','neutral','hostileweather','weakguard'].includes(id)))break;}
+      // 운영 기본(V2) 전투로 시드를 찾는다.
+      for(;seed<2000;seed++){const b=battles.create([mine],[foe],seed);if(!b.sides[0].offers!.includes(augment))continue;choose(b,0,{augment});if(b.sides[1].offers)aiChoose(b,1);break;}
       expect(seed).toBeLessThan(2000);
       vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
       let b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
       b=await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment}});
-      if(augment==='reverse'){
-        // V2 reverse(자유자재): 상대 속성을 확인한 뒤 내 속성을 한 번 고른다. 원래 유리한 D1에 불리한 속성을 골라 실제 적용을 확인한다.
-        const sel=b.teams[0].attributeSelection;expect(b.phase).toBe('choose');expect(sel).toMatchObject({kind:'own-attribute',opponentAttribute:R.unitDef(enemy)!.attr});
-        const attribute=sel.attributes.find((a:any)=>R.typeMult(a,sel.opponentAttribute)<1);expect(attribute).toBeDefined();
-        b=await post('battle/turn',{session:b.session,revision:b.revision,choose:{freestyle:{selectionId:sel.selectionId,phaseId:sel.phaseId,targetKey:sel.targetKey,attribute}}});
-        expect(b.phase).toBe('action');expect(b.teams[0].attributeSelection).toBeNull();
-      }
       const me=b.teams[0].fighters[0],basic=me.skills.find((sk:any)=>sk.id.startsWith('basic'));
       expect(me.matchup.attack.multiplier).toBe(basic.preview.multiplier);
-      if(augment==='neutral')expect(me.matchup.attack.multiplier).toBe(1);
-      else expect(me.matchup.attack.multiplier).toBe(R.data.multipliers.weak);
+      expect(me.matchup.attack.multiplier).toBe(1);
       const first=await get('battle/current'),second=await get('battle/current');expect(first.teams).toEqual(second.teams);expect(first.displayEvents).toEqual(second.displayEvents);expect(first.revision).toBe(second.revision);
     }finally{await app.close();}
   });
