@@ -1,0 +1,6 @@
+13daf7171213aaec74962beace88cbd98eb51669246f11bcdac962a4be1f253f  ./data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json
+3686b0286a9de20bf911b6ab8149fa01aeec362855eef0080638c8e73b355000  ./dist/src/progression/finisher-split.js
+8f87a91722a765153a81b36c70db58984dee026f2d034a8da587e6f6ba959921  ./dist/src/progression/normal-xp.js
+ff4914bf3b0337d89aeba1634f1a0193d64d1d93f0cef3556c1a6277bf7c4a05  ./dist/src/progression/unit-xp-pacing.js
+681034922b71661f36bc8bd6a67a3182dde432a2f92cb5c85ab83a4e97e5c0a4  ./dist/src/roster60-battle.js
+3e518b042f9fa37711e114aa2811d2fcff316e1e76974d62c3cb86492f8f7974  ./dist/src/roster60-pvp.js
