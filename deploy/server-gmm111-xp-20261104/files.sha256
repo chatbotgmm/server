@@ -1,0 +1,12 @@
+0e2a9ddf08425a920a3710e9dc9bbbbbc867e077a29aa4e6fb74822a373e1659  ./data/test-profiles/five-stat-device-test-v1/normal-xp-policy.json
+308a5032f77dc1267453c372655dafc34381335ef05fc219fef2adc4de898dc8  ./data/test-profiles/five-stat-device-test-v1/story-unit-xp-policy.json
+8d608b608db32f69a4802696c89cb276188191c7deee8ab59a52a006b081b837  ./data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json
+fb4e3300a0e45a90a2049a84dcc265d94d19eb55e13830fd89fc33f7a5dcbdcb  ./dist/src/progression/commander.js
+a2b032855e7755506a4af3cd71600b1f4eb90d742b4aaf6d2432bb92d24c46b8  ./dist/src/progression/finisher-split.js
+6613404c32e042aeece6036536357e9d40d22f4276f97acb3bb84d603f588c6b  ./dist/src/progression/normal-xp.js
+01cee005f4fd1aea9a92cca8ce66faee7a8bf010fffae8f073bfe1dcf9d732b2  ./dist/src/progression/story-unit-xp.js
+55f21fa90a4f7069b4c1f3f015b807162ee1f8e17870a1a8c81c3ff433e3139e  ./dist/src/progression/unit-xp-pacing.js
+bb5383db76cb6ea852e6de3deac2aec83c3b85a9ed712b4b300b8328490a9d70  ./dist/src/roster60-adventure.js
+b038a40d7f9aee0920d1deac2f38bfef4d1bd37423c253b650e334337b4f0afd  ./dist/src/roster60-battle.js
+1bc31801a4ed85b756e44457df6dd2b7735151ea4e1928972290828db94e3856  ./dist/src/roster60-pvp.js
+4c814d241eabb8b60cad697959267a0ff6f75a0f07e50a4c0fac7e35a4a6d912  ./dist/src/roster60-routes.js
