@@ -1,10 +1,10 @@
 {
   "approved": true,
-  "version": "unit-xp-finisher-1_5-wins-20261103-v1",
+  "version": "unit-xp-unified-average-1_5-20261104-v1",
   "catalogVersion": "five-stat-device-test-v1",
   "winsPerLevel": 1.5,
-  "difficulty": "owned-level-capped-by-enemy",
+  "difficulty": "battle-average-level",
   "distribution": "finisher-full-rest-half",
-  "existingRewards": "keep-higher",
+  "existingRewards": "replace",
   "capOverflow": "discard-overflow"
 }

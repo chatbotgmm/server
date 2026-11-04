@@ -1,8 +1,8 @@
 import {describe,it,expect} from 'vitest';
-import {finisherSplitShares} from '../src/progression/finisher-split.js';
+import {finisherSplitShares,battleAverageLevel,freeAdventureEnemyLevel} from '../src/progression/finisher-split.js';
 import {normalXpShares,validateNormalXpPolicy,type NormalXpMember} from '../src/progression/normal-xp.js';
 import {readFileSync} from 'node:fs';
-import {pacedUnitWin,validateUnitXpPacing,type UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
+import {pacedUnitWin,averageLevelWin,validateUnitXpPacing,type UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
 import {instanceGrowthCurve} from '../src/battle/roster60-rules.js';
 
 const member=(id:string,level=10,winXp=100):NormalXpMember=>({id,playerId:'p1',startingXp:'0',growth:[],reincarnation:0,sourceEncounterId:'DUEL_'+level,winXp,lossXp:0,lossFallbackUsed:false,level});
@@ -40,8 +40,8 @@ describe('마무리 전액·편성 나머지 절반 분배',()=>{
   expect(()=>validateNormalXpPolicy(policy,'five-stat-device-test-v1')).not.toThrow();
   expect(()=>validateNormalXpPolicy({...policy,outcomePercent:{win:100,loss:50}},'five-stat-device-test-v1')).toThrow();
  });
- it('일반전 v3 + 1.5승 최소: 마무리 개체 W=max(원천, 적정 레벨 최소), 나머지 절반', ()=>{
-  const P='data/test-profiles/five-stat-device-test-v1/',catalog=JSON.parse(readFileSync(P+'catalog.json','utf8')),pacing=JSON.parse(readFileSync(P+'unit-xp-pacing-policy.json','utf8')) as UnitXpPacing;
+ it('11-03 판(1.5승 최소·큰 값, 이미 고정된 전투): 마무리 개체 W=max(원천, 적정 레벨 최소), 나머지 절반', ()=>{
+  const P='data/test-profiles/five-stat-device-test-v1/',catalog=JSON.parse(readFileSync(P+'catalog.json','utf8')),pacing=JSON.parse(readFileSync('test/fixtures/unit-xp-pacing-policy-finisher-keep-higher.json','utf8')) as UnitXpPacing;
   expect(pacing).toMatchObject({winsPerLevel:1.5,distribution:'finisher-full-rest-half'});expect(()=>validateUnitXpPacing(pacing,catalog.version)).not.toThrow();
   // 예전 판 조합(2승·균등)과 새 판 조합(1.5승·마무리)만 허용한다.
   expect(()=>validateUnitXpPacing({...pacing,winsPerLevel:2},catalog.version)).toThrow();expect(()=>validateUnitXpPacing({...pacing,winsPerLevel:1},catalog.version)).toThrow();
@@ -55,5 +55,32 @@ describe('마무리 전액·편성 나머지 절반 분배',()=>{
   const low=[at('a',10,600),at('b',10,600)];expect(Math.ceil(need(10)*2/3)).toBeLessThan(600);
   expect(Object.fromEntries(normalXpShares(low,['a','b'],'win',{policy:pacing,enemyLevel:10},{finisherId:'b'}).shares)).toEqual({a:300,b:600});
   expect(normalXpShares(low,['a','b'],'loss',{policy:pacing,enemyLevel:10},{finisherId:undefined}).shares.size).toBe(0);
+ });
+ it('통일 판(배포): 전투 전원 평균 레벨에서 마무리 유닛이 1.5승에 1레벨 오르는 양, 나머지 절반', ()=>{
+  const P='data/test-profiles/five-stat-device-test-v1/',catalog=JSON.parse(readFileSync(P+'catalog.json','utf8')),pacing=JSON.parse(readFileSync(P+'unit-xp-pacing-policy.json','utf8')) as UnitXpPacing;
+  expect(pacing).toMatchObject({winsPerLevel:1.5,difficulty:'battle-average-level',distribution:'finisher-full-rest-half',existingRewards:'replace'});expect(()=>validateUnitXpPacing(pacing,catalog.version)).not.toThrow();
+  // 통일 판은 평균 레벨 기준·대체 조합만 허용한다.
+  expect(()=>validateUnitXpPacing({...pacing,existingRewards:'keep-higher'},catalog.version)).toThrow();expect(()=>validateUnitXpPacing({...pacing,winsPerLevel:2},catalog.version)).toThrow();
+  // 내 15레벨 3마리 + 적 1레벨 1마리 → (15+15+15+1)/4 = 11.5 → 11(내림)
+  expect(battleAverageLevel([15,15,15,1])).toBe(11);expect(battleAverageLevel([30,30,30,30,30,30])).toBe(30);expect(()=>battleAverageLevel([])).toThrow();
+  const def=catalog.characters.find((u:any)=>u.id==='u01'),curve=instanceGrowthCurve(def.growth,0,def.reincarnationXpPolicy),need=(level:number)=>curve[level].totalXp-curve[level-1].totalXp;
+  const unit={growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy};
+  expect(averageLevelWin(unit,11,pacing)).toBe(Math.ceil(need(11)*2/3));expect(averageLevelWin(unit,15,pacing)).toBe(Math.ceil(need(15)*2/3));
+  // 평균이 최고 레벨이면 그 아래 칸 기준(최고 레벨 개체는 어차피 상한).
+  expect(averageLevelWin(unit,60,pacing)).toBe(Math.ceil(need(59)*2/3));
+  // 예전 판 정책으로는 이 계산을 쓰지 않는다.
+  expect(()=>averageLevelWin(unit,11,JSON.parse(readFileSync('test/fixtures/unit-xp-pacing-policy-finisher-keep-higher.json','utf8')))).toThrow();
+  const at=(id:string,level:number,winXp:number):NormalXpMember=>({id,playerId:'p1',startingXp:String(curve[level-1].totalXp),growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy,sourceEncounterId:'training-10',winXp,lossXp:0,lossFallbackUsed:false,level,nearestTierMinimum:10});
+  const members=[at('a',15,600),at('b',15,600),at('c',15,600)],w=Math.ceil(need(11)*2/3);
+  // 기존 원천(600)은 쓰지 않고 평균 레벨 11 기준 금액으로 대체한다.
+  expect(Object.fromEntries(normalXpShares(members,['a'],'win',{policy:pacing,enemyLevel:1},{finisherId:'a',averageLevel:11}).shares)).toEqual({a:w,b:Math.floor(w/2),c:Math.floor(w/2)});
+  expect(normalXpShares(members,['a'],'loss',{policy:pacing,enemyLevel:1},{finisherId:undefined,averageLevel:11}).shares.size).toBe(0);
+  expect(()=>normalXpShares(members,['a'],'win',{policy:pacing,enemyLevel:1},{finisherId:'a'})).toThrow();
+ });
+ it('자유탐험 적 레벨은 내 편성 평균 ±2(1~60), 같은 전투 시드면 항상 같다', ()=>{
+  const seen=new Set<number>();
+  for(let i=0;i<400;i++){const seed='seed-'+i,level=freeAdventureEnemyLevel([15,15,16],seed);expect(level).toBeGreaterThanOrEqual(13);expect(level).toBeLessThanOrEqual(17);expect(freeAdventureEnemyLevel([15,15,16],seed)).toBe(level);seen.add(level);}
+  expect([...seen].sort((x,y)=>x-y)).toEqual([13,14,15,16,17]);
+  for(let i=0;i<100;i++){expect(freeAdventureEnemyLevel([1,1,1],'low-'+i)).toBeGreaterThanOrEqual(1);expect(freeAdventureEnemyLevel([60,60],'high-'+i)).toBeLessThanOrEqual(60);}
  });
 });

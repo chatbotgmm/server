@@ -10,7 +10,7 @@ import {RosterOwned} from '../src/roster60-owned.js';
 import {registerRoster60} from '../src/roster60-routes.js';
 import {instanceGrowthCurve} from '../src/battle/roster60-rules.js';
 import {commanderPolicyReader} from '../src/progression/commander.js';
-import {pacedUnitWin,type UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
+import {pacedUnitWin,averageLevelWin,type UnitXpPacing} from '../src/progression/unit-xp-pacing.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 const load=(path:string)=>JSON.parse(readFileSync(path,'utf8'));
@@ -87,21 +87,23 @@ suite('new battle reward pacing, real persisted settlement and existing receipt 
   for(const outcome of ['loss','escaped'] as const){const b:any=await story().createBattle(a.id,{requestId:request(),encounterId:'STORY_01_01',ownedIds:a.units.map(u=>u.id)}),paid=await settle(a,await terminal(a,b,outcome));expect(paid.settlement.xpEscrowed).toBe(0);expect(await storedXp(a)).toEqual(a.units.map(()=>a.start+1162n));if(outcome==='escaped'){const r:any=await adventure().read(a.id,b.state.adventureId),returned:any=await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});expect(returned.settlement.commanderReward.xpAwarded).toBe(0);}}
  });
 
- it('배포 판(1.5승 최소·마무리 전액): 모험은 마무리 유닛이 max(원천, 적정 레벨 최소)를 받고 나머지는 절반, 낮은 적은 적 레벨 기준, 전멸은 0',async()=>{
-  const deployed=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+ it('11-03 판(1.5승 최소·마무리 전액, 이미 고정된 전투): 모험은 마무리 유닛이 max(원천, 적정 레벨 최소)를 받고 나머지는 절반, 낮은 적은 적 레벨 기준, 전멸은 0',async()=>{
+  const deployed=load('test/fixtures/unit-xp-pacing-policy-finisher-keep-higher.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
   const floorAt=(a:Awaited<ReturnType<typeof actor>>,enemyLevel:number)=>pacedUnitWin({startingXp:a.start.toString(),growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy},enemyLevel,deployed);
   for(const [enemyLevel,winXp] of [[15,10],[15,5000],[5,10]] as const){
    encounter('adventure',enemyLevel,winXp,0);policy.xpPacing=structuredClone(deployed);const a=await actor(),run:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)});
-   const paid=await settle(a,await terminal(a,await create(a,run.adventureId),'win',[a.units[0].id])),w=Math.max(winXp,floorAt(a,enemyLevel));
+   // 자유탐험 적은 정책 레벨(enemyLevel)이 아니라 내 평균(15) ±2로 나온다. 고정된 11-03 판은 실제 적 레벨로 최소값을 잰다.
+   const created=await create(a,run.adventureId),actual=created.state.fighters[1].level;expect(actual).toBeGreaterThanOrEqual(13);expect(actual).toBeLessThanOrEqual(17);
+   const paid=await settle(a,await terminal(a,created,'win',[a.units[0].id])),w=Math.max(winXp,floorAt(a,actual));
    // 1.5승 최소 = ceil(다음 레벨 필요 XP×2/3). 적이 낮으면 적 레벨 기준이라 최소가 작다.
-   expect(floorAt(a,enemyLevel)).toBe(Math.ceil((instanceGrowthCurve(def.growth,0)[Math.min(15,enemyLevel)].totalXp-instanceGrowthCurve(def.growth,0)[Math.min(15,enemyLevel)-1].totalXp)*2/3));
+   expect(floorAt(a,actual)).toBe(Math.ceil((instanceGrowthCurve(def.growth,0)[Math.min(15,actual)].totalXp-instanceGrowthCurve(def.growth,0)[Math.min(15,actual)-1].totalXp)*2/3));
    expect(paid.settlement.xpByOwnedId).toEqual({[a.units[0].id]:w,[a.units[1].id]:Math.floor(w/2),[a.units[2].id]:Math.floor(w/2)});expect(paid.settlement.xpPolicy).toBe(deployed.version);
    const lost=await settle(a,await terminal(a,await create(a,run.adventureId),'loss'));expect(lost.settlement.adventureStatus).toBe('LOST');expect(await storedXp(a)).toEqual(a.units.map(()=>a.start));
   }
  });
 
- it('배포 판: 수락한 의뢰 전투는 마무리 유닛이 max(스토리 보상, 적정 레벨 최소), 나머지는 절반을 귀환 때 받는다',async()=>{
-  const deployed=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+ it('11-03 판: 수락한 의뢰 전투는 마무리 유닛이 max(스토리 보상, 적정 레벨 최소), 나머지는 절반을 귀환 때 받는다',async()=>{
+  const deployed=load('test/fixtures/unit-xp-pacing-policy-finisher-keep-higher.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
   policy.xpPacing=structuredClone(deployed);const campaign=structuredClone(content);campaign.scenes=campaign.scenes.map((s:any)=>({...s,lines:[s.lines[0]]}));const first=campaign.encounters.find((e:any)=>e.id==='STORY_01_01');Object.assign(first,{speciesId:'u07',level:15,hpMultiplier:1,powerMultiplier:1});
   const commander=commanderPolicyReader(process.cwd(),'five-stat-device-test-v1'),story=()=>new RosterStory(db,()=>catalog,()=>policy,campaign,commander,()=>storyUnitPolicy);
   const a=await actor();let journal:any=await story().state(a.id);journal=await story().open(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01',phase:'intro'});await story().accept(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01'});
@@ -110,6 +112,41 @@ suite('new battle reward pacing, real persisted settlement and existing receipt 
   expect(paid.settlement).toMatchObject({xpAwarded:0,xpEscrowed:w+2*Math.floor(w/2),unitXp:{delivery:'pending-return'}});
   const r:any=await adventure().read(a.id,b.state.adventureId);await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});
   expect(await storedXp(a)).toEqual([a.start+BigInt(w),a.start+BigInt(Math.floor(w/2)),a.start+BigInt(Math.floor(w/2))]);
+ });
+
+ it('통일 판(배포): 자유탐험 적은 내 평균 ±2레벨, 보상은 전투 전원 평균 레벨 기준으로 마무리 전액·나머지 절반', async()=>{
+  const unified=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+  expect(unified).toMatchObject({difficulty:'battle-average-level',existingRewards:'replace'});
+  const unit={growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy};const seen=new Set<number>();
+  for(let i=0;i<4;i++){
+   // 정책의 적 레벨(1)과 원천(999)은 자유탐험에서 쓰지 않는다.
+   encounter('adventure',1,999,0);policy.xpPacing=structuredClone(unified);const a=await actor(15),run:any=await adventure().start(a.id,{requestId:request(),ownedIds:a.units.map(u=>u.id)});
+   const b=await create(a,run.adventureId),enemyLevel=b.state.fighters[1].level;seen.add(enemyLevel);expect(enemyLevel).toBeGreaterThanOrEqual(13);expect(enemyLevel).toBeLessThanOrEqual(17);
+   const snap=JSON.parse((await db.roster60Battle.findUniqueOrThrow({where:{id:b.battleId}})).snapshot);expect(snap.unitXpPacing.battleLevels).toEqual([15,15,15,enemyLevel]);
+   const paid=await settle(a,await terminal(a,b,'win',[a.units[0].id])),w=averageLevelWin(unit,Math.floor((45+enemyLevel)/4),unified);
+   expect(paid.settlement.xpByOwnedId).toEqual({[a.units[0].id]:w,[a.units[1].id]:Math.floor(w/2),[a.units[2].id]:Math.floor(w/2)});expect(paid.settlement.xpPolicy).toBe(unified.version);
+  }
+  expect(seen.size).toBeGreaterThanOrEqual(1);
+ });
+
+ it('통일 판: 수락한 의뢰 전투도 스토리 고정 보상 대신 전투 전원 평균 레벨 기준 금액을 쓴다', async()=>{
+  const unified=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+  policy.xpPacing=structuredClone(unified);const campaign=structuredClone(content);campaign.scenes=campaign.scenes.map((s:any)=>({...s,lines:[s.lines[0]]}));const first=campaign.encounters.find((e:any)=>e.id==='STORY_01_01');Object.assign(first,{speciesId:'u07',level:15,hpMultiplier:1,powerMultiplier:1});
+  const commander=commanderPolicyReader(process.cwd(),'five-stat-device-test-v1'),story=()=>new RosterStory(db,()=>catalog,()=>policy,campaign,commander,()=>storyUnitPolicy);
+  const a=await actor();let journal:any=await story().state(a.id);journal=await story().open(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01',phase:'intro'});await story().accept(a.id,{requestId:request(),revision:journal.revision,questId:'STORY_01'});
+  const b:any=await story().createBattle(a.id,{requestId:request(),questId:'STORY_01',ownedIds:a.units.map(u=>u.id)});expect(b.state.fighters[1].level).toBe(15);
+  const paid=await settle(a,await terminal(a,b,'win',[a.units[0].id])),w=averageLevelWin({growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy},15,unified);
+  expect(w).not.toBe(storyUnitPolicy.rewards.STORY_01_01.winXp);expect(paid.settlement).toMatchObject({xpAwarded:0,xpEscrowed:w+2*Math.floor(w/2),unitXp:{delivery:'pending-return'}});
+  const r:any=await adventure().read(a.id,b.state.adventureId);await adventure().return(a.id,{requestId:request(),adventureId:r.adventureId,revision:r.revision});
+  expect(await storedXp(a)).toEqual([a.start+BigInt(w),a.start+BigInt(Math.floor(w/2)),a.start+BigInt(Math.floor(w/2))]);
+ });
+
+ it('통일 판: 연습전도 편성 전원에게 마무리 전액·나머지 절반, 패배는 0', async()=>{
+  const unified=load('data/test-profiles/five-stat-device-test-v1/unit-xp-pacing-policy.json') as UnitXpPacing,def=catalog.characters.find((u:any)=>u.id==='u45');
+  encounter('duel',40,2400,800);policy.xpPacing=structuredClone(unified);const a=await actor(40),b=await create(a);expect(b.state.fighters[1].level).toBe(40);
+  const paid=await settle(a,await terminal(a,b,'win',[a.units[0].id])),w=averageLevelWin({growth:def.growth,reincarnation:0,reincarnationXpPolicy:def.reincarnationXpPolicy},40,unified);
+  expect(paid.settlement.xpByOwnedId).toEqual({[a.units[0].id]:w,[a.units[1].id]:Math.floor(w/2),[a.units[2].id]:Math.floor(w/2)});
+  const loser=await actor(40),lost=await settle(loser,await terminal(loser,await create(loser),'loss'));expect(lost.settlement.xpAwarded).toBe(0);expect(await storedXp(loser)).toEqual(loser.units.map(()=>loser.start));
  });
 
  it('the real profile reader and authenticated routes pin both new schedules, while client XP fields remain rejected',async()=>{

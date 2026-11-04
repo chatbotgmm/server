@@ -1,6 +1,6 @@
 import {createPacedBattleXpPlan,pacedBattleXpPlan,calculatePacedBattleXp,validateUnitXpPacing,type UnitXpPacing} from './progression/unit-xp-pacing.js';
 import {normalXpGrant} from './progression/normal-xp.js';
-import {ADVENTURE_FINISHER_SPLIT_POLICY} from './progression/finisher-split.js';
+import {ADVENTURE_FINISHER_SPLIT_POLICY,freeAdventureEnemyLevel} from './progression/finisher-split.js';
 import {restoreBlackStoryAppearance,type BattleArtVariant} from './battle/roster60-appearance.js';
 import {isCurrentRoster60Party,roster60PartyPolicy} from './roster60-party-policy.js';
 import {createStoryUnitXpPlan,storyUnitXpPlan,calculateStoryUnitXp,type StoryUnitXpMember} from './progression/story-unit-xp.js';
@@ -131,7 +131,9 @@ export class RosterBattle {
     unitXpMembers.push({ownedId:unit.id,playerId,startingXp:unit.totalXp.toString(),growth:d.growth,reincarnation:unit.reincarnation,reincarnationXpPolicy:d.reincarnationXpPolicy});
    }
    const id=randomUUID(),seed=randomBytes(32).toString('hex');
-   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation,owned.skillInheritanceJson),(this.storyEnemy??fighter)(c!,selectEnemySpecies(encounter,p.encounters,seed),encounter.level,'enemy')];
+   // 자유탐험(스토리 아닌 모험)의 적은 내 편성 평균 레벨 ±2. 스토리·연습전은 정해진 레벨 그대로.
+   const enemyLevel=encounter.mode==='adventure'&&!this.storyCreate?freeAdventureEnemyLevel([level,...reserves.map(r=>r.level)],seed):encounter.level;
+   const f:[Fighter,Fighter]=[fighter(c!,owned.speciesId,level,'self',owned.reincarnation,owned.skillInheritanceJson),(this.storyEnemy??fighter)(c!,selectEnemySpecies(encounter,p.encounters,seed),enemyLevel,'enemy')];
    f[0].ownedId=owned.id;
    const storyExtension=this.storyCreate?await this.storyCreate(tx,{battleId:id,playerId,encounter,enemy:f[1],adventureId:run?.id}):null;
    if(storyExtension?.enemy)f[1]=storyExtension.enemy;
@@ -141,7 +143,7 @@ export class RosterBattle {
    }
    const unitXpPlan=createStoryUnitXpPlan(playerId,id,storyContext,encounter,c!.version,unitXpMembers);
    if(runState)for(const next of [f[0],...reserves]){const prior=runState.party.find((x:Fighter)=>x.ownedId===next.ownedId);if(!prior)return fail('INVALID_PARTY');next.hp=prior.hp;}
-   const unitXpPacing=p.xpPacing?createPacedBattleXpPlan({battleId:id,playerId,policy:p.xpPacing,enemyLevel:f[1].level,sourceWinXp:unitXpPlan?.policy.rewards[encounter.id].winXp??encounter.winXp,sourceLossXp:unitXpPlan?0:encounter.lossXp,baseline:run&&!storyContext?'per-entered':'total',reserveHalf:!!run&&!storyContext,recipientMode:run||unitXpPlan?'entered':'initial-owned',requireSurvivor:!!run||!!unitXpPlan,members:unitXpMembers}):null;
+   const unitXpPacing=p.xpPacing?createPacedBattleXpPlan({battleId:id,playerId,policy:p.xpPacing,enemyLevel:f[1].level,sourceWinXp:unitXpPlan?.policy.rewards[encounter.id].winXp??encounter.winXp,sourceLossXp:unitXpPlan?0:encounter.lossXp,baseline:run&&!storyContext?'per-entered':'total',reserveHalf:!!run&&!storyContext,recipientMode:run||unitXpPlan?'entered':'initial-owned',requireSurvivor:!!run||!!unitXpPlan,members:unitXpMembers,battleLevels:[f[0].level,...reserves.map(r=>r.level),f[1].level]}):null;
    const items=loadBattleRules().data.items;
    const observedDefense=await captureDefenseSnapshot(tx,c!,{self:{playerId,targets:[f[1]]}});
    const state:State={participation:[{ownedId:owned.id,kind:'start',turn:0}],rulesVersion:'party-actions-v2',adventureId:run?.id,reserves,mode:encounter.mode,inventory:await tx.playerItem.findMany({where:{playerId},select:{itemId:true,count:true}}),version:'five-battle-v1',turn:0,fighters:f,decision:order(id,{turn:0,fighters:f},seed),outcome:null,events:[]};

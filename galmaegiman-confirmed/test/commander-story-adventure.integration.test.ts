@@ -35,7 +35,7 @@ suite('commander XP uses authoritative quest completion and independent adventur
   db=new PrismaClient({datasources:{db:{url}}});catalog=load('data/test-profiles/five-stat-device-test-v1/catalog.json');battlePolicy=load('data/test-profiles/five-stat-device-test-v1/battle-policy.json');
   config=validateCommanderPolicy(load('data/test-profiles/five-stat-device-test-v1/commander-policy.json'));content=load('data/story/story-mode-v1.json');
   expect(content.version).toBe(config.story.contentVersion);
-  const enemy=catalog.characters.find(c=>c.id==='u07')!;Object.assign((enemy as any).levelOneStats,{hp:1});(enemy as any).combatGrowth[0].hp=1;(enemy as any).attack.power=1;enemy.skills=[];
+  const enemy=catalog.characters.find(c=>c.id==='u07')!;Object.assign((enemy as any).levelOneStats,{hp:1});for(const stats of (enemy as any).combatGrowth)stats.hp=1;/* 자유탐험 적은 내 평균 ±2 레벨 */(enemy as any).attack.power=1;enemy.skills=[];
   for(const element of Object.keys(enemy.defense))enemy.defense[element as keyof typeof enemy.defense]='normal';
   battlePolicy.encounters=[{id:'commander-independent',speciesId:'u07',level:1,tutorial:false,mode:'adventure',winXp:11,lossXp:0}];
  });

@@ -25,7 +25,8 @@ suite('3마리 신규 PVE 편성과 기존 6마리 진행 호환',()=>{
  beforeAll(()=>{
   const url=process.env.TEST_DB_URL!;if(!/^file:\/tmp\/galmaegiman-tests-[^/]+\/test.db$/.test(url))throw Error('격리된 시험 DB만 허용');
   db=new PrismaClient({datasources:{db:{url}}});
-  const enemy=catalog.characters.find(u=>u.id==='u07')! as any;enemy.combatGrowth[0].hp=1;enemy.levelOneStats.hp=1;enemy.attack.power=0;enemy.skills=[];
+  // 자유탐험 적은 내 편성 평균 ±2 레벨로 나오므로, 전투를 짧게 끝내려고 모든 레벨에서 체력 1로 둔다.
+  const enemy=catalog.characters.find(u=>u.id==='u07')! as any;for(const stats of enemy.combatGrowth)stats.hp=1;enemy.levelOneStats.hp=1;enemy.attack.power=0;enemy.skills=[];
   policy.encounters=[{id:'duel',speciesId:'u07',level:1,tutorial:false,mode:'duel',winXp:10,lossXp:0},{id:'tutorial',speciesId:'u07',level:1,tutorial:true,mode:'story',winXp:10,lossXp:0},{id:'adventure',speciesId:'u07',level:1,tutorial:false,mode:'adventure',winXp:10,lossXp:0}];
   battle=new RosterBattle(db,()=>catalog,()=>policy);adventure=new RosterAdventure(db,()=>catalog,fighter);
  });

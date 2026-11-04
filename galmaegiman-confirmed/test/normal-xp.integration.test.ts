@@ -12,6 +12,7 @@ import {registerRoster60} from '../src/roster60-routes.js';
 import {prepareNormalXpPlayer,type NormalXpPolicy} from '../src/progression/normal-xp.js';
 import {initialStoryProgress} from '../src/story/types.js';
 import {REALTIME_LIMITS} from '../src/pvp/service.js';
+import {averageLevelWin} from '../src/progression/unit-xp-pacing.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
@@ -101,6 +102,21 @@ suite('일반게임 정상 완료 XP의 소유권·정산·저장 경계',()=>{
   expect((await post('pvp/join',{requestId:request(),mode:'normal',xpAwarded:9999})).statusCode).toBe(400);
   const denied=await post('pvp/join',{requestId:request(),mode:'normal'});expect(denied.statusCode).toBe(503);expect(denied.json().error).toBe('NORMAL_XP_POLICY_PENDING');expect((await db.roster60Owned.findUniqueOrThrow({where:{id:a.ids[0]}})).status).toBe('AVAILABLE');expect(await db.roster60PvpQueue.count({where:{playerId:a.id}})).toBe(0);
   const rank=await post('pvp/join',{requestId:request(),mode:'rank'});expect(rank.statusCode).toBe(503);expect(rank.json()).toMatchObject({error:'ACCOUNT_LEVEL_POLICY_PENDING'});expect(await db.roster60PvpQueue.count({where:{playerId:a.id}})).toBe(0);expect((await post('pvp/cancel',{requestId:request()})).statusCode).toBe(200);expect(await delta(a)).toBe(0n);expect(await db.roster60NormalXpLedger.count({where:{playerId:a.id}})).toBe(0);
+ });
+
+ it('통일 판(배포): 일반전은 양쪽 전원 평균 레벨 기준, 랭크도 같은 규칙으로 정산한다(레벨 상한은 그대로)',async()=>{
+  const P='data/test-profiles/five-stat-device-test-v1/',unified=JSON.parse(readFileSync(P+'unit-xp-pacing-policy.json','utf8'));expect(unified).toMatchObject({difficulty:'battle-average-level'});
+  xpPolicy={...JSON.parse(readFileSync(P+'normal-xp-policy.json','utf8')),xpPacing:unified};
+  const u01=catalog.characters.find((u:any)=>u.id==='u01'),growth={growth:u01.growth,reincarnation:0,reincarnationXpPolicy:u01.reincarnationXpPolicy};
+  // 일반전: 1레벨 2마리 vs 1레벨 2마리 → 평균 1. 기존 원천(60)을 쓰지 않는다.
+  const a=await user([1,1]),b=await user([1,1]),room=await pair(a,b),done=await natural(room,a,b),w=averageLevelWin(growth,1,unified);
+  expect(w).not.toBe(60);expect(await delta(a)).toBe(BigInt(w));expect(await delta(a,1)).toBe(BigInt(Math.floor(w/2)));expect(await delta(b)).toBe(0n);
+  for(const [u,battle] of [[a,done.winner],[b,done.loser]] as const)await ack(u.id,battle);
+  // 랭크: 모두 랭크 기준 레벨(30)로 싸우므로 평균 30. 60레벨(상한) 개체라 요청량은 있지만 실제 지급은 0.
+  const c=await user([60]),d=await user([60]),rankRoom=await pair(c,d,'rank'),rank=await natural(rankRoom,c,d),rows60=await rows(rankRoom);
+  expect(rank.winner.settlement.normalXp).toBeDefined();expect(rows60.length).toBe(2);
+  const won=rows60.find(r=>r.ownedId===c.ids[0])!;expect(won.requestedXp).toBe(averageLevelWin(growth,30,unified));expect(won.appliedXp).toBe(0);
+  expect(rows60.find(r=>r.ownedId===d.ids[0])!.requestedXp).toBe(0);expect(await delta(c)).toBe(0n);expect(await delta(d)).toBe(0n);
  });
 
  it('배포 정책 v3: 이긴 편은 마무리 개체 전액·미출전 포함 나머지 절반, 진 편은 0을 한 번만 지급한다',async()=>{

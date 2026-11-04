@@ -1,11 +1,11 @@
-import {pacedPool,pacedFinisherWin,validateUnitXpPacing,type UnitXpPacing} from './unit-xp-pacing.js';
+import {pacedPool,pacedFinisherWin,averageLevelPacing,averageLevelWin,validateUnitXpPacing,type UnitXpPacing} from './unit-xp-pacing.js';
 import type {Prisma} from '@prisma/client';
 import type {BattlePolicy,Fighter} from '../roster60-battle.js';
 import {RosterError,type RosterCatalog} from '../roster60-onboarding.js';
 import {validatePresenceForfeitProof,type PresenceForfeitProof} from './roster60-presence.js';
 import {growthAt,instanceGrowthCurve,rosterMaxLevel,type GrowthPoint,type ReincarnationXpPolicy} from '../battle/roster60-rules.js';
 import {unitXpProgress,type XpProgress} from './xp-progress.js';
-import {finisherSplitShares} from './finisher-split.js';
+import {finisherSplitShares,battleAverageLevel} from './finisher-split.js';
 
 type NormalXpPolicyBase={approved:boolean;version:string;catalogVersion:string;profileKind:'user-authorized-test-baseline'|'approved-production';productionBalanceApproved:boolean;testValues:boolean;scope:'normal';source:'duel-nearest-owned-start-level';participation:'actually-entered-owned-only'|'all-formed-owned';surrender:'confirmed-zero';draw:'undecided-no-award';legacyRoom:'unconfigured-no-retroactive-award';notes?:string[];xpPacing?:UnitXpPacing};
 export type NormalXpLegacyPolicy=NormalXpPolicyBase&{rulesVersion?:'normal-xp-v1';lossFallback:{numerator:number;denominator:number;minimum:number};capOverflow:'pending-policy-ledger';eligibleReason:'BATTLE';timeout:'undecided-no-award';disconnect:'undecided-no-award'};
@@ -84,7 +84,7 @@ export function normalXpGrant(member:Pick<NormalXpMember,'startingXp'|'growth'|'
 }
 
 /** Account pool, then outcome ratio, then equal shares. Reserves and duplicate entered IDs add no XP. */
-export function normalXpShares(members:NormalXpMember[],enteredIds:readonly string[],outcome:'win'|'loss',pacing?:{policy:UnitXpPacing;enemyLevel:number},finisher?:{finisherId:string|undefined}){
+export function normalXpShares(members:NormalXpMember[],enteredIds:readonly string[],outcome:'win'|'loss',pacing?:{policy:UnitXpPacing;enemyLevel:number},finisher?:{finisherId:string|undefined;averageLevel?:number}){
  if(new Set(members.map(m=>m.id)).size!==members.length)return fail('NORMAL_XP_SNAPSHOT_INVALID');
  const ids=[...new Set(enteredIds)].sort(compareOwned),byId=new Map(members.map(m=>[m.id,m]));
  if(ids.some(id=>typeof id!=='string'||!byId.has(id)||id.startsWith('AI:')))return fail('NORMAL_XP_MEMBERS_INVALID');
@@ -99,7 +99,8 @@ export function normalXpShares(members:NormalXpMember[],enteredIds:readonly stri
   if(outcome!=='win')return {baseXp,poolXp:0,sourceEncounterId:basis.sourceEncounterId,shares:new Map<string,number>()};
   const finisherId=finisher.finisherId??fail('NORMAL_XP_FINISHER_MISSING'),finisherMember=byId.get(finisherId)??fail('NORMAL_XP_FINISHER_MISSING');
   // 기본량은 기존 원천 W. 보조 정책이 있으면 마무리 개체의 「적정 레벨 승리 N번에 1레벨」 최소값까지 올린다.
-  const winXp=pacing?pacedFinisherWin(finisherMember,pacing.enemyLevel,basis.winXp,pacing.policy,finisherMember.nearestTierMinimum):basis.winXp;
+  // 통일 판: 전투 전원 평균 레벨 기준. 그 밖의 판은 기존 원천과 마무리 개체 최소값 중 큰 값.
+  const winXp=pacing&&averageLevelPacing(pacing.policy)?averageLevelWin(finisherMember,finisher.averageLevel??fail('NORMAL_XP_SNAPSHOT_INVALID'),pacing.policy):pacing?pacedFinisherWin(finisherMember,pacing.enemyLevel,basis.winXp,pacing.policy,finisherMember.nearestTierMinimum):basis.winXp;
   const shares=finisherSplitShares(winXp,members.map(m=>m.id).sort(compareOwned),finisherId);
   return {baseXp:winXp,poolXp:[...shares.values()].reduce((sum,value)=>sum+value,0),sourceEncounterId:basis.sourceEncounterId,shares};
  }
@@ -135,7 +136,8 @@ export type NormalXpSettlement={status:string;players:Record<string,{status:stri
 
 /** Old completed ledgers are immutable; unsettled v1 plans retain sources but use the confirmed v2 rules. */
 export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string;mode:string;player0Id:string;player1Id:string},state:{botSide?:1;entered?:[string[],string[]];parties:[Fighter[],Fighter[]]},snapshot:{catalogVersion:string;members:MemberReference[];normalXp?:NormalXpRoomSnapshot},reason:string,winner:0|1|null,timeoutGenerated=false,terminationProof?:unknown):Promise<NormalXpSettlement|null>{
- if(room.mode!=='normal')return null;
+ // 랭크는 입장 때 경험치 계획을 고정한 방(통일 판)만 정산한다. 예전 랭크 방은 계속 0이다.
+ if(room.mode!=='normal'&&!(room.mode==='rank'&&snapshot.normalXp?.version==='normal-xp-room-v1'))return null;
  const decision=normalXpTerminal(reason,winner,timeoutGenerated,terminationProof);
  const terminal:ReturnType<typeof normalXpTerminal>=decision.presence&&decision.presence.departedSide===state.botSide?{eligible:false,status:'TERMINAL_POLICY_PENDING'}:decision;
  const plans=snapshot.normalXp?.version==='normal-xp-room-v1'?snapshot.normalXp.players:[],result:NormalXpSettlement={status:plans.length?terminal.status:'LEGACY_POLICY_UNCONFIGURED',players:{},appliedByOwnedId:{}};
@@ -158,7 +160,7 @@ export async function settleNormalXp(tx:Prisma.TransactionClient,room:{id:string
   const own={status:plan?terminalStatus:unconfiguredStatus,xpAwarded:0,xpDeferred:0,xpDiscarded:0,xpRequested:0,policyVersion:targetPolicyVersion,sourcePolicyVersion:plan?.policy.version??null,rulesVersion:'normal-xp-v2' as 'normal-xp-v2'|'legacy-record',testValues:plan?.policy.testValues??false,participation:(plan&&finisherPolicy(plan.policy)?'all-formed-owned':'actually-entered-owned-only') as 'actually-entered-owned-only'|'all-formed-owned',units:[] as NormalXpSettlement['players'][string]['units']};result.players[playerId]=own;
   const entered=[...new Set(state.entered?.[side]??[])];
   if(plan&&(new Set(plan.members.map(m=>m.id)).size!==plan.members.length||plan.members.length!==refs.length||plan.members.some(m=>m.playerId!==playerId||!refs.some(ref=>ref.id===m.id&&ref.xp===m.startingXp))))return fail('NORMAL_XP_SNAPSHOT_INVALID');
-  const pool=plan&&eligible&&outcome!=='draw'?normalXpShares(plan.members,entered,outcome,plan.policy.xpPacing?{policy:plan.policy.xpPacing,enemyLevel:plan.enemyLevel??fail('NORMAL_XP_SNAPSHOT_INVALID')}:undefined,finisherPolicy(plan.policy)?{finisherId:outcome==='win'?state.parties[side]?.[0]?.ownedId:undefined}:undefined):null;
+  const pool=plan&&eligible&&outcome!=='draw'?normalXpShares(plan.members,entered,outcome,plan.policy.xpPacing?{policy:plan.policy.xpPacing,enemyLevel:plan.enemyLevel??fail('NORMAL_XP_SNAPSHOT_INVALID')}:undefined,finisherPolicy(plan.policy)?{finisherId:outcome==='win'?state.parties[side]?.[0]?.ownedId:undefined,averageLevel:battleAverageLevel(state.parties.flat().map(f=>f.level))}:undefined):null;
   for(const member of refs){
    if(member.id.startsWith('AI:'))return fail('NORMAL_XP_MEMBERS_INVALID');
    const pinned=plan?.members.find(m=>m.id===member.id&&m.playerId===playerId&&m.startingXp===member.xp);

@@ -4,18 +4,18 @@ import {RosterError} from '../roster60-onboarding.js';
 import {growthAt,instanceGrowthCurve,rosterMaxLevel,type GrowthPoint,type ReincarnationXpPolicy} from '../battle/roster60-rules.js';
 import type {State} from '../roster60-battle.js';
 import {normalXpGrant} from './normal-xp.js';
-import {FINISHER_SPLIT_DISTRIBUTION,finisherSplitShares} from './finisher-split.js';
+import {FINISHER_SPLIT_DISTRIBUTION,finisherSplitShares,battleAverageLevel} from './finisher-split.js';
 
 /** An additive reward schedule, captured only when a new battle/queue is created. */
-export type UnitXpPacing={approved:true;version:string;catalogVersion:string;winsPerLevel:2|1.5;difficulty:'owned-level-capped-by-enemy';distribution:'equal-actually-entered'|'finisher-full-rest-half';existingRewards:'keep-higher';capOverflow:'discard-overflow'};
+export type UnitXpPacing={approved:true;version:string;catalogVersion:string;winsPerLevel:2|1.5;difficulty:'owned-level-capped-by-enemy'|'battle-average-level';distribution:'equal-actually-entered'|'finisher-full-rest-half';existingRewards:'keep-higher'|'replace';capOverflow:'discard-overflow'};
 export type PacingMember={ownedId:string;playerId:string;startingXp:string;growth:GrowthPoint[];reincarnation:number;reincarnationXpPolicy?:ReincarnationXpPolicy};
-export type PacedBattleXpPlan={version:'paced-battle-xp-v1';battleId:string;playerId:string;policy:UnitXpPacing;enemyLevel:number;sourceWinXp:number;sourceLossXp:number;baseline:'total'|'per-entered';reserveHalf:boolean;recipientMode?:'initial-owned'|'entered';requireSurvivor?:boolean;members:PacingMember[]};
+export type PacedBattleXpPlan={version:'paced-battle-xp-v1';battleId:string;playerId:string;policy:UnitXpPacing;enemyLevel:number;sourceWinXp:number;sourceLossXp:number;baseline:'total'|'per-entered';reserveHalf:boolean;recipientMode?:'initial-owned'|'entered';requireSurvivor?:boolean;members:PacingMember[];battleLevels?:number[]};
 const fail=(code='UNIT_XP_PACING_INVALID'):never=>{throw new RosterError(503,code);};
 const amount=(n:unknown):n is number=>Number.isSafeInteger(n)&&Number(n)>=0&&Number(n)<=2_000_000_000;
 const level=(n:unknown):n is number=>Number.isSafeInteger(n)&&Number(n)>=1&&Number(n)<=99;
 export function validateUnitXpPacing(raw:unknown,catalogVersion:string):UnitXpPacing{
  const p=raw as UnitXpPacing;const keys=['approved','version','catalogVersion','winsPerLevel','difficulty','distribution','existingRewards','capOverflow'];
- if(!p||Array.isArray(p)||Object.keys(p).sort().join()!==keys.sort().join()||p.approved!==true||typeof p.version!=='string'||!p.version||p.catalogVersion!==catalogVersion||!(p.winsPerLevel===2&&p.distribution==='equal-actually-entered'||p.winsPerLevel===1.5&&p.distribution===FINISHER_SPLIT_DISTRIBUTION)||p.difficulty!=='owned-level-capped-by-enemy'||p.existingRewards!=='keep-higher'||p.capOverflow!=='discard-overflow')return fail();
+ if(!p||Array.isArray(p)||Object.keys(p).sort().join()!==keys.sort().join()||p.approved!==true||typeof p.version!=='string'||!p.version||p.catalogVersion!==catalogVersion||!(p.winsPerLevel===2&&p.distribution==='equal-actually-entered'&&p.difficulty==='owned-level-capped-by-enemy'&&p.existingRewards==='keep-higher'||p.winsPerLevel===1.5&&p.distribution===FINISHER_SPLIT_DISTRIBUTION&&(p.difficulty==='owned-level-capped-by-enemy'&&p.existingRewards==='keep-higher'||p.difficulty==='battle-average-level'&&p.existingRewards==='replace'))||p.capOverflow!=='discard-overflow')return fail();
  return p;
 }
 export function unitXpPacingReader(root:string,profile?:string):()=>UnitXpPacing|null{
@@ -42,6 +42,14 @@ export function pacedPool(members:(Pick<PacingMember,'startingXp'|'growth'|'rein
  const floor=Math.max(...members.map(member=>pacedUnitWin(member,enemyLevel,policy,member.nearestTierMinimum)))*members.length;
  const total=Math.max(legacyPool,floor);if(!amount(total))return fail();return total;
 }
+/** 통일 판: 전투 전원 평균 레벨에서 마무리 유닛이 N승에 1레벨 오르는 양. 기존 모드별 보상은 쓰지 않는다. */
+export const averageLevelPacing=(policy:UnitXpPacing)=>policy.difficulty==='battle-average-level';
+export function averageLevelWin(member:Pick<PacingMember,'growth'|'reincarnation'|'reincarnationXpPolicy'>,averageLevel:number,policy:UnitXpPacing){
+ validateUnitXpPacing(policy,policy.catalogVersion);if(!averageLevelPacing(policy)||!level(averageLevel))return fail();
+ const curve=instanceGrowthCurve(member.growth,member.reincarnation,member.reincarnationXpPolicy),maximum=rosterMaxLevel(member.reincarnation);
+ if(curve.length<maximum)return fail();const at=Math.min(averageLevel,maximum-1);
+ return Math.ceil((curve[at].totalXp-curve[at-1].totalXp)*2/(policy.winsPerLevel*2));
+}
 /** 마무리 전액 판: 기존 보상과 마무리 유닛의 「적정 레벨 승리 N번에 1레벨」 최소값 중 큰 값. */
 export function pacedFinisherWin(finisher:Pick<PacingMember,'startingXp'|'growth'|'reincarnation'|'reincarnationXpPolicy'>,enemyLevel:number,legacyWin:number,policy:UnitXpPacing,nearestTierMinimum?:number){
  if(!amount(legacyWin))return fail();
@@ -51,6 +59,8 @@ export function createPacedBattleXpPlan(input:Omit<PacedBattleXpPlan,'version'>)
  validateUnitXpPacing(input.policy,input.policy.catalogVersion);
  if(!input.battleId||!input.playerId||!level(input.enemyLevel)||!amount(input.sourceWinXp)||!amount(input.sourceLossXp)||input.sourceLossXp>input.sourceWinXp||!['total','per-entered'].includes(input.baseline)||typeof input.reserveHalf!=='boolean'||input.recipientMode!==undefined&&!['initial-owned','entered'].includes(input.recipientMode)||input.requireSurvivor!==undefined&&typeof input.requireSurvivor!=='boolean'||!input.members.length||input.members.length>6||new Set(input.members.map(m=>m.ownedId)).size!==input.members.length)return fail();
  for(const m of input.members){if(!m.ownedId||m.playerId!==input.playerId||m.ownedId.startsWith('AI:'))return fail();normalXpGrant(m,0);}
+ if(input.battleLevels!==undefined&&(!Array.isArray(input.battleLevels)||input.battleLevels.length<2||input.battleLevels.length>12||input.battleLevels.some(l=>!level(l))))return fail();
+ if(averageLevelPacing(input.policy)&&!input.battleLevels)return fail();
  pacedPool(input.members,input.enemyLevel,input.sourceWinXp*(input.baseline==='per-entered'?input.members.length:1),input.policy);
  return {version:'paced-battle-xp-v1',...structuredClone(input)};
 }
@@ -69,9 +79,11 @@ export function calculatePacedBattleXp(plan:PacedBattleXpPlan,row:{ownedId:strin
  const ids=[...entered].sort(),members=ids.map(id=>plan.members.find(m=>m.ownedId===id)!);
  const alive=[state.fighters[0],...(state.reserves??[])].some(f=>f.hp>0),win=state.outcome==='win'&&!state.surrendered&&(!plan.requireSurvivor||alive),loss=state.outcome==='loss'&&!state.surrendered;
  // 마무리 전액 판(연습전 제외): 이긴 순간 나와 있던 유닛 W 전액, 편성된 나머지는 절반. 패배는 0.
- if(plan.policy.distribution===FINISHER_SPLIT_DISTRIBUTION&&plan.recipientMode!=='initial-owned'){
+ // 통일 판은 연습전(최초 개체 지급)도 같은 규칙으로 편성 전원에게 나눈다.
+ if(plan.policy.distribution===FINISHER_SPLIT_DISTRIBUTION&&(plan.recipientMode!=='initial-owned'||averageLevelPacing(plan.policy))){
   const finisherId=state.fighters[0].ownedId!,finisher=plan.members.find(m=>m.ownedId===finisherId)??fail('UNIT_XP_PACING_PARTICIPATION_INVALID');
-  const shares=win?finisherSplitShares(pacedFinisherWin(finisher,plan.enemyLevel,plan.sourceWinXp,plan.policy),plan.members.map(m=>m.ownedId),finisherId):new Map<string,number>();
+  const w=averageLevelPacing(plan.policy)?averageLevelWin(finisher,battleAverageLevel(plan.battleLevels!),plan.policy):pacedFinisherWin(finisher,plan.enemyLevel,plan.sourceWinXp,plan.policy);
+  const shares=win?finisherSplitShares(w,plan.members.map(m=>m.ownedId),finisherId):new Map<string,number>();
   const result={policyVersion:plan.policy.version,requestedXp:0,xpAccepted:0,xpDiscarded:0,xpDeferred:0 as const,xpByOwnedId:{} as Record<string,number>,requestedXpByOwnedId:{} as Record<string,number>,units:[] as {ownedId:string;startingXp:string;endingXp:string;requestedXp:number;appliedXp:number;discardedXp:number;status:string}[]};
   for(const member of plan.members){const requestedXp=shares.get(member.ownedId)??0,start=effectiveStartingXp?.[member.ownedId]??member.startingXp,grant=normalXpGrant({...member,startingXp:start},requestedXp),discardedXp=grant.requestedXp-grant.appliedXp;result.requestedXp+=requestedXp;result.xpAccepted+=grant.appliedXp;result.xpDiscarded+=discardedXp;result.xpByOwnedId[member.ownedId]=grant.appliedXp;result.requestedXpByOwnedId[member.ownedId]=requestedXp;result.units.push({ownedId:member.ownedId,startingXp:start,endingXp:grant.endingXp,requestedXp,appliedXp:grant.appliedXp,discardedXp,status:grant.status});}
   return result;
