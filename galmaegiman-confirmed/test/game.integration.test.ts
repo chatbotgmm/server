@@ -656,13 +656,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
       const get=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('text/html');return r.body;};
-      expect(await get('/')).toContain('href="/game" data-start');   // 메인은 공개 홈페이지(src/site.ts), 예전 소개 화면은 /web/landing
-      expect(await get('/dex?view=s&sort=name')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/dex">');
-      expect(await get('/rank?k=top')).toContain('<link rel="canonical" href="https://gmm.dpdns.org/rank?k=top">');
-      expect(await get('/search?q=금갑')).toContain('<meta name="robots" content="noindex">');
+      expect(await get('/')).toContain('href="/download"');   // 메인은 공개 홈페이지(src/site.ts), 예전 소개 화면은 /web/landing
+      // 2026-11-06 사용자 결정: 예전 145종 웹 페이지(도감·조합법·히든·랭킹·수다방·이벤트·검색·프로필)는 닫고 첫 화면으로 보낸다
+      const gone=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode,url).toBe(301);expect(r.headers.location).toBe('/');};
+      for(const url of ['/dex?view=s&sort=name','/rank?k=top','/search?q=금갑'])await gone(url);
       const robots=(await app.inject({method:'GET',url:'/robots.txt'})).body;expect(robots).toContain('Sitemap: https://gmm.dpdns.org/sitemap.xml');expect(robots).toContain('Disallow: /api/');
-      const sm=(await app.inject({method:'GET',url:'/sitemap.xml'})).body;expect(sm).toContain('<loc>https://gmm.dpdns.org/dex/C1</loc>');expect(sm).toContain('<loc>https://gmm.dpdns.org/talk</loc>');expect(sm).not.toContain('/dex/H1<');
-      expect((sm.match(/<loc>/g)??[]).length).toBe(8+content.characters.filter(c=>c.rarity!=='HIDDEN').length);
+      const sm=(await app.inject({method:'GET',url:'/sitemap.xml'})).body;expect(sm).toContain('<loc>https://gmm.dpdns.org/odds</loc>');expect(sm).not.toContain('/dex');expect(sm).not.toContain('/talk');
+      expect((sm.match(/<loc>/g)??[]).length).toBe(10);   // 지금 열린 공개 페이지(공지 글 없음)
       // 횡스크롤 시험판: 색인 제외, 엔진·스크립트 제공, 그림 목록은 png 이름만, 이상한 파일 이름은 거절
       const play=await get('/play');expect(play).toContain('<meta name="robots" content="noindex">');expect(sm).not.toContain('/play');
       for(const url of ['/play/game.js','/play/phaser.js','/play/game3d.js']){const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.headers['content-type']).toContain('javascript');}
@@ -687,17 +687,11 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await app.inject({method:'GET',url:'/duel/sprites/D1_s0_back.webp?k='+k})).headers['content-type']).toMatch(/^image\/(webp|png)/);
       for(const url of ['/duel/sprites/..%2F..%2F.env?k='+k,'/duel/sprites/C1_s0_front.webp?k='+k])expect((await app.inject({method:'GET',url})).statusCode).toBe(404);
       const js=await app.inject({method:'GET',url:'/duel/duel.js'});expect(js.statusCode).toBe(200);expect(js.body).not.toContain(content.map.get('D1')!.name);
+      // 세계관은 60종 스토리모드 기준 새 페이지(2026-11-06). 예전 도감 카드 보기는 닫힘
       const world=await get('/world');
-      expect(world).toContain('<h1>갈매미 섬 이야기</h1>');
-      expect(world).toContain('class="prose tale"');expect(world).toContain('갈매미 섬 항구 수비대');expect(world).not.toContain('<table>');
-      const dex=await get('/dex?view=card');   // 소개가 나오는 큰 카드 보기(기본은 그림만)
-      const hidden=content.characters.filter(c=>c.rarity==='HIDDEN');
-      const top=content.characters.filter(c=>['LIMITED','TRANSCEND','ETERNAL','IMMORTAL'].includes(c.rarity));
-      expect(hidden.some(c=>dex.includes(c.name))).toBe(false);          // 히든 이름 비공개
-      expect(hidden.every(c=>!c.hint||dex.includes(c.hint))).toBe(true); // 힌트는 공개
-      expect(top.some(c=>dex.includes(c.introduction))).toBe(false);     // 최상위 이야기 비공개
-      expect(top.some(c=>dex.includes(`thumbs/${c.id}.jpg`))).toBe(false); // 최상위 그림 비공개
-      expect(dex).toContain(content.map.get('C1')!.introduction);
+      expect(world).toContain('<h1>세계관</h1>');expect(world).toContain('돌이 된 태초 갈매미');expect(world).not.toContain('갈매미 섬 이야기');
+      await gone('/dex?view=card');
+      for(const c of content.characters.filter(c=>c.rarity==='HIDDEN'))expect(world).not.toContain(c.name);
     }finally{await app.close();}
   });
   it('내 갈매미(/my): 카톡 코드로 로그인, 코드는 한 번만, 다른 사이트 요청·가지지 않은 유닛 막기',async()=>{
@@ -1114,7 +1108,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const again=await db.player.findUniqueOrThrow({where:{identity:actor}});
       expect(again.id).not.toBe(p.id);expect(again.nickname).toBeNull();
       // 공개 페이지·앱 파일
-      for(const [url,has] of [['/privacy','개인정보 처리방침'],['/privacy/2026-10-08','이전 버전'],['/account/delete','계정 삭제'],['/odds','뽑기 확률']] as const){
+      for(const [url,has] of [['/privacy','개인정보 처리방침'],['/privacy/2026-10-08','이전 버전'],['/account/delete','계정 삭제'],['/odds','모집 확률']] as const){
         const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(200);expect(r.body).toContain(has);
       }
       // 개인정보 처리방침(작성지침 2026.4.): 이전 버전 링크·필수 항목 제목, 없는 버전·이상한 경로는 404
@@ -1122,8 +1116,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(pp).not.toContain('◆');   // 운영자가 채울 빈칸이 남은 채로 공개하지 않음
       for(const h of ['처리 목적','보유 기간','파기 절차','위탁','국외 이전','안전성 확보조치','쿠키','행사방법','개인정보 보호책임자','권익침해 구제방법','처리방침의 변경','href="/privacy/2026-10-08"'])expect(pp).toContain(h);
       for(const u of ['/privacy/2020-01-01','/privacy/..%2Fpackage'])expect((await app.inject({method:'GET',url:u,headers:{accept:'text/html'}})).statusCode).toBe(404);
+      // 모집 확률은 지금 게임(60종) 모집 정책 기준(2026-11-06). 예전 145종 뽑기 확률은 내리고, 이름은 싣지 않음
       const odds=(await app.inject({method:'GET',url:'/odds'})).body;
-      for(const k of ['LOW','MID','HIGH'] as const)expect(odds).toContain(`${content.economy.gachas[k].label} 뽑기`);
+      for(const k of ['하급','중급','고급'])expect(odds).toContain(`${k} 모집`);
+      expect(odds).not.toContain('뽑기 확률');
       expect(content.characters.filter(x=>x.rarity==='HIDDEN').some(x=>odds.includes(x.name))).toBe(false);
       const man=await app.inject({method:'GET',url:'/manifest.webmanifest'});
       expect(man.headers['content-type']).toContain('application/manifest+json');expect((man.json() as {icons:unknown[]}).icons.length).toBe(4);
@@ -1224,7 +1220,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
 
     }finally{await app.close();}
   });
-  it('공개 웹 랭킹: 카톡과 같은 순위, 닉네임 표시, 히든·최상위 가림, 관리자 모드 제외',async()=>{
+  it('공개 웹 랭킹(예전 145종): 닫혀 첫 화면으로 이동, 순위 자료는 그대로',async()=>{
     const mk=async(identity:string,nickname:string|null,ids:string[],adminMode=false)=>{
       const p=await db.player.create({data:{identity,nickname,tutorial:5,adminMode}});
       await db.collectionEntry.createMany({data:ids.map(characterId=>({playerId:p.id,characterId}))});
@@ -1236,19 +1232,13 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     await mk('r3','관리자',['C1','C2','C3','C4','C5'],true);
     const app=await buildApp(db,game,{secret:'s'.repeat(40),baseUrl:async()=>'https://example.com'});
     try{
-      const r=await app.inject({method:'GET',url:'/rank'});
-      expect(r.statusCode).toBe(200);
-      const body=r.body;
-      expect(body.indexOf('돌왕')).toBeGreaterThan(-1);
-      expect(body.indexOf('돌왕')).toBeLessThan(body.indexOf('갈매미 #'));   // 4종 > 3종
-      expect(body).not.toContain('관리자</b>');                              // 관리자 모드 제외
-      expect(body).not.toContain(content.map.get('H1')!.name);              // 히든 이름 가림
-      expect(body).not.toContain('thumbs/D1.jpg');                          // 최상위 그림 가림
-      expect((await app.inject({method:'GET',url:'/rank?k=week'})).statusCode).toBe(200);
-      expect((await app.inject({method:'GET',url:'/rank?k=top'})).body).toContain(content.map.get('D1')!.name);
+      // 2026-11-06 사용자 결정: 예전 145종 웹 페이지(도감·조합법·히든·랭킹·수다방·이벤트·검색·프로필)는 닫고 첫 화면으로 보낸다
+      const gone=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode,url).toBe(301);expect(r.headers.location).toBe('/');};
+      for(const url of ['/rank','/rank?k=week','/rank?k=top'])await gone(url);
+      expect(await db.collectionEntry.count({where:{playerId:r2.id}})).toBe(3);   // 페이지를 닫아도 기록은 지우지 않음
     }finally{await app.close();}
   });
-  it('공개 웹: 검색(이름·초성·닉네임)·조합법·히든 단서·상세·프로필·쿠폰 조각, 히든 이름 비공개',async()=>{
+  it('공개 웹: 예전 145종 검색·조합법·히든 단서·상세·프로필·이벤트는 닫힘, 홈·예전 소개 화면은 그대로',async()=>{
     const p1=await db.player.create({data:{identity:'w1',nickname:'돌왕',tutorial:5}});
     await db.collectionEntry.createMany({data:['C1','C2','U1','H1'].map(characterId=>({playerId:p1.id,characterId}))});
     await db.auditEvent.create({data:{playerId:p1.id,kind:'CRAFT',detail:{recipe:'H1',times:1}}});
@@ -1257,34 +1247,12 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const get=async(url:string,code=200)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode).toBe(code);return r.body;};
       const hiddenNames=content.characters.filter(c=>c.rarity==='HIDDEN').map(c=>c.name);
       const noHidden=(html:string)=>expect(hiddenNames.filter(n=>html.includes(`>${n}<`)||html.includes(`${n}</`))).toEqual([]);
-      // 검색: 이름, 초성, 닉네임
-      const byName=await get('/search?q='+encodeURIComponent('금갑'));expect(byName).toContain('/dex/U1');
-      expect(await get('/search?q='+encodeURIComponent('ㄱㄱ'))).toContain('/dex/U1');
-      expect(await get('/search?q='+encodeURIComponent('돌'))).toContain('/p/'+encodeURIComponent('돌왕'));
-      noHidden(await get('/search?q='+encodeURIComponent('갈매미')));
-      // 자동완성 목록(히든 제외)·닉네임 API·등급/이야기 검색·재료 쓰임
-      const idx=JSON.parse(await get('/search-index.json'));
-      expect(idx.some((u:any)=>u.i==='U1')).toBe(true);expect(idx.some((u:any)=>u.i==='H1')).toBe(false);
-      expect(JSON.parse(await get('/api/players?q='+encodeURIComponent('돌')))).toEqual(['돌왕']);
-      expect(await get('/search?q='+encodeURIComponent('전설'))).toContain('전설 등급 23종');
-      expect(await get('/search?q='+encodeURIComponent('엘리베이터'))).toContain('/dex/U1');
-      expect(await get('/search?q='+encodeURIComponent('금갑'))).toContain('이 갈매미로 만들 수 있는 것');
-      // 조합법·상세
-      const rec=await get('/recipes');expect(rec).toContain('/dex/U1');noHidden(rec);
-      const det=await get('/dex/U1');expect(det).toContain('만드는 법');expect(det).toContain('재료로 쓰이는 곳');
-      // 히든 재료라는 사실도 비밀: R2(H1의 재료) 상세·검색에 히든 칩이 없음
-      expect(await get('/dex/R2')).not.toContain('/hidden#h');expect(await get('/search?q='+encodeURIComponent('은하매듭직조자'))).not.toContain('/hidden#h');
-      const top=await get('/dex/I1');expect(top).toContain('히든 제외');expect(top).toContain('합계에 넣지 않았어요');
-      expect((await app.inject({method:'GET',url:'/dex/H1'})).statusCode).toBe(302);
-      await get('/dex/ZZ9',404);
-      // 계보도·기본 재료 합계·공유 미리보기, 히든 재료는 펼치지 않음
-      const l1=await get('/dex/L1');expect(l1).toContain('조합 계보도');expect(l1).toContain('처음부터 만들면 필요한 기본 재료');
-      expect(l1).toContain('og:image" content="https://gmm.dpdns.org/images/L1.png');
-      const d1=await get('/dex/D1');expect(d1).toContain('조합 계보도');noHidden(d1);expect(d1).not.toContain('og:image" content="https://gmm.dpdns.org/images/D1.png');
-      // 도감 작은 그림·가나다순, 홈 구성
-      const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
+      // 2026-11-06 사용자 결정: 예전 145종 웹 페이지(도감·조합법·히든·랭킹·수다방·이벤트·검색·프로필)는 닫고 첫 화면으로 보낸다
+      const gone=async(url:string)=>{const r=await app.inject({method:'GET',url});expect(r.statusCode,url).toBe(301);expect(r.headers.location).toBe('/');};
+      for(const url of ['/search?q='+encodeURIComponent('금갑'),'/search-index.json','/api/players?q='+encodeURIComponent('돌'),'/recipes','/dex/U1','/dex/H1','/dex/ZZ9','/dex?view=s&sort=name','/hidden','/event','/p/'+encodeURIComponent('돌왕')])await gone(url);
+      expect(hiddenNames.length).toBeGreaterThan(0);noHidden(await get('/'));
       // 공개 홈페이지(/): 소개·게임 시작·이벤트·공지, 검색엔진용 정보. 예전 메인의 소개 화면(오늘의 갈매미·랭킹·히든)은 /web/landing(로그인 전 /my)에 그대로
-      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('href="/event"');
+      const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).not.toContain('href="/event"');   // 예전 쿠폰 이벤트 띠 없음
       expect(homeHtml).toContain('<title>갈매미맨 방범대 | 우리의 모험이 시작되는 항구</title>');   // 승인된 새 홈(home-v4) 제목
       expect(homeHtml).toContain('"@type":"WebSite"');expect(homeHtml).toContain('<link rel="canonical" href="https://gmm.dpdns.org/">');expect(homeHtml).not.toContain('noindex');
       expect(homeHtml).toContain('class="policy-links"');expect(homeHtml).toContain('href="/privacy"');expect(homeHtml).not.toContain('/web/img/char-');
@@ -1292,26 +1260,10 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(landingHtml).toContain('오늘의 갈매미');expect(landingHtml).toContain('TOP 3');expect(landingHtml).toContain('최근 발견된 히든');expect(landingHtml).toContain('id="login"');
       expect(await get('/web/foot')).toContain('href="/privacy"');
       expect(await get('/my')).toContain('<meta name="robots" content="noindex">');
-      const ev=await get('/event');
-      expect(ev).toContain('친구도 나도 🎟 <b>100장</b>씩');expect(ev).toContain('튜토리얼 5단계를 끝내면 → 나도 🎟 100');expect(ev).toContain('최대 2,000장');
-      expect(ev).toContain('5단계 · 단계마다 🎟 <b>10장</b> (총 50장)');expect(ev).toContain('<b>재료로 직접 조합해 보기</b>');expect(ev).toContain('<b>닉네임 정하기</b>');
-      expect(ev).toContain('하루 최대 🎟 <b>230장</b>');expect(ev).toContain('진행 중');
-      expect(ev).not.toContain('따개비도새우깡은못참지');
-      expect(await get('/hidden')).toMatch(/class="drawer-more"[^]*href="\/hidden" aria-current="page"/);
-      // 없는 주소: 브라우저 페이지는 새 틀의 「없음」 화면, API는 JSON 그대로
-      const miss=await app.inject({method:'GET',url:'/zz-none',headers:{accept:'text/html'}});expect(miss.statusCode).toBe(404);expect(miss.body).toContain('찾는 페이지가 없어요');expect(miss.body).toContain('class="legacy"');
-      const missApi=await app.inject({method:'GET',url:'/api/zz-none',headers:{accept:'text/html'}});expect(missApi.statusCode).toBe(404);expect(missApi.json()).toMatchObject({statusCode:404});
-      // 히든: 1명 발견 → 초성 공개, 3명 전 → 재료 이름 잠김, 최초 발견자 표시
-      const hid=await get('/hidden');noHidden(hid);
-      expect(hid).toContain('재료 초성');expect(hid).toContain('최초 발견: <a href="/p/'+encodeURIComponent('돌왕'));
-      expect(hid).toContain('🔒 단서 4');
-      // 프로필
-      const prof=await get('/p/'+encodeURIComponent('돌왕'));expect(prof).toContain('4/'+content.characters.length);expect(prof).toContain('1개</b>히든 최초 발견');
-      await get('/p/'+encodeURIComponent('없는사람'),404);
-      // 쿠폰 조각: 세계관·조합법·히든에 하나씩, 홈에 이벤트 배너
+      // 세계관은 60종 스토리모드 기준 새 페이지(예전 쿠폰 조각 없음)
       const c=content.economy.coupons.find(x=>x.id==='HOMEPAGE_OPEN')!;
-      expect(await get('/world')).toContain(`「${c.pieces[0]}」`);expect(rec).toContain(`「${c.pieces[1]}」`);expect(hid).toContain(`「${c.pieces[2]}」`);
-      const home=await get('/');expect(home).toContain(c.label);expect(home).not.toContain(c.code);
+      const world=await get('/world');expect(world).toContain('이야기의 시작');expect(world).not.toContain(`「${c.pieces[0]}」`);
+      const home=await get('/');expect(home).not.toContain(c.label);expect(home).not.toContain(c.code);
     }finally{await app.close();}
   });
   it('탐험대 편성: 하나씩 추가·빼기(서버에 저장, 짧은 버튼 명령), 최대 10마리, 출발 후 다른 편성 불가',async()=>{
@@ -1404,20 +1356,19 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect((await send(`좋아요 ${cm.id}`,'fan')).text).toContain('이미');
       const view=await send(`댓글 ${c1}`,'fan');
       expect(view.text).toContain('수다왕');expect(view.text).toContain('👍 1');expect(view.text).not.toContain('브라자');
-      // 웹: 도감·수다방·홈에 보이고, 히든 이름은 ???
-      const dex=await page('/dex/C1');expect(dex).toContain('너무 귀여워요');expect(dex).not.toContain('브라자');
-      expect(await page('/talk')).toContain('수다왕');expect(await page('/web/landing')).toContain('최근 한마디');
+      // 웹: 도감·수다방 페이지는 닫힘(2026-11-06). 예전 소개 화면에는 그대로 보임
+      for(const url of ['/dex/C1','/talk'])expect((await app.inject({method:'GET',url})).statusCode).toBe(301);
+      expect(await page('/web/landing')).toContain('최근 한마디');
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:false});
       expect((await like(cm.id,'198.51.100.1')).json()).toEqual({likes:2,already:true});
       expect((await like(cm.id,'198.51.100.2')).json()).toEqual({likes:3,already:false});
       expect((await like(99999,'198.51.100.1')).statusCode).toBe(404);
       // 히든 유닛 댓글은 웹에 안 보임
       await db.comment.create({data:{playerId:p.id,characterId:'H1',text:'히든 비밀 댓글'}});
-      expect(await page('/talk')).not.toContain('히든 비밀 댓글');
+      expect(await page('/web/landing')).not.toContain('히든 비밀 댓글');
       // 관리자 숨김 → 웹·카톡에서 사라짐, 다른 사람은 내 댓글 못 지움
       await db.player.update({where:{identity:'fan'},data:{isAdmin:true}});
       expect((await send(`관리자 댓글숨김 ${cm.id}`,'fan')).text).toContain('숨겼어요');
-      expect(await page('/dex/C1')).not.toContain('너무 귀여워요');
       expect((await like(cm.id,'198.51.100.9')).statusCode).toBe(404);
       await send('내정보','other');
       expect((await send(`댓글삭제 ${cm.id}`,'other')).text).toContain('내 댓글 번호');
@@ -1459,7 +1410,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
     const secret='rate-limit-http-secret-'.repeat(3);
     const app=await buildApp(db,game,{secret,baseUrl:async()=>''});
     try{
-      const web=async(ip:string)=>(await app.inject({method:'GET',url:'/event',headers:{'cf-connecting-ip':ip}})).statusCode;
+      const web=async(ip:string)=>(await app.inject({method:'GET',url:'/about',headers:{'cf-connecting-ip':ip}})).statusCode;   // /event는 닫힘(2026-11-06)
       for(let i=0;i<300;i++)expect(await web('203.0.113.1')).toBe(200);
       expect(await web('203.0.113.1')).toBe(429);
       expect(await web('203.0.113.2')).toBe(200);
