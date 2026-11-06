@@ -34,3 +34,13 @@
 @media(max-width:1200px){.site-header{gap:18px;padding-left:25px;padding-right:25px}.site-header nav{gap:17px}.site-header .brand{font-size:23px}.site-header .nav-cta{padding-left:14px;padding-right:14px}}
 @media(max-width:1000px){.site-header{height:auto;min-height:88px;flex-wrap:wrap;padding-top:15px;padding-bottom:12px;gap:10px 20px}.site-header nav{order:3;width:100%;margin:0;justify-content:center;gap:27px}.site-header nav a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 3px}.site-header .nav-cta{margin-left:auto}}
 @media(max-width:650px){.site-header{justify-content:space-between;padding:13px 17px 9px;gap:9px 15px}.site-header .brand{font-size:22px}.site-header .nav-cta{padding:7px 13px;font-size:12px;min-height:44px}.site-header nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 7px;font-size:12px}.site-header nav a{min-height:44px;padding:5px 0}.village-invite{gap:15px;margin-top:30px;padding:20px}.village-invite h3{font-size:21px}.village-invite p{font-size:13px}.village-arrow{font-size:26px}.home-notices li a{align-items:flex-start;flex-direction:column;gap:8px;padding:17px 3px}.home-notices b{font-size:15px}.home-notices span{font-size:11px}.event-strip{padding:14px;gap:8px 13px}.event-strip b{font-size:15px}.event-strip span{font-size:13px}.event-strip em{font-size:12px}}
+
+/* 2026-11-06 공통 머리줄: 다른 공개 페이지(harbor.css)와 같은 「로그인 + 게임 시작」 */
+.head-acts{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.site-header .nav-cta{font-weight:700}
+.site-header .gold-cta{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border:1px solid #fff0bf;background:linear-gradient(#efcf8d,#c99d54);color:#1b2d40;font-weight:800;font-size:13px;white-space:nowrap;box-shadow:inset 0 0 0 3px #d6aa65}
+.site-header .gold-cta:hover{background:#f4dca4}
+@media(max-width:1200px){.site-header .gold-cta{padding-left:14px;padding-right:14px}}
+@media(max-width:1100px){.site-header nav{gap:13px}.site-header nav a{font-size:13px}}
+@media(max-width:1000px){.head-acts{margin-left:auto}.site-header .nav-cta{margin-left:0}.site-header nav a{font-size:14px}}
+@media(max-width:650px){.head-acts{gap:6px}.site-header .nav-cta,.site-header .gold-cta{min-height:44px;padding:0 11px;font-size:12px}.site-header nav a{font-size:12px}}

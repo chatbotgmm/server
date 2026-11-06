@@ -1,0 +1,144 @@
+/* 공개 홈페이지 공통 테마 「항구」(2026-11-06)
+   첫 화면(home-v4/home.css)과 같은 남색 머리줄·바닥, 양피지 본문, 황동·금색 선, 명조 제목을 모든 공개 페이지에 맞춘다.
+   site.css·legacy.css 뒤에 읽어 색·글꼴·모양만 덮는다. 페이지 내용·기능·주소는 그대로다.
+   색 값은 home.css에서 그대로 가져왔다(남색 #10263c·깊은 남색 #091a2b·크림 #fff3d7·금 #eac77f·잉크 #263b49·양피지 #f5ecd8). */
+body.harbor{
+  --navy:#10263c;--navy-2:#1e3b56;--navy-d:#091a2b;--stone:#f5ecd8;--stone-2:#eadcbf;--stone-3:#cbbb9c;--paper:#fffaf0;
+  --ink:#263b49;--muted:#505a60;--brass:#84602f;--brass-l:#eac77f;--line:#cbbb9c;--cream:#fff3d7;--rule:#8d734b;
+  --r:2px;--head:88px;
+  --title:Georgia,"Batang","Noto Serif KR","AppleMyungjo",serif;
+  --body:Arial,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:radial-gradient(ellipse 1400px 700px at 50% 0,#fff9e9,#f5ecd8) #f5ecd8;color:var(--ink);font-family:var(--body);
+}
+/* 내용이 짧은 페이지도 바닥이 화면 맨 아래에 붙게(아래에 빈 바탕이 남지 않게) */
+html:has(body.harbor){background:#091a2b}
+body.harbor{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+body.harbor>main{flex:1 0 auto}
+.harbor a{color:#69491e}
+.harbor h1,.harbor h2,.harbor h3{font-family:var(--title);font-weight:700;letter-spacing:-.5px;color:var(--navy)}
+.harbor :focus-visible{outline:3px solid #c9973b;outline-offset:3px}
+.harbor .top :focus-visible,.harbor .foot :focus-visible{outline-color:#ffca55}
+
+/* 머리줄: 첫 화면과 같은 남색 띠·문장·메뉴 */
+.harbor .top{background:linear-gradient(#172f48,#0c2138);border-bottom:1px solid #6e5c3a;backdrop-filter:none}
+.harbor .top .wrap{width:auto;max-width:none;padding:0 max(5vw,24px);gap:24px}
+.harbor .brand{display:flex;align-items:center;gap:11px;color:var(--cream);text-decoration:none;font-family:Georgia,"Batang",serif;font-weight:900;font-size:25px;line-height:1.1;letter-spacing:-1px;white-space:nowrap}
+.harbor .brand small{display:block;font-family:Arial,sans-serif;font-weight:400;font-size:10px;letter-spacing:6px;text-align:center;margin-top:7px;color:var(--brass-l)}
+.harbor .crest{color:var(--brass-l);font-size:38px;line-height:1;border:1px solid #96764b;border-radius:50%;width:45px;height:45px;display:grid;place-items:center;flex:none}
+.harbor .nav{gap:24px}
+.harbor .nav a{padding:0;border-radius:0;color:var(--cream);font:700 14px var(--body);border-bottom:1px solid transparent;min-height:44px}
+.harbor .nav a:hover{background:none;color:var(--brass-l);border-color:var(--brass-l)}
+.harbor .nav a[aria-current="page"]{color:var(--brass-l);box-shadow:none;border-color:var(--brass-l)}
+.harbor .acts{gap:10px}
+.harbor .nav-cta,.harbor .gold-cta{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;font:700 13px var(--body);text-decoration:none;white-space:nowrap}
+.harbor .nav-cta{border:1px solid #b99356;background:#1e3b56;color:var(--cream)}
+.harbor .nav-cta:hover{background:#2a4b69}
+.harbor .gold-cta{border:1px solid #fff0bf;background:linear-gradient(#efcf8d,#c99d54);color:#1b2d40;box-shadow:inset 0 0 0 3px #d6aa65}
+.harbor .gold-cta:hover{background:#f4dca4}
+.harbor .toplink{color:var(--cream);font:700 14px var(--body)}
+.harbor .menu-btn{border:1px solid #b99356;border-radius:0;background:#1e3b56}
+.harbor .menu-btn span,.harbor .menu-btn span::before,.harbor .menu-btn span::after{background:var(--cream)}
+.harbor .drawer{background:rgba(9,26,43,.55)}
+.harbor .drawer-in{background:radial-gradient(ellipse at top,#fff9e9,#f5ecd8);border-left:1px solid #b29a71}
+.harbor .drawer-top .brand{color:var(--navy)}
+.harbor .drawer-top .crest{color:#a3814b}
+.harbor .drawer .close{border-radius:0;border-color:#b29a71;background:#fffaf0}
+.harbor .drawer nav a{font:700 17px var(--body);border-bottom-color:#d9c9a8;color:var(--ink)}
+.harbor .drawer nav a[aria-current="page"]{color:#69491e;box-shadow:inset 3px 0 0 #a3814b}
+.harbor .drawer-more a{font-size:15px!important;font-weight:400!important}
+
+/* 버튼: 남색 주 행동(금 테두리), 양피지 보조(황동 테두리). 첫 화면처럼 각진 모서리 */
+.harbor .btn{border-radius:var(--r);font:700 16px/1.2 var(--body)}
+.harbor .btn.sm{font-size:14px}
+.harbor .btn.lg{font-size:18px}
+.harbor .btn.primary{background:var(--navy);color:var(--cream);border-color:#b99356;box-shadow:inset 0 0 0 3px #1e3b56}
+.harbor .btn.primary:hover{background:#1e3b56}
+.harbor .btn.ghost{background:#fffaf0;color:var(--navy);border-color:#b29a71}
+.harbor .btn.ghost:hover{background:#fff2d1;border-color:#86602e}
+.harbor .btn[aria-disabled="true"],.harbor .btn:disabled{background:#eadcbf;color:#5f6468;border-color:#cbbb9c}
+
+/* 본문 면: 양피지 카드, 가는 황동 선, 각진 모서리 */
+.harbor .page h1{font-size:clamp(30px,3.4vw,42px);line-height:1.3;padding-bottom:14px;border-bottom:2px solid var(--rule);margin-bottom:22px}
+.harbor .page h2{font-size:26px}
+.harbor .lead{color:var(--muted)}
+.harbor .steps li,.harbor .tiers li,.harbor .panel,.harbor .char-detail,.harbor .ccard,.harbor .card,.harbor .login,.harbor .empty{border-radius:var(--r);background:#fffaf0;border-color:#c9b58e}
+.harbor .panel,.harbor .char-detail,.harbor .login{box-shadow:inset 0 0 0 4px #f4e9d3}
+.harbor .steps li{grid-template-columns:56px 1fr;border-width:0 0 1px;background:none;padding:18px 4px}
+.harbor .steps li::before{content:counter(s,decimal-leading-zero);background:none;border-radius:0;width:auto;height:auto;display:block;color:#8e6a35;font:italic 34px/1.2 Georgia,serif}
+.harbor .steps b,.harbor .tiers b,.harbor .card b,.harbor .nlist a b,.harbor .char-detail q,.harbor .code label{font-family:var(--title);font-weight:700;color:var(--navy)}
+.harbor .steps b{font-size:20px}
+.harbor .card::before{border-radius:0;border-color:rgba(132,96,47,.28)}
+.harbor .card em,.harbor .more,.harbor .back{font:700 15px var(--body);color:#69491e}
+.harbor .nlist a{border-bottom-color:#cbbb9c}
+.harbor .nlist a b{font-size:18px}
+.harbor .ccard[aria-selected="true"]{border-color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy)}
+.harbor .ccard[aria-selected="true"]::after{font:700 12px var(--body)}
+.harbor .ccard span:not(.sr){font:700 14px/1.25 var(--body)}
+.harbor .char-detail .tier{font:700 13px var(--body);color:#84602f;letter-spacing:1px}
+.harbor .event-strip{border-radius:0;border:1px solid #9f8154;background:var(--navy)}
+.harbor .event-strip b{font:700 17px var(--body);color:var(--brass-l)}
+.harbor .event-strip em{font:13px var(--body);color:var(--brass-l)}
+.harbor .dl .test{background:#f1e6cf}
+.harbor .code input{border-radius:0;border-color:#b29a71;background:#fffdf7}
+
+/* 예전 공개 페이지(도감·조합법·랭킹·수다방 등): 같은 색 값으로 바꿔 끼운다.
+   --c1~6은 장 제목·통계를 번갈아 칠하는 장식 색(등급 의미 색 아님)이라 남색·황동·청록·적갈 계열로 바꾼다. */
+.harbor main#main.legacy{--c1:#1e3b56;--c2:#84602f;--c3:#245b61;--c4:#8a4b2a;--c5:#2f4f6e;--c6:#6b4a1d;font-synthesis:weight style;--bg:transparent;--card:#fffaf0;--text:#263b49;--muted:#505a60;--line:#cbbb9c;--edge:#b29a71;--accent:#1e3b56;--accent-soft:#efe3c8;--gold:#a3814b;--shadow:none;background:transparent;font-family:var(--body)}
+.harbor .legacy h1,.harbor .legacy h2,.harbor .legacy h3,.harbor .legacy .title{font-family:var(--title);font-weight:700;letter-spacing:-.5px;color:var(--navy)}
+.harbor .legacy .logo,.harbor .legacy .stat b,.harbor .legacy .links a b,.harbor .legacy .today h3,.harbor .legacy .mylink,.harbor .legacy .btn,.harbor .legacy .tabs a,.harbor .legacy .chip,.harbor .legacy .badge,.harbor .legacy .tabbar a,.harbor .legacy .hstats,.harbor .legacy .more a,.harbor .legacy .tag,.harbor .legacy .rank .no,.harbor .legacy .rank .sc,.harbor .legacy .mini .sc,.harbor .legacy .like,.harbor .legacy form.search button{font-family:var(--body);font-weight:700}
+.harbor .legacy p b,.harbor .legacy p strong,.harbor .legacy li b,.harbor .legacy li strong{color:#69491e}
+.harbor .legacy .hero{background:linear-gradient(90deg,rgba(5,26,49,.92),rgba(16,38,60,.82)),url(/site/home-v4/harbor.png) 60% 45%/cover;border-radius:0;border:1px solid #9f8154}
+.harbor .legacy .hero::after{display:none}
+.harbor .legacy .hero h1{color:var(--cream);text-shadow:none}
+.harbor .legacy .hero .lead{color:#fff4dc;background:rgba(10,31,52,.55);border-left:2px solid var(--brass-l);border-radius:0}
+.harbor .legacy .hero .lead b{color:var(--brass-l)}
+.harbor .legacy .hstats span{background:rgba(255,243,215,.92);color:var(--navy)}
+.harbor .legacy .card,.harbor .legacy .box,.harbor .legacy .stat,.harbor .legacy .links a,.harbor .legacy .rec,.harbor .legacy .rank li,.harbor .legacy .prose table,.harbor .legacy .sug{border-radius:var(--r)}
+.harbor .legacy .tabs a,.harbor .legacy .btn,.harbor .legacy .chip,.harbor .legacy form.search input{border-radius:0}
+.harbor .legacy .tabs a.on{background:var(--navy);border-color:#b99356;box-shadow:none}
+.harbor .legacy .chips{background:#f5ecd8}
+.harbor .legacy .event{border-radius:0;background:#fff2d1;border-color:#b29a71;color:var(--ink)}
+.harbor .legacy .event a{color:#69491e}
+.harbor .legacy blockquote{border-left-color:#a3814b;background:#efe3c8;border-radius:0}
+
+/* 바닥: 첫 화면과 같은 깊은 남색, 문장·안내 줄·맨 아래 줄 */
+.harbor .foot{background:var(--navy-d);color:#c5cfda;padding:40px 0 25px;border-top:5px double #a38350}
+.harbor .foot .wrap{width:auto;max-width:none;padding:0 max(7.5vw,25px)}
+.harbor .foot-head{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:22px}
+.harbor .foot-head .brand{font-size:23px}
+.harbor .foot-head p{margin:0;font-size:13px}
+.harbor .foot-links{gap:4px 24px;font-size:13px;margin:0}
+.harbor .foot-links a{color:#d6d8d7;text-decoration:underline;text-underline-offset:4px;min-height:44px}
+.harbor .foot-links.sub{font-size:12px;color:#b4bfc8}
+.harbor .foot-links.sub a{color:#b4bfc8}
+.harbor .foot-bottom{border-top:1px solid #405164;margin-top:18px;padding-top:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:10px;letter-spacing:1px}
+.harbor .foot-bottom a{font-size:12px;color:#c5cfda;display:inline-flex;align-items:center;min-height:44px;letter-spacing:0}
+
+/* 넓이별: 첫 화면(home.css)과 같은 지점에서 같은 모양으로 줄인다.
+   1000px 이하: 메뉴를 둘째 줄로 내리고 머리줄을 따라 내려오지 않게(첫 화면과 같음). 650px 이하: 메뉴 3칸×2줄. 서랍 메뉴는 쓰지 않는다(둘러보기 링크는 바닥에 있음). */
+@media (max-width:1200px){.harbor .top .wrap{gap:18px;padding:0 25px}.harbor .nav{gap:17px}.harbor .brand{font-size:23px}.harbor .nav-cta,.harbor .gold-cta{padding:0 14px}}
+@media (max-width:1100px){.harbor .nav{gap:13px}.harbor .nav a{font-size:13px}}
+@media (max-width:1000px){
+  .harbor .top{position:static}
+  .harbor .top .wrap{height:auto;min-height:88px;flex-wrap:wrap;padding:15px 25px 12px;gap:10px 20px}
+  .harbor .nav{display:flex;order:3;width:100%;margin:0;justify-content:center;gap:27px}
+  .harbor .nav a{justify-content:center;min-height:44px;padding:6px 3px;font-size:14px}
+  .harbor .acts{display:flex;margin-left:auto}
+  .harbor .menu-btn{display:none}
+}
+@media (max-width:650px){
+  body.harbor{font-size:16px}
+  .harbor .top .wrap{padding:13px 17px 9px;gap:9px 12px}
+  .harbor .brand{font-size:22px;gap:9px}
+  .harbor .crest{width:36px;height:36px;font-size:29px}
+  .harbor .brand small{font-size:9px;margin-top:5px}
+  .harbor .nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 7px}
+  .harbor .nav a{font-size:12px;padding:5px 0}
+  .harbor .acts{gap:6px}
+  .harbor .nav-cta,.harbor .gold-cta{min-height:44px;padding:0 11px;font-size:12px}
+  .harbor .steps li{grid-template-columns:44px 1fr}
+  .harbor .steps li::before{font-size:28px}
+  .harbor .foot{padding-top:30px}
+  .harbor .foot .wrap{padding:0 24px}
+  .harbor .foot-links{gap:4px 15px}
+}

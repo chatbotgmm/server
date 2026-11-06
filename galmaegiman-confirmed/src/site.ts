@@ -30,36 +30,37 @@ export function siteShell(root:string,version:string,content:Content){
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
   const stamp=stampFor(root);
-  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터 소개'],['/notices','공지사항'],['/download','다운로드']];
-  const logo='<img src="/images/logo.png" alt="" width="123" height="40">';
+  // 첫 화면(home-v4)과 같은 메뉴·문장(머리줄이 화면마다 달라 보이지 않게)
+  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터'],['/notices','공지사항'],['/download','다운로드'],['/village','마을 둘러보기']];
+  const logo='<span class="crest" aria-hidden="true">✦</span><span class="brand-name">갈매미맨 <small>방 범 대</small></span>';
   return (o:ShellOptions)=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${o.path==='/'?'갈매미맨':`${esc(o.title)} · 갈매미맨`}</title>
 <meta name="description" content="${esc(o.desc)}">${o.noindex?'<meta name="robots" content="noindex">':''}
 <meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:title" content="${esc(o.path==='/'?'갈매미맨':o.title)}"><meta property="og:description" content="${esc(o.desc)}">${site?`<meta property="og:image" content="${site}${o.image??'/images/C1.png'}">${o.canonical===false?'':`<link rel="canonical" href="${esc(site+o.path)}">`}`:''}
-<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#1d3550">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#10263c">
 ${o.path==='/'&&site?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'갈매미맨',alternateName:['갈매미맨 수비대'],url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:''}
-<link rel="preload" href="/site/a/jua.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${stamp('site/site.css')}">${o.legacy?`<link rel="stylesheet" href="${stamp('site/legacy.css')}">`:''}
-</head><body class="site">
+<link rel="stylesheet" href="${stamp('site/site.css')}">${o.legacy?`<link rel="stylesheet" href="${stamp('site/legacy.css')}">`:''}<link rel="stylesheet" href="${stamp('site/harbor.css')}">
+</head><body class="site harbor">
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="top"><div class="wrap">
-<a class="brand" href="/" aria-label="갈매미맨 홈">${logo}</a>
+<a class="brand" href="/" aria-label="갈매미맨 방범대 홈">${logo}</a>
 ${o.bare?`<a class="toplink" href="/" data-back>홈페이지로</a>`:`<nav class="nav" aria-label="공개 메뉴">${NAV.map(([h,t])=>`<a href="${h}"${o.path===h||o.path.startsWith(h+'/')?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
-<div class="acts"><a class="btn ghost sm" href="/login?next=/account" data-auth="account">로그인</a><a class="btn primary sm" href="/game" data-start>게임 시작</a></div>
+<div class="acts"><a class="nav-cta" href="/login?next=/account" data-auth="account">로그인</a><a class="gold-cta" href="/game" data-start>게임 시작</a></div>
 <button class="menu-btn" type="button" aria-expanded="false" aria-controls="drawer" aria-label="메뉴 열기"><span aria-hidden="true"></span></button>`}
 </div></header>
 ${o.bare?'':`<div class="drawer" id="drawer" hidden><div class="drawer-in" role="dialog" aria-modal="true" aria-label="메뉴">
-<div class="drawer-top">${logo}<button class="close" type="button" aria-label="메뉴 닫기">×</button></div>
+<div class="drawer-top"><span class="brand">${logo}</span><button class="close" type="button" aria-label="메뉴 닫기">×</button></div>
 <nav aria-label="공개 메뉴">${NAV.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
 <nav class="drawer-more" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
 <a class="btn primary wide" href="/game" data-start>게임 시작</a><a class="btn ghost wide" href="/login?next=/account" data-auth="account">로그인 / 내 계정</a>
 </div></div>`}
 <main id="main">${o.body}</main>
 <footer class="foot"><div class="wrap">
-<b class="foot-name">갈매미맨</b>
-<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널(문의)</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a></p>
-<p class="foot-links sub"><a href="/notices">공지사항</a><a href="/download">다운로드</a><span>v${esc(version)}</span></p>
+<div class="foot-head"><a class="brand" href="/" aria-label="갈매미맨 방범대 홈">${logo}</a><p>우리의 항구에서, 다음 모험을.</p></div>
+<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a><a href="/notices">공지사항</a><a href="/download">다운로드</a></p>
 <p class="foot-links sub" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</p>
+<div class="foot-bottom"><span>GALMAEMIMAN · v${esc(version)}</span><a href="#main">맨 위로 ↑</a></div>
 </div></footer>
 <script src="${stamp('site/site.js')}" defer></script>${o.script??''}
 </body></html>`;
@@ -89,6 +90,8 @@ export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions
       GMM_STYLE:esc(stamp('site/home-v4/home.css')),
       GMM_SCRIPT:esc(stamp('site/site.js')),
       GMM_CANONICAL:esc(site?site+'/':'/'),
+      // 예전 홈에 있던 검색엔진용 사이트 정보(WebSite)를 새 홈에도 그대로 넣는다
+      GMM_JSONLD:site?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'갈매미맨',alternateName:['갈매미맨 수비대','갈매미맨 방범대'],url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:'',
       GMM_VERSION:esc(opt.version),
       GMM_NOTICES:latest.length?'<ul class="nlist home-notices">'+latest.map(noticeRow).join('')+'</ul>':'<p class="empty-notices">아직 게시된 공지가 없어요.</p>',
       GMM_EVENT:ev?'<a class="event-strip" href="/event"><b>진행 중 이벤트</b><span>'+esc(ev.label)+'</span><span>자세히 →</span></a>':'',

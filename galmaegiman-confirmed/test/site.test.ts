@@ -14,7 +14,8 @@ describe('공개 홈페이지(src/site.ts)',()=>{
   it('소개 홈: 게임 시작은 /game, 로그인 상태로 자동 이동하는 코드 없음, 공지 없으면 없다고',async()=>{
     const h=await get('/');
     expect(h).toContain('href="/game" data-start');expect(h).toContain('href="/world"');expect(h).toContain('아직 게시된 공지가 없어요.');
-    expect(h).toContain('aria-disabled="true"');   // 공식 배포 확인 전 APK 버튼은 비활성
+    // 승인된 새 홈(home-v4)은 APK 버튼 대신 다운로드 안내 페이지로 연결한다(배포 상태는 /download에서 비활성 표시)
+    expect(h).toContain('href="/download"');expect(h).not.toMatch(/href="[^"]*\.apk"/);
     expect(h).not.toMatch(/location\.(replace|href)\s*=\s*['"]\/game/);
   });
   it('캐릭터 소개: 히든·최상위 이름을 내보내지 않음',async()=>{

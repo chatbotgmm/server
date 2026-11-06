@@ -1285,9 +1285,9 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       const small=await get('/dex?view=s&sort=name');expect(small).toContain('class="tiles"');noHidden(small);
       // 공개 홈페이지(/): 소개·게임 시작·이벤트·공지, 검색엔진용 정보. 예전 메인의 소개 화면(오늘의 갈매미·랭킹·히든)은 /web/landing(로그인 전 /my)에 그대로
       const homeHtml=await get('/');expect(homeHtml).toContain('href="https://pf.kakao.com/_GIAaX"');expect(homeHtml).toContain('href="/event"');
-      expect(homeHtml).toContain('<title>갈매미맨</title>');
+      expect(homeHtml).toContain('<title>갈매미맨 방범대 | 우리의 모험이 시작되는 항구</title>');   // 승인된 새 홈(home-v4) 제목
       expect(homeHtml).toContain('"@type":"WebSite"');expect(homeHtml).toContain('<link rel="canonical" href="https://gmm.dpdns.org/">');expect(homeHtml).not.toContain('noindex');
-      expect(homeHtml).toContain('class="foot"');expect(homeHtml).not.toContain('/web/img/char-');
+      expect(homeHtml).toContain('class="policy-links"');expect(homeHtml).toContain('href="/privacy"');expect(homeHtml).not.toContain('/web/img/char-');
       const landingHtml=await get('/web/landing');expect(landingHtml).toContain('갈매미는 <span class="hl">존재</span>한다');
       expect(landingHtml).toContain('오늘의 갈매미');expect(landingHtml).toContain('TOP 3');expect(landingHtml).toContain('최근 발견된 히든');expect(landingHtml).toContain('id="login"');
       expect(await get('/web/foot')).toContain('href="/privacy"');
