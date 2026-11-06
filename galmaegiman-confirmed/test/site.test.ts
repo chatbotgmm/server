@@ -57,6 +57,13 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     await get('/notices/none',404);
     const d=await get('/download');expect(d).toContain('시험 배포 연결 대기');expect(d).not.toContain('.apk"');
   });
+  it('PC 웹게임(60종, /game60): 화면·그림·글꼴 제공, 로그인 뒤 돌아올 곳으로 허용',async()=>{
+    const h=await get('/game60');expect(h).toMatch(/\/game60\/game\.js\?v=\d+/);expect(h).toContain('noindex');expect(h).not.toContain('{{');
+    for(const [url,type] of [['/game60/game.js','javascript'],['/game60/game.css','text/css'],['/game60/assets/units/u01-front.webp','image/webp'],['/game60/assets/black/u01.webp','image/webp'],['/game60/assets/fonts/workbench-noto-regular.otf','font/otf']] as const)
+      expect((await app.inject({method:'GET',url})).headers['content-type'],url).toContain(type);
+    await get('/game60/../package.json',404);await get('/game60/assets/none.webp',404);
+    expect(safeNext('/game60')).toBe('/game60');
+  });
   it('웹 게임 화면과 정적 파일: 정해진 폴더·확장자만',async()=>{
     expect(await get('/game')).toContain('id="view"');   // 주소는 남김(홈에서는 연결하지 않음)
     const r=await app.inject({method:'GET',url:'/account'});expect(r.statusCode).toBe(302);expect(r.headers.location).toBe('/game#account');

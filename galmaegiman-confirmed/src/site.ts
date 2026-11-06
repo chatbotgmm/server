@@ -17,7 +17,7 @@ export interface Notice{id:string;title:string;date:string;category?:string;body
 export interface DownloadInfo{label:string;version:string;url:string;note?:string;sha256?:string;requirement?:string}
 export interface SiteOptions{root:string;version:string;kakao:boolean}
 // 로그인 뒤 갈 곳·취소하면 돌아갈 곳: 사이트 안의 정해진 경로만(바깥 주소·//·\\ 거부)
-const NEXT=new Set(['/game','/account']);
+const NEXT=new Set(['/game','/game60','/account']);
 const FROM=/^\/(?:about|world|characters|notices(?:\/[A-Za-z0-9_-]{1,40})?|download|dex(?:\/[A-Za-z0-9_-]{1,12})?|recipes|hidden|rank|event|talk|odds|privacy)?$/;
 export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?v:'/game';
 export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
@@ -266,10 +266,13 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   const gameFile=()=>readFileSync(resolve(opt.root,'public/game/index.html'),'utf8').replace(/\{\{([a-z]+\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game/${f}`));
   app.get('/game',limit,async(_req,reply)=>send(reply,gameFile(),'no-cache'));
   app.get('/account',limit,async(_req,reply)=>reply.redirect('/game#account'));
+  // ── PC 웹게임(60종, 앱과 같은 서버 기능). 1단계: 로그인·마을·내 갈매미·모집·스토리. 화면은 public/game60 ──
+  const game60File=()=>readFileSync(resolve(opt.root,'public/game60/index.html'),'utf8').replace(/\{\{(game\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game60/${f}`));
+  app.get('/game60',limit,async(_req,reply)=>send(reply,game60File(),'no-cache'));
 
   // ── 정적 파일: public/site, public/game 아래 정해진 확장자만 ──
-  const types:Record<string,string>={css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',webp:'image/webp',png:'image/png',woff2:'font/woff2',txt:'text/plain; charset=utf-8',svg:'image/svg+xml'};
-  for(const dir of ['site','game'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{
+  const types:Record<string,string>={css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',webp:'image/webp',png:'image/png',woff2:'font/woff2',otf:'font/otf',txt:'text/plain; charset=utf-8',svg:'image/svg+xml'};
+  for(const dir of ['site','game','game60'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{
     const rel=req.params['*'],ext=/^[a-z0-9/_-]+\.([a-z0-9]+)$/.exec(rel)?.[1];
     if(!ext||!types[ext]||rel.includes('..'))return reply.code(404).send({error:'not found'});
     // 파일을 먼저 읽고 형식을 정한다(없는 파일에 형식을 먼저 정하면 404 대신 500이 남)
