@@ -23,7 +23,7 @@ export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
 // 공개 페이지 공통 틀(머리줄·메뉴·바닥). 새 공개 페이지(site.ts)와 예전 공개 페이지(web.ts: 도감·조합법·랭킹·이벤트 등)가 같이 쓴다
 export interface ShellOptions{path:string;title:string;desc:string;body:string;bare?:boolean;script?:string;noindex?:boolean;image?:string;legacy?:boolean;canonical?:boolean}
 // 예전부터 있던 공개 페이지(내용·기능 그대로, 새 디자인 틀): 메뉴의 「둘러보기」와 바닥에 연결
-const MORE:[string,string][]=[['/dex','도감'],['/recipes','조합법'],['/hidden','히든 단서'],['/rank','랭킹'],['/talk','수다방'],['/event','이벤트'],['/search','검색']];
+const MORE:[string,string][]=[['/village','마을 시각탐색'],['/dex','도감'],['/recipes','조합법'],['/hidden','히든 단서'],['/rank','랭킹'],['/talk','수다방'],['/event','이벤트'],['/search','검색']];
 // 파일 수정 시각을 주소 뒤에 붙여, 파일이 바뀌면 브라우저가 새로 받게 한다
 export const stampFor=(root:string)=>(p:string)=>{try{return `/${p}?v=${Math.floor(statSync(resolve(root,'public',p)).mtimeMs)}`;}catch{return `/${p}`;}};
 export function siteShell(root:string,version:string,content:Content){
@@ -81,30 +81,25 @@ export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions
   const apkButton=(big=false)=>{const d=downloads().official;
     return d?`<a class="btn ghost${big?' lg':''}" href="/download">APK 다운로드</a>`:`<span class="btn ghost${big?' lg':''}" aria-disabled="true" title="공식 배포 링크 확인 전">APK 다운로드<small>공식 배포 확인 전</small></span>`;};
 
-  // ── 소개 홈 ──
+  // 승인된 공개 홈 시안. 공지·이벤트·인증 경로는 기존 운영 자료를 그대로 쓴다.
   app.get('/',limit,async(_req,reply)=>{
     const latest=notices().slice(0,3);
-    // 진행 중인 쿠폰 이벤트(economy.yaml): 이름만 알리고 자세한 내용은 기존 /event에서
     const at=new Date(),ev=content.economy.coupons.find(c=>c.pieces.length&&(!c.from||new Date(c.from)<=at)&&(!c.to||at<new Date(c.to)));
-    return send(reply,shell({path:'/',title:'갈매미맨',desc:'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기',body:`
-<section class="hero"><div class="hero-bg" aria-hidden="true"></div><div class="wrap hero-in">
-<div class="hero-card">
-<p class="eyebrow">갈매미맨</p>
-<h1>돌로 된 갈매미들이<br>항구 수비대에 출근하는 섬</h1>
-<p class="lead">갈매미 섬의 이야기와 수비대원들을 만나 보세요.</p>
-<div class="hero-acts"><a class="btn primary lg" href="/game" data-start>게임 시작</a>${apkButton(true)}</div>
-</div></div></section>
-<section class="band"><div class="wrap">
-<h2 class="sec-title">항구와 수비대를 만나 보세요</h2>
-<div class="cards3">
-<a class="card c-about" href="/about"><b>게임 소개</b><span>모집·조합·탐험·전투, 갈매미맨을 즐기는 방법</span><em>살펴보기 ›</em></a>
-<a class="card c-world" href="/world"><b>세계관</b><span>갈매미 섬의 일곱 동네와 수비대 이야기</span><em>살펴보기 ›</em></a>
-<a class="card c-char" href="/characters"><b>캐릭터 소개</b><span>수비대의 대원들을 만나 보기</span><em>살펴보기 ›</em></a>
-</div>
-${ev?`<a class="event-strip" href="/event"><b>진행 중 이벤트</b><span>${esc(ev.label)}</span><em>자세히 ›</em></a>`:''}
-<div class="notice-strip"><h2>공지사항</h2>${latest.length?`<ul class="nlist">${latest.map(noticeRow).join('')}</ul>`:'<p class="muted">아직 게시된 공지가 없어요.</p>'}<a class="more" href="/notices">더 보기 ›</a></div>
-</div></section>`}));
+    const values:Record<string,string>={
+      GMM_STYLE:esc(stamp('site/home-v4/home.css')),
+      GMM_SCRIPT:esc(stamp('site/site.js')),
+      GMM_CANONICAL:esc(site?site+'/':'/'),
+      GMM_VERSION:esc(opt.version),
+      GMM_NOTICES:latest.length?'<ul class="nlist home-notices">'+latest.map(noticeRow).join('')+'</ul>':'<p class="empty-notices">아직 게시된 공지가 없어요.</p>',
+      GMM_EVENT:ev?'<a class="event-strip" href="/event"><b>진행 중 이벤트</b><span>'+esc(ev.label)+'</span><span>자세히 →</span></a>':'',
+      GMM_CONTACT:channel?'<a href="'+esc(channel)+'" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>':'',
+    };
+    const html=readFileSync(resolve(opt.root,'public/site/home-v4/index.html'),'utf8').replace(/\{\{(GMM_[A-Z]+)\}\}/g,(_match,key:string)=>values[key]??'');
+    return send(reply,html);
   });
+
+  // 실제 /game과 별도로 제공하는 공개 마을 시각탐색 초안.
+  app.get('/village',limit,async(_req,reply)=>send(reply,readFileSync(resolve(opt.root,'public/site/village-v4/index.html'),'utf8')));
 
   // ── 게임 소개: 저장소의 실제 자료(대원 수·조합법 수)에서 숫자를 계산한다 ──
   app.get('/about',limit,async(_req,reply)=>{

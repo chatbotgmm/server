@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="갈매미맨 방범대의 마을을 좌우로 둘러보는 시각탐색 초안입니다. 실제 PC 게임과는 별도의 장면입니다.">
+  <base href="/site/village-v4/">
+  <title>갈매미맨 방범대 | 마을 시각탐색</title>
+  <link rel="stylesheet" href="resident-hints.css">
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: #0b1724; color: #dbe7ee; font: 14px/1.65 system-ui, "Malgun Gothic", sans-serif; word-break: keep-all; }
+    a { color: #f5d798; }
+    header, main, footer { max-width: 1400px; margin: auto; padding: 18px 24px; }
+    header { padding-bottom: 10px; }
+    .back { display: inline-block; margin-bottom: 18px; font-size: 13px; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+    .eyebrow { margin: 0 0 6px; color: #eac77f; font-size: 12px; letter-spacing: 2px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 3.4vw, 36px); line-height: 1.25; }
+    p { margin: 6px 0 14px; color: #b7c8d5; }
+    .preview-label { display: inline-block; margin: 0 0 12px; padding: 4px 10px; border: 1px solid #796c4b; border-radius: 5px; color: #f5dcaa; font-size: 12px; }
+    nav, .controls { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0; }
+    button, select { padding: 9px 12px; border: 1px solid #49647a; border-radius: 8px; background: #193249; color: #eaf4ff; font: inherit; cursor: pointer; min-height: 42px; }
+    button.active { border-color: #e8c26c; background: #315775; }
+    label { display: flex; align-items: center; gap: 7px; }
+    input[type="checkbox"] { width: 17px; height: 17px; accent-color: #eac77f; }
+    :is(button, select, input, canvas, a, summary):focus-visible { outline: 3px solid #ffe39d; outline-offset: 3px; }
+    canvas:focus-visible { outline-offset: -4px; }
+    details { margin-top: 14px; border-top: 1px solid #36516a; padding-top: 8px; }
+    summary { min-height: 36px; padding: 6px 0; color: #f2d69a; cursor: pointer; }
+    main { padding-top: 2px; }
+    #sceneHelp { margin: 0 0 10px; }
+    .frame { aspect-ratio: 16/9; width: 100%; overflow: hidden; border: 1px solid #49627a; border-radius: 10px; background: #67b8e8; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+    input[type="range"] { width: 100%; min-height: 36px; margin: 6px 0 0; accent-color: #eac77f; }
+    #feedback, #zoneStatus { min-height: 1.65em; margin: 4px 0; }
+    #zoneStatus { color: #f2d69a; }
+    .note { margin-top: 18px; color: #a9bdcb; font-size: 12px; }
+    footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 20px; padding-bottom: 28px; color: #91a9bb; font-size: 12px; }
+    .skip { position: absolute; z-index: 10; top: 8px; left: 8px; transform: translateY(-200%); padding: 10px; background: #fff4d8; color: #193249; }
+    .skip:focus { transform: translateY(0); }
+    @media (max-width: 640px) {
+      header, main, footer { padding-left: 12px; padding-right: 12px; }
+      header { padding-top: 14px; }
+      .back { margin-bottom: 12px; }
+      header > p, #sceneHelp { font-size: 12px; }
+      #nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      #nav button { padding: 8px 6px; }
+      .controls { gap: 10px 12px; }
+      .controls label, .controls select { font-size: 12px; }
+      #feedback, #zoneStatus { font-size: 12px; }
+      .note, footer { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="/village#main">마을 장면으로 바로가기</a>
+  <header>
+    <a class="back" href="/">← 공식 홈페이지</a>
+    <p class="eyebrow">GALMAEMIMAN VILLAGE</p>
+    <h1>마을 시각탐색</h1>
+    <span class="preview-label">실제 PC 게임이 아닌 초안</span>
+    <p>항구와 시장, 방범대 본부를 둘러보세요. 구역 이름을 누르거나 화면을 좌우로 밀어 이동할 수 있어요.</p>
+    <nav id="nav" aria-label="마을 구역 바로가기"></nav>
+    <details id="qaOptions" open>
+      <summary>시간대와 화면 설정</summary>
+      <div class="controls">
+        <label>시간대
+          <select id="mood" aria-label="시간대">
+            <option value="morning">아침</option>
+            <option value="noon" selected>점심</option>
+            <option value="evening">저녁</option>
+            <option value="predawn">새벽</option>
+          </select>
+        </label>
+        <label>화면 비율
+          <select id="ratio" aria-label="화면 비율">
+            <option value="16/9">16:9 가로 화면</option>
+            <option value="20/9">20:9 긴 화면</option>
+          </select>
+        </label>
+        <label><input id="motion" type="checkbox" checked>배·물결 움직임</label>
+        <label><input id="parallax" type="checkbox" checked>깊이 효과</label>
+        <label><input id="fg" type="checkbox" checked>앞쪽 바위</label>
+        <div hidden aria-hidden="true">
+          <select id="cameraMode" aria-label="카메라 거리"><option value="close" selected>가까운 시점</option><option value="wide">넓은 시점</option></select>
+          <input id="risk" type="checkbox">
+          <button id="record" type="button">녹화</button>
+          <a id="download" hidden>영상 저장</a>
+        </div>
+      </div>
+    </details>
+  </header>
+  <main id="main">
+    <p id="sceneHelp">화면을 좌우로 밀거나 아래 막대로 이동하세요. 키보드는 ← →, Home, End 키를 사용할 수 있어요.</p>
+    <div class="frame" id="frame">
+      <canvas tabindex="0" id="scene" aria-label="갈매미맨 마을 시각탐색" aria-describedby="sceneHelp"></canvas>
+    </div>
+    <input id="scrub" type="range" min="960" max="6720" value="4800" aria-label="마을 위치">
+    <div id="status" hidden aria-hidden="true"></div>
+    <p id="feedback" role="status" aria-live="polite" aria-atomic="true">마을 이미지 불러오는 중…</p>
+    <p id="zoneStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="note">시간대는 수동으로 선택합니다. 주민 이야기는 마을 안내용이며, 이 장면에서 모집·구매·대전 등 실제 게임 기능은 실행되지 않습니다.</p>
+  </main>
+  <footer><span>갈매미맨 방범대 · 마을 시각탐색 초안</span><a href="/">공식 홈페이지로 돌아가기 →</a></footer>
+  <script>if (window.matchMedia('(max-width:640px)').matches) document.querySelector('#qaOptions').open = false;</script>
+  <script src="/site/phase-link.js"></script>
+  <script src="resident-hints.js"></script>
+  <script src="preview.js"></script>
+</body>
+</html>
