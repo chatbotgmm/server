@@ -31,6 +31,12 @@ site_ok(){ local i miss; for i in $(seq 1 10); do miss=''
   has / 'class="gold-cta" href="/download"' || miss+=' 첫화면버튼'
   has /game60 '/game60/game.js' || miss+=' 웹게임'
   code /game60/assets/units/u01-front.webp 200 || miss+=' 웹게임그림'
+  # 패치에 없는 기존 파일도 그대로 있어야 한다(바로가기 사고 방지)
+  has /about 'site/site.css?v=' || miss+=' 기존스타일연결'
+  code /site/site.css 200 || miss+=' site.css'
+  code /site/legacy.css 200 || miss+=' legacy.css'
+  code /site/home-v4/harbor.png 200 || miss+=' 첫화면그림'
+  code /site/village-v4/preview.js 200 || miss+=' 마을스크립트'
   [ -z "$miss" ] && return 0; sleep 2; done
   echo "확인 실패 항목:$miss"; return 1; }
 
@@ -60,6 +66,15 @@ say '3/7 지금 실행 폴더가 2차 패치 상태 그대로인지 확인'
 say '4/7 새 폴더 만들기(복사) + 사이트 파일 덮어쓰기'
 install -d -m 700 -o ubuntu -g ubuntu "$BK"
 cp -a "$(dirname "$OLD")" "$REL_NEW"
+# [바로가기 보호 시작] 운영 릴리스는 public/site 등이 예전 릴리스를 가리키는 바로가기(심볼릭 링크)다.
+# 그대로 풀면 tar가 바로가기를 빈 폴더로 바꿔 기존 파일이 사라진다(2026-11-06 실제 발생). 그래서
+# 패치가 들어갈 폴더가 바로가기면 가리키는 곳의 내용을 새 폴더에 진짜 폴더로 복사하고, 패치 파일 자리가 바로가기면 바로가기만 지운다.
+# 원본(바로가기 대상)과 이전 실행 폴더는 건드리지 않는다.
+materialize(){ local p="$NEW/$1" t; if [ -L "$p" ]; then t=$(readlink -f "$p"); [ -d "$t" ] || { echo "바로가기 대상이 폴더가 아니라 중단: $1 -> $t"; exit 1; }
+  rm -- "$p"; cp -a -- "$t" "$p"; echo "바로가기를 실제 폴더로 복사: $1 (원본 $t)"; fi; }
+for d in $(tar -tzf "$TMP/$BUNDLE" | grep '/$' | sed 's#^\./##; s#/$##' | grep -v '^$' | awk -F/ '{print NF" "$0}' | sort -n -k1,1 -s | cut -d' ' -f2- | uniq); do materialize "$d"; done
+for f in $(tar -tzf "$TMP/$BUNDLE" | grep -v '/$'); do if [ -L "$NEW/$f" ]; then rm -- "$NEW/$f"; echo "파일 바로가기를 지우고 새로 씀: $f"; fi; done
+# [바로가기 보호 끝]
 # 새로 생기는 폴더는 읽을 수 있게(755), 기존 폴더 권한은 건드리지 않음
 (umask 022; tar -xzf "$TMP/$BUNDLE" -C "$NEW" --no-same-owner --no-overwrite-dir)
 tar -tzf "$TMP/$BUNDLE" | grep -v '/$' | while read -r f; do chown ubuntu:ubuntu "$NEW/$f"; done
