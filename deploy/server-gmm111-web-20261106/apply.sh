@@ -20,19 +20,29 @@ TMP=$(mktemp -d /tmp/gmm-apply-XXXXXX)
 say(){ printf '%s\n' "▶ $*"; }
 healthy(){ for _ in $(seq 1 60); do
   if curl -fsS --max-time 3 http://127.0.0.1:3000/health 2>/dev/null | grep -q '"ok":true' && curl -fsS --max-time 3 http://127.0.0.1:3000/ready 2>/dev/null | grep -q '"ready":true'; then return 0; fi; sleep 1; done; return 1; }
-site_ok(){ curl -fsS --max-time 5 http://127.0.0.1:3000/about 2>/dev/null | grep -q 'site/harbor.css' \
-  && curl -fsS --max-time 5 http://127.0.0.1:3000/odds 2>/dev/null | grep -q '고급 모집' \
-  && curl -fsS --max-time 5 -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:3000/site/units/u01.webp 2>/dev/null | grep -q '^200 image/webp' \
-  && curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/dex 2>/dev/null | grep -q '^301' \
-  && curl -fsS --max-time 5 http://127.0.0.1:3000/ 2>/dev/null | grep -q 'class="gold-cta" href="/download"' \
-  && curl -fsS --max-time 5 http://127.0.0.1:3000/game60 2>/dev/null | grep -q '/game60/game.js' \
-  && curl -fsS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/game60/assets/units/u01-front.webp 2>/dev/null | grep -q '^200'; }
+# 확인은 응답을 끝까지 받은 뒤 찾는다(set -o pipefail에서 `curl | grep -q`는 grep이 먼저 끝나면 curl이 실패로 끝나 맞아도 실패가 됨).
+has(){ local body; body=$(curl -fsS --max-time 10 "http://127.0.0.1:3000$1" 2>/dev/null) || return 1; [[ "$body" == *"$2"* ]]; }
+code(){ [ "$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000$1" 2>/dev/null)" = "$2" ]; }
+site_ok(){ local i miss; for i in $(seq 1 10); do miss=''
+  has /about 'site/harbor.css' || miss+=' 소개(테마)'
+  has /odds '고급 모집' || miss+=' 모집확률'
+  code /site/units/u01.webp 200 || miss+=' 등록증그림'
+  code /dex 301 || miss+=' 예전주소이동'
+  has / 'class="gold-cta" href="/download"' || miss+=' 첫화면버튼'
+  has /game60 '/game60/game.js' || miss+=' 웹게임'
+  code /game60/assets/units/u01-front.webp 200 || miss+=' 웹게임그림'
+  [ -z "$miss" ] && return 0; sleep 2; done
+  echo "확인 실패 항목:$miss"; return 1; }
 
 say '1/7 사전 확인'
 OLD=$(systemctl show gmm-server -p WorkingDirectory --value)
 [ "$OLD" = "$OLD_EXPECT" ] || { echo "실행 폴더가 예상과 달라 중단: $OLD"; exit 1; }
 grep -qx "WorkingDirectory=$OLD" "$CONF" || { echo "설정 파일 내용이 예상과 달라 중단: $CONF"; exit 1; }
-[ ! -e "$REL_NEW" ] || { echo "새 폴더가 이미 있어 중단: $REL_NEW"; exit 1; }
+# 지난 시도에서 남은 실패 폴더는 지우지 않고 옆으로 치운다(지금 실행 중인 폴더면 중단)
+if [ -e "$REL_NEW" ]; then
+  [ "$OLD" != "$NEW" ] || { echo "새 폴더가 이미 실행 중이라 중단: $REL_NEW"; exit 1; }
+  AWAY="$REL_NEW.failed-$(date -u +%Y%m%dT%H%M%SZ)"; mv "$REL_NEW" "$AWAY"; echo "지난번 실패 폴더를 옮겨 둠: $AWAY"
+fi
 [ -f "$DB" ] && [ ! -L "$DB" ] || { echo "DB를 찾지 못해 중단: $DB"; exit 1; }
 need=$(( $(du -sk "$(dirname "$OLD")" | cut -f1) + $(du -sk "$DB" | cut -f1) + 153600 ))
 free=$(df -Pk /home/ubuntu | awk 'NR==2{print $4}')
