@@ -54,7 +54,7 @@ function top(title, sub = '', right = '', back = 'village') {
   return `<header class="top">${back ? `<button class="back" data-go="${back}"><img src="${A}ui/icon-back.webp" alt="">뒤로</button>` : ''}<h1>${esc(title)}</h1><span class="sub">${esc(sub)}</span><span class="grow"></span>${right}</header>`;
 }
 const credits = () => `<span class="chip" title="지원서"><img src="${A}menu/currency-application.webp" alt="">지원서 ${me.credits ?? '-'}</span>`;
-function render(html, wire) { screen.innerHTML = html; screen.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go))); wire?.(); }
+function render(html, wire) { const keep = {}; screen.querySelectorAll('[data-keep]').forEach(el => { keep[el.dataset.keep] = el.scrollTop; }); screen.innerHTML = html; screen.querySelectorAll('[data-keep]').forEach(el => { if (keep[el.dataset.keep]) el.scrollTop = keep[el.dataset.keep]; }); screen.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go))); wire?.(); }
 const on = (sel, ev, fn) => screen.querySelectorAll(sel).forEach(el => el.addEventListener(ev, e => fn(el, e)));
 let busy = false;
 async function once(run) { if (busy) return; busy = true; try { await guard(run); } finally { busy = false; } }
@@ -110,18 +110,16 @@ ${B('', 'identity-market', 230, 716, '바람의 시장', '시장 (준비 중)', 
 // ── 내 갈매미: 목록 + 상세 ──
 SCREENS.units = async (sel) => {
   const list = (await api(R('owned'))).units ?? [];
-  let page = 0, pick = sel || list[0]?.ownedId; const per = 12;
+  let pick = sel || list[0]?.ownedId;
   const draw = async () => {
-    const pages = Math.max(1, Math.ceil(list.length / per)); page = Math.min(page, pages - 1);
     const cur = list.find(u => u.ownedId === pick);
     const det = cur ? (await api(R('owned/read'), {ownedId: cur.ownedId})).unit : null;
     render(`${bg('village/identity-coast-panorama.webp')}${top('내 갈매미', `${list.length}마리`, credits())}
 <section class="panel" style="left:8px;top:64px;width:560px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
-<div class="grid" style="grid-template-columns:repeat(4,1fr);flex:1;align-content:start">${list.slice(page * per, page * per + per).map(u => `<button class="slot${u.ownedId === pick ? ' on' : ''}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt=""></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? u.rarity} · Lv.${u.level}</span>${u.status !== 'AVAILABLE' ? `<span class="badge tag">${u.status === 'IN_ADVENTURE' ? '모험 중' : esc(u.status)}</span>` : ''}</button>`).join('') || '<p class="muted">아직 갈매미가 없어요.</p>'}</div>
-<div class="pager"><button class="btn quiet" data-p="-1" ${page ? '' : 'disabled'}>‹</button>${page + 1} / ${pages}<button class="btn quiet" data-p="1" ${page < pages - 1 ? '' : 'disabled'}>›</button></div></section>
+<div class="grid scroll" data-keep="units" style="grid-template-columns:repeat(4,1fr);align-content:start">${list.map(u => `<button class="slot${u.ownedId === pick ? ' on' : ''}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? u.rarity} · Lv.${u.level}</span>${u.status !== 'AVAILABLE' ? `<span class="badge tag">${u.status === 'IN_ADVENTURE' ? '모험 중' : esc(u.status)}</span>` : ''}</button>`).join('') || '<p class="muted">아직 갈매미가 없어요.</p>'}</div>
+</section>
 <section class="panel detail" style="left:576px;right:8px;top:64px;bottom:8px;padding:12px">${det ? unitDetail(det) : '<p class="muted">갈매미를 골라 주세요.</p>'}</section>`, () => {
       on('[data-id]', 'click', b => { pick = b.dataset.id; draw(); });
-      on('[data-p]', 'click', b => { page += +b.dataset.p; draw(); });
     });
   };
   await draw();
@@ -130,10 +128,10 @@ function unitDetail(u) {
   const g = u.growth ?? {}, s = u.stats ?? {};
   const xp = g.level >= g.maxLevel ? '최고 레벨' : `다음 레벨까지 ${g.xpToNext ?? '-'} XP`;
   return `<h2 style="margin:0;font-size:20px">${esc(u.name)}</h2><div class="grade">${GRADE[u.rarity] ?? u.rarity} · Lv.${u.level}/${u.maxLevel}${u.reincarnation ? ` · 환생 ${u.reincarnation}` : ''}</div>
-<div class="big" style="height:190px"><img src="${front(u.speciesId)}" alt="${esc(u.name)}"></div>
+<div class="big"><img src="${front(u.speciesId)}" alt="${esc(u.name)}"></div>
 <div class="muted" style="font-size:14px;margin:4px 0">${xp}</div>
 <div class="stats">${STAT.map(([k, n]) => `<div>${n}<b>${s[k] ?? '-'}</b></div>`).join('')}</div>
-<ul class="skills" style="margin-top:8px">${[u.skills?.attack, ...(u.skills?.current ?? [])].filter(Boolean).map(k => `<li><span>${esc(k.name)} <span class="muted">${ELEM[k.element] ?? k.element}</span></span><span class="muted">위력 ${k.power} · MP ${k.mpCost}</span></li>`).join('')}</ul>`;
+<ul class="skills scroll" style="margin-top:8px">${[u.skills?.attack, ...(u.skills?.current ?? [])].filter(Boolean).map(k => `<li><span>${esc(k.name)} <span class="muted">${ELEM[k.element] ?? k.element}</span></span><span class="muted">위력 ${k.power} · MP ${k.mpCost}</span></li>`).join('')}</ul>`;
 }
 
 // ── 모집: 하급·중급·고급(서버 모집 세션) ──
@@ -162,27 +160,50 @@ SCREENS.recruit = async () => {
 };
 function recruitResults(sessions) {
   let list = sessions.slice();
+  // 서버가 돌려준 최신 대기 목록으로 카드 상태(불합격 가능 여부 등)를 맞춘다
+  const sync = r => { me.credits = r.credits ?? me.credits; if (r.sessionId) Object.assign(list.find(x => x.sessionId === r.sessionId) ?? {}, {status: r.status, revision: r.revision, candidate: r.candidate, rerolls: r.rerolls, canReject: r.canReject, rejectRefund: r.rejectRefund, ownedSpecies: r.ownedSpecies});
+    for (const p of r.pendingSessions ?? []) Object.assign(list.find(x => x.sessionId === p.sessionId) ?? {}, p); };
+  // 중복: 이미 가진 종(보유 중), 또는 이번 결과 안에서 같은 종이 두 번째 이후로 나온 후보
+  const dupOf = pending => { const seen = new Set(), out = new Set(); for (const s of pending) { const id = s.candidate?.speciesId; if (s.ownedSpecies || seen.has(id)) out.add(s.sessionId); seen.add(id); } return out; };
   const draw = () => {
-    const pending = list.filter(s => s.status === 'PENDING');
-    render(`${bg('village/identity-coast-panorama.webp')}${top('모집 결과', `${pending.length}명 확인 대기`, credits(), pending.length ? '' : 'village')}
+    const pending = list.filter(s => s.status === 'PENDING'), dups = dupOf(pending);
+    render(`${bg('village/identity-coast-panorama.webp')}${top('모집 결과', `${pending.length}명 확인 대기${dups.size ? ` · 중복 ${dups.size}` : ''}`, credits(), pending.length ? '' : 'village')}
 <section class="panel" style="left:8px;right:8px;top:64px;bottom:8px;padding:12px;display:flex;flex-direction:column;gap:10px">
-<div class="grid" style="grid-template-columns:repeat(5,1fr);flex:1;align-content:start;overflow:auto">${list.map(s => { const c = s.candidate ?? {}; const done = s.status !== 'PENDING'; return `<div class="slot cand${done ? '' : ' on'}"><span class="art"><img src="${front(c.speciesId)}" alt=""></span><span class="nm">${esc(c.name)}</span><span class="lv">${GRADE[c.rarity] ?? c.rarity} · Lv.${c.level}</span>
-${done ? `<span class="badge tag">${s.status === 'CLAIMED' ? '합류' : s.status === 'REJECTED' ? '불합격' : esc(s.status)}</span>` : `<span class="acts">
-<button class="btn primary" data-a="claim" data-s="${s.sessionId}">합류</button>
-<button class="btn" data-a="reroll" data-s="${s.sessionId}" ${s.rerolls ? 'disabled' : ''}>다시 뽑기 <small>지원서 ${s.rerollCost}장</small></button>
-${s.canReject ? `<button class="btn quiet" data-a="reject" data-s="${s.sessionId}">불합격 <small>지원서 ${s.rejectRefund}장 돌려받기</small></button>` : ''}</span>`}</div>`; }).join('')}</div>
-<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" data-go="units">내 갈매미</button>${pending.length ? `<button class="btn primary" data-all>모두 합류 (${pending.length})</button>` : '<button class="btn primary" data-go="recruit">모집 계속</button>'}</div></section>`, () => {
+<div class="grid scroll" data-keep="recruit" style="grid-template-columns:repeat(5,1fr);align-content:start">${list.map(s => { const c = s.candidate ?? {}, done = s.status !== 'PENDING', dup = dups.has(s.sessionId); return `<div class="slot cand${done ? '' : ' on'}"><span class="art"><img src="${front(c.speciesId)}" alt="">
+${done ? '' : `<button class="reroll" data-a="reroll" data-s="${s.sessionId}" ${s.rerolls ? 'disabled' : ''} title="다시 뽑기 · 지원서 ${s.rerollCost}장 (같은 등급에서 한 번)" aria-label="다시 뽑기, 지원서 ${s.rerollCost}장"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><small>${s.rerollCost}</small></button>`}
+${done ? `<span class="badge tag">${s.status === 'CLAIMED' ? '합류' : s.status === 'REJECTED' ? '불합격' : esc(s.status)}</span>` : s.ownedSpecies ? '<span class="badge tag dup">보유 중</span>' : dup ? '<span class="badge tag dup">중복</span>' : ''}</span>
+<span class="nm">${esc(c.name)}</span><span class="lv">${GRADE[c.rarity] ?? c.rarity} · Lv.${c.level}</span>
+${!done && s.canReject ? `<span class="acts"><button class="btn quiet" data-a="reject" data-s="${s.sessionId}">불합격 <small>지원서 ${s.rejectRefund}장 돌려받기</small></button></span>` : ''}</div>`; }).join('')}</div>
+<div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;flex:none"><span class="muted" style="margin-right:auto;font-size:14px">새로고침 아이콘: 같은 등급에서 한 번 다시 뽑기 · 불합격: 이미 가진 종만, 지원서 1장 돌려받기</span><button class="btn" data-go="units">내 갈매미</button>
+${dups.size ? `<button class="btn" data-dedupe>중복 정리 (${dups.size})</button>` : ''}${pending.length ? `<button class="btn primary" data-all>모두 합류 (${pending.length})</button>` : '<button class="btn primary" data-go="recruit">모집 계속</button>'}</div></section>`, () => {
       on('[data-a]', 'click', b => once(async () => {
         const s = list.find(x => x.sessionId === b.dataset.s);
         const r = await api(R('recruit/session/action'), {requestId: rid(), sessionId: s.sessionId, revision: s.revision, action: b.dataset.a});
-        me.credits = r.credits; Object.assign(s, r);
-        if (b.dataset.a === 'reject') toast('지원서를 돌려받았어요.');
+        sync(r); if (b.dataset.a === 'reject') toast('지원서를 돌려받았어요.');
         draw();
       }));
+      // 중복 정리: 이번 결과에서 겹친 종은 한 마리를 먼저 합류(그래야 서버 규칙상 나머지를 불합격할 수 있음) → 불합격 가능한 중복을 모두 불합격
+      on('[data-dedupe]', 'click', () => {
+        if (!confirm(`중복 ${dups.size}명을 불합격 처리하고 지원서를 돌려받을까요?\n같은 갈매미는 조합 재료로도 쓸 수 있어요. 겹친 종은 한 마리씩 먼저 합류해요.`)) return;
+        once(async () => {
+          let refunded = 0;
+          for (const s of list.filter(x => x.status === 'PENDING' && dups.has(x.sessionId) && !x.ownedSpecies)) {
+            const first = list.find(x => x.status === 'PENDING' && x.candidate?.speciesId === s.candidate?.speciesId && !dups.has(x.sessionId));
+            if (first) sync(await api(R('recruit/session/action'), {requestId: rid(), sessionId: first.sessionId, revision: first.revision, action: 'claim'}));
+          }
+          for (const s of list.filter(x => x.status === 'PENDING' && dups.has(x.sessionId))) {
+            const cur = list.find(x => x.sessionId === s.sessionId);
+            if (!cur.canReject) continue;
+            sync(await api(R('recruit/session/action'), {requestId: rid(), sessionId: cur.sessionId, revision: cur.revision, action: 'reject'})); refunded += cur.rejectRefund || 1;
+          }
+          toast(refunded ? `중복 정리: 지원서 ${refunded}장을 돌려받았어요.` : '불합격할 수 있는 중복이 없어요.'); draw();
+        });
+      });
       on('[data-all]', 'click', () => once(async () => {
-        const r = await api(R('recruit/session/claim-all'), {requestId: rid(), sessions: pending.map(s => ({sessionId: s.sessionId, revision: s.revision}))});
-        me.credits = r.credits; for (const s of pending) s.status = 'CLAIMED';
-        toast(`${pending.length}명이 방범대에 합류했어요.`); draw();
+        const pend = list.filter(s => s.status === 'PENDING');
+        const r = await api(R('recruit/session/claim-all'), {requestId: rid(), sessions: pend.map(s => ({sessionId: s.sessionId, revision: s.revision}))});
+        me.credits = r.credits; for (const s of pend) s.status = 'CLAIMED';
+        toast(`${pend.length}명이 방범대에 합류했어요.`); draw();
       }));
     });
   };
@@ -209,13 +230,15 @@ SCREENS.story = async () => {
       : `<button class="btn primary" data-form>편성하고 출발</button>`)
     : `<button class="btn primary" data-open="intro">대화 이어가기</button>`;
   const QS = {COMPLETED: '완료', ACTIVE: '진행 중', READY: '귀환 대기', AVAILABLE: '열림'};
-  const chapters = st.quests?.length ? `<ul class="chapters">${st.quests.map(x => `<li class="${x.id === q?.id ? 'now' : ''}"><b>${x.chapter}장</b><span style="flex:1">${esc(x.title)}</span><span>${QS[x.status] ?? esc(x.status)}</span></li>`).join('')}</ul>` : '';
+  const chapters = st.quests?.length ? `<ul class="chapters scroll">${st.quests.map(x => `<li class="${x.id === q?.id ? 'now' : ''}"><b>${x.chapter}장</b><span style="flex:1">${esc(x.title)}</span><span>${QS[x.status] ?? esc(x.status)}</span></li>`).join('')}</ul>` : '';
   render(`${bg('village/identity-coast-panorama.webp')}${top('스토리', q ? `챕터 ${q.chapter}` : '', credits())}
 <section class="panel quest"><span class="tag" style="align-self:flex-start">${q?.kind === 'main' ? '본편' : '이야기'}</span><h2>${esc(q?.title ?? '다음 이야기')}</h2><div class="goal">${esc(goal + lv)}</div>${chapters}<div class="acts">${acts}</div></section>
 <section class="panel" style="left:544px;right:8px;top:66px;bottom:16px;padding:14px;display:flex;flex-direction:column;gap:8px">
 <img src="${A}village/${PLACE.village_statue[0]}.webp" alt="" style="height:230px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))">
 <div class="muted" style="font-size:14px;text-align:center">석상 복원 ${st.statue?.stage ?? 1}단계${st.statue?.hatched ? ' · 본편 완료' : ''}</div>
 <div class="muted" style="font-size:14px">방범대장 Lv.${st.commander?.level ?? 1} · 다음 레벨까지 ${st.commander?.xpToNext ?? '-'} XP</div></section>`, () => {
+    // 의뢰가 많으면 목록이 길어진다: 지금 의뢰가 보이게 목록 안에서만 스크롤(판·버튼은 그대로)
+    { const list = screen.querySelector('.chapters'), now = list?.querySelector('.now'); if (now) list.scrollTop = now.offsetTop - list.offsetTop - (list.clientHeight - now.offsetHeight) / 2; }
     on('[data-open]', 'click', b => once(async () => storyScene(await api(R('story/open'), {requestId: rid(), revision: st.revision, questId: q.id, phase: b.dataset.open}))));
     on('[data-form]', 'click', () => formation(q, adv));
     on('[data-resume]', 'click', b => once(async () => battleScreen(await api(R('battle/read'), {battleId: b.dataset.resume}), q)));
@@ -251,22 +274,20 @@ function storyScene(st) {
 // ── 편성: 1~3마리, 첫 번째가 출전, 나머지 예비 ──
 async function formation(q, adv) {
   const units = (await api(R('owned'))).units?.filter(u => u.status === 'AVAILABLE') ?? [];
-  const MAX = 3; let picked = units.slice(0, 1).map(u => u.ownedId), page = 0; const per = 10;
+  const MAX = 3; let picked = units.slice(0, 1).map(u => u.ownedId);
   const draw = () => {
-    const pages = Math.max(1, Math.ceil(units.length / per));
     const chosen = picked.map(id => units.find(u => u.ownedId === id));
     render(`${bg('village/identity-coast-panorama.webp')}${top('전투 편성', `스토리 · 출전 1 + 예비 ${MAX - 1}`, '', 'story')}
 <section class="panel" style="left:8px;top:64px;width:640px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
 <div class="muted" style="font-size:14px">누른 순서대로 편성돼요. 첫 번째 갈매미가 먼저 출전해요.</div>
-<div class="grid" style="grid-template-columns:repeat(5,1fr);flex:1;align-content:start">${units.slice(page * per, page * per + per).map(u => { const i = picked.indexOf(u.ownedId); return `<button class="slot" aria-pressed="${i >= 0}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt=""></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? ''} · Lv.${u.level}</span>${i >= 0 ? `<span class="badge tag">${i ? `예비 ${i}` : '출전'}</span>` : ''}</button>`; }).join('')}</div>
-<div class="pager"><button class="btn quiet" data-p="-1" ${page ? '' : 'disabled'}>‹</button>${page + 1} / ${pages}<button class="btn quiet" data-p="1" ${page < pages - 1 ? '' : 'disabled'}>›</button></div></section>
+<div class="grid scroll" data-keep="formation" style="grid-template-columns:repeat(5,1fr);align-content:start">${units.map(u => { const i = picked.indexOf(u.ownedId); return `<button class="slot" aria-pressed="${i >= 0}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? ''} · Lv.${u.level}</span>${i >= 0 ? `<span class="badge tag">${i ? `예비 ${i}` : '출전'}</span>` : ''}</button>`; }).join('')}</div>
+</section>
 <section class="panel" style="left:656px;right:8px;top:64px;bottom:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
 <h2 style="margin:0;font-size:18px">출전 ${chosen.length}/${MAX}</h2>
 ${chosen.map((u, i) => `<div class="opt"><span><b>${esc(u.name)}</b><br><span>${i ? `예비 ${i}` : '출전'} · Lv.${u.level}</span></span><img src="${front(u.speciesId)}" alt="" style="height:44px"></div>`).join('')}
 <div style="margin-top:auto" class="muted">${q ? esc(q.title) : ''}</div>
 <button class="btn primary" data-go-battle ${chosen.length ? '' : 'disabled'}>편성 확정 · 전투 시작</button></section>`, () => {
       on('[data-id]', 'click', b => { const id = b.dataset.id, i = picked.indexOf(id); if (i >= 0) picked.splice(i, 1); else if (picked.length < MAX) picked.push(id); else toast(`최대 ${MAX}마리까지 편성할 수 있어요.`); draw(); });
-      on('[data-p]', 'click', b => { page += +b.dataset.p; draw(); });
       on('[data-go-battle]', 'click', () => once(async () => {
         const body = {requestId: rid(), questId: q.id, ownedIds: picked};
         if (adv?.adventureId) body.adventureId = adv.adventureId;

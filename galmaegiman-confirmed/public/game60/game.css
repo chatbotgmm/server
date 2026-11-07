@@ -84,8 +84,10 @@ button:disabled{cursor:not-allowed}
 .slot[aria-pressed="true"],.slot.on{border-color:var(--gold-edge);box-shadow:inset 0 0 0 2px var(--gold)}
 .slot:hover:not(:disabled){border-color:var(--gold)}
 .detail{display:flex;flex-direction:column}
-.detail .big{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
-.detail .big img{height:100%;width:auto;max-width:100%;object-fit:contain}
+.detail{display:flex;flex-direction:column;gap:2px}
+.detail .big{position:relative;flex:none;height:170px;overflow:hidden}
+.detail .big img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.detail .stats{flex:none}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:14px;text-align:center}
 .stats div{background:var(--slot);border:1px solid var(--line);border-radius:4px;padding:3px 0}
 .stats b{display:block;font-size:15px}
@@ -119,8 +121,11 @@ button:disabled{cursor:not-allowed}
 .quest{position:absolute;left:16px;top:66px;width:520px;bottom:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
 .quest h2{margin:0;font-size:22px}
 .quest .goal{font-size:16px;white-space:pre-line}
-.quest .acts{margin-top:auto;display:flex;flex-direction:column;gap:8px}
-.chapters{list-style:none;margin:0;padding:0;font-size:15px}
+.quest .acts{margin-top:auto;flex:none;display:flex;flex-direction:column;gap:8px}
+.chapters{list-style:none;margin:0;padding:0 6px 0 0;font-size:15px}
+/* 긴 목록은 판 안에서만 스크롤(판 크기·아래 버튼은 고정) */
+.scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+.scroll::-webkit-scrollbar{width:8px}.scroll::-webkit-scrollbar-thumb{background:var(--edge);border-radius:4px}
 .chapters li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid rgba(91,103,93,.5);color:var(--muted)}
 .chapters li.now{color:var(--text)}
 .chapters li b{width:28px;color:var(--gold)}
@@ -174,3 +179,12 @@ button:disabled{cursor:not-allowed}
 #screen{position:absolute;inset:0}
 #toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:50;max-width:80%;padding:10px 18px;border-radius:8px;background:#132c3b;border:1px solid var(--gold);color:var(--text);font-family:var(--font);font-size:15px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* 모집 결과: 카드 높이는 그대로 두고 목록만 스크롤, 다시 뽑기는 그림 위 새로고침 아이콘 */
+.grid{grid-auto-rows:max-content}
+.slot .art{flex:none}
+.reroll{position:absolute;right:6px;top:6px;width:42px;height:42px;padding:0;border-radius:50%;border:1.5px solid var(--gold);background:rgba(11,30,42,.88);color:var(--gold-edge);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.reroll svg{width:22px;height:22px}
+.reroll small{position:absolute;right:-4px;bottom:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--gold);color:#1b2a33;font-size:12px;font-weight:700;line-height:18px;text-align:center}
+.reroll:hover:not(:disabled){filter:brightness(1.2)}
+.reroll:disabled{opacity:.35}
+.tag.dup{border-color:var(--gold);color:var(--gold-edge)}
