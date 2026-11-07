@@ -3,10 +3,8 @@
 Android 앱을 GameMaker로 대체하기 위한 프로젝트다. 서버·계정·자료는 지금 운영 서버(https://gmm.dpdns.org)를 그대로 쓴다.
 
 ## 여는 법
-```bash
-git clone -b claude/charming-bardeen-sct1b0 https://github.com/chatbotgmm/server.git
-```
-GameMaker에서 `server/gms2/Galmaegiman.yyp`를 연다.
+GameMaker의 「소스 제어(Git) 저장소 복제」에 `https://github.com/chatbotgmm/gmm.git` 를 넣고 빈 폴더를 고른 뒤, 그 폴더의 `Galmaegiman.yyp`를 연다.
+(명령줄: `git clone https://github.com/chatbotgmm/gmm.git`)
 - 형식: GameMaker **2024.11** 형식으로 만들었다(2024.11.0.179로 저장된 공개 프로젝트 파일을 그대로 본뜸). 더 새 GameMaker는 열 때 자동으로 바꿔 준다. 2024.11보다 옛 판(예: 2022 LTS)에서는 열리지 않을 수 있다.
 - 이 프로젝트는 **GameMaker로 실행해 보지 않았다**(만든 환경에 GameMaker가 없음). 문법 검사(@bscotch/gml-parser), 내장 함수·상수·인자 수 대조(GmlSpec), 프로젝트 파일 읽기 검사(@bscotch/yy), 같은 서버 요청 시험(서버 복제본)까지만 했다. 처음 열어 실행할 때 나는 오류는 알려 주면 고친다.
 
@@ -31,3 +29,5 @@ GameMaker에서 `server/gms2/Galmaegiman.yyp`를 연다.
 - **Android 패키지**는 기존 앱(org.dpdns.gmm)과 겹치지 않게 org.dpdns.gmmgame으로 했다. 출시 때 바꿀 수 있다.
 - 그림은 sprite_add로 실행 중 불러온다(WebP는 못 읽어 PNG). HTML5에서는 비동기라 잠깐 빈 칸일 수 있다.
 - 글꼴은 처음 쓰는 글자를 그때 만든다(설명서: 한 프레임에 새 글자 약 200자). 처음 화면이 바뀔 때 한두 프레임 늦을 수 있다.
+
+> 2026-11-07부터 GameMaker 프로젝트의 기본 위치는 https://github.com/chatbotgmm/gmm (main)이다. 이 폴더는 같은 내용의 사본이다.
