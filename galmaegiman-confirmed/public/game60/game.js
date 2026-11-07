@@ -108,27 +108,61 @@ ${B('', 'identity-market', 230, 716, '바람의 시장', '시장 (준비 중)', 
 };
 
 // ── 내 갈매미: 목록 + 상세 ──
+// ── 정렬·같은 갈매미 묶기(내 갈매미·편성 공용). 고른 값은 이 브라우저에 기억 ──
+// 종족은 서버 목록에 없어 방범대 등록증 v10 자료(art/gpt/registration-v10/manifest.json)의 종족을 쓴다(검토안, 전투 시너지 확정 아님)
+const TRIBE = {u01:'태초',u02:'태초',u03:'거인',u04:'수목',u05:'태초',u06:'정령',u07:'정령',u08:'망령',u09:'태초',u10:'정령',u11:'태초',u12:'해인',u13:'태초',u14:'정령',u15:'요정',u16:'정령',u17:'태초',u18:'요정',u19:'거인',u20:'해인',u21:'거인',u22:'야수',u23:'태초',u24:'용족',u25:'태초',u26:'수목',u27:'야수',u28:'해인',u29:'태초',u30:'야수',u31:'망령',u32:'용족',u33:'태초',u34:'수목',u35:'해인',u36:'야수',u37:'야수',u38:'천익',u39:'태초',u40:'요정',u41:'정령',u42:'망령',u43:'태초',u44:'수목',u45:'거인',u46:'야수',u47:'거인',u48:'정령',u49:'천익',u50:'야수',u51:'수목',u52:'망령',u53:'천익',u54:'정령',u55:'용족',u56:'태초',u57:'천익',u58:'거인',u59:'망령',u60:'용족'};
+const TRIBE_ORDER = ['태초', '거인', '수목', '정령', '망령', '해인', '요정', '야수', '용족', '천익'];
+const GRADE_RANK = Object.fromEntries(['ETERNAL', 'IMMORTAL', 'TRANSCEND', 'LIMITED', 'HIDDEN', 'LEGEND', 'EPIC', 'RARE', 'UNCOMMON', 'COMMON'].map((g, i) => [g, i]));
+const SORTS = [['level', '레벨순'], ['tribe', '종족순'], ['name', '이름순'], ['grade', '등급순']];
+const pref = {get: (k, d) => { try { return localStorage.getItem('g60-' + k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('g60-' + k, v); } catch {} }};
+const byName = (a, b) => a.name.localeCompare(b.name, 'ko');
+const rank = u => GRADE_RANK[u.rarity] ?? 99, tribeRank = u => { const t = TRIBE_ORDER.indexOf(TRIBE[u.speciesId]); return t < 0 ? 99 : t; };
+const CMP = {
+  level: (a, b) => b.level - a.level || rank(a) - rank(b) || byName(a, b),
+  tribe: (a, b) => tribeRank(a) - tribeRank(b) || a.speciesId.localeCompare(b.speciesId) || b.level - a.level,
+  name: (a, b) => byName(a, b) || b.level - a.level,
+  grade: (a, b) => rank(a) - rank(b) || byName(a, b) || b.level - a.level,
+};
+// 정렬하고, 묶기면 같은 종을 한 칸으로(대표는 레벨이 가장 높은 개체)
+function arrange(units, sort, grouped) {
+  const cmp = CMP[sort] || CMP.level;
+  if (!grouped) return units.slice().sort(cmp).map(u => ({rep: u, all: [u]}));
+  const m = new Map(); for (const u of units) { if (!m.has(u.speciesId)) m.set(u.speciesId, []); m.get(u.speciesId).push(u); }
+  return [...m.values()].map(all => { all.sort((a, b) => b.level - a.level); return {rep: all[0], all}; }).sort((x, y) => cmp(x.rep, y.rep));
+}
+const toolbar = (sort, grouped) => `<div class="toolbar"><span class="seg" role="group" aria-label="정렬">${SORTS.map(([k, n]) => `<button data-sort="${k}" aria-pressed="${k === sort}">${n}</button>`).join('')}</span><button class="toggle" data-group aria-pressed="${grouped}">같은 갈매미 묶기</button></div>`;
+const STATUS = {IN_ADVENTURE: '모험 중', AVAILABLE: ''};
+
+// ── 내 갈매미: 목록 + 상세 ──
 SCREENS.units = async (sel) => {
   const list = (await api(R('owned'))).units ?? [];
-  let pick = sel || list[0]?.ownedId;
+  let pick = sel || null, sort = pref.get('sort', 'level'), grouped = pref.get('group', '1') === '1';
   const draw = async () => {
+    const rows = arrange(list, sort, grouped);
+    if (!list.some(u => u.ownedId === pick)) pick = rows[0]?.rep.ownedId;
     const cur = list.find(u => u.ownedId === pick);
+    const sib = cur ? list.filter(u => u.speciesId === cur.speciesId).sort((a, b) => b.level - a.level) : [];
     const det = cur ? (await api(R('owned/read'), {ownedId: cur.ownedId})).unit : null;
-    render(`${bg('village/identity-coast-panorama.webp')}${top('내 갈매미', `${list.length}마리`, credits())}
-<section class="panel" style="left:8px;top:64px;width:560px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
-<div class="grid scroll" data-keep="units" style="grid-template-columns:repeat(4,1fr);align-content:start">${list.map(u => `<button class="slot${u.ownedId === pick ? ' on' : ''}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? u.rarity} · Lv.${u.level}</span>${u.status !== 'AVAILABLE' ? `<span class="badge tag">${u.status === 'IN_ADVENTURE' ? '모험 중' : esc(u.status)}</span>` : ''}</button>`).join('') || '<p class="muted">아직 갈매미가 없어요.</p>'}</div>
+    const kinds = new Set(list.map(u => u.speciesId)).size;
+    render(`${bg('village/identity-coast-panorama.webp')}${top('내 갈매미', `${list.length}마리 · ${kinds}종`, credits())}
+<section class="panel" style="left:8px;top:64px;width:560px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">${toolbar(sort, grouped)}
+<div class="grid scroll" data-keep="units" style="grid-template-columns:repeat(4,1fr);align-content:start">${rows.map(({rep: u, all}) => { const on = all.some(x => x.ownedId === pick), st = STATUS[u.status] ?? u.status; return `<button class="slot${on ? ' on' : ''}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? u.rarity} · ${all.length > 1 ? '최고 ' : ''}Lv.${u.level}</span>${all.length > 1 ? `<span class="badge2 count">×${all.length}</span>` : ''}${st && all.length === 1 ? `<span class="badge tag">${esc(st)}</span>` : ''}</button>`; }).join('') || '<p class="muted">아직 갈매미가 없어요.</p>'}</div>
 </section>
-<section class="panel detail" style="left:576px;right:8px;top:64px;bottom:8px;padding:12px">${det ? unitDetail(det) : '<p class="muted">갈매미를 골라 주세요.</p>'}</section>`, () => {
+<section class="panel detail" style="left:576px;right:8px;top:64px;bottom:8px;padding:12px">${det ? unitDetail(det, sib, pick) : '<p class="muted">갈매미를 골라 주세요.</p>'}</section>`, () => {
       on('[data-id]', 'click', b => { pick = b.dataset.id; draw(); });
+      on('[data-copy]', 'click', b => { pick = b.dataset.copy; draw(); });
+      on('[data-sort]', 'click', b => { sort = b.dataset.sort; pref.set('sort', sort); screen.querySelector('[data-keep]')?.scrollTo(0, 0); draw(); });
+      on('[data-group]', 'click', () => { grouped = !grouped; pref.set('group', grouped ? '1' : '0'); draw(); });
     });
   };
   await draw();
 };
-function unitDetail(u) {
+function unitDetail(u, sib = [], pick = u.ownedId) {
   const g = u.growth ?? {}, s = u.stats ?? {};
   const xp = g.level >= g.maxLevel ? '최고 레벨' : `다음 레벨까지 ${g.xpToNext ?? '-'} XP`;
   return `<h2 style="margin:0;font-size:20px">${esc(u.name)}</h2><div class="grade">${GRADE[u.rarity] ?? u.rarity} · Lv.${u.level}/${u.maxLevel}${u.reincarnation ? ` · 환생 ${u.reincarnation}` : ''}</div>
-<div class="big"><img src="${front(u.speciesId)}" alt="${esc(u.name)}"></div>
+${sib.length > 1 ? `<div class="copies" aria-label="같은 갈매미 ${sib.length}마리">${sib.map(x => `<button data-copy="${x.ownedId}" aria-pressed="${x.ownedId === pick}">Lv.${x.level}${STATUS[x.status] ? ` · ${STATUS[x.status]}` : ''}</button>`).join('')}</div>` : ''}
+<div class="big${sib.length > 1 ? ' short' : ''}"><img src="${front(u.speciesId)}" alt="${esc(u.name)}"></div>
 <div class="muted" style="font-size:14px;margin:4px 0">${xp}</div>
 <div class="stats">${STAT.map(([k, n]) => `<div>${n}<b>${s[k] ?? '-'}</b></div>`).join('')}</div>
 <ul class="skills scroll" style="margin-top:8px">${[u.skills?.attack, ...(u.skills?.current ?? [])].filter(Boolean).map(k => `<li><span>${esc(k.name)} <span class="muted">${ELEM[k.element] ?? k.element}</span></span><span class="muted">위력 ${k.power} · MP ${k.mpCost}</span></li>`).join('')}</ul>`;
@@ -274,20 +308,33 @@ function storyScene(st) {
 // ── 편성: 1~3마리, 첫 번째가 출전, 나머지 예비 ──
 async function formation(q, adv) {
   const units = (await api(R('owned'))).units?.filter(u => u.status === 'AVAILABLE') ?? [];
-  const MAX = 3; let picked = units.slice(0, 1).map(u => u.ownedId);
+  const MAX = 3; let sort = pref.get('sort', 'level'), grouped = pref.get('group', '1') === '1';
+  let picked = arrange(units, 'level', false).slice(0, 1).map(r => r.rep.ownedId);
+  const role = i => i ? `예비 ${i}` : '출전';
   const draw = () => {
-    const chosen = picked.map(id => units.find(u => u.ownedId === id));
+    const rows = arrange(units, sort, grouped), chosen = picked.map(id => units.find(u => u.ownedId === id));
     render(`${bg('village/identity-coast-panorama.webp')}${top('전투 편성', `스토리 · 출전 1 + 예비 ${MAX - 1}`, '', 'story')}
-<section class="panel" style="left:8px;top:64px;width:640px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
-<div class="muted" style="font-size:14px">누른 순서대로 편성돼요. 첫 번째 갈매미가 먼저 출전해요.</div>
-<div class="grid scroll" data-keep="formation" style="grid-template-columns:repeat(5,1fr);align-content:start">${units.map(u => { const i = picked.indexOf(u.ownedId); return `<button class="slot" aria-pressed="${i >= 0}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? ''} · Lv.${u.level}</span>${i >= 0 ? `<span class="badge tag">${i ? `예비 ${i}` : '출전'}</span>` : ''}</button>`; }).join('')}</div>
+<section class="panel" style="left:8px;top:64px;width:640px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">${toolbar(sort, grouped)}
+<div class="muted" style="font-size:14px;flex:none">누른 순서대로 편성돼요. 첫 번째 갈매미가 먼저 출전해요.${grouped ? ' 묶인 칸은 누를 때마다 레벨 높은 개체부터 들어가요.' : ''}</div>
+<div class="grid scroll" data-keep="formation" style="grid-template-columns:repeat(5,1fr);align-content:start">${rows.map(({rep: u, all}) => { const idx = all.map(x => picked.indexOf(x.ownedId)).filter(i => i >= 0).sort(); return `<button class="slot" aria-pressed="${idx.length > 0}" data-sp="${u.speciesId}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? ''} · ${all.length > 1 ? '최고 ' : ''}Lv.${u.level}</span>${idx.length ? `<span class="badge tag role">${idx.length > 1 ? `편성 ${idx.length}` : role(idx[0])}</span>` : ''}${all.length > 1 ? `<span class="badge2 count">×${all.length}</span>` : ''}</button>`; }).join('')}</div>
 </section>
 <section class="panel" style="left:656px;right:8px;top:64px;bottom:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
 <h2 style="margin:0;font-size:18px">출전 ${chosen.length}/${MAX}</h2>
-${chosen.map((u, i) => `<div class="opt"><span><b>${esc(u.name)}</b><br><span>${i ? `예비 ${i}` : '출전'} · Lv.${u.level}</span></span><img src="${front(u.speciesId)}" alt="" style="height:44px"></div>`).join('')}
+${chosen.map((u, i) => `<button class="opt" data-rm="${u.ownedId}" title="눌러서 빼기"><span><b>${esc(u.name)}</b><br><span>${role(i)} · Lv.${u.level} · 눌러서 빼기</span></span><img src="${front(u.speciesId)}" alt="" style="height:44px"></button>`).join('')}
 <div style="margin-top:auto" class="muted">${q ? esc(q.title) : ''}</div>
 <button class="btn primary" data-go-battle ${chosen.length ? '' : 'disabled'}>편성 확정 · 전투 시작</button></section>`, () => {
-      on('[data-id]', 'click', b => { const id = b.dataset.id, i = picked.indexOf(id); if (i >= 0) picked.splice(i, 1); else if (picked.length < MAX) picked.push(id); else toast(`최대 ${MAX}마리까지 편성할 수 있어요.`); draw(); });
+      on('[data-id]', 'click', b => {
+        const all = grouped ? units.filter(u => u.speciesId === b.dataset.sp).sort((x, y) => y.level - x.level) : [units.find(u => u.ownedId === b.dataset.id)];
+        const free = all.filter(u => !picked.includes(u.ownedId));
+        if (all.length === 1 && picked.includes(all[0].ownedId)) picked.splice(picked.indexOf(all[0].ownedId), 1);
+        else if (free.length && picked.length < MAX) picked.push(free[0].ownedId);
+        else if (!free.length) { const last = [...picked].reverse().find(id => all.some(u => u.ownedId === id)); picked.splice(picked.indexOf(last), 1); }
+        else toast(`최대 ${MAX}마리까지 편성할 수 있어요.`);
+        draw();
+      });
+      on('[data-rm]', 'click', b => { picked.splice(picked.indexOf(b.dataset.rm), 1); draw(); });
+      on('[data-sort]', 'click', b => { sort = b.dataset.sort; pref.set('sort', sort); screen.querySelector('[data-keep]')?.scrollTo(0, 0); draw(); });
+      on('[data-group]', 'click', () => { grouped = !grouped; pref.set('group', grouped ? '1' : '0'); draw(); });
       on('[data-go-battle]', 'click', () => once(async () => {
         const body = {requestId: rid(), questId: q.id, ownedIds: picked};
         if (adv?.adventureId) body.adventureId = adv.adventureId;
