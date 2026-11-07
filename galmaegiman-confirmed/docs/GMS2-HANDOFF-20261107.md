@@ -1,12 +1,13 @@
 # GameMaker 전환 인계 (2026-11-07)
 
 사용자 결정(2026-11-07): Android 앱 전체를 GameMaker Studio 2로 대체한다(대상: Android·Windows·HTML5). 웹게임(/game60) 작업은 2단계까지에서 멈춘다.
-GameMaker 프로젝트는 저장소 `gms2/`(브랜치 claude/charming-bardeen-sct1b0)에 둔다. 사용법은 `gms2/README.md`.
+GameMaker 프로젝트는 저장소 chatbotgmm/gmm(main)에 둔다(이 저장소 `gms2/`는 처음 판 사본). 사용법은 그 저장소 README.
 
 ## 서버 연결(확인한 것)
 - 로그인: `POST /my/api/login {code}` + 머리글 `x-gmm: 1`, `x-gmm-app: 1` → `{ok, token}`(91자). 이후 `x-gmm-s: <token>`(쿠키 대신). 열쇠 없으면 401.
 - 현재 증강 전투: `x-gmm-roster60-augment-capability: current-v3`, `x-gmm-roster60-augment-model: roster60-current-v1`(없으면 전투 생성 409 ROSTER60_AUGMENT_CLIENT_UPDATE_REQUIRED).
 - 조합 발견 이름·그림: `x-gmm-craft-discovery: 1`.
+- 카카오 로그인(서버 9차 패치 `deploy/server-gmm111-gmkakao-20261107`, 배포 브랜치 manual/home-assembly-20261019): `POST app/kakao-start` → `{url, ticket, secret, word, wait}` → 게임이 `url_open(url)` → 브라우저 카카오 로그인 → 확인 화면(같은 확인 글자 `word`) → 게임이 2초마다 `POST app/kakao-poll {ticket, secret}` → `{pending, step:'wait'|'confirm'}` 또는 한 번만 `{token}`. 10분 유효. 계정은 앱 카카오 로그인과 같은 `webKakaoSignIn`. 운영 my.js가 이 저장소 소스보다 새 판(GMM111)이라 소스(src/my.ts)에는 넣지 않고 운영 파일에 덧붙였다(`patch_my.py`).
 
 ## 실시간 대전(3단계용, 서버 복제본에서 확인)
 - `GET pvp/options`(편성 후보, rankEligibility: 방범대장 Lv.60·출전 Lv.60), `POST pvp/party {ownedIds, mode}`, `POST pvp/join {requestId, mode}` → `status: waiting`, `aiAvailableAt`(일반전은 30초 뒤 AI 상대).
