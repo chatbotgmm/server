@@ -2,7 +2,7 @@ import {describe,it,expect,beforeAll,afterAll} from 'vitest';
 import Fastify,{type FastifyInstance} from 'fastify';
 import {readFileSync} from 'node:fs';
 import {loadContent} from '../src/content.js';
-import {registerSite,safeFrom,safeNext,R60_PUBLIC} from '../src/site.js';
+import {registerSite,safeFrom,safeNext,R60_PUBLIC,stampFor} from '../src/site.js';
 
 // 공개 홈페이지: 로그인 없이 읽기, 스포일러(히든·최상위) 가림, 로그인 뒤 갈 곳·돌아갈 곳은 허용 경로만, 확인 안 된 다운로드·공지는 만들지 않음
 describe('공개 홈페이지(src/site.ts)',()=>{
@@ -58,11 +58,16 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     const d=await get('/download');expect(d).toContain('시험 배포 연결 대기');expect(d).not.toContain('.apk"');
   });
   it('PC 웹게임(60종, /game60): 화면·그림·글꼴 제공, 로그인 뒤 돌아올 곳으로 허용',async()=>{
-    const h=await get('/game60');expect(h).toMatch(/\/game60\/game\.js\?v=\d+/);expect(h).toContain('noindex');expect(h).not.toContain('{{');
+    const h=await get('/game60');expect(h).toMatch(/\/game60\/game\.js\?v=[0-9a-f]{12}"/);   // 파일 내용 지문(내용이 바뀌면 주소도 바뀜)expect(h).toContain('noindex');expect(h).not.toContain('{{');
     for(const [url,type] of [['/game60/game.js','javascript'],['/game60/game.css','text/css'],['/game60/assets/units/u01-front.webp','image/webp'],['/game60/assets/black/u01.webp','image/webp'],['/game60/assets/fonts/workbench-noto-regular.otf','font/otf']] as const)
       expect((await app.inject({method:'GET',url})).headers['content-type'],url).toContain(type);
     await get('/game60/../package.json',404);await get('/game60/assets/none.webp',404);
     expect(safeNext('/game60')).toBe('/game60');
+    // 버전 값은 파일 내용에서 나온다: 수정 시각이 같아도 내용이 다르면 다른 값
+    const {mkdtempSync,mkdirSync,writeFileSync,utimesSync}=await import('node:fs');const {join}=await import('node:path');const {tmpdir}=await import('node:os');
+    const root=mkdtempSync(join(tmpdir(),'stamp-'));mkdirSync(join(root,'public'));const f=join(root,'public','a.js'),t=new Date('2026-11-07T00:00:00Z');
+    writeFileSync(f,'one');utimesSync(f,t,t);const v1=stampFor(root)('a.js');writeFileSync(f,'two');utimesSync(f,t,t);const v2=stampFor(root)('a.js');
+    expect(v1).toMatch(/^\/a\.js\?v=[0-9a-f]{12}$/);expect(v2).not.toBe(v1);
   });
   it('웹 게임 화면과 정적 파일: 정해진 폴더·확장자만',async()=>{
     // 예전 웹게임(60종 이전 규칙)은 내리고 새 웹게임으로 보낸다

@@ -5,6 +5,7 @@
 // - 세계관(/world)은 기존 페이지(쿠폰 조각 포함)를 그대로 쓰고 머리줄에서 연결만 한다.
 // - 공지(data/notices.json)·다운로드(data/downloads.json)는 실제로 확인된 내용만 넣는다. 비어 있으면 「없음」·「연결 대기」로 보인다.
 // - 공개 캐릭터는 기존 공개 도감 정책과 같게 히든·최상위(제한~불멸)를 뺀다.
+import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -28,7 +29,10 @@ export interface ShellOptions{path:string;title:string;desc:string;body:string;b
 // 예전부터 있던 공개 페이지(내용·기능 그대로, 새 디자인 틀): 메뉴의 「둘러보기」와 바닥에 연결
 const MORE:[string,string][]=[['/odds','모집 확률']];
 // 파일 수정 시각을 주소 뒤에 붙여, 파일이 바뀌면 브라우저가 새로 받게 한다
-export const stampFor=(root:string)=>(p:string)=>{try{return `/${p}?v=${Math.floor(statSync(resolve(root,'public',p)).mtimeMs)}`;}catch{return `/${p}`;}};
+// 2026-11-07: 수정 시각 대신 파일 내용 지문(sha256 앞 12자)을 붙인다. 배포 묶음은 수정 시각이 같을 수 있어
+// 내용이 바뀌어도 주소가 같으면 브라우저·Cloudflare가 예전 파일을 계속 보여 줬다. 파일 번호(inode)·크기·시각이 같으면 다시 계산하지 않는다(배포 묶음은 파일을 새로 만들어 번호가 바뀜, 재시작하면 새로 계산)
+export const stampFor=(root:string)=>{const stampCache=new Map<string,{key:string;v:string}>();return (p:string)=>{try{const f=resolve(root,'public',p),st=statSync(f),key=`${st.ino}:${st.mtimeMs}:${st.size}`;let c=stampCache.get(f);
+  if(!c||c.key!==key){c={key,v:createHash('sha256').update(readFileSync(f)).digest('hex').slice(0,12)};stampCache.set(f,c);}return `/${p}?v=${c.v}`;}catch{return `/${p}`;}};};
 export function siteShell(root:string,version:string,content:Content){
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
