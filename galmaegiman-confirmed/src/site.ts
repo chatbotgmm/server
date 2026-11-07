@@ -19,7 +19,8 @@ export interface SiteOptions{root:string;version:string;kakao:boolean}
 // 로그인 뒤 갈 곳·취소하면 돌아갈 곳: 사이트 안의 정해진 경로만(바깥 주소·//·\\ 거부)
 const NEXT=new Set(['/game','/game60','/account']);
 const FROM=/^\/(?:about|world|characters|notices(?:\/[A-Za-z0-9_-]{1,40})?|download|dex(?:\/[A-Za-z0-9_-]{1,12})?|recipes|hidden|rank|event|talk|odds|privacy)?$/;
-export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?v:'/game';
+// 로그인 뒤 기본으로 가는 곳은 지금 게임(60종) 웹게임. 예전 /game은 /game60으로 보낸다(2026-11-07)
+export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?(v==='/game'?'/game60':v):'/game60';
 export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
 
 // 공개 페이지 공통 틀(머리줄·메뉴·바닥). 새 공개 페이지(site.ts)와 예전 공개 페이지(web.ts: 도감·조합법·랭킹·이벤트 등)가 같이 쓴다
@@ -262,10 +263,10 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
 </div></section>`}),'no-store');
   });
 
-  // ── 웹 게임: 화면은 public/game. 로그인 판단은 화면이 /my/api/who로(세션 쿠키가 Path=/my라 여기서는 모름) ──
-  const gameFile=()=>readFileSync(resolve(opt.root,'public/game/index.html'),'utf8').replace(/\{\{([a-z]+\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game/${f}`));
-  app.get('/game',limit,async(_req,reply)=>send(reply,gameFile(),'no-cache'));
-  app.get('/account',limit,async(_req,reply)=>reply.redirect('/game#account'));
+  // ── 예전 웹게임(/game, 60종 이전 규칙)은 내리고 지금 게임 웹게임으로 보낸다(2026-11-07 사용자 지적: 로그인하면 옛날 게임이 나옴).
+  // 카카오 로그인 뒤 /my 화면·즐겨찾기·예전 링크가 /game·/account로 와도 새 웹게임으로 간다. 정적 파일(/game/*)은 그대로 둔다.
+  app.get('/game',limit,async(_req,reply)=>reply.redirect('/game60'));
+  app.get('/account',limit,async(_req,reply)=>reply.redirect('/game60'));
   // ── PC 웹게임(60종, 앱과 같은 서버 기능). 1단계: 로그인·마을·내 갈매미·모집·스토리. 화면은 public/game60 ──
   const game60File=()=>readFileSync(resolve(opt.root,'public/game60/index.html'),'utf8').replace(/\{\{(game\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game60/${f}`));
   app.get('/game60',limit,async(_req,reply)=>send(reply,game60File(),'no-cache'));

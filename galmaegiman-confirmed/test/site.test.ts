@@ -46,10 +46,10 @@ describe('공개 홈페이지(src/site.ts)',()=>{
   });
   it('로그인 진입: 바깥 주소·이상한 경로는 기본값으로, 허용 경로는 그대로',async()=>{
     const bad=await get('/login?next=https://evil.example&from=//evil.example');
-    expect(bad).toContain('data-next="/game"');expect(bad).toContain('data-from="/"');expect(bad).not.toContain('evil');
+    expect(bad).toContain('data-next="/game60"');expect(bad).toContain('data-from="/"');expect(bad).not.toContain('evil');
     const ok=await get('/login?next=/account&from=/characters');
     expect(ok).toContain('data-next="/account"');expect(ok).toContain('data-from="/characters"');expect(ok).toContain('카카오로 로그인');
-    expect(safeNext('/game')).toBe('/game');expect(safeNext('javascript:alert(1)')).toBe('/game');
+    expect(safeNext('/game')).toBe('/game60');expect(safeNext('javascript:alert(1)')).toBe('/game60');   // 로그인 뒤 기본은 지금 게임 웹게임
     expect(safeFrom('/notices/abc')).toBe('/notices/abc');expect(safeFrom('/\\evil')).toBe('/');expect(safeFrom('/my/api/logout')).toBe('/');
   });
   it('공지·다운로드: 확인된 자료가 없으면 비활성·없음',async()=>{
@@ -65,8 +65,8 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     expect(safeNext('/game60')).toBe('/game60');
   });
   it('웹 게임 화면과 정적 파일: 정해진 폴더·확장자만',async()=>{
-    expect(await get('/game')).toContain('id="view"');   // 주소는 남김(홈에서는 연결하지 않음)
-    const r=await app.inject({method:'GET',url:'/account'});expect(r.statusCode).toBe(302);expect(r.headers.location).toBe('/game#account');
+    // 예전 웹게임(60종 이전 규칙)은 내리고 새 웹게임으로 보낸다
+    for(const url of ['/game','/account']){const r=await app.inject({method:'GET',url});expect(r.statusCode,url).toBe(302);expect(r.headers.location).toBe('/game60');}
     expect((await app.inject({method:'GET',url:'/site/site.css'})).headers['content-type']).toContain('text/css');
     await get('/site/reg/cards/C1.webp',404);   // 예전 145종 입사 등록증 경로는 닫음
     await get('/site/../../.env',404);await get('/game/%2e%2e/%2e%2e/package.json',404);await get('/site/a/x.exe',404);
