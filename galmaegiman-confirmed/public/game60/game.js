@@ -16,7 +16,8 @@ addEventListener('resize', fit); fit();
 // ── 서버 호출 ──
 class ApiError extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code; } }
 async function api(path, body) {
-  const init = {method: body ? 'POST' : 'GET', credentials: 'same-origin', headers: body ? {...HEAD, 'content-type': 'application/json'} : HEAD};
+  const init = {method: body ? 'POST' : 'GET', credentials: 'same-origin', headers: body ? {...HEAD, 'content-type': 'application/json'} : {...HEAD}};
+  if (path.endsWith('craft/options')) init.headers['x-gmm-craft-discovery'] = '1';   // 앱과 같이: 발견한 조합식·재료의 이름·그림을 받는다
   if (body) init.body = JSON.stringify(body);
   let r; try { r = await fetch('/my/api/' + path, init); } catch { throw new ApiError(0, 'NETWORK', '서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.'); }
   let j = {}; try { j = await r.json(); } catch {}
@@ -79,7 +80,7 @@ function showLogin() {
 SCREENS.boot = async () => {
   try { await refreshMe(); } catch (e) { if (e.status === 401) return showLogin(); throw e; }
   const st = await api(R('state'));
-  if (!st.started) {
+  if (st.started === false) {   // 시작한 계정은 started 대신 starter를 돌려준다(그때는 다시 부르지 않음)
     const s = await api(R('start'), {});
     toast(`방범대에 온 것을 환영해요! 첫 동료 ${s.starter?.name ?? ''}가 합류했어요.`);
   }
@@ -88,22 +89,24 @@ SCREENS.boot = async () => {
 
 // ── 마을(로비): 갈매미 건물 = 메뉴 ──
 SCREENS.village = async () => {
-  const story = await api(R('story/state')).catch(() => null);
+  const [story, daily] = await Promise.all([api(R('story/state')).catch(() => null), api('daily').catch(() => null)]);
   const cmd = story?.commander;
   const B = (cls, img, w, x, title, sub, to, disabled = false) => `<button class="bld ${cls}" ${disabled ? 'disabled title="2단계에서 열려요"' : ''} data-go="${to}"><img src="${A}village/${img}.webp" alt="" style="width:${w}px"><span class="plate">${title}<small>${sub}</small></span></button>`;
   render(`<div class="village"><div class="pano" style="background-image:url('${A}village/identity-coast-panorama.webp')"></div><div class="shade"></div>
 <div class="blds">${B('', 'identity-hq', 250, 12, '동료의 거리', '모집 · 내 갈매미', 'recruit')}
-${B('', 'identity-records', 230, 262, '기억의 정원', '도감 · 우편 (준비 중)', 'village', true)}
-${B('', 'identity-ship', 230, 488, '푸른 출항길', '스토리', 'story')}
-${B('', 'identity-market', 230, 716, '바람의 시장', '시장 (준비 중)', 'village', true)}</div>
+${B('', 'identity-records', 230, 262, '기억의 정원', '도감', 'collection')}
+${B('', 'identity-ship', 230, 488, '푸른 출항길', '스토리 · 모험', 'story')}
+${B('', 'identity-market', 230, 716, '바람의 시장', '시장 · 조합', 'shop')}</div>
 </div>
-<div class="hud"><div class="who"><b>${esc(me.nickname || '방범대장')}</b><span>${cmd ? `방범대장 Lv.${cmd.level}` : '방범대'}</span></div><span style="flex:1"></span>${credits()}<a class="btn quiet" href="/" style="min-height:40px">홈페이지</a></div>
+<div class="hud"><div class="who"><b>${esc(me.nickname || '방범대장')}</b><span>${cmd ? `방범대장 Lv.${cmd.level}` : '방범대'}</span></div><span style="flex:1"></span><button class="btn quiet${daily && !daily.attend?.today ? ' dot' : ''}" data-go="daily" style="min-height:40px">출석·미션</button>${credits()}<a class="btn quiet" href="/" style="min-height:40px">홈페이지</a></div>
 <nav class="dock" aria-label="마을 메뉴">
 <button data-go="story"><img src="${A}menu/icon-explore.webp" alt="">스토리</button>
+<button data-go="adventure"><img src="${A}ui/icon-attack.webp" alt="">모험</button>
 <button data-go="recruit"><img src="${A}menu/icon-draw.webp" alt="">모집</button>
 <button data-go="units"><img src="${A}menu/icon-team.webp" alt="">내 갈매미</button>
-<button disabled title="2단계에서 열려요"><img src="${A}menu/icon-combine.webp" alt="">조합</button>
-<button disabled title="2단계에서 열려요"><img src="${A}menu/icon-collection.webp" alt="">도감</button>
+<button data-go="craft"><img src="${A}menu/icon-combine.webp" alt="">조합</button>
+<button data-go="collection"><img src="${A}menu/icon-collection.webp" alt="">도감</button>
+<button data-go="shop"><img src="${A}menu/icon-shop.webp" alt="">시장</button>
 </nav>`);
 };
 
@@ -306,14 +309,14 @@ function storyScene(st) {
 }
 
 // ── 편성: 1~3마리, 첫 번째가 출전, 나머지 예비 ──
-async function formation(q, adv) {
+async function formation(q, adv, opt = {}) {
   const units = (await api(R('owned'))).units?.filter(u => u.status === 'AVAILABLE') ?? [];
   const MAX = 3; let sort = pref.get('sort', 'level'), grouped = pref.get('group', '1') === '1';
   let picked = arrange(units, 'level', false).slice(0, 1).map(r => r.rep.ownedId);
   const role = i => i ? `예비 ${i}` : '출전';
   const draw = () => {
     const rows = arrange(units, sort, grouped), chosen = picked.map(id => units.find(u => u.ownedId === id));
-    render(`${bg('village/identity-coast-panorama.webp')}${top('전투 편성', `스토리 · 출전 1 + 예비 ${MAX - 1}`, '', 'story')}
+    render(`${bg('village/identity-coast-panorama.webp')}${top(opt.title || '전투 편성', `${opt.mode || '스토리'} · 출전 1 + 예비 ${MAX - 1}`, '', opt.back || 'story')}
 <section class="panel" style="left:8px;top:64px;width:640px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">${toolbar(sort, grouped)}
 <div class="muted" style="font-size:14px;flex:none">누른 순서대로 편성돼요. 첫 번째 갈매미가 먼저 출전해요.${grouped ? ' 묶인 칸은 누를 때마다 레벨 높은 개체부터 들어가요.' : ''}</div>
 <div class="grid scroll" data-keep="formation" style="grid-template-columns:repeat(5,1fr);align-content:start">${rows.map(({rep: u, all}) => { const idx = all.map(x => picked.indexOf(x.ownedId)).filter(i => i >= 0).sort(); return `<button class="slot" aria-pressed="${idx.length > 0}" data-sp="${u.speciesId}" data-id="${u.ownedId}"><span class="art"><img src="${front(u.speciesId)}" alt="" loading="lazy"></span><span class="nm">${esc(u.name)}</span><span class="lv">${GRADE[u.rarity] ?? ''} · ${all.length > 1 ? '최고 ' : ''}Lv.${u.level}</span>${idx.length ? `<span class="badge tag role">${idx.length > 1 ? `편성 ${idx.length}` : role(idx[0])}</span>` : ''}${all.length > 1 ? `<span class="badge2 count">×${all.length}</span>` : ''}</button>`; }).join('')}</div>
@@ -336,6 +339,7 @@ ${chosen.map((u, i) => `<button class="opt" data-rm="${u.ownedId}" title="눌러
       on('[data-sort]', 'click', b => { sort = b.dataset.sort; pref.set('sort', sort); screen.querySelector('[data-keep]')?.scrollTo(0, 0); draw(); });
       on('[data-group]', 'click', () => { grouped = !grouped; pref.set('group', grouped ? '1' : '0'); draw(); });
       on('[data-go-battle]', 'click', () => once(async () => {
+        if (opt.onConfirm) return opt.onConfirm(picked.slice());
         const body = {requestId: rid(), questId: q.id, ownedIds: picked};
         if (adv?.adventureId) body.adventureId = adv.adventureId;
         battleScreen(await api(R('story/battle/create'), body), q);
@@ -381,7 +385,7 @@ function battleScreen(v, q) {
 <button class="cmd green" data-mode="item" ${off.item ? 'disabled' : ''}><img src="${A}ui/icon-item.webp" alt="">아이템</button>
 <button class="cmd blue" data-mode="switch" ${off.switch || !reserves.some(r => r.hp > 0) ? 'disabled' : ''}><img src="${A}ui/icon-switch.webp" alt="">교체</button>
 <button class="cmd gray" data-act="escape" ${off.escape ? 'disabled' : ''}><img src="${A}ui/icon-surrender.webp" alt="">도망치기</button></div>`;
-    render(`${bg('village/identity-coast-panorama.webp')}<header class="top"><button class="back" data-go="story"><img src="${A}ui/icon-back.webp" alt="">스토리</button><h1>턴 ${st.turn + 1}</h1><span class="sub">${forced ? '쓰러진 갈매미를 교체해 주세요' : '행동을 선택하세요'}</span><span class="grow"></span>${q ? `<span class="sub">${esc(q.title)}</span>` : ''}</header>
+    render(`${bg('village/identity-coast-panorama.webp')}<header class="top"><button class="back" data-go="${q?.back || 'story'}"><img src="${A}ui/icon-back.webp" alt="">${q?.backLabel || '스토리'}</button><h1>턴 ${st.turn + 1}</h1><span class="sub">${forced ? '쓰러진 갈매미를 교체해 주세요' : '행동을 선택하세요'}</span><span class="grow"></span>${q ? `<span class="sub">${esc(q.title)}</span>` : ''}</header>
 <div class="field" style="background-image:url('${A}ui/bg-harbor.webp')">
 <img class="foe-art" src="${foeArt(foe)}" alt="${esc(foe.name)}"><img class="me-art" src="${rear(my.speciesId)}" alt="${esc(my.name)}의 뒷모습">
 <div class="bar foe"><div class="nm">상대 · ${esc(foe.name)} Lv${foe.level}</div>${hpRow('HP', foe.hp, foe.stats?.hp)}${hpRow('MP', foe.mp, foe.stats?.mp, 'mp')}</div>
@@ -412,7 +416,7 @@ async function settleBattle(v, q) {
   render(`${bg('village/identity-coast-panorama.webp')}<div class="overlay"><div class="sheet result"><h2>${win ? '승리!' : set.outcome === 'escape' ? '도망쳤어요' : '패배'}</h2>
 <p class="muted" style="margin:0">${win ? (pending ? '경험치는 모험에서 정상 귀환하면 받아요.' : '경험치를 받았어요.') : '이번 전투에서는 경험치를 받지 못했어요.'}</p>
 ${win && xp.length ? `<div class="units">${xp.map(([id, n]) => { const u = owned.find(x => x.ownedId === id); return `<div class="u"><img src="${front(u?.speciesId)}" alt=""><span><b>${esc(u?.name ?? '갈매미')}</b><br><span class="xp">+${n} XP</span></span></div>`; }).join('')}</div>` : ''}
-<div class="row" style="justify-content:flex-end"><button class="btn primary" data-go="story">스토리로</button></div></div></div>`);
+<div class="row" style="justify-content:flex-end"><button class="btn primary" data-go="${q?.back || 'story'}">${q?.backTo || '스토리로'}</button></div></div></div>`);
 }
 function returnResult(r) {
   const xp = r.unitXp ?? r.settlement?.unitXp ?? r.rewards?.unitXp;
@@ -420,5 +424,175 @@ function returnResult(r) {
   go('story');
   return xp;
 }
+
+
+// ════ 2단계: 도감 · 조합 · 자유 모험 · 시장 · 출석·미션 ════
+
+// ── 도감: 60종 전부(앱과 같이), 등급 거르기·보유만 보기, 보유 수 ──
+SCREENS.collection = async () => {
+  const all = (await api(R('collection'))).characters ?? [];
+  let grade = '', ownedOnly = false, pick = all[0]?.id;
+  const draw = () => {
+    const list = all.filter(c => (!grade || c.rarity === grade) && (!ownedOnly || c.ownedCount > 0));
+    if (!list.some(c => c.id === pick)) pick = list[0]?.id;
+    const cur = all.find(c => c.id === pick), have = all.filter(c => c.ownedCount > 0).length;
+    const grades = [...new Set(all.map(c => c.rarity))];
+    render(`${bg('village/identity-coast-panorama.webp')}${top('도감', `${have}/${all.length}종 보유`, credits())}
+<section class="panel" style="left:8px;top:64px;width:560px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
+<div class="toolbar"><div class="copies" style="flex:1;min-width:0"><button data-grade="" aria-pressed="${!grade}">전체</button>${grades.map(g => `<button data-grade="${g}" aria-pressed="${grade === g}">${GRADE[g] ?? g}</button>`).join('')}</div><button class="toggle" data-owned aria-pressed="${ownedOnly}">보유만</button></div>
+<div class="grid scroll" data-keep="dex" style="grid-template-columns:repeat(5,1fr);align-content:start">${list.map(c => `<button class="slot${c.id === pick ? ' on' : ''}${c.ownedCount ? '' : ' dim'}" data-id="${c.id}"><span class="art"><img src="${front(c.id)}" alt="" loading="lazy"></span><span class="nm">${esc(c.name)}</span><span class="lv">${GRADE[c.rarity] ?? c.rarity}</span>${c.ownedCount ? `<span class="badge2 count">×${c.ownedCount}</span>` : ''}</button>`).join('') || '<p class="muted">조건에 맞는 갈매미가 없어요.</p>'}</div></section>
+<section class="panel detail" style="left:576px;right:8px;top:64px;bottom:8px;padding:12px">${cur ? dexDetail(cur) : ''}</section>`, () => {
+      on('[data-id]', 'click', b => { pick = b.dataset.id; draw(); });
+      on('[data-grade]', 'click', b => { grade = b.dataset.grade; screen.querySelector('[data-keep]')?.scrollTo(0, 0); draw(); });
+      on('[data-owned]', 'click', () => { ownedOnly = !ownedOnly; draw(); });
+    });
+  };
+  draw();
+};
+function dexDetail(c) {
+  const s = c.levelOneStats ?? {}, d = c.defenseKnowledge?.defenses ?? {};
+  const known = Object.entries(d).filter(([, v]) => v !== 'unknown');
+  return `<h2 style="margin:0;font-size:20px">${esc(c.name)}</h2><div class="grade">${GRADE[c.rarity] ?? c.rarity} · ${esc(c.role ?? '')} · 보유 ${c.ownedCount}마리</div>
+<div class="big short"><img src="${front(c.id)}" alt="${esc(c.name)}"></div>
+<div class="muted" style="font-size:14px">Lv.1 능력치${TRIBE[c.id] ? ` · 종족 ${TRIBE[c.id]}` : ''}</div>
+<div class="stats">${STAT.map(([k, n]) => `<div>${n}<b>${s[k] ?? '-'}</b></div>`).join('')}</div>
+<div class="muted" style="font-size:14px;margin-top:4px">상성(본 적 있는 것만): ${known.length ? known.map(([e, v]) => `${ELEM[e] ?? e} ${v === 'weak' ? '약함' : v === 'resist' ? '강함' : '보통'}`).join(' · ') : '아직 몰라요'}</div>
+<ul class="skills scroll" style="margin-top:6px">${(c.skills ?? []).map(k => `<li><span>${esc(k.name)} <span class="muted">${ELEM[k.element] ?? k.element}</span></span><span class="muted">Lv.${k.learnLevel ?? 1} · 위력 ${k.power} · MP ${k.mpCost}</span></li>`).join('')}</ul>`;
+}
+
+// ── 조합: 조합식 → 재료 고르기(기본은 조건을 채우는 가장 낮은 레벨) → 미리보기 → 기술 계승 고르기 → 조합 ──
+SCREENS.craft = async () => {
+  let o = await api(R('craft/options'));
+  let onlyReady = true, pick = null, chosen = {}, pv = null, inh = null;
+  const unitsOf = (sp, min) => (o.units ?? []).filter(u => u.speciesId === sp && u.level >= min).sort((a, b) => a.level - b.level || Number(a.totalXp) - Number(b.totalXp));
+  const autoPick = r => { const used = new Set(); chosen = {}; for (const g of r.ingredients) { chosen[g.unitId] = unitsOf(g.unitId, g.minLevel).filter(u => !used.has(u.ownedId)).slice(0, g.count).map(u => u.ownedId); chosen[g.unitId].forEach(id => used.add(id)); } };
+  const materials = () => Object.values(chosen).flat();
+  const complete = r => r && r.ingredients.every(g => (chosen[g.unitId] ?? []).length === g.count);
+  const name = r => r.nameVisible ? r.name : '???';
+  const gname = g => g.name ?? (o.units ?? []).find(u => u.speciesId === g.unitId)?.name ?? '???';   // 가진 갈매미는 이름을 안다
+  const art = r => r.imageVisible ? `<img src="${front(r.resultId)}" alt="" loading="lazy">` : `<img src="${front(r.resultId)}" alt="" class="silhouette" loading="lazy">`;
+  const preview = async () => {
+    const r = o.recipes.find(x => x.resultId === pick); pv = null;
+    if (!complete(r)) return;
+    const body = {resultId: r.resultId, materialIds: materials(), catalogVersion: o.catalogVersion};
+    if (inh) body.inheritance = inh;
+    pv = await api(R('craft/preview'), body);
+  };
+  const draw = () => {
+    const recipes = (o.recipes ?? []).filter(r => !onlyReady || r.craftable);
+    const r = o.recipes.find(x => x.resultId === pick);
+    const ready = (o.recipes ?? []).filter(x => x.craftable).length;
+    const ing = r ? r.ingredients.map(g => { const pool = unitsOf(g.unitId, g.minLevel), sel = chosen[g.unitId] ?? []; return `<div class="ing"><div><b>${esc(gname(g))}</b> ×${g.count} <span class="muted">Lv.${g.minLevel} 이상 · 조건 맞는 ${pool.length}마리</span></div>
+<div class="copies">${pool.map(u => `<button data-mat="${u.ownedId}" data-sp="${g.unitId}" aria-pressed="${sel.includes(u.ownedId)}">Lv.${u.level}</button>`).join('') || '<span class="muted">조건에 맞는 갈매미가 없어요</span>'}</div></div>`; }).join('') : '';
+    const I = pv?.inheritance, slots = I?.resultSkillSlots ?? [];
+    const inhBox = !I ? '' : `<div class="muted" style="font-size:14px">물려줄 기술 하나를 고르고, 바꿀 칸을 골라요.</div>
+<div style="display:flex;flex-direction:column;gap:6px">${(I.candidates ?? []).map(cd => `<div class="ing"><span><b>${esc(cd.name)}</b> <span class="muted">${ELEM[cd.element] ?? cd.element} · 위력 ${cd.power} · MP ${cd.mpCost} · ${esc(cd.source?.name ?? '')} Lv.${cd.source?.level ?? ''}</span></span><span class="copies">${cd.allowedReplaceSlots.map(sl => `<button data-inh="${cd.skillId}" data-slot="${sl}" aria-pressed="${inh?.skillId === cd.skillId && inh?.replaceSlot === sl}" title="${esc(slots.find(x => x.slot === sl)?.name ?? '')} 자리">${sl + 1}번 · ${esc(slots.find(x => x.slot === sl)?.name ?? '빈칸')}</button>`).join('')}</span></div>`).join('')}</div>`;
+    const canGo = !!pv && I?.status !== 'selection-required';   // 계승이 필요하면 고른 뒤에만
+    render(`${bg('village/identity-coast-panorama.webp')}${top('조합', `만들 수 있는 조합식 ${ready}개`, credits())}
+<section class="panel" style="left:8px;top:64px;width:470px;bottom:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
+<div class="toolbar"><button class="toggle" data-ready aria-pressed="${onlyReady}">지금 만들 수 있는 것만</button></div>
+<div class="grid scroll" data-keep="craft" style="grid-template-columns:repeat(3,1fr);align-content:start">${recipes.map(x => `<button class="slot${x.resultId === pick ? ' on' : ''}${x.craftable ? '' : ' dim'}" data-r="${x.resultId}"><span class="art">${art(x)}</span><span class="nm">${esc(name(x))}</span><span class="lv">${x.ingredients.map(g => `${esc(gname(g))}×${g.count}`).join(' + ')}</span></button>`).join('') || '<p class="muted">지금 만들 수 있는 조합식이 없어요. 재료 갈매미를 Lv.5 이상으로 키워 보세요.</p>'}</div></section>
+<section class="panel" style="left:486px;right:8px;top:64px;bottom:8px;padding:12px;display:flex;flex-direction:column;gap:8px">${!r ? '<p class="muted">왼쪽에서 조합식을 골라 주세요.</p>' : `
+<div style="display:flex;gap:12px;align-items:center;flex:none"><img src="${front(r.resultId)}" alt="" style="height:64px${r.imageVisible ? '' : ';filter:brightness(0)'}"><div><h2 style="margin:0;font-size:20px">${esc(name(r))}</h2><div class="grade">${pv ? `${GRADE[pv.resultRarity] ?? ''} · 예상 Lv.${pv.expectedLevel}` : '재료를 고르면 예상 레벨이 나와요'}</div></div></div>
+<div class="scroll" style="display:flex;flex-direction:column;gap:8px">${ing}${inhBox}</div>
+<button class="btn primary" data-craft ${canGo ? '' : 'disabled'} style="flex:none">조합하기<small>재료 ${materials().length}마리가 사라지고 ${esc(name(r))}이(가) 돼요</small></button>`}</section>`, () => {
+      on('[data-ready]', 'click', () => { onlyReady = !onlyReady; draw(); });
+      on('[data-r]', 'click', b => once(async () => { pick = b.dataset.r; inh = null; autoPick(o.recipes.find(x => x.resultId === pick)); await preview(); draw(); }));
+      on('[data-mat]', 'click', b => once(async () => {
+        const r2 = o.recipes.find(x => x.resultId === pick), g = r2.ingredients.find(x => x.unitId === b.dataset.sp), sel = chosen[g.unitId] ?? (chosen[g.unitId] = []), id = b.dataset.mat, i = sel.indexOf(id);
+        if (i >= 0) sel.splice(i, 1); else { if (sel.length >= g.count) sel.shift(); sel.push(id); }
+        inh = null; await preview(); draw();
+      }));
+      on('[data-inh]', 'click', b => once(async () => { inh = {skillId: b.dataset.inh, replaceSlot: +b.dataset.slot}; await preview(); draw(); }));
+      on('[data-craft]', 'click', () => {
+        const r2 = o.recipes.find(x => x.resultId === pick);
+        if (!confirm(`재료 ${materials().length}마리를 써서 ${name(r2)}을(를) 만들까요? 재료는 사라져요.`)) return;
+        once(async () => {
+          const body = {resultId: r2.resultId, materialIds: materials(), catalogVersion: o.catalogVersion, requestId: rid(), previewFingerprint: pv.previewFingerprint};
+          if (inh) body.inheritance = inh;
+          await api(R('craft/confirm'), body);
+          toast(`${name(r2)}이(가) 방범대에 합류했어요!`);
+          o = await api(R('craft/options')); pick = null; pv = null; inh = null; chosen = {}; draw();
+        });
+      });
+    });
+  };
+  draw();
+};
+
+// ── 자유 모험: 편성 → 출발 → 전투를 이어 가며 보상을 모으고, 정상 귀환하면 받는다(전멸하면 그 모험의 받지 않은 보상을 잃음) ──
+const ADV = {title: '자유 모험', back: 'adventure', backLabel: '모험', backTo: '모험으로'};
+SCREENS.adventure = async () => {
+  const [act, st] = await Promise.all([api(R('adventure/active')), api(R('story/state')).catch(() => null)]);
+  const storyAdv = st?.currentQuest?.adventureId;
+  const a = (act.adventures ?? []).find(x => x.adventureId !== storyAdv && x.status === 'ACTIVE');
+  const alive = (a?.party ?? []).filter(f => f.hp > 0);
+  const xp = Object.values(a?.pendingRewards?.xp ?? {}).reduce((n, v) => n + Number(v || 0), 0);
+  render(`${bg('village/identity-coast-panorama.webp')}${top('자유 모험', a ? '모험 중' : '출항 준비', credits())}
+<section class="panel quest">${a ? `<h2>모험 중</h2><div class="goal">모은 경험치 ${xp} · 정상 귀환하면 받아요.\n전멸하면 이번 모험의 받지 않은 보상을 잃어요.</div>
+<div class="list" style="flex:1">${a.party.map(f => `<div class="opt"><span><b>${esc(f.name)}</b><br><span>Lv.${f.level} · HP ${f.hp}/${f.stats?.hp} · MP ${f.mp}/${f.stats?.mp}</span></span><img src="${front(f.speciesId)}" alt="" style="height:44px${f.hp > 0 ? '' : ';filter:grayscale(1) brightness(.6)'}"></div>`).join('')}</div>
+<div class="acts">${a.activeBattleId ? `<button class="btn primary" data-resume="${a.activeBattleId}">전투 이어가기</button>` : alive.length ? `<button class="btn primary" data-next>다음 전투</button>` : ''}<button class="btn" data-return="${a.adventureId}" data-rev="${a.revision}" ${a.activeBattleId ? 'disabled title="전투를 마친 뒤 귀환할 수 있어요"' : ''}>마을로 귀환<small>모은 보상을 받아요</small></button></div>`
+    : `<h2>자유 모험</h2><div class="goal">갈매미 1~3마리로 출발해요. 상대는 내 편성 평균 레벨 ±2로 나와요.\n전투에서 이길 때마다 보상이 쌓이고, 마을로 정상 귀환하면 받아요.\n전멸하면 이번 모험의 받지 않은 보상을 잃어요.</div><div class="acts"><button class="btn primary" data-form>편성하고 출항</button></div>`}</section>
+<section class="panel" style="left:544px;right:8px;top:66px;bottom:16px;padding:14px;display:grid;place-items:center"><img src="${A}village/identity-ship.webp" alt="" style="max-width:100%;max-height:330px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))"></section>`, () => {
+    const fight = async (adv, party) => { const ids = party.map(f => f.ownedId); battleScreen(await api(R('battle/create'), {requestId: rid(), ownedId: ids[0], reserveIds: ids.slice(1), encounterId: 'adventure-1', adventureId: adv}), ADV); };
+    on('[data-form]', 'click', () => formation(null, null, {title: '모험 편성', mode: '자유 모험', back: 'adventure', onConfirm: async ids => {
+      const s = await api(R('adventure/start'), {requestId: rid(), ownedIds: ids});
+      await fight(s.adventureId, ids.map(id => ({ownedId: id})));
+    }}));
+    on('[data-next]', 'click', () => once(() => fight(a.adventureId, alive)));
+    on('[data-resume]', 'click', b => once(async () => battleScreen(await api(R('battle/read'), {battleId: b.dataset.resume}), ADV)));
+    on('[data-return]', 'click', b => once(async () => {
+      await api(R('adventure/return'), {requestId: rid(), adventureId: b.dataset.return, revision: +b.dataset.rev});
+      toast(`모험에서 귀환했어요. 경험치 ${xp}을(를) 받았어요.`); go('adventure');
+    }));
+  });
+};
+
+// ── 시장: 새우gang으로 지원서·아이템 사기(전투에서 쓰는 아이템) ──
+SCREENS.shop = async () => {
+  let m = await api('me');
+  const qty = {};
+  const draw = () => {
+    me.credits = m.credits;
+    const t = m.prices?.tickets ?? {}, pt = m.prices?.peanutTickets ?? {}, have = id => (m.items ?? []).find(x => x.id === id)?.count ?? 0, max = m.itemRules?.maxStack ?? 20;
+    const Q = (k, opts) => `<div class="qty">${opts.map(n => `<button data-q="${k}" data-n="${n}" aria-pressed="${(qty[k] ?? 1) === n}">${n}개</button>`).join('')}</div>`;
+    const card = (k, title, sub, price, cur, enough, btn) => `<div class="offer"><h3>${title}</h3><div class="muted">${sub}</div>${Q(k, k.startsWith('item:') ? [1, 5] : [1, 5, 10])}<button class="btn primary" data-buy="${k}" ${enough ? '' : 'disabled'}>${btn}<small>${cur} ${price * (qty[k] ?? 1)}</small></button></div>`;
+    render(`${bg('village/identity-coast-panorama.webp')}${top('시장', '새우gang으로 지원서와 아이템을 사요', `<span class="chip" title="새우gang"><img src="${A}menu/currency-shrimp.webp" alt="">${m.snack ?? 0}</span>${(m.peanut ?? 0) ? `<span class="chip"><img src="${A}menu/currency-peanut.webp" alt="">${m.peanut}</span>` : ''}${credits()}`)}
+<section class="panel" style="left:8px;right:8px;top:64px;bottom:8px;padding:12px;display:flex;flex-direction:column;gap:10px">
+<div class="grid scroll" style="grid-template-columns:repeat(3,1fr);align-content:start">
+${card('tickets', `지원서 ${t.amount ?? 10}장`, '모집에 쓰는 지원서', t.snack ?? 1000, '새우gang', (m.snack ?? 0) >= (t.snack ?? 1000) * (qty.tickets ?? 1), '사기')}
+${(m.peanut ?? 0) ? card('peanutTickets', `지원서 ${pt.amount ?? 20}장`, '땅콩으로 바꾸기', pt.peanut ?? 1, '땅콩', (m.peanut ?? 0) >= (pt.peanut ?? 1) * (qty.peanutTickets ?? 1), '바꾸기') : ''}
+${(m.itemDefs ?? []).map(d => card('item:' + d.id, esc(d.name), `${esc(d.desc)} · 가진 수 ${have(d.id)}/${max}`, d.price, '새우gang', (m.snack ?? 0) >= d.price * (qty['item:' + d.id] ?? 1) && have(d.id) + (qty['item:' + d.id] ?? 1) <= max, '사기')).join('')}
+</div><p class="muted" style="margin:0;font-size:14px;flex:none">아이템은 전투의 「아이템」에서 써요.</p></section>`, () => {
+      on('[data-q]', 'click', b => { qty[b.dataset.q] = +b.dataset.n; draw(); });
+      on('[data-buy]', 'click', b => once(async () => {
+        const k = b.dataset.buy, n = qty[k] ?? 1;
+        if (k.startsWith('item:')) await api('items/buy', {id: k.slice(5), count: n}); else await api('shop', {item: k, count: n});
+        m = await api('me'); toast(k.startsWith('item:') ? `${(m.itemDefs ?? []).find(d => d.id === k.slice(5))?.name ?? '아이템'} ${n}개를 샀어요.` : `지원서 ${(k === 'tickets' ? t.amount ?? 10 : pt.amount ?? 20) * n}장을 받았어요.`); draw();
+      }));
+    });
+  };
+  draw();
+};
+
+// ── 출석·미션: 출석 보상, 한 시간마다 받는 지원서, 오늘의 미션(진행 상황) ──
+SCREENS.daily = async () => {
+  let d = await api('daily'), m = await api('me');
+  const draw = () => {
+    const a = d.attend ?? {}, ready = new Date(m.claimReadyAt ?? 0).getTime() <= Date.now();
+    const left = Math.max(0, Math.ceil((new Date(m.claimReadyAt ?? 0).getTime() - Date.now()) / 60000));
+    render(`${bg('village/identity-coast-panorama.webp')}${top('출석·미션', a.today ? '오늘 출석 완료' : '오늘 출석 전', credits())}
+<section class="panel quest" style="width:560px"><h2>출석 ${a.streak ?? 0}일째</h2><div class="goal">매일 들르면 지원서를 받아요. 7일째에는 더 많이 받아요.</div>
+<div class="week">${(a.rewards ?? []).map((n, i) => { const day = i + 1, done = a.today ? day <= (a.dayInWeek ?? 0) : day < (a.dayInWeek ?? 1); return `<div class="day${done ? ' done' : ''}${!a.today && day === a.dayInWeek ? ' now' : ''}"><small>${day}일</small><b>${n}</b><span>${done ? '받음' : '장'}</span></div>`; }).join('')}</div>
+<div class="acts"><button class="btn primary" data-attend ${a.today ? 'disabled' : ''}>${a.today ? '오늘 출석했어요' : `출석하기 · 지원서 ${a.next ?? ''}장`}</button>
+<button class="btn" data-claim ${ready ? '' : 'disabled'}>${ready ? '지원서 받기' : `지원서 받기 · ${left}분 뒤`}<small>한 시간마다 받을 수 있어요</small></button></div></section>
+<section class="panel" style="left:576px;right:8px;top:66px;bottom:16px;padding:14px;display:flex;flex-direction:column;gap:8px"><h2 style="margin:0;font-size:18px">오늘의 미션</h2>
+<div class="list">${(d.missions ?? []).map(x => `<div class="opt"><span><b>${esc(x.label)}</b><br><span>${Math.min(x.value, x.goal)}/${x.goal} · 지원서 ${x.tickets}장</span></span><span class="${x.done ? 'up' : ''}">${x.done ? '완료' : '진행 중'}</span></div>`).join('')}</div></section>`, () => {
+      on('[data-attend]', 'click', () => once(async () => { const r = await api('attend', {}); toast(`출석 ${r.result?.streak ?? ''}일째 · 지원서 ${r.result?.tickets ?? ''}장을 받았어요.`); [d, m] = await Promise.all([api('daily'), api('me')]); draw(); }));
+      on('[data-claim]', 'click', () => once(async () => { await api('claim', {}); [d, m] = await Promise.all([api('daily'), api('me')]); toast('지원서를 받았어요.'); draw(); }));
+    });
+  };
+  me.credits = m.credits; draw();
+};
 
 go('boot');

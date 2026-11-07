@@ -204,3 +204,15 @@ button:disabled{cursor:not-allowed}
 .copies button[aria-pressed="true"]{border-color:var(--gold-edge);color:var(--gold-edge);box-shadow:inset 0 0 0 1px var(--gold)}
 .detail .big.short{height:140px}
 .slot .badge.role{max-width:calc(100% - 56px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 2단계: 도감·조합·시장·출석 */
+.slot.dim .art img{filter:grayscale(.85) brightness(.7)}
+.slot.dim .nm{color:var(--muted)}
+img.silhouette{filter:brightness(0) drop-shadow(0 0 2px rgba(243,216,158,.5))}
+.ing{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--slot);font-size:15px}
+.ing .muted{font-size:13px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:6px;border:1px solid var(--line);background:var(--slot)}
+.day small{font-size:12px;color:var(--muted)}.day b{font-size:18px;color:var(--gold-edge)}.day span{font-size:12px;color:var(--muted)}
+.day.done{border-color:var(--gold);background:#1d3a4c}.day.done span{color:var(--good)}
+.day.now{border-color:var(--gold-edge);box-shadow:inset 0 0 0 2px var(--gold)}
+.btn.dot{position:relative}.btn.dot::after{content:"";position:absolute;right:6px;top:6px;width:9px;height:9px;border-radius:50%;background:#ff7a5a;box-shadow:0 0 0 2px var(--header)}
