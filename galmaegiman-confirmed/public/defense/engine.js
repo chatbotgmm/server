@@ -166,7 +166,9 @@ export function pathPos(s) {
   d -= LW;
   return { x: LOOP.x0, y: LOOP.y1 - d };
 }
-export const clampField = (x, y) => ({ x: Math.max(FIELD.x + 18, Math.min(FIELD.x + FIELD.w - 18, x)), y: Math.max(FIELD.y + 26, Math.min(FIELD.y + FIELD.h - 8, y)) });
+// 배치: 길(적이 도는 사각형) 안쪽에서만 자유롭게(사용자 요청 2026-11-08). 길 폭 40의 안쪽 가장자리에서 그림 여유만큼 들임
+export const INNER = { x0: LOOP.x0 + 20 + 18, x1: LOOP.x1 - 20 - 18, y0: LOOP.y0 + 20 + 30, y1: LOOP.y1 - 20 - 4 };
+export const clampField = (x, y) => ({ x: Math.max(INNER.x0, Math.min(INNER.x1, x)), y: Math.max(INNER.y0, Math.min(INNER.y1, y)) });
 
 export function rng(seed) {   // f.s = 지금 상태(이어하기 저장에 씀)
   const f = () => { f.s = (f.s + 0x6D2B79F5) >>> 0; let t = f.s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
