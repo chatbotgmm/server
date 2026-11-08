@@ -31,9 +31,11 @@ export const RULES = {
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 1~10웨이브는 「초반이 많이 어렵다」는 의견으로 ×0.7. 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
   hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 115200], [40, 172800], [45, 304000], [50, 560000], [55, 1040000], [60, 1920000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
-  armorBase: 4, armorPer: 2.4,
+  armorBase: 4, armorPer: 2.4,   // (예전 값, 지금은 아래 def… 사용)
+  defBase: 5, defPer: 2, defLateFrom: 30, defLatePer: 12, defBossMul: 1.3, armorPow: 2,   // 방어: 30웨이브 65 → 40웨이브 185 → 50웨이브 305 → 60웨이브 425
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
-  atkSpeed: 2,   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
+  atkSpeed: 2,
+  lineBossMul: 0.6, singleBossMul: 1.35,   // 라인 정리형 보스 피해 ×0.6, 단일 공격형 ×1.35   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
   dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
@@ -84,7 +86,8 @@ export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
-const SHRED = (t) => (t < 3 ? [2, 4, 7][t] : 20 + 15 * (t - 3));            // 방깍·마방깍: 커먼 2 · 언커먼 4 · 레어 7 · 에픽 20 · 전설 35 …
+// 방깍·마방깍(겹침): 커먼 2 · 언커먼 4 · 레어 7 · 에픽 25 · 전설 45 · 히든 60 · 제한 90 · 초월 120 · 불멸 160 · 영원 210 (후반 방어 300~425를 2~4마리로 깎게)
+const SHRED = (t) => [2, 4, 7, 25, 45, 60, 90, 120, 160, 210][t];
 const AMP = (t) => (t < 3 ? [0.02, 0.03, 0.05][t] : 0.15 + 0.05 * (t - 3));  // 마딜증폭: 커먼 2% … 에픽 15% · 전설 20% …
 // 이속감소는 갈매미마다 따로 걸려 모두 더한다(사용자 요청 2026-11-08: 20%씩 쌓여 100%가 되면 많이 느리게).
 // 합계는 100%까지, 실제 속도 = 1 − 0.85×합계(합계 100%면 원래 속도의 15%로 기어감, 완전히 멈추는 건 스턴).
@@ -116,9 +119,11 @@ export function kit(id) {
     if (elem === 'ICE') k.slow = SLOW(t) * 0.8;
     if (elem === 'WATER') k.slow = SLOW(t) * 0.5;
     if (elem === 'NATURE') k.poison = 0.25;
-    if (elem === 'DARK') { if (mage) k.mshred = SHRED(t) * 0.5; else k.shred = SHRED(t) * 0.5; }
+    if (elem === 'DARK') { if (mage) k.mshred = SHRED(t); else k.shred = SHRED(t); }   // 어둠: 방깍·마방깍 그대로(마방깍 갈매미가 적어 후반 마법방어를 깎을 수 있게)
     if (elem === 'HOLY') k.holy = 1.5;
   }
+  // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
+  if (k.job === '주력') { k.line = !!(k.area || k.chain || (k.splash ?? 0) >= 0.3); k.bossMul = k.line ? RULES.lineBossMul : RULES.singleBossMul; }
   // 공격 속도(사용자 요청 2026-11-08: 공속이 느려 보는 맛이 없음): 공격 간격 ÷AS, 한 번 피해 ÷AS → 초당 피해는 같음.
   // 공격마다 굴리는 스턴·범위 스턴 확률도 ÷AS(초당 스턴 횟수 같게), 독은 한 번 피해에 비례하므로 ×AS(초당 독 피해 같게)
   const AS = RULES.atkSpeed ?? 1;
@@ -135,6 +140,7 @@ export function kitTips(k) {
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
+  if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
   if (k.explore) out.push(`탐사 특기: 외부탐사 피해 ×${k.explore}`);
   if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
@@ -166,6 +172,9 @@ export function rng(seed) {   // f.s = 지금 상태(이어하기 저장에 씀)
 const BY_GRADE = Object.fromEntries(GRADES.map((g) => [g, UNITS.filter((u) => u.grade === g).map((u) => u.id)]));
 
 // 웨이브 정보: 일반 → 갑옷(방어력 높음) → 결계(마법방어 높음) 순서, 10웨이브마다 보스
+export const defAt = (w) => RULES.defBase + RULES.defPer * Math.min(w, RULES.defLateFrom) + RULES.defLatePer * Math.max(0, w - RULES.defLateFrom);
+// 피해 배율 = (100 / (100 + 남은 방어))^armorPow. 2제곱이라 방어가 높으면 피해가 크게 줄고, 깎으면 크게 늘어난다
+export const defMul = (left) => Math.pow(100 / (100 + Math.max(0, left)), RULES.armorPow);
 export function waveInfo(w) {
   const boss = w % RULES.bossEvery === 0;
   // 적 체력: 초반(hpEarlyN웨이브까지)은 hpEarly배씩 가파르게, 그 뒤는 hpGrowth배씩
@@ -179,10 +188,11 @@ export function waveInfo(w) {
     else if (k === 0 || A[k][0] === w) hp = Math.round(A[k][1]);
     else { const [w0, h0] = A[k - 1], [w1, h1] = A[k]; hp = Math.round(h0 * Math.pow(h1 / h0, (w - w0) / (w1 - w0))); }
   }
-  const base = RULES.armorBase + RULES.armorPer * w;
-  const kind = boss ? 'boss' : ['결계', '일반', '갑옷'][w % 3];
-  const armor = Math.round(base * (kind === '갑옷' ? 2 : kind === '결계' ? 0.5 : kind === 'boss' ? 1.5 : 1));
-  const mr = Math.round(base * (kind === '결계' ? 2 : kind === '갑옷' ? 0.5 : kind === 'boss' ? 1.5 : 1));
+  // 방어력·마법방어력(사용자 요청 2026-11-08: 웨이브마다 갑옷·결계를 번갈아 두지 않고, 모든 적이 둘 다 가지며 후반에 가파르게 올라
+  // 방깍·마방깍 조합을 짜지 않으면 못 깨게). defAt(w)까지는 완만, defLateFrom 웨이브부터 웨이브마다 defLatePer씩
+  const def = defAt(w);
+  const kind = boss ? 'boss' : '일반';
+  const armor = Math.round(def * (boss ? RULES.defBossMul : 1)), mr = armor;
   const pool = UNITS.filter((u) => gradeTier(u.grade) <= Math.min(9, Math.floor((w - 1) / 4)));
   const look = boss ? ['u33', 'u38', 'u52', 'u60', 'u57', 'u58'][Math.min(5, w / RULES.bossEvery - 1)] : pool[(w * 7) % pool.length].id;
   return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
@@ -429,26 +439,29 @@ export function recall(g, uids = null) {
 export const awayUnits = (g) => g.units.filter((u) => u.away);
 
 // ── 싸움 ──
+// 방깍·마방깍은 갈매미마다 따로 걸려 모두 더한다(사용자 요청 2026-11-08: 특정 수치만큼 깎는 조합). 같은 갈매미는 시간만 늘어남
+function effSum(e, key, now) {
+  const m = e[key]; if (!m) return 0;
+  let s = 0;
+  for (const id in m) { if (now >= m[id].until) delete m[id]; else s += m[id].v; }
+  return s;
+}
+export const shredNow = (e, now) => ({ shred: effSum(e, 'shreds', now), mshred: effSum(e, 'mshreds', now) });
 function hurt(g, e, raw, k, uid) {
   if (e.hp <= 0) return;
   const now = g.t;
   let m;
-  if (k.type === 'phys') {
-    const A = Math.max(0, e.armor - (now < e.shredUntil ? e.shred : 0));
-    m = (100 / (100 + A)) * upgMul(g, k.tier);
-  } else {
-    const M = Math.max(0, e.mr - (now < e.mshredUntil ? e.mshred : 0));
-    m = (100 / (100 + M)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
-  }
-  if (k.holy && e.boss) m *= k.holy;
+  if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now)) * upgMul(g, k.tier);
+  else m = defMul(e.mr - effSum(e, 'mshreds', now)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
+  if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
   const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
   if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
 }
 function debuff(g, e, k, uid = 0) {
   const now = g.t;
-  if (k.shred) { e.shred = now < e.shredUntil ? Math.max(e.shred, k.shred) : k.shred; e.shredUntil = now + 3; }
-  if (k.mshred) { e.mshred = now < e.mshredUntil ? Math.max(e.mshred, k.mshred) : k.mshred; e.mshredUntil = now + 3; }
+  if (k.shred) (e.shreds ??= {})[uid] = { v: k.shred, until: now + 3 };
+  if (k.mshred) (e.mshreds ??= {})[uid] = { v: k.mshred, until: now + 3 };
   if (k.amp) { e.amp = now < e.ampUntil ? Math.max(e.amp, k.amp) : k.amp; e.ampUntil = now + 3; }
   if (k.slow && e.speed) {   // 같은 갈매미는 다시 맞혀도 시간만 늘고, 다른 갈매미 것은 더해진다
     (e.slows ??= {})[uid] = { v: k.slow, until: now + 1.5 };

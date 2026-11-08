@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=45613f3f22e6';
+import * as E from './engine.js?v=798d7c00a03d';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -470,14 +470,27 @@ function drawHud() {
   box(8, 6, W - 16, 88, C.header, C.edge, 10);
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
   text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
-  chip(KIND_NAME[wi.kind], 150, 17, wi.boss ? '#ff8a7a' : wi.kind === '갑옷' ? C.phys : wi.kind === '결계' ? C.mag : C.muted, 13);
+  // 방어(방어력=마법방어력)와 내 판의 방깍·마방깍 합계(사용자 요청 2026-11-08: 후반엔 깎는 조합이 있어야 깸)
+  const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${wi.armor}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
+  let shSum = 0, mshSum = 0;
+  for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; }
+  const okCol = (v) => (v >= wi.armor * 0.7 ? C.good : v >= wi.armor * 0.35 ? C.goldEdge : C.bad);
+  ctx.font = `12px ${FONT}`;
+  const sx = 150 + cw + 8, maxW = W - 224 - sx;
+  if (maxW > 40) {
+    const t1 = `깎기 물${Math.round(shSum)}`, t2 = ` · 마${Math.round(mshSum)}`;
+    const tw = ctx.measureText(t1 + t2).width, sc2 = Math.min(1, maxW / tw), fs = Math.max(10, Math.floor(12 * sc2));
+    text(t1, sx, 28, fs, okCol(shSum));
+    ctx.font = `${fs}px ${FONT}`;
+    text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum));
+  }
   const line2 = wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${left}초 안에 잡기`) : `다음 웨이브 ${left}초`;
   text(line2, 20, 58, 15, wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
   if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
     const nx = E.waveInfo(G.wave + 1);
     ctx.font = `15px ${FONT}`;
     const lx = 20 + ctx.measureText(line2).width + 10;
-    fitText(`▸ 다음 ${nx.boss ? '보스!' : KIND_NAME[nx.kind]}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.kind === '갑옷' ? C.phys : nx.kind === '결계' ? C.mag : C.muted);
+    fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.armor > wi.armor ? C.goldEdge : C.muted);
   }
   // 적 수·경고
   const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
@@ -813,7 +826,7 @@ function drawTitle() {
     '· 조합법대로 모아 「조합」하면 더 센 갈매미!',
     '· ☆목표를 찍으면 필요한 재료에 색 테두리가 생겨요.',
     `· 길 위의 적이 ${E.RULES.limit}마리를 넘지 않게 막으세요.`,
-    '· 보스는 그 웨이브 안에 꼭 잡아야 해요.',
+    '· 보스는 그 웨이브 안에! 후반엔 방깍·마방깍·이감·스턴이 꼭 필요해요.',
   ].forEach((l, k) => fitText(l, 44, 520 + k * 36, W - 88, 16, C.text));
   box(28, 734, W - 56, 44, 'rgba(243,216,158,.12)', C.gold, 10, 1.5);
   fitText(`♪ 게임 속 배경음악이 나와요. 오른쪽 위 ♪에서 음량을 조절하세요${music.on ? '' : ' (지금 꺼짐)'}`, W / 2, 756, W - 80, 14, C.goldEdge, 'center');
