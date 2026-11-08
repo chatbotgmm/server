@@ -284,6 +284,18 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
     let body:Buffer;try{body=readFileSync(resolve(opt.root,'public',dir,rel));}catch{return reply.code(404).send({error:'not found'});}
     return reply.type(types[ext]).header('Cache-Control',ext==='css'||ext==='js'?'public, max-age=300':'public, max-age=86400').send(body);
   });
+  // ── 갈매미맨 랜덤 디펜스(로그인 없는 미니 게임, public/defense). 그림·글꼴은 /game60/assets를 같이 쓴다 ──
+  // 모듈 파일(defense.js → engine.js → data.js)이 서로 다른 판으로 섞이지 않게 매번 새로 받게 한다(no-cache)
+  app.get('/defense',limit,async(_req,reply)=>{
+    let body:string;try{body=readFileSync(resolve(opt.root,'public/defense/index.html'),'utf8');}catch{return reply.code(404).send({error:'not found'});}
+    return send(reply,body,'no-cache');
+  });
+  app.get<{Params:{'*':string}}>('/defense/*',limit,async(req,reply)=>{
+    const rel=req.params['*'],ext=/^[a-z0-9_-]+\.(js|css)$/.exec(rel)?.[1];
+    if(!ext)return reply.code(404).send({error:'not found'});
+    let body:Buffer;try{body=readFileSync(resolve(opt.root,'public/defense',rel));}catch{return reply.code(404).send({error:'not found'});}
+    return reply.type(types[ext]).header('Cache-Control','no-cache').send(body);
+  });
 }
 
 // ── 지금 게임(60종, roster60) 자료 읽기: 서버에 있는 실제 파일을 읽고, 파일이 바뀌면 다시 읽는다 ──
