@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작: 갈매미를 눌러 고르기 · 끌어서 옮기기 · 빈 곳을 끌면 여러 마리 고르기 · 고른 채 빈 곳을 누르면 그리로 이동.
-import * as E from './engine.js';
+import * as E from './engine.js?v=4c46818c9942';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
