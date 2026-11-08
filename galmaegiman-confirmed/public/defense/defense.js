@@ -550,13 +550,28 @@ function drawHud() {
 function panelLayout(y0 = 672) {
   const ex = Math.max(0, PBOT - H);
   // 위습 줄은 낮게, 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 조합 목표 칸 빼고 버튼 줄 나눔)
-  const wh = 50 + ex * 0.08, wy = y0 + 30, by = wy + wh + 10;
-  const bh = Math.max(56, (PBOT - 16 - by - 8) / 2);
-  return { ex, wy, wh, by, bh, by2: by + bh + 8 };
+  // 디자인(사용자 요청 2026-11-08: 판 크기는 그대로, 여백이 어색하지 않게): 버튼은 104까지만 키우고, 남는 높이는 줄 사이 간격으로 고르게
+  const top = y0 + 30, avail = PBOT - 16 - top;
+  const wh = Math.min(78, 54 + ex * 0.12), bh = Math.max(56, Math.min(104, (avail - wh - 18) / 2));
+  const spare = Math.max(0, avail - wh - 18 - 2 * bh), gap = spare / 3;   // 위·가운데(구분선)·아래에 고르게
+  const wy = top + gap * 0.9, by = wy + wh + 10 + gap * 1.05;
+  return { ex, wy, wh, by, bh, by2: by + bh + 8, labelY: y0 + 18 + gap * 0.7, divY: wy + wh + 5 + gap * 0.52, gap };
+}
+// 판 테두리 장식(게임 UI 모서리 그림)
+function decorCorners(x, y, w, h, s = 46) {
+  const im = (n) => img(`${ART}/ui/decor-corner-${n}.webp`), r = 216 / 256;
+  ctx.globalAlpha = 0.85;
+  const tl = im('tl'), tr = im('tr'), bl = im('bl'), br = im('br');
+  if (tl) ctx.drawImage(tl, x - 4, y - 4, s, s * r);
+  if (tr) ctx.drawImage(tr, x + w - s + 4, y - 4, s, s * r);
+  if (bl) ctx.drawImage(bl, x - 4, y + h - s * r + 4, s, s * r);
+  if (br) ctx.drawImage(br, x + w - s + 4, y + h - s * r + 4, s, s * r);
+  ctx.globalAlpha = 1;
 }
 function drawBottom() {
   const y0 = 672;
   box(8, y0, W - 16, PBOT - y0 - 8, C.panel, C.edge, 12);
+  decorCorners(8, y0, W - 16, PBOT - y0 - 8);
   const sel = selUnits();
   if (sel.length === 1) drawUnitPanel(y0, sel[0]);
   else if (sel.length > 1) drawGroupPanel(y0, sel);
@@ -584,16 +599,27 @@ function menuButton(x, y, w, h, icon, label, fn, style, sub, subCol) {
 }
 function drawMainPanel(y0) {
   // 위습
-  text('위습 (눌러서 소환)', 22, y0 + 18, 14, C.gold);
   const ws = E.WISP_GRADES, bw = (W - 44 - 4 * 6) / 5, PL = panelLayout(y0);
-  ws.forEach((gr, k) => {
-    const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy;
-    box(x, y, bw, PL.wh, n ? 'rgba(11,30,42,.9)' : 'rgba(11,30,42,.4)', n ? GRADE_COLOR[gr] : '#33434d', 10, n ? 2 : 1);
-    fitText(E.GRADE_NAME[gr], x + bw / 2, y + PL.wh * 0.31, bw - 8, PL.ex > 60 ? 17 : 15, n ? GRADE_COLOR[gr] : '#5b6a73', 'center');
-    text(`×${n}`, x + bw / 2, y + PL.wh * 0.7, PL.ex > 60 ? 23 : 19, n ? C.text : '#5b6a73', 'center');
-    if (n) hit(x, y, bw, PL.wh, () => doSummon(gr));
+  text('위습', 22, PL.labelY, 14, C.gold);
+  ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
+    const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
+    box(x, y, bw, h, n ? 'rgba(11,30,42,.92)' : 'rgba(11,30,42,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
+    if (n) {
+      const cx = x + bw * 0.3, cy = y + h / 2, rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, h * 0.42);
+      rg.addColorStop(0, col + '99'); rg.addColorStop(1, col + '00');
+      ctx.fillStyle = rg; ctx.fillRect(x + 2, y + 2, bw * 0.6, h - 4);
+    }
+    text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#3d4c55', 'center');
+    fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#5b6a73', 'center');
+    text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#5b6a73', 'center');
+    if (n) hit(x, y, bw, h, () => doSummon(gr));
   });
-  // 강화·탐사·조합법
+  if (PL.gap > 14) {   // 위습과 버튼 사이 장식 구분선
+    const dy = PL.divY, cx = W / 2;
+    const lg = ctx.createLinearGradient(40, 0, W - 40, 0); lg.addColorStop(0, 'rgba(217,187,127,0)'); lg.addColorStop(0.5, 'rgba(217,187,127,.75)'); lg.addColorStop(1, 'rgba(217,187,127,0)');
+    ctx.fillStyle = lg; ctx.fillRect(40, dy - 0.75, W - 80, 1.5);
+    ctx.save(); ctx.translate(cx, dy); ctx.rotate(Math.PI / 4); box(-5, -5, 10, 10, C.gold, null, 2); ctx.restore();
+  }
   // 아래 버튼 6개(3개씩 두 줄): 선택위습 · 용병모집 · 강화 / 외부탐사 · 창고 · 조합법
   const b3 = (W - 44 - 12) / 3, BH = PL.bh, bx = (i) => 22 + (i % 3) * (b3 + 6), byy = (i) => (i < 3 ? PL.by : PL.by2);
   const btn = (i, label, fn, style, sub, subCol) => menuButton(bx(i), byy(i), b3, BH, MENU_ICON[i], label, fn, style, sub, subCol);
@@ -1695,6 +1721,7 @@ function frame(now) {
   document.getElementById('boot')?.remove();
   for (const u of E.UNITS) unitImg(u.id);
   MENU_ICON.forEach((f) => img(`${ART}/${f}.webp`));
+  ['tl', 'tr', 'bl', 'br'].forEach((n) => img(`${ART}/ui/decor-corner-${n}.webp`));
   for (const [, band] of E.ENEMY_LOOK) band.forEach(enemyImg);
   E.BOSS_LOOK.forEach(enemyImg); E.REGIONS.forEach((r) => enemyImg(r.look));
   requestAnimationFrame(frame);
