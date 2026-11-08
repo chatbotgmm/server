@@ -50,7 +50,7 @@ export const RULES = {
   startPick: {}, bossPick: {},
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
-  guardHp: [20000, 150000, 500000, 1000000, 3000000, 5000000, 15000000],
+  guardHp: [20000, 150000, 500000, 1000000, 3000000, 5000000, 15000000, 45000000],   // 8장(외전) 4,500만
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
@@ -65,6 +65,7 @@ export const REGIONS = [
   { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 }, pick: { COMMON: 3 }, gold: 3000 },
   { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 }, pick: { COMMON: 3 }, gold: 5000 },
   { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 }, pick: { COMMON: 3 }, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'u58', level: 36, reward: { EPIC: 2, LEGEND: 1 }, pick: { COMMON: 3 }, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -147,9 +148,10 @@ export function pathPos(s) {
 }
 export const clampField = (x, y) => ({ x: Math.max(FIELD.x + 18, Math.min(FIELD.x + FIELD.w - 18, x)), y: Math.max(FIELD.y + 26, Math.min(FIELD.y + FIELD.h - 8, y)) });
 
-export function rng(seed) {
-  let a = seed >>> 0;
-  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+export function rng(seed) {   // f.s = 지금 상태(이어하기 저장에 씀)
+  const f = () => { f.s = (f.s + 0x6D2B79F5) >>> 0; let t = f.s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  f.s = seed >>> 0;
+  return f;
 }
 const BY_GRADE = Object.fromEntries(GRADES.map((g) => [g, UNITS.filter((u) => u.grade === g).map((u) => u.id)]));
 
@@ -183,9 +185,17 @@ export function regionGuard(k) {
   return { hp, armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
 }
 
-export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
+// 도전 모드(사용자 요청 2026-11-08): 기록은 모드마다 따로
+export const MODES = {
+  normal: { name: '일반', desc: '기본 규칙' },
+  hard: { name: '하드', desc: '적 체력 ×1.5 (보스·외부탐사 대장 포함)', hpMul: 1.5 },
+  noupg: { name: '강화 금지', desc: '등급별 강화를 할 수 없어요', noUpg: true },
+  nostory: { name: '외부탐사 금지', desc: '외부탐사(스토리)를 보낼 수 없어요', noMission: true },
+};
+export const modeOf = (g) => MODES[g.mode] ?? MODES.normal;
+export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal') {
   return {
-    seed, rand: rng(seed), t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
+    seed, mode: MODES[mode] ? mode : 'normal', rand: rng(seed), dmg: {}, dmgWave: {}, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -194,6 +204,19 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
     goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
     over: null, reason: '', fx: [], news: [],
   };
+}
+// 이어하기(사용자 요청 2026-11-08): 판 전체를 글로 저장하고 되살린다. 규칙 판이 바뀌면(SAVE_VER) 예전 저장은 버림
+export const SAVE_VER = 1;
+export function saveGame(g) { return JSON.stringify({ v: SAVE_VER, g: { ...g, rand: g.rand.s, fx: [] } }); }
+export function loadGame(text) {
+  try {
+    const o = JSON.parse(text);
+    if (!o || o.v !== SAVE_VER || !o.g || !Array.isArray(o.g.units)) return null;
+    const g = o.g, s = g.rand >>> 0;
+    g.rand = rng(0); g.rand.s = s;
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= [];
+    return g;
+  } catch { return null; }
 }
 const news = (g, msg) => { g.news.push({ msg, t: g.t }); if (g.news.length > 6) g.news.shift(); };
 const addWisps = (g, bag) => { for (const [k, v] of Object.entries(bag)) g.wisps[k] = (g.wisps[k] ?? 0) + v; };
@@ -312,6 +335,7 @@ export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
   if (g.over) return { ok: false, why: '' };
+  if (modeOf(g).noUpg) return { ok: false, why: '강화 금지 모드예요.' };
   if (upgMaxed(g, gi)) return { ok: false, why: '이미 최대 단계(풀강)예요.' };
   if (g.gold < cost) return { ok: false, why: `새우가 모자라요(${cost} 필요).` };
   g.gold -= cost; g.upg[gi]++;
@@ -362,12 +386,13 @@ export function toggleGoal(g, out) {
 }
 
 // ── 외부탐사 ──
-export const missionOpen = (g) => g.missionDone < REGIONS.length;
+export const missionOpen = (g) => g.missionDone < REGIONS.length && !modeOf(g).noMission;
 function ensureMission(g) {
   if (!missionOpen(g)) return null;
   if (!g.mission || g.mission.k !== g.missionDone) {
     const gd = regionGuard(g.missionDone);
-    g.mission = { k: g.missionDone, hp: gd.hp, max: gd.hp, armor: gd.armor, mr: gd.mr, boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
+    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1));
+    g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: gd.armor, mr: gd.mr, boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
   }
   return g.mission;
 }
@@ -406,7 +431,9 @@ function hurt(g, e, raw, k, uid) {
     m = (100 / (100 + M)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   }
   if (k.holy && e.boss) m *= k.holy;
+  const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
+  if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
 }
 function debuff(g, e, k, uid = 0) {
   const now = g.t;
@@ -448,13 +475,14 @@ function attack(g, u, k) {
 function startWave(g) {
   if (g.wave >= RULES.waves) return;
   if (g.wave > 0) addWisps(g, { COMMON: RULES.wispPerWave });
-  g.wave++; g.waveT = 0;
+  g.wave++; g.waveT = 0; g.dmgWave = {};
   const wi = waveInfo(g.wave);
   g.spawnLeft = wi.boss ? 1 : RULES.perWave; g.spawnT = 0;
 }
 function spawn(g) {
   const wi = waveInfo(g.wave);
-  g.enemies.push({ id: g.nextId++, hp: wi.hp, max: wi.hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: wi.armor, mr: wi.mr,
+  const hp = wi.hp * (modeOf(g).hpMul ?? 1);
+  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: wi.armor, mr: wi.mr,
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
 }
 function rollWisp(g, skill) {

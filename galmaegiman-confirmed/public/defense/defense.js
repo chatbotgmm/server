@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=bbc20a49be66';
+import * as E from './engine.js?v=df1dc3b8f3a1';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -140,8 +140,15 @@ let G = null, scene = 'title', modal = null, speed = 1;
 let selected = [];   // 고른 갈매미 uid
 let toast = { msg: '', until: 0 };
 let lastNews = 0;
-let best = 0;
-try { best = Number(localStorage.getItem(BEST_KEY)) || 0; } catch { best = 0; }
+// 기기 저장(이어하기·같이하기 다시 접속·처음 안내). 막힌 브라우저에서도 게임은 진행
+const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* 저장 못 해도 진행 */ } }, del(k) { try { localStorage.removeItem(k); } catch { /* 진행 */ } } };
+const SAVE_KEY = 'gmm-defense-save', SAVE_META_KEY = 'gmm-defense-save-meta', ROOM_KEY = 'gmm-defense-room', ROOM_SAVE_KEY = 'gmm-defense-room-save', TUT_KEY = 'gmm-defense-tutorial';
+const bestKey = (mode) => (mode && mode !== 'normal' ? `${BEST_KEY}-${mode}` : BEST_KEY);
+const bestOf = (mode) => Number(ls.get(bestKey(mode))) || 0;
+const bestText = (b) => (b ? (b > E.RULES.waves ? '클리어' : `${b}웨이브`) : '아직 없음');
+let best = bestOf('normal');
+let resumeMeta = null;   // 이어할 판 {wave, mode}
+try { resumeMeta = JSON.parse(ls.get(SAVE_META_KEY) ?? 'null'); } catch { resumeMeta = null; }
 // ── 배경음악: 누르기(시작하기·♪) 뒤에만 재생(브라우저 자동 재생 막힘), 일시정지·다른 앱이면 멈춤 ──
 const music = { on: true, vol: 0.45, el: null };
 try { music.on = localStorage.getItem(MUSIC_KEY) !== 'off'; const v = Number(localStorage.getItem(VOLUME_KEY)); if (localStorage.getItem(VOLUME_KEY) !== null && v >= 0 && v <= 1) music.vol = v; } catch { /* 기본값 */ }
@@ -169,21 +176,42 @@ function musicSync() {   // 매 장면: 들어야 할 때만 재생
 const say = (msg) => { toast = { msg, until: performance.now() + 2400 }; };
 const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u && !u.away);
 
-function start(seed) {
-  G = seed === undefined ? E.newGame() : E.newGame(seed >>> 0); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0;
+function start(seed, mode = 'normal') {
+  G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
+  tut = !inRoom() && mode === 'normal' && !ls.get(TUT_KEY) ? { step: 0, n0: G.units.length, t: performance.now() } : null;
 }
+// ── 이어하기(사용자 요청 2026-11-08): 3초마다·화면을 떠날 때 판을 기기에 저장 ──
+function saveNow() {
+  if (scene !== 'play' || !G || G.over) return;
+  if (coop()) ls.set(ROOM_SAVE_KEY, JSON.stringify({ code: net.code, round: net.round, gs: net.giftSent, gr: net.giftRecv, save: E.saveGame(G) }));
+  else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
+}
+function clearSave() { ls.del(SAVE_KEY); ls.del(SAVE_META_KEY); resumeMeta = null; }
+function resume() {
+  const g = E.loadGame(ls.get(SAVE_KEY) ?? '');
+  if (!g) { clearSave(); say('이어할 판을 읽지 못했어요.'); return; }
+  G = g; scene = 'play'; speed = 1; selected = []; lastNews = 0; info = null; tut = null;
+  modal = { kind: 'pause' };   // 잠깐 멈춘 채로 시작(판을 살펴볼 수 있게)
+  musicPlay();
+}
+setInterval(saveNow, 3000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
+window.addEventListener('pagehide', saveNow);
 function musicButton(x, y) {
   button(x, y, 46, 40, '♪', () => { modal = { kind: 'sound' }; musicPlay(); }, 'normal');
   if (!music.on) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 12, y + 30); ctx.lineTo(x + 34, y + 10); ctx.stroke(); }
 }
-function saveBest() {
+function saveBest() {   // 모드마다 따로
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
-  if (w > best) { best = w; try { localStorage.setItem(BEST_KEY, String(best)); } catch { /* 저장 못 해도 진행 */ } }
+  if (w > bestOf(G.mode)) ls.set(bestKey(G.mode), String(w));
+  best = bestOf('normal');
+  if (coop()) ls.del(ROOM_SAVE_KEY); else if (!inRoom()) clearSave();   // 끝난 판은 이어하기에서 지움
 }
 
 // ── 입력 ──
 let down = null;
+let moveCount = 0;   // 끌어서 옮긴 횟수(처음 안내)
 function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) / scale, y: (ev.clientY - r.top) / scale }; }
 const inField = (p) => p.x >= FIELD.x && p.y >= FIELD.y && p.x < FIELD.x + FIELD.w && p.y < FIELD.y + FIELD.h;
 function unitAt(p) {   // 위에 그려진(나중) 것부터
@@ -192,7 +220,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -228,7 +256,7 @@ cv.addEventListener('pointerup', (ev) => {
       const dx = p.x - d.x0, dy = p.y - d.y0;
       let moved = 0;
       for (const u of group) if (E.moveUnit(G, u.uid, u.tx + dx, u.ty + dy, true)) moved++;
-      if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.');
+      if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
       if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
       return;
     }
@@ -259,7 +287,20 @@ window.addEventListener('keydown', (ev) => {
   if (ev.key === ' ' || ev.key === 'Escape') {
     if (info) info = null; else if (modal?.kind === 'pause') setPause(false); else if (modal) modal = null; else setPause(true);
     ev.preventDefault();
+    return;
   }
+  // PC 단축키(사용자 요청 2026-11-08): 1~5 위습 · U 강화 · M 외부탐사 · S 창고 · B 조합법 · P 선택위습 · D 피해 순위 · L 위치 고정
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || modal?.kind === 'pause') return;
+  const k = ev.key.toLowerCase(), wi = '12345'.indexOf(ev.key);
+  if (wi >= 0) { doSummon(E.WISP_GRADES[wi]); return; }
+  const open = (kind, extra = {}) => { modal = modal?.kind === kind ? null : { kind, ...extra }; info = null; };
+  if (k === 'u') open('upgrade');
+  else if (k === 'm') open('mission');
+  else if (k === 's') open('storage', { scroll: 0, scrollable: true });
+  else if (k === 'b') { if (modal?.kind === 'book') modal = null; else openBook(); }
+  else if (k === 'p') open('pick', { grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' });
+  else if (k === 'd') open('meter', { scroll: 0, scrollable: true });
+  else if (k === 'l') { const sel = selUnits(); if (sel.length) { const on = !sel.every((u) => u.lock); E.setLock(G, sel.map((u) => u.uid), on); say(on ? `${sel.length}마리 위치 고정` : `${sel.length}마리 고정 풀기`); } }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) setPause(true); });
 
@@ -409,8 +450,14 @@ function drawHud() {
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
   text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
   chip(KIND_NAME[wi.kind], 150, 17, wi.boss ? '#ff8a7a' : wi.kind === '갑옷' ? C.phys : wi.kind === '결계' ? C.mag : C.muted, 13);
-  if (wi.boss) text(G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${left}초 안에 잡기`, 20, 58, 15, G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8');
-  else text(`다음 웨이브 ${left}초`, 20, 58, 15, C.muted);
+  const line2 = wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${left}초 안에 잡기`) : `다음 웨이브 ${left}초`;
+  text(line2, 20, 58, 15, wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
+  if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
+    const nx = E.waveInfo(G.wave + 1);
+    ctx.font = `15px ${FONT}`;
+    const lx = 20 + ctx.measureText(line2).width + 10;
+    fitText(`▸ 다음 ${nx.boss ? '보스!' : KIND_NAME[nx.kind]}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.kind === '갑옷' ? C.phys : nx.kind === '결계' ? C.mag : C.muted);
+  }
   // 적 수·경고
   const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
   text(`적 ${n}/${lim}`, 20, 82, 14, n > lim ? C.bad : C.text);
@@ -421,6 +468,7 @@ function drawHud() {
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, 340, 64, 22, 22);
   text(`${G.gold}`, 366, 76, 16, C.goldEdge);
+  button(W - 216, 12, 46, 40, '피해', () => { modal = modal?.kind === 'meter' ? null : { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal');
   musicButton(W - 164, 12);
   button(W - 112, 12, 46, 40, 'Ⅱ', () => setPause(true), 'normal');
   button(W - 60, 12, 46, 40, `×${speed}`, () => setSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1), 'normal');
@@ -461,11 +509,13 @@ function drawMainPanel(y0) {
   const canUp = G.upg.some((_, gi) => !E.upgMaxed(G, gi) && G.gold >= E.upgradeCost(G, gi));
   button(22 + (b4 + 6), by, b4, 58, '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
-  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
+  const msub = E.modeOf(G).noMission ? '금지 모드' : G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
   button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
   const st = E.storedUnits(G).length;
   button(22 + 3 * (b4 + 6), by, b4, 58, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`);
-  button(22 + 4 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
+  const rc = readyCount();
+  button(22 + 4 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), rc ? 'primary' : 'normal', true, rc ? `조합 가능 ${rc}` : `${E.RECIPES.length}개`, rc ? '#1f5a3c' : null);
+  if (rc) { const bx2 = 22 + 4 * (b4 + 6) + b4 - 4, by2 = by + 4; ctx.beginPath(); ctx.arc(bx2, by2, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(rc), bx2, by2 + 0.5, 13, '#fff', 'center'); }
   // 조합 목표
   const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
   for (let k = 0; k < E.GOAL_MAX; k++) {
@@ -478,7 +528,14 @@ function drawMainPanel(y0) {
     text(ready ? '조합 가능!' : `재료 ${have(r, cnt)}/${r.in.length}`, x + 46, gy + 36, 13, ready ? C.good : C.muted);
     hit(x, gy, gw, 50, () => { if (ready) { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${E.UNIT[gid].name} 완성!`); } } else showInfo(gid); });
   }
-  fitText('끌기=옮기기 · 누르기=고르기 · 빈 곳 끌기=여러 마리 고르기', 22, H - 26, W - 44, 14, C.muted);
+  fitText(landscape ? '단축키  1~5 위습 · U 강화 · M 탐사 · S 창고 · B 조합법 · P 선택 · D 피해 · L 고정' : '끌기=옮기기 · 누르기=고르기 · 빈 곳 끌기=여러 마리 고르기', 22, H - 26, W - 44, 14, C.muted);
+}
+// 지금 조합할 수 있는 조합법 수(0.5초마다 다시 셈)
+let readyCache = { t: 0, n: 0, g: null };
+function readyCount() {
+  const now = performance.now();
+  if (readyCache.g !== G || now - readyCache.t > 500) readyCache = { t: now, g: G, n: E.RECIPES.filter((r) => E.recipeUnits(G, r)).length };
+  return readyCache.n;
 }
 function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; n++; } return n; }
 function drawUnitPanel(y0, u) {
@@ -599,6 +656,7 @@ function drawMission() {
   text('외부탐사', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   fitText(coop() ? '같이하기: 친구와 같은 대장을 함께 쳐요. 둘의 피해가 합쳐지고, 깨면 둘 다 보상을 받아요.' : '앞 장을 끝내면 다음 장이 열려요 · 보낸 동안은 수비에서 빠져요 · ★탐사 특기 갈매미는 피해 ×3~6', x + 18, y + 64, w - 36, 13, coop() ? C.gold : C.muted);
+  if (E.modeOf(G).noMission) { text('외부탐사 금지 모드예요', W / 2, y + 200, 20, C.bad, 'center'); fitText('이 모드에서는 스토리를 보낼 수 없어요. 판 수비만으로 버텨 보세요.', W / 2, y + 236, w - 40, 14, C.muted, 'center'); return; }
   // 지역 목록
   const ly = y + 84;
   E.REGIONS.forEach((r, k) => {
@@ -682,9 +740,9 @@ function drawPause() {
   const x = 60, y = 300, w = W - 120, h = 320;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('잠시 멈춤', W / 2, y + 44, 24, C.text, 'center');
-  text(`웨이브 ${G.wave} · 처치 ${G.kills} · 경고 ${G.warn}`, W / 2, y + 84, 15, C.muted, 'center');
+  text(`${G.mode !== 'normal' ? `[${E.modeOf(G).name}] ` : ''}웨이브 ${G.wave} · 처치 ${G.kills} · 경고 ${G.warn}`, W / 2, y + 84, 15, C.muted, 'center');
   button(x + 30, y + 118, w - 60, 56, '계속하기', () => { modal = null; }, 'primary');
-  button(x + 30, y + 186, w - 60, 48, '처음부터 다시', () => start(), 'normal');
+  button(x + 30, y + 186, w - 60, 48, '처음부터 다시', () => start(undefined, G.mode), 'normal');
   button(x + 30, y + 244, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
 function drawOver() {
@@ -696,8 +754,8 @@ function drawOver() {
   ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
   text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
   fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
-  text(`최고 기록 ${best > E.RULES.waves ? '클리어' : `${best}웨이브`}`, W / 2, y + 226, 15, C.gold, 'center');
-  button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(), 'primary');
+  text(`${G.mode !== 'normal' ? `[${E.modeOf(G).name}] ` : ''}최고 기록 ${bestText(bestOf(G.mode))}`, W / 2, y + 226, 15, C.gold, 'center');
+  button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(undefined, G.mode), 'primary');
   button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
 function drawOverCoop() {
@@ -715,7 +773,7 @@ function drawOverCoop() {
     button(x + 30, y + 276, w - 60, 62, '같이 다시 하기', () => sendCtl({ start: true }), 'primary', ok, ok ? '둘이 함께 새 판을 시작해요' : '친구 판이 끝나면 누를 수 있어요');
   } else fitText('방장이 「같이 다시 하기」를 누르면 함께 시작해요', W / 2, y + 307, w - 40, 15, C.muted, 'center');
   button(x + 30, y + 352, w - 60, 48, '방 나가기', () => leaveRoom(), 'quiet');
-  text(`최고 기록 ${best > E.RULES.waves ? '클리어' : `${best}웨이브`}`, W / 2, y + 432, 15, C.gold, 'center');
+  text(`최고 기록 ${bestText(best)}`, W / 2, y + 432, 15, C.gold, 'center');
 }
 function drawTitleBack() {   // 화면 전체 너비
   drawBackground();
@@ -738,10 +796,13 @@ function drawTitle() {
   ].forEach((l, k) => fitText(l, 44, 520 + k * 36, W - 88, 16, C.text));
   box(28, 734, W - 56, 44, 'rgba(243,216,158,.12)', C.gold, 10, 1.5);
   fitText(`♪ 게임 속 배경음악이 나와요. 오른쪽 위 ♪에서 음량을 조절하세요${music.on ? '' : ' (지금 꺼짐)'}`, W / 2, 756, W - 80, 14, C.goldEdge, 'center');
-  text(`최고 기록: ${best ? (best > E.RULES.waves ? '클리어' : `${best}웨이브`) : '아직 없음'}`, W / 2, 808, 16, C.gold, 'center');
+  const half = (W - 92) / 2;
+  button(40, 786, half, 40, '도전 모드', () => { modal = { kind: 'modes' }; }, 'normal');
+  if (resumeMeta) button(52 + half, 786, half, 40, `이어하기 · ${resumeMeta.wave}웨이브${resumeMeta.mode && resumeMeta.mode !== 'normal' ? ` (${E.MODES[resumeMeta.mode]?.name ?? ''})` : ''}`, resume, 'primary');
+  else button(52 + half, 786, half, 40, '이어할 판 없음', () => {}, 'normal', false);
   button(40, 834, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, 834, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
-  fitText('로그인 없이 하는 미니 게임 · 기록은 이 기기에만 남아요', W / 2, 930, W - 40, 14, C.muted, 'center');
+  fitText(`최고 기록 ${bestText(best)} · 로그인 없이 하는 미니 게임 · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
   musicButton(W - 62, 14);
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
@@ -819,6 +880,23 @@ function drawStorage() {
   hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));
   if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
   button(x + 18, y + h - 52, w - 36, 42, '모두 꺼내기', () => { const n = E.unstore(G, list.map((u) => u.uid)); say(`${n}마리를 꺼냈어요.`); }, 'normal', list.length > 0);
+}
+// 도전 모드 고르기(첫 화면)
+function drawModes() {
+  shadeAll();
+  const x = 28, y = 170, w = W - 56, keys = Object.keys(E.MODES), h = 120 + keys.length * 104;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('도전 모드', x + 20, y + 34, 24, C.text);
+  button(x + w - 96, y + 14, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText('규칙을 바꿔 도전해요 · 최고 기록은 모드마다 따로 남아요', x + 20, y + 72, w - 40, 14, C.muted);
+  keys.forEach((k, i) => {
+    const m = E.MODES[k], yy = y + 96 + i * 104;
+    box(x + 14, yy, w - 28, 92, 'rgba(11,30,42,.85)', k === 'normal' ? C.edge : C.gold, 10, 1.5);
+    text(m.name, x + 30, yy + 26, 19, k === 'normal' ? C.text : C.goldEdge);
+    fitText(m.desc, x + 30, yy + 54, w - 200, 14, C.muted);
+    fitText(`최고 기록 ${bestText(bestOf(k))}`, x + 30, yy + 76, w - 200, 13, C.gold);
+    button(x + w - 28 - 110, yy + 20, 110, 52, '시작', () => start(undefined, k), 'primary');
+  });
 }
 function drawSound() {
   shadeAll();
@@ -954,6 +1032,69 @@ function drawInfo() {
     button(x + 26 + bw, y + h - 76, bw, 56, '조합', () => { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
   }
 }
+// 피해 순위표(사용자 요청 2026-11-08): 갈매미마다 이번 판·이번 웨이브에 준 피해(외부탐사 대장 포함)
+const fmtN = (n) => (n >= 1e8 ? `${(n / 1e8).toFixed(1)}억` : n >= 1e4 ? `${(n / 1e4).toFixed(1)}만` : `${Math.round(n)}`);
+function drawMeter() {
+  shadeAll(0.3);
+  const x = 14, y = 100, w = W - 28, h = H - 108;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('피해 순위', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  const rows = G.units.map((u) => ({ u, d: G.dmg?.[u.uid] ?? 0, dw: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d);
+  const total = rows.reduce((a, r) => a + r.d, 0), top = rows[0]?.d ?? 1;
+  fitText(`이번 판 전체 ${fmtN(total)} · 외부탐사 대장 피해 포함 · 판매한 갈매미는 빠져요 · 게임은 계속 흘러요`, x + 18, y + 62, w - 36, 12, C.muted);
+  const lt = y + 80, viewH = h - 90, rowH = 54;
+  modal.maxScroll = Math.max(0, rows.length * rowH - viewH);
+  if (!rows.length) fitText('아직 피해를 준 갈매미가 없어요.', W / 2, lt + 60, w - 40, 15, C.muted, 'center');
+  ctx.save(); rr(x + 6, lt, w - 12, viewH, 8); ctx.clip();
+  rows.forEach((r, i) => {
+    const yy = lt + i * rowH - modal.scroll;
+    if (yy + rowH < lt || yy > lt + viewH) return;
+    const info2 = E.UNIT[r.u.id], col = GRADE_COLOR[info2.grade];
+    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(11,30,42,.85)', i < 3 ? C.goldEdge : 'rgba(145,122,76,.35)', 8, i < 3 ? 2 : 1);
+    text(`${i + 1}`, x + 30, yy + rowH / 2, 15, i < 3 ? C.goldEdge : C.muted, 'center');
+    drawFit(unitImg(r.u.id), x + 42, yy + 6, 40, rowH - 12);
+    fitText(`${info2.name}${r.u.away ? ' (탐사)' : r.u.stored ? ' (창고)' : ''}`, x + 88, yy + 18, 150, 15, col);
+    const bx = x + 88, bw = w - 24 - 88 - 110;
+    box(bx, yy + 31, bw, 9, 'rgba(0,0,0,.45)', null, 4);
+    box(bx, yy + 31, bw * r.d / top, 9, col, null, 4);
+    fitText(`${fmtN(r.d)} · ${Math.round(100 * r.d / total)}%`, x + w - 22, yy + 18, 104, 14, C.text, 'right');
+    fitText(`이번 웨이브 ${fmtN(r.dw)}`, x + w - 22, yy + 37, 104, 12, C.muted, 'right');
+  });
+  ctx.restore();
+}
+// ── 처음 하는 사람 안내(사용자 요청 2026-11-08): 첫 판에서만, 위습 부르기 → 끌어 옮기기 → 조합법 → 설명 ──
+let tut = null;
+function tutDone() { tut = null; ls.set(TUT_KEY, '1'); }
+function drawTutorial() {
+  const now = performance.now();
+  if (tut.step === 0 && G.units.length > tut.n0) { tut.step = 1; tut.mv = moveCount; }
+  if (tut.step === 1 && moveCount > tut.mv) tut.step = 2;
+  if (tut.step === 2 && modal?.kind === 'book') { tut.step = 3; tut.t = now; }
+  if (tut.step === 3 && (info || now - tut.t > 9000)) { tutDone(); return; }
+  if (info || (modal && !(tut.step === 3 && modal.kind === 'book'))) return;   // 다른 창을 가리지 않게(조합법 단계만 창 위에)
+  const b5 = (W - 44 - 4 * 6) / 5, b4 = (W - 44 - 24) / 5, newest = E.fieldUnits(G).slice(-1)[0];
+  const steps = [
+    { msg: '① 커먼 위습을 눌러 갈매미를 불러 보세요', tx: 22 + b5 / 2, ty: 672 + 32, by: 560 },
+    { msg: '② 갈매미를 끌어서 길(적이 지나가는 곳) 옆으로 옮겨 보세요', tx: newest?.x ?? W / 2, ty: (newest?.y ?? 400) - 56, by: (newest?.y ?? 400) > 400 ? 150 : 470 },
+    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + 4 * (b4 + 6) + b4 / 2, ty: 772, by: 640 },
+    { msg: '④ 조합법 줄을 누르면 설명과 재료 나무가 나와요. 이제 직접 해 보세요!', tx: null, ty: null, by: H - 96 },
+  ];
+  const st = steps[tut.step], bw = W - 60, bh = 74, bx = 30;
+  let by = st.by;
+  ctx.save();
+  if (tut.step === 3 && landscape) { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+  box(bx, by, bw, bh, 'rgba(19,44,59,.97)', C.goldEdge, 12, 2);
+  ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 6, bw - 120, bh - 12); ctx.clip(); wrap(st.msg, bx + 14, by + 12, bw - 130, 15, C.text, 22); ctx.restore();
+  button(bx + bw - 100, by + 18, 88, 38, '안내 끄기', tutDone, 'quiet');
+  if (st.tx != null) {   // 가리키는 화살표
+    const ay = st.ty > by ? by + bh : by, dir = st.ty > by ? 1 : -1, ax = Math.max(bx + 20, Math.min(bx + bw - 20, st.tx));
+    const bob = Math.sin(now / 220) * 4;
+    ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(st.tx, st.ty - dir * (10 - bob)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(st.tx, st.ty + dir * bob); ctx.lineTo(st.tx - 9, st.ty - dir * (14 - bob)); ctx.lineTo(st.tx + 9, st.ty - dir * (14 - bob)); ctx.closePath(); ctx.fillStyle = C.goldEdge; ctx.fill();
+  }
+  ctx.restore(); OX = 0;
+}
 function drawModal() {
   if (modal?.kind === 'book') drawBook();
   else if (modal?.kind === 'mission') drawMission();
@@ -964,6 +1105,7 @@ function drawModal() {
   else if (modal?.kind === 'pause') drawPause();
   else if (modal?.kind === 'over') drawOver();
   else if (modal?.kind === 'peer') drawPeerModal();
+  else if (modal?.kind === 'meter') drawMeter();
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
 // 각자 자기 판을 하고, 0.25초마다 자기 판 모습(짧은 상태 글)을 서버(/defense/room)에 보내며 친구 판 모습을 받아 그린다.
@@ -981,12 +1123,12 @@ async function roomApi(path, body) {
   return j;
 }
 function resetNet() {
-  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, err: '' });
+  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, err: '', giftSent: 0, giftRecv: 0 });
 }
 async function makeRoom() {
   if (lobby.wait) return;
   lobby.wait = true; lobby.msg = ''; lobby.note = '';
-  try { const j = await roomApi('', {}); resetNet(); Object.assign(net, { code: j.code, token: j.token, seat: 0 }); lobby.mode = 'host'; netTick(); }
+  try { const j = await roomApi('', {}); resetNet(); Object.assign(net, { code: j.code, token: j.token, seat: 0 }); saveRoom(); lobby.mode = 'host'; netTick(); }
   catch (e) { lobby.msg = e.message; }
   finally { lobby.wait = false; }
 }
@@ -994,7 +1136,7 @@ async function joinRoom(code) {
   if (lobby.wait) return;
   if (!/^[0-9]{6}$/.test(code)) { lobby.msg = '코드는 숫자 6자리예요.'; return; }
   lobby.wait = true; lobby.msg = ''; lobby.note = '';
-  try { const j = await roomApi('/join', { code }); resetNet(); Object.assign(net, { code: j.code, token: j.token, seat: 1 }); lobby.mode = 'guest'; netTick(); }
+  try { const j = await roomApi('/join', { code }); resetNet(); Object.assign(net, { code: j.code, token: j.token, seat: 1 }); saveRoom(); lobby.mode = 'guest'; netTick(); }
   catch (e) { lobby.msg = e.message; }
   finally { lobby.wait = false; }
 }
@@ -1003,18 +1145,43 @@ function typeDigit(d) {
   lobby.input += d; lobby.msg = '';
   if (lobby.input.length === 6) joinRoom(lobby.input);   // 6자리를 다 누르면 바로 들어가기
 }
+// 다시 접속(사용자 요청 2026-11-08): 방 열쇠와 같이하기 판을 기기에 두고, 새로고침해도 같은 자리·같은 판으로 돌아온다
+function saveRoom() { ls.set(ROOM_KEY, JSON.stringify({ code: net.code, token: net.token, seat: net.seat })); }
+function forgetRoom() { ls.del(ROOM_KEY); ls.del(ROOM_SAVE_KEY); }
+async function tryRejoin() {
+  let c = null;
+  try { c = JSON.parse(ls.get(ROOM_KEY) ?? 'null'); } catch { c = null; }
+  if (!c?.code || !c?.token) return false;
+  try {
+    const j = await roomApi('/sync', { code: c.code, token: c.token });
+    resetNet(); Object.assign(net, { code: c.code, token: c.token, seat: c.seat });
+    const round = num(j.ctl?.round);
+    let sv = null;
+    try { sv = JSON.parse(ls.get(ROOM_SAVE_KEY) ?? 'null'); } catch { sv = null; }
+    const g = round > 0 && sv && sv.code === c.code && sv.round === round ? E.loadGame(sv.save) : null;
+    if (g) { G = g; net.round = round; net.giftSent = num(sv.gs); net.giftRecv = num(sv.gr); scene = 'play'; modal = null; selected = []; info = null; say('같이하기 판으로 돌아왔어요.'); }
+    else if (round > 0) say('같이하기 판 기록이 없어 새 판으로 시작해요.');
+    else { scene = 'lobby'; lobby.mode = c.seat === 0 ? 'host' : 'guest'; }
+    onSync(j);
+    return true;
+  } catch (e) { if (e.status === 404) forgetRoom(); return false; }
+}
 function leaveRoom(toTitle = true) {
   if (net.token) fetch('/defense/room/leave', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: net.code, token: net.token }), keepalive: true }).catch(() => {});
-  resetNet();
+  resetNet(); forgetRoom();
   if (toTitle) { scene = 'title'; modal = null; G = null; lobby.mode = 'menu'; lobby.input = ''; lobby.msg = ''; lobby.note = ''; }
 }
-window.addEventListener('pagehide', () => { if (net.token) leaveRoom(false); });
+// 화면을 닫아도 방에서 바로 나가지 않는다(새로고침하면 다시 접속). 8초 넘게 소식이 없으면 친구 화면에 「연결 끊김」
 function roomGone() {   // 방이 닫힘(방장이 나갔거나 오래 비어 있었음)
   const wasPlaying = coop() && scene === 'play' && G && !G.over;
-  resetNet();
+  resetNet(); forgetRoom();
   if (scene === 'lobby') { lobby.mode = 'menu'; lobby.msg = '방이 닫혔어요. 새 방을 만들거나 코드를 다시 입력해 주세요.'; }
   else if (wasPlaying) { if (modal?.kind === 'pause') modal = null; say('친구 방이 닫혀 혼자 계속해요.'); }
 }
+// 새우 보내기(사용자 요청 2026-11-08): 보낸 합계를 내 판 모습에 실어 보내고, 친구 화면이 늘어난 만큼 받는다
+const GIFT = 50;
+const canGift = () => coop() && G && !G.over && G.gold >= GIFT && net.peerOn && net.peer && !net.peer.ov;
+function sendGift() { if (!canGift()) return; G.gold -= GIFT; net.giftSent += GIFT; say(`친구에게 새우 ${GIFT}을(를) 보냈어요.`); netTick(); }
 function sendCtl(c) { net.pend = { ...(net.pend ?? {}), ...c }; netTick(); }
 function setPause(on) {
   if (!G || G.over) return;
@@ -1027,7 +1194,7 @@ function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
     r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
-    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
+    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
   });
@@ -1062,13 +1229,17 @@ function onSync(j) {
     if (s && typeof s === 'object' && s.r === net.round) {   // 지난 판 모습은 버림
       net.prev = net.peer; net.prevAt = net.peerAt; net.peer = s; net.peerAt = performance.now();
       net.prevMap = new Map((Array.isArray(net.prev?.e) ? net.prev.e : []).filter(Array.isArray).map((e) => [e[0], e]));
-      if (G && scene === 'play') E.setPeerMission(G, s.mdg);   // 외부탐사를 둘이서 같이
+      if (G && scene === 'play') {
+        E.setPeerMission(G, s.mdg);   // 외부탐사를 둘이서 같이
+        const gift = Math.min(1e7, num(s.gs) - net.giftRecv);   // 친구가 보낸 새우(보낸 합계가 늘어난 만큼)
+        if (gift > 0) { net.giftRecv += gift; if (!G.over) { G.gold += gift; say(`친구가 새우 ${gift}을(를) 보냈어요!`); } }
+      }
     }
   }
 }
 function applyCtl(c) {
   if (num(c.round) > net.round) {   // 방장이 시작함: 둘이 같은 씨앗으로 새 판
-    net.round = num(c.round); net.peer = net.prev = net.prevMap = null; net.peerRaw = '';
+    net.round = num(c.round); net.peer = net.prev = net.prevMap = null; net.peerRaw = ''; net.giftSent = 0; net.giftRecv = 0;
     start(num(c.seed)); lobby.mode = net.seat === 0 ? 'host' : 'guest';
   }
   if (!coop() || scene !== 'play' || !G) return;
@@ -1188,7 +1359,7 @@ function chipRow(items, x, y, maxX, size = 14) {   // 넘치면 다음 줄
   return cy + size + 8;
 }
 // 친구 판 전체(가로 화면 오른쪽 창·크게 보기): 위 정보 줄 + 판 + 친구 상황
-function drawPeerFull() {
+function drawPeerFull(withButtons = false) {
   const P = net.peer, [stText, stCol] = peerState();
   box(8, 6, W - 16, 88, C.header, C.edge, 10);
   chip('친구 판', 20, 15, C.goldEdge, 14);
@@ -1221,6 +1392,7 @@ function drawPeerFull() {
     chipRow(E.UPG_NAME.map((nm, gi) => [`${nm} ${num(up[gi])}`, num(up[gi]) >= E.RULES.upgMax ? C.goldEdge : C.muted]), 22, gy + 24, W - 22, 13);
   }
   fitText('친구 판은 보기만 해요 · 0.25초마다 새로 받아요', 22, H - 24, W - 44, 13, C.muted);
+  if (withButtons) button(W - 22 - 150, 672 + 8, 150, 40, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift());
 }
 // 가로 화면에서 창을 연 동안: 오른쪽 위에 친구 소식 한 줄
 function drawPeerBar() {
@@ -1253,7 +1425,9 @@ function drawPeerStrip() {
     fitText(`경고 ${num(P.wn)}/${E.RULES.warnMax} · 새우 ${num(P.g)}`, tx, y0 + 103, tw, 14, num(P.wn) ? C.bad : C.muted);
     fitText(`처치 ${num(P.k)} · 탐사 ${num(P.md)}곳 · 창고 ${num(P.st)}`, tx, y0 + 126, tw, 13, C.muted);
   }
-  button(tx, y0 + PEER_H - 62, tw, 44, '친구 판 크게 보기', () => { modal = { kind: 'peer' }; }, 'normal');
+  const hw = (tw - 6) / 2;
+  button(tx, y0 + PEER_H - 62, hw, 44, '크게 보기', () => { modal = { kind: 'peer' }; }, 'normal');
+  button(tx + hw + 6, y0 + PEER_H - 62, hw, 44, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift());
 }
 // 세로 화면 크게 보기(게임은 계속 흐름)
 function drawPeerModal() {
@@ -1285,7 +1459,7 @@ function frame(now) {
     drawTitleBack();
     const tx = (VW - W) / 2;   // 가로 배치면 가운데
     ctx.save(); ctx.translate(tx, 0); OX = tx;
-    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); } else drawLobby();
+    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); } else drawLobby();
     ctx.restore(); OX = 0;
   } else {
     drawBackground(); drawField(); drawHud(); drawBottom();
@@ -1293,13 +1467,14 @@ function frame(now) {
       ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
       if (modal && modal.kind !== 'peer') { drawModal(); if (coop()) drawPeerBar(); }
       else if (coop()) {
-        drawPeerFull();
+        drawPeerFull(true);
         if (modal?.kind === 'peer') button(W - 150, 684, 128, 44, '내 결과 보기', () => { modal = null; }, 'primary');
       } else drawSideEmpty();
       if (info) drawInfo();   // 닫기를 누르면 오른쪽 창도 비어야 함(사용자 요청 2026-11-08: 전에는 조합법이 늘 떠 있어 닫히지 않는 것처럼 보였음)
       ctx.restore(); OX = 0;
     } else { if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); }
   }
+  if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (performance.now() < toast.until && toast.msg) {
     ctx.font = `15px ${FONT}`;
     const tw = Math.min(W - 40, ctx.measureText(toast.msg).width + 32);
@@ -1311,7 +1486,8 @@ function frame(now) {
 // /defense?room=123456 으로 열면 그 방에 바로 들어간다(방장이 보낸 링크)
 {
   const q = new URLSearchParams(location.search).get('room');
-  if (q && /^[0-9]{6}$/.test(q)) { scene = 'lobby'; lobby.mode = 'enter'; lobby.input = q; joinRoom(q); try { history.replaceState(null, '', '/defense'); } catch { /* 주소 정리 못 해도 진행 */ } }
+  if (q && /^[0-9]{6}$/.test(q)) { forgetRoom(); scene = 'lobby'; lobby.mode = 'enter'; lobby.input = q; joinRoom(q); try { history.replaceState(null, '', '/defense'); } catch { /* 주소 정리 못 해도 진행 */ } }
+  else tryRejoin();
 }
 (async () => {
   try { await Promise.race([document.fonts.load('20px "Workbench"', '갈매미'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* 기본 글꼴 */ }
