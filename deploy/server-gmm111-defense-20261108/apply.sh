@@ -8,7 +8,7 @@ umask 077
 [ "$(id -u)" = 0 ] || { echo 'sudo bash 로 실행해 주세요.'; exit 1; }
 NAME=gmm111-defense-20261108
 BUNDLE=galmaegiman-server-patch-$NAME.tar.gz
-BUNDLE_SHA=fffb60b3c43fd9d070dff0e13e9f47e985fbd726df0b140288071604f8beed71
+BUNDLE_SHA=efc4963153caa6783dc1edc062d7657a36a9ab0edc664c274a8865450390d83d
 OLD_EXPECT=/home/ubuntu/gmm-releases/gmm111-gmkakao-20261107/galmaegiman-confirmed
 REL_NEW=/home/ubuntu/gmm-releases/$NAME
 NEW=$REL_NEW/galmaegiman-confirmed
