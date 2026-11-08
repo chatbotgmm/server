@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=798d7c00a03d';
+import * as E from './engine.js?v=e8a2de37a33f';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -555,7 +555,7 @@ function drawMainPanel(y0) {
   for (let k = 0; k < E.GOAL_MAX; k++) {
     const x = 22 + k * (gw + 6), gid = G.goals[k];
     if (!gid) { box(x, gy, gw, 50, 'rgba(11,30,42,.4)', 'rgba(145,122,76,.35)', 8, 1); text(k === 0 ? '조합 목표 ☆' : '비어 있음', x + gw / 2, gy + 25, 14, '#6f7f88', 'center'); hit(x, gy, gw, 50, () => openBook()); continue; }
-    const r = E.recipeFor(gid), ready = !!E.recipeUnits(G, r);
+    const r = E.recipeFor(gid), ready = canMake(r);
     box(x, gy, gw, 50, 'rgba(11,30,42,.85)', GOAL_COLOR[k], 8, 2.5);
     drawFit(unitImg(gid), x + 3, gy + 3, 40, 44);
     fitText(E.UNIT[gid].name, x + 46, gy + 16, gw - 50, 15, C.text);
@@ -568,9 +568,11 @@ function drawMainPanel(y0) {
 let readyCache = { t: 0, n: 0, g: null };
 function readyCount() {
   const now = performance.now();
-  if (readyCache.g !== G || now - readyCache.t > 500) readyCache = { t: now, g: G, n: E.RECIPES.filter((r) => E.recipeUnits(G, r)).length };
+  if (readyCache.g !== G || now - readyCache.t > 500) readyCache = { t: now, g: G, n: E.RECIPES.filter((r) => canMake(r)).length };
   return readyCache.n;
 }
+// 조합할 수 있는가: 재료가 있고, 상위(제한~영원)면 2마리 제한에 걸리지 않을 때(사용자 요청 2026-11-08)
+const canMake = (r, keep = 0) => !!E.recipeUnits(G, r, keep) && !E.topBlocked(G, r);
 function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; n++; } return n; }
 function drawUnitPanel(y0, u) {
   const info = E.UNIT[u.id], k = E.kit(u.id);
@@ -585,7 +587,7 @@ function drawUnitPanel(y0, u) {
   fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
-  const list = E.recipesUsing(u.id).map((r) => ({ r, ok: !!E.recipeUnits(G, r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
+  const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
   list.slice(0, 2).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
@@ -645,7 +647,8 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   }
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
-  button(bx + 46, y + 5, 58, h - 10, '조합', () => { const nu = E.combine(G, r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
+  const capped = E.topBlocked(G, r);
+  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = E.combine(G, r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
 }
 
 // ── 모달 ──
@@ -657,10 +660,10 @@ function drawBook() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('☆ 목표 = 판의 재료 갈매미에 같은 색 테두리', x + 18, y + 64, w - 36, 14, C.muted);
+  fitText(`☆ 목표 = 판의 재료 갈매미에 같은 색 테두리 · 상위(제한~영원) ${E.topCount(G)}/${E.RULES.topCap}마리`, x + 18, y + 64, w - 36, 14, E.topCount(G) >= E.RULES.topCap ? C.goldEdge : C.muted);
   const top = y + 82, viewH = h - 92, cnt = E.countOnField(G);
   let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
-  rows = rows.map((r) => ({ r, ok: !!E.recipeUnits(G, r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
+  rows = rows.map((r) => ({ r, ok: canMake(r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
   const items = [];
   let lastG = '';
   for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
@@ -1081,15 +1084,17 @@ function drawInfo() {
     const base = {};
     const walk = (n) => { if (!n.have && !n.kids.length && !n.top) base[n.id] = (base[n.id] ?? 0) + 1; n.kids.forEach(walk); };
     walk(needTree(id, E.countOnField(G)));
-    const ready = !!E.recipeUnits(G, r), miss = Object.entries(base).map(([b, n]) => `${E.UNIT[b].name}×${n}`).join(' · ');
+    const ready = canMake(r), miss = Object.entries(base).map(([b, n]) => `${E.UNIT[b].name}×${n}`).join(' · ');
     box(x + 12, y + h - 132, w - 24, 50, 'rgba(243,216,158,.08)', 'rgba(243,216,158,.3)', 8, 1);
     ctx.save(); ctx.beginPath(); ctx.rect(x + 12, y + h - 132, w - 24, 50); ctx.clip();
     if (ready) fitText('재료가 모두 있어요! 바로 조합할 수 있어요.', W / 2, y + h - 107, w - 40, 15, C.good, 'center');
+    else if (E.topBlocked(G, r) && E.recipeUnits(G, r)) fitText(`재료는 모두 있지만 상위(제한~영원)는 ${E.RULES.topCap}마리까지예요. 하나를 팔거나 재료로 쓰면 만들 수 있어요.`, W / 2, y + h - 107, w - 40, 13, C.bad, 'center');
     else if (miss) wrap(`더 필요한 기본 재료(위습으로 소환): ${miss}`, x + 22, y + h - 127, w - 44, 13, C.goldEdge, 19);
     else fitText('하위 재료는 다 있어요. 아래 단부터 조합해 올라가세요.', W / 2, y + h - 107, w - 40, 14, C.goldEdge, 'center');
     ctx.restore();
     const gi = G.goals.indexOf(id), bw = (w - 40) / 2;
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
+    if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
     button(x + 26 + bw, y + h - 76, bw, 56, '조합', () => { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
   }
 }
