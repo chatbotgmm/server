@@ -66,11 +66,9 @@ export const REGIONS = [
   { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 }, pick: { EPIC: 1 }, gold: 9000 },
 ];
 
-// 위습 찾기 재주: 상위 갈매미만(사용자 요청 2026-11-08). 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만)
-// 황금 계열의 상위: 거장(전설) · 금각(히든) · 가루다(초월) · 리치(불멸) · 여명(영원)
+// 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
+// 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만). 지금: 가루다(초월) · 리치(불멸) · 여명(영원)
 export const WISP_SKILL = {
-  u33: { p: 0.06, table: { RARE: 0.5, EPIC: 0.4, LEGEND: 0.1 } },
-  u43: { p: 0.07, table: { RARE: 0.4, EPIC: 0.45, LEGEND: 0.15 } },
   u49: { p: 0.07, table: { EPIC: 0.75, LEGEND: 0.25 } },
   u56: { p: 0.08, table: { EPIC: 0.65, LEGEND: 0.35 } },
   u57: { p: 0.08, table: { EPIC: 0.5, LEGEND: 0.5 } },

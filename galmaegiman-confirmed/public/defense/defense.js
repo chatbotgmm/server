@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=c7bc4a7df656';
+import * as E from './engine.js?v=2ed0568e5330';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -839,17 +839,63 @@ function drawSideEmpty() {
 // ── 갈매미 간단 설명(사용자 요청 2026-11-08): 조합법 줄·재료·목표 칸·고른 갈매미 그림을 누르면 뜸, 게임은 계속 흐름 ──
 // 유틸(이속감소·스턴·방깍 …)과 「지금 필요한 하위 재료」를 피라미드(위=만들 것, 아래로 재료)로 한 번에 보여 준다
 let info = null;
-function showInfo(id) { if (E.UNIT[id]) info = { id }; }
-function infoLevels(tree) {   // 단마다 같은 갈매미끼리 묶음: {id, have, total}
-  const levels = [];
-  let cur = [tree];
-  for (let d = 0; cur.length && d < 7; d++) {
-    const groups = [];
-    for (const n of cur) { let gq = groups.find((q) => q.id === n.id); if (!gq) groups.push(gq = { id: n.id, have: 0, total: 0, top: !!n.top }); gq.total++; if (n.have) gq.have++; }
-    levels.push(groups);
-    cur = cur.flatMap((n) => (n.have ? [] : n.kids));
-  }
-  return levels;
+function showInfo(id, fromCard = false) {   // 설명 안에서 재료를 누르면 그 재료로 파고들고 「뒤로」로 돌아옴
+  if (!E.UNIT[id]) return;
+  info = { id, stack: fromCard && info ? [...info.stack, info.id] : [] };
+}
+// 재료 나무(사용자 요청 2026-11-08: 피라미드 화면 개편): 위에 만들 것, 각 재료는 자기 바로 아래에 선으로 이어짐.
+// 너무 넓으면 보이는 단 수를 줄이고, 더 아래가 있는 재료는 「+」(누르면 그 재료 기준으로 펼침)
+function treeLayout(root, availW) {
+  const fit = (md) => {
+    const vis = (n, d) => { n.d = d; n.show = d < md && !n.have ? n.kids : []; n.more = !n.have && n.kids.length > 0 && !n.show.length; n.leaves = n.show.length ? n.show.reduce((a, c) => a + vis(c, d + 1), 0) : 1; return n.leaves; };
+    return vis(root, 0);
+  };
+  let md = 3;
+  while (md > 1 && fit(md) * 46 > availW) md--;
+  fit(md);
+  let depth = 0;
+  const walk = (n) => { depth = Math.max(depth, n.d); n.show.forEach(walk); };
+  walk(root);
+  return depth;
+}
+function drawCheck(cx, cy, r, fill, mark) {   // 동그란 작은 표시: ✓ · ! · +
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#07131c'; ctx.stroke();
+  ctx.strokeStyle = '#07131c'; ctx.lineWidth = 2.2; ctx.beginPath();
+  if (mark === 'v') { ctx.moveTo(cx - r * 0.45, cy); ctx.lineTo(cx - r * 0.1, cy + r * 0.4); ctx.lineTo(cx + r * 0.5, cy - r * 0.4); ctx.stroke(); }
+  else if (mark === '+') { ctx.moveTo(cx - r * 0.5, cy); ctx.lineTo(cx + r * 0.5, cy); ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.5); ctx.stroke(); }
+  else { ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.15); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy + r * 0.48, 1.4, 0, Math.PI * 2); ctx.fillStyle = '#07131c'; ctx.fill(); }
+}
+function drawTree(root, x0, y0, w, h) {
+  const depth = treeLayout(root, w);
+  const rowH = Math.min(118, h / (depth + 1)), R = [30, 25, 21, 19];
+  const place = (n, a, b) => { n.cx = (a + b) / 2; n.cy = y0 + 34 + n.d * rowH; let s = a; for (const c of n.show) { const e = s + (b - a) * c.leaves / n.leaves; place(c, s, e); s = e; } n.span = b - a; };
+  place(root, x0, x0 + w);
+  const lines = (n) => {   // 부모 아래 → 가로 → 자식 위
+    const r = R[n.d], top = n.cy + r + 18, my = (top + n.cy + rowH - (R[n.d + 1] ?? 19)) / 2;
+    for (const c of n.show) {
+      ctx.strokeStyle = c.have ? 'rgba(111,208,138,.55)' : 'rgba(243,216,158,.45)'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(n.cx, top); ctx.lineTo(n.cx, my); ctx.lineTo(c.cx, my); ctx.lineTo(c.cx, c.cy - R[c.d]); ctx.stroke();
+      lines(c);
+    }
+  };
+  lines(root);
+  const nodes = (n) => {
+    const u = E.UNIT[n.id], col = GRADE_COLOR[u.grade], r = Math.min(R[n.d], n.span / 2 - 4);
+    ctx.beginPath(); ctx.arc(n.cx, n.cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = n.have ? 'rgba(43,122,98,.45)' : 'rgba(11,30,42,.96)'; ctx.fill();
+    ctx.lineWidth = n.top ? 3 : 2.2; ctx.strokeStyle = n.top ? C.goldEdge : col; ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.arc(n.cx, n.cy, r - 1.5, 0, Math.PI * 2); ctx.clip();
+    drawFit(unitImg(n.id), n.cx - r * 0.95, n.cy - r * 0.95, r * 1.9, r * 1.85, n.have || n.top ? 1 : 0.75);
+    ctx.restore();
+    const br = Math.max(6.5, r * 0.36), bx = n.cx + r * 0.72, by = n.cy - r * 0.72;
+    if (n.have) drawCheck(bx, by, br, '#6fd08a', 'v');
+    else if (n.more) drawCheck(bx, by, br, C.goldEdge, '+');
+    else if (!n.top && !n.kids.length) drawCheck(bx, by, br, '#ff9a8a', '!');
+    fitText(u.name, n.cx, n.cy + r + 10, Math.max(40, n.span - 4), n.d === 0 ? 14 : 12, n.have ? C.good : n.top ? C.goldEdge : C.text, 'center');
+    if (!n.top) hit(n.cx - n.span / 2, n.cy - r, n.span, r * 2 + 18, () => showInfo(n.id, true));
+    n.show.forEach(nodes);
+  };
+  nodes(root);
 }
 function drawInfo() {
   const id = info.id, u = E.UNIT[id], k = E.kit(id), col = GRADE_COLOR[u.grade], r = E.recipeFor(id);
@@ -865,6 +911,7 @@ function drawInfo() {
   chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y + 50, k.type === 'phys' ? C.phys : C.mag);
   fitText(`공격 ${Math.round(k.dmg * E.upgMul(G, k.tier)).toLocaleString()} · ${k.gap <= 0.6 ? '빠름' : k.gap >= 1.1 ? '느림' : '보통'}(${k.gap}초) · 사거리 ${k.range}`, x + 106, y + 92, w - 120, 14, C.muted);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { info = null; }, 'quiet');
+  if (info.stack.length) { const back = info.stack[info.stack.length - 1]; button(x + w - 96, y + 56, 82, 36, '← 뒤로', () => { info = { id: back, stack: info.stack.slice(0, -1) }; }, 'normal'); }
   // 유틸
   text('유틸·특수', x + 16, y + 124, 15, C.gold);
   const tips = E.kitTips(k);
@@ -876,33 +923,11 @@ function drawInfo() {
   if (!r) {
     fitText(`조합법이 없어요 · ${E.GRADE_NAME[u.grade]} 위습으로 소환해요`, W / 2, py + 30, w - 40, 15, C.muted, 'center');
   } else {
-    text('지금 필요한 재료 (위 = 만들 것 · 아래로 갈수록 하위 재료)', x + 16, py + 6, 14, C.gold);
-    const levels = infoLevels(needTree(id, E.countOnField(G)));
-    let yy = py + 24;
-    const rowH = 46, maxY = y + h - 140;
-    for (let d = 0; d < levels.length; d++) {
-      const gs = levels[d], perRow = Math.max(1, Math.min(gs.length, 5));
-      if (d > 0) {   // 단 구분: 위 단을 만드는 재료
-        const lb = d === 1 ? '▲ 재료' : `▲ ${d}단 아래 재료`;
-        text(lb, x + 16, yy + 1, 11, C.muted, 'left');
-        const lw = ctx.measureText(lb).width + 24;
-        ctx.fillStyle = 'rgba(243,216,158,.22)'; ctx.fillRect(x + lw, yy + 1, w - lw - 16, 1);
-        yy += 8;
-      }
-      for (let i0 = 0; i0 < gs.length; i0 += perRow) {
-        if (yy + rowH > maxY) { text('… 아래는 더 있어요', W / 2, yy + 10, 13, C.muted, 'center'); d = levels.length; break; }
-        const row = gs.slice(i0, i0 + perRow), cw = Math.min(150, (w - 24 - (row.length - 1) * 6) / row.length), rx = (W - (row.length * cw + (row.length - 1) * 6)) / 2;
-        row.forEach((gq, i) => {
-          const bx = rx + i * (cw + 6), uu = E.UNIT[gq.id], done = gq.top ? false : gq.have === gq.total;
-          box(bx, yy, cw, rowH - 6, done ? 'rgba(111,208,138,.16)' : gq.top ? 'rgba(243,216,158,.12)' : 'rgba(0,0,0,.32)', gq.top ? C.goldEdge : GRADE_COLOR[uu.grade], 8, gq.top ? 2 : 1.5);
-          drawFit(unitImg(gq.id), bx + 3, yy + 3, 36, rowH - 12);
-          fitText(uu.name, bx + 42, yy + 14, cw - 46, 14, C.text);
-          fitText(gq.top ? '만들 것' : `${gq.have}/${gq.total} 있음`, bx + 42, yy + 32, cw - 46, 12, gq.top ? C.goldEdge : done ? C.good : C.bad);
-          if (gq.id !== id) hit(bx, yy, cw, rowH - 6, () => showInfo(gq.id));
-        });
-        yy += rowH;
-      }
-    }
+    text('재료 나무', x + 16, py + 6, 15, C.gold);
+    // 표시 설명
+    let lx = x + 100;
+    for (const [fill, mark, t] of [['#6fd08a', 'v', '가진 것'], ['#ff9a8a', '!', '위습으로 소환'], [C.goldEdge, '+', '누르면 더 아래']]) { drawCheck(lx, py + 6, 7, fill, mark); text(t, lx + 11, py + 7, 12, C.muted); ctx.font = `12px ${FONT}`; lx += 28 + ctx.measureText(t).width; }
+    drawTree(needTree(id, E.countOnField(G)), x + 10, py + 18, w - 20, y + h - 146 - (py + 18));
     // 맨 아래: 없는 기본 재료(조합법이 없는 것)
     const base = {};
     const walk = (n) => { if (!n.have && !n.kids.length && !n.top) base[n.id] = (base[n.id] ?? 0) + 1; n.kids.forEach(walk); };
