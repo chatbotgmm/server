@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=3586bb8af353';
+import * as E from './engine.js?v=c51d210f0fbe';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -525,8 +525,11 @@ function drawMission() {
   if (place) { ctx.save(); rr(x + 12, cy, w - 24, 230, 10); ctx.clip(); drawFit(place, x + 12, cy - 30, w - 24, 230, 0.28); ctx.restore(); }
   box(x + 18, cy + 8, 230, 28, 'rgba(7,19,28,.85)', null, 6);
   fitText(`${r.ch}장 · ${r.place}`, x + 26, cy + 22, 216, 15, C.goldEdge);
+  const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.gold ? `새우 ${r.gold}` : ''].filter(Boolean).join(' · ');
+  box(x + 18, cy + 40, w - 36, 24, 'rgba(7,19,28,.85)', null, 6);
+  fitText(`보상: ${rwAll}`, x + 26, cy + 52, w - 52, 13, C.gold);
   const t = E.missionTarget(G), sh = shade(r.look);
-  if (sh) drawFit(sh, W / 2 - 60, cy + 36, 120, 120);
+  if (sh) drawFit(sh, W / 2 - 50, cy + 68, 100, 94);
   box(x + 40, cy + 166, w - 80, 12, 'rgba(0,0,0,.6)', C.line, 6, 1);
   box(x + 40, cy + 166, (w - 80) * Math.max(0, t.hp / t.max), 12, '#ff6b6b', null, 6);
   box(x + 24, cy + 184, w - 48, 40, 'rgba(7,19,28,.88)', null, 8);
@@ -554,9 +557,9 @@ function drawUpgrade() {
   text(`가진 새우 ${G.gold}`, x + 48, y + 93, 17, C.goldEdge);
   const have = Array(E.UPG_COUNT).fill(0);
   for (const u of E.fieldUnits(G)) have[E.upgGroup(E.tierOf(u.id))]++;
-  const color = ['UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
+  const color = ['UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
   for (let gi = 0; gi < E.UPG_COUNT; gi++) {
-    const yy = y + 112 + gi * 76, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
+    const yy = y + 112 + gi * 84, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
     box(x + 14, yy, w - 28, 70, 'rgba(11,30,42,.85)', col, 10, 2);
     text(E.UPG_NAME[gi], x + 30, yy + 22, 19, col);
     const maxed = E.upgMaxed(G, gi);

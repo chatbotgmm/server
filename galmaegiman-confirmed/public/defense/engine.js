@@ -24,38 +24,44 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
-  waves: 40, waveLen: 40, perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
+  waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
+  perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   bossEvery: 10, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
-  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 3, 3, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
+  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 3, 3, 2, 2, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
-  hpAnchors: [[1, 208], [2, 400], [3, 608], [4, 896], [5, 1360], [6, 1600], [7, 1760], [8, 2000], [10, 2320], [12, 4160], [15, 6720], [20, 11700], [25, 32400], [30, 54000], [35, 144000], [40, 216000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
+  hpAnchors: [[1, 208], [2, 400], [3, 608], [4, 896], [5, 1360], [6, 1600], [7, 1760], [8, 2000], [10, 2320], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 115200], [40, 172800], [45, 304000], [50, 560000], [55, 1040000], [60, 1920000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
   armorBase: 4, armorPer: 2.4,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
   dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
-  killGold: 1, killGoldGrow: 0.5,
+  // 처치 새우 = killGold + killGoldGrow×웨이브 + killGoldSq×웨이브² (후반일수록 많이: 후반 강화 비용에 맞춤)
+  killGold: 1, killGoldGrow: 0.6, killGoldSq: 0.02,
   // 등급별 강화(사용자 요청 2026-11-08): 커먼·언커먼·레어·에픽·전설 이상 5칸, 한 단계마다 그 등급 공격력 +14%
   // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
   // 칸마다 최대 upgMax단계(풀강). 비용 = upgBase × upgGrowth^단계. 등급이 높을수록 훨씬 비쌈(초반과 상위 강화 비용이 비슷하지 않게)
-  upgPct: 0.15, upgMax: 10, upgGrowth: 1.25, upgBase: [5, 20, 60, 180, 260, 500, 1100, 2400, 5000],
-  bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
+  // 칸: 커먼·언커먼 · 레어 · 에픽 · 전설·히든(묶음) · 제한 · 초월 · 불멸 · 영원 (8칸)
+  upgPct: 0.15, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 300, 600, 1200, 2500],
+  bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 }, 40: { EPIC: 2 }, 50: { EPIC: 3 } },
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   startPick: {}, bossPick: {},
+  // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
+  // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
+  guardHp: [20000, 150000, 500000, 1000000, 3000000, 5000000, 15000000],
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
 // 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 1 } },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { UNCOMMON: 1 } },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 }, pick: { UNCOMMON: 1 } },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 }, pick: { RARE: 1 } },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 }, pick: { RARE: 1 } },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 }, pick: { EPIC: 1 } },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 }, pick: { EPIC: 1 } },
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 }, pick: { UNCOMMON: 1 }, gold: 150 },   // 레어 하나에 빠진 언커먼을 골라 에픽을 만들 수 있게
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { UNCOMMON: 1 }, gold: 400 },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 }, pick: { UNCOMMON: 1 }, gold: 800 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 }, pick: { RARE: 1 }, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 }, pick: { RARE: 1 }, gold: 3000 },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 }, pick: { EPIC: 1 }, gold: 5000 },
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 }, pick: { EPIC: 1 }, gold: 9000 },
 ];
 
 // 위습 찾기 재주: 상위 갈매미만(사용자 요청 2026-11-08). 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만)
@@ -75,6 +81,8 @@ const SHRED = (t) => (t < 3 ? [2, 4, 7][t] : 20 + 15 * (t - 3));            // �
 const AMP = (t) => (t < 3 ? [0.02, 0.03, 0.05][t] : 0.15 + 0.05 * (t - 3));  // 마딜증폭: 커먼 2% … 에픽 15% · 전설 20% …
 const SLOW = (t) => (t < 3 ? [0.06, 0.08, 0.12][t] : Math.min(0.5, 0.25 + 0.04 * (t - 3)));  // 이속감소
 const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 * (t - 3))); // 스턴 확률
+// 범위 스턴(전설 이상 보조): 공격마다 확률로 맞은 적 둘레 70 안 모두 스턴. 초월 이상은 20%(사용자 요청: 라인이 안 밀리게)
+const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
 // 갈매미 한 마리의 공격 방식
 export function kit(id) {
@@ -82,7 +90,7 @@ export function kit(id) {
   const tank = role.startsWith('고체력'), ambush = role.includes('기습'), mage = role.endsWith('술사');
   const type = mage ? 'mag' : 'phys';
   let k;
-  if (tank) k = { job: '보조', gap: 1.1, mul: 0.35, range: 150, stun: STUN(t), shred: SHRED(t) };
+  if (tank) k = { job: '보조', gap: 1.1, mul: 0.35, range: 150, stun: STUN(t), shred: SHRED(t), ...(ASTUN(t) ? { astun: ASTUN(t) } : {}) };
   else if (ambush && mage) k = { job: '보조', gap: 0.6, mul: 0.3, range: 170, mshred: SHRED(t), amp: AMP(t) };
   else if (ambush) k = { job: '보조', gap: 0.5, mul: 0.3, range: 160, shred: SHRED(t), slow: SLOW(t) };
   else if (role.endsWith('근접술사')) k = { job: '주력', gap: 0.9, mul: 0.75, range: 140, area: 70 };
@@ -106,6 +114,7 @@ export function kitTips(k) {
   if (k.mshred) out.push(`마방깍 ${Math.round(k.mshred)}`);
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
+  if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
   if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%`);
   if (k.area) out.push('주변 범위');
   if (k.splash) out.push('불꽃 튐');
@@ -153,19 +162,20 @@ export function waveInfo(w) {
   const armor = Math.round(base * (kind === '갑옷' ? 2 : kind === '결계' ? 0.5 : kind === 'boss' ? 1.5 : 1));
   const mr = Math.round(base * (kind === '결계' ? 2 : kind === '갑옷' ? 0.5 : kind === 'boss' ? 1.5 : 1));
   const pool = UNITS.filter((u) => gradeTier(u.grade) <= Math.min(9, Math.floor((w - 1) / 4)));
-  const look = boss ? ['u33', 'u38', 'u52', 'u60'][Math.min(3, w / RULES.bossEvery - 1)] : pool[(w * 7) % pool.length].id;
+  const look = boss ? ['u33', 'u38', 'u52', 'u60', 'u57', 'u58'][Math.min(5, w / RULES.bossEvery - 1)] : pool[(w * 7) % pool.length].id;
   return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
-    speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w)) };
+    speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
   const r = REGIONS[k], wi = waveInfo(r.level + 2);
   // 보스 웨이브여도 보스 배수는 쓰지 않는다(예전엔 1장 대장이 보스 체력×25가 되어 깰 수 없었음)
-  return { hp: Math.round(wi.baseHp * RULES.guardMul), armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
+  const hp = RULES.guardHp?.[k] ?? Math.round(wi.baseHp * RULES.guardMul);
+  return { hp, armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
 }
 
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
   return {
-    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: Array(9).fill(0),
+    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -260,9 +270,10 @@ export function moveUnit(g, uid, x, y, now = false) {
   return true;
 }
 // 등급별 강화 칸: 0 커먼 · 1 언커먼 · 2 레어 · 3 에픽 · 4 전설 이상(전설·히든·제한·초월·불멸·영원)
-export const UPG_NAME = ['커먼·언커먼', '레어', '에픽', '전설', '히든', '제한', '초월', '불멸', '영원'];
+export const UPG_NAME = ['커먼·언커먼', '레어', '에픽', '전설·히든', '제한', '초월', '불멸', '영원'];
 export const UPG_COUNT = UPG_NAME.length;
-export const upgGroup = (tier) => Math.max(0, tier - 1);   // 커먼(0)·언커먼(1) → 0칸, 그 위는 등급마다 한 칸
+// 등급(0 커먼 … 9 영원) → 강화 칸: 커먼·언커먼 0 · 레어 1 · 에픽 2 · 전설·히든 3 · 제한 4 · 초월 5 · 불멸 6 · 영원 7 (사용자 요청: 전설·히든 한 번에)
+export const upgGroup = (tier) => [0, 0, 1, 2, 3, 3, 4, 5, 6, 7][tier];
 // 강화 비용: 단계마다 upgGrowth배(곱으로 늘어 낮은 등급만 계속 강화해 버티는 것을 막음)
 export const upgradeCost = (g, gi) => Math.round(RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi]));
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
@@ -278,7 +289,7 @@ export function upgrade(g, gi) {
 
 // 조합: 판(탐사 중 제외)에 재료가 다 있으면 쓸 갈매미 uid 목록(keep을 먼저)
 export function recipeUnits(g, r, keepUid = 0) {
-  const avail = g.units.filter((u) => !u.away), used = new Set(), out = [], need = [...r.in];   // 창고 것도 재료
+  const avail = [...g.units].sort((a, b) => (a.away - b.away)), used = new Set(), out = [], need = [...r.in];   // 판·창고·스토리(외부탐사) 것 모두 재료(판 것을 먼저 씀)
   if (keepUid) {
     const ku = avail.find((u) => u.uid === keepUid);
     const k = ku ? need.indexOf(ku.id) : -1;
@@ -307,7 +318,7 @@ export const recipesUsing = (id) => RECIPES.filter((r) => r.in.includes(id));
 export const recipeFor = (id) => RECIPES.find((r) => r.out === id) ?? null;
 export function countOnField(g) {
   const c = {};
-  for (const u of g.units) if (!u.away) c[u.id] = (c[u.id] ?? 0) + 1;   // 창고 것 포함(조합 재료)
+  for (const u of g.units) c[u.id] = (c[u.id] ?? 0) + 1;   // 창고·스토리 것 포함(조합 재료)
   return c;
 }
 export const GOAL_MAX = 3;
@@ -368,6 +379,7 @@ function debuff(g, e, k) {
   if (k.amp) { e.amp = now < e.ampUntil ? Math.max(e.amp, k.amp) : k.amp; e.ampUntil = now + 3; }
   if (k.slow && e.speed) { e.slow = now < e.slowUntil ? Math.max(e.slow, k.slow) : k.slow; e.slowUntil = now + 1.5; }
   if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = now + (e.boss ? 0.12 : 0.5);
+  if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + (o.boss ? 0.15 : 0.7));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
 }
 function attack(g, u, k) {
@@ -463,8 +475,9 @@ export function step(g, dt) {
   if (ms && ms.hp <= 0) {
     const r = REGIONS[ms.k];
     addWisps(g, r.reward);
+    if (r.gold) g.gold += r.gold;
     if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }
