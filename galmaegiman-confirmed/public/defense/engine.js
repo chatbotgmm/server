@@ -69,9 +69,10 @@ export const REGIONS = [
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
 // 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만). 지금: 가루다(초월) · 리치(불멸) · 여명(영원)
 export const WISP_SKILL = {
-  u49: { p: 0.07, table: { EPIC: 0.75, LEGEND: 0.25 } },
-  u56: { p: 0.08, table: { EPIC: 0.65, LEGEND: 0.35 } },
-  u57: { p: 0.08, table: { EPIC: 0.5, LEGEND: 0.5 } },
+  // 2026-11-08 사용자 요청(전설 위습이 너무 잘 나옴): 처치 1마리당 전설 위습 확률 가루다 1.75%→0.3% · 리치 2.8%→0.5% · 여명 4%→0.78%
+  u49: { p: 0.05, table: { EPIC: 0.94, LEGEND: 0.06 } },
+  u56: { p: 0.055, table: { EPIC: 0.91, LEGEND: 0.09 } },
+  u57: { p: 0.06, table: { EPIC: 0.87, LEGEND: 0.13 } },
 };
 
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
