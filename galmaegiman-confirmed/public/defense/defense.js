@@ -335,10 +335,8 @@ function doSummon(grade) { const r = E.summon(G, grade); if (!r.ok && r.why) say
 
 // ── 판 ──
 function drawBackground() {
+  // 배경 그림 없이 단색(사용자 요청 2026-11-08: 뒤 배경이 보여 눈이 아픔)
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, VW, VH);
-  const bg = img(`${ART}/ui/bg-harbor.webp`);
-  if (bg) { const s = Math.max(VW / bg.naturalWidth, VH / bg.naturalHeight); ctx.globalAlpha = 0.5; ctx.drawImage(bg, (VW - bg.naturalWidth * s) / 2, (VH - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); ctx.globalAlpha = 1; }
-  ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, VW, VH);
 }
 // ☆목표의 재료 테두리: 바로 아래 재료 + 지금 없는 재료를 만들 하위 재료 중 가진 것까지(사용자 요청 2026-11-08: 하위 재료 연결)
 function goalColors() {
@@ -381,7 +379,7 @@ function needTree(id, cnt) {
 }
 function drawLanes() {
   const L = E.LOOP, lane = 40;
-  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, 'rgba(7,19,28,.5)', C.edge, 12, 1.5);
+  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, '#0c1c27', C.edge, 12, 1.5);
   ctx.lineWidth = lane; ctx.strokeStyle = C.lane; ctx.lineJoin = 'round';
   ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
   ctx.lineWidth = 1.5; ctx.strokeStyle = C.laneEdge;
@@ -552,7 +550,8 @@ function panelLayout(y0 = 672) {
   // 위습 줄은 낮게, 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 조합 목표 칸 빼고 버튼 줄 나눔)
   // 디자인(사용자 요청 2026-11-08: 판 크기는 그대로, 여백이 어색하지 않게): 버튼은 104까지만 키우고, 남는 높이는 줄 사이 간격으로 고르게
   const top = y0 + 30, avail = PBOT - 16 - top;
-  const wh = Math.min(78, 54 + ex * 0.12), bh = Math.max(56, Math.min(104, (avail - wh - 18) / 2));
+  // 사용자 선택(2026-11-08): 버튼은 조금 줄이고 위습 칸을 크게
+  const wh = Math.min(110, 60 + ex * 0.3), bh = Math.max(56, Math.min(92, (avail - wh - 18) / 2));
   const spare = Math.max(0, avail - wh - 18 - 2 * bh), gap = spare / 3;   // 위·가운데(구분선)·아래에 고르게
   const wy = top + gap * 0.9, by = wy + wh + 10 + gap * 1.05;
   return { ex, wy, wh, by, bh, by2: by + bh + 8, labelY: y0 + 18 + gap * 0.7, divY: wy + wh + 5 + gap * 0.52, gap };
@@ -604,14 +603,21 @@ function drawMainPanel(y0) {
   ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
     const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
     box(x, y, bw, h, n ? 'rgba(11,30,42,.92)' : 'rgba(11,30,42,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
-    if (n) {
+    if (n && h < 90) {
       const cx = x + bw * 0.3, cy = y + h / 2, rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, h * 0.42);
       rg.addColorStop(0, col + '99'); rg.addColorStop(1, col + '00');
       ctx.fillStyle = rg; ctx.fillRect(x + 2, y + 2, bw * 0.6, h - 4);
     }
-    text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#3d4c55', 'center');
-    fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#5b6a73', 'center');
-    text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#5b6a73', 'center');
+    if (h >= 90) {   // 큰 칸: ✦ 위, 이름·개수 아래
+      if (n) { const rg2 = ctx.createRadialGradient(x + bw / 2, y + h * 0.33, 2, x + bw / 2, y + h * 0.33, h * 0.38); rg2.addColorStop(0, col + '99'); rg2.addColorStop(1, col + '00'); ctx.fillStyle = rg2; ctx.fillRect(x + 2, y + 2, bw - 4, h * 0.66); }
+      text('✦', x + bw / 2, y + h * 0.33, Math.min(40, h * 0.36), n ? col : '#3d4c55', 'center');
+      fitText(E.GRADE_NAME[gr], x + bw / 2, y + h * 0.66, bw - 8, 14, n ? col : '#5b6a73', 'center');
+      text(`×${n}`, x + bw / 2, y + h * 0.86, 20, n ? C.text : '#5b6a73', 'center');
+    } else {
+      text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#3d4c55', 'center');
+      fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#5b6a73', 'center');
+      text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#5b6a73', 'center');
+    }
     if (n) hit(x, y, bw, h, () => doSummon(gr));
   });
   if (PL.gap > 14) {   // 위습과 버튼 사이 장식 구분선
