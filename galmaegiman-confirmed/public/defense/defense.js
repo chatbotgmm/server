@@ -1,5 +1,5 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
-// 조작: 갈매미를 눌러 고르기 · 끌어서 옮기기 · 빈 곳을 끌면 여러 마리 고르기 · 고른 채 빈 곳을 누르면 그리로 이동.
+// 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
 import * as E from './engine.js?v=0a23bd6a0d20';
 
 const { W, H, FIELD } = E;
@@ -15,6 +15,7 @@ const KIND_NAME = { 일반: '일반', 갑옷: '갑옷(방어력↑)', 결계: '�
 const FONT = '"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const BEST_KEY = 'gmm-defense-best';
 const MUSIC_KEY = 'gmm-defense-music';
+const VOLUME_KEY = 'gmm-defense-volume';
 // 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름
@@ -127,11 +128,16 @@ let lastNews = 0;
 let best = 0;
 try { best = Number(localStorage.getItem(BEST_KEY)) || 0; } catch { best = 0; }
 // ── 배경음악: 누르기(시작하기·♪) 뒤에만 재생(브라우저 자동 재생 막힘), 일시정지·다른 앱이면 멈춤 ──
-const music = { on: true, el: null };
-try { music.on = localStorage.getItem(MUSIC_KEY) !== 'off'; } catch { music.on = true; }
+const music = { on: true, vol: 0.45, el: null };
+try { music.on = localStorage.getItem(MUSIC_KEY) !== 'off'; const v = Number(localStorage.getItem(VOLUME_KEY)); if (localStorage.getItem(VOLUME_KEY) !== null && v >= 0 && v <= 1) music.vol = v; } catch { /* 기본값 */ }
 function musicEl() {
-  if (!music.el) { music.el = new Audio(BGM_URL); music.el.loop = true; music.el.volume = 0.45; music.el.preload = 'auto'; }
+  if (!music.el) { music.el = new Audio(BGM_URL); music.el.loop = true; music.el.volume = music.vol; music.el.preload = 'auto'; }
   return music.el;
+}
+function setVolume(v) {
+  music.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20;   // 5% 단위
+  if (music.el) music.el.volume = music.vol;
+  try { localStorage.setItem(VOLUME_KEY, String(music.vol)); } catch { /* 저장 못 해도 진행 */ }
 }
 function musicPlay() { if (music.on) musicEl().play().catch(() => {}); }
 function musicToggle() {
@@ -141,7 +147,7 @@ function musicToggle() {
 }
 function musicSync() {   // 매 장면: 들어야 할 때만 재생
   if (!music.el) return;
-  const want = music.on && scene === 'play' && !document.hidden && modal?.kind !== 'pause';
+  const want = music.on && !document.hidden && (modal?.kind === 'sound' || (scene === 'play' && modal?.kind !== 'pause'));
   if (want && music.el.paused) music.el.play().catch(() => {});
   else if (!want && !music.el.paused) music.el.pause();
 }
@@ -153,7 +159,7 @@ function start() {
   musicPlay();   // 누른 순간 안에서 재생 시작
 }
 function musicButton(x, y) {
-  button(x, y, 46, 40, '♪', musicToggle, 'normal');
+  button(x, y, 46, 40, '♪', () => { modal = { kind: 'sound' }; musicPlay(); }, 'normal');
   if (!music.on) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 12, y + 30); ctx.lineTo(x + 34, y + 10); ctx.stroke(); }
 }
 function saveBest() {
@@ -200,17 +206,11 @@ cv.addEventListener('pointerup', (ev) => {
     if (d.moved) {   // 빈 곳을 끌어 여러 마리 고르기
       const x0 = Math.min(d.x0, p.x), x1 = Math.max(d.x0, p.x), y0 = Math.min(d.y0, p.y), y1 = Math.max(d.y0, p.y);
       selected = E.fieldUnits(G).filter((u) => u.x >= x0 && u.x <= x1 && u.y - 14 >= y0 && u.y - 14 <= y1).map((u) => u.uid);
-      if (selected.length) say(`${selected.length}마리를 골랐어요. 빈 곳을 누르면 그리로 가요.`);
+      if (selected.length) say(`${selected.length}마리를 골랐어요. 그중 하나를 끌면 함께 움직여요.`);
       return;
     }
-    // 고른 채 빈 곳 누르기 → 그리로 이동(무리 모양 유지)
-    const group = selUnits();
-    if (group.length) {
-      const cx = group.reduce((a, u) => a + u.tx, 0) / group.length, cy = group.reduce((a, u) => a + u.ty, 0) / group.length;
-      for (const u of group) E.moveUnit(G, u.uid, p.x + (u.tx - cx), p.y + 14 + (u.ty - cy));
-      G.fx.push({ kind: 'move', x: p.x, y: p.y + 14, t: G.t });
-      return;
-    }
+    // 빈 곳을 누르면 고르기 풀림(옮기기는 끌기로만)
+    if (selected.length) { selected = []; return; }
   }
   if (d.moved && modal?.scrollable) return;
   for (let k = hits.length - 1; k >= 0; k--) {
@@ -383,7 +383,7 @@ function drawMainPanel(y0) {
     text(ready ? '조합 가능!' : `재료 ${have(r, cnt)}/${r.in.length}`, x + 46, gy + 36, 13, ready ? C.good : C.muted);
     hit(x, gy, gw, 50, () => { if (ready) { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${E.UNIT[gid].name} 완성!`); } } else openBook(gid); });
   }
-  fitText('갈매미 누르기=고르기 · 끌기=옮기기 · 빈 곳 끌기=여러 마리', 22, H - 26, W - 44, 14, C.muted);
+  fitText('끌기=옮기기 · 누르기=고르기 · 빈 곳 끌기=여러 마리 고르기', 22, H - 26, W - 44, 14, C.muted);
 }
 function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; n++; } return n; }
 function drawUnitPanel(y0, u) {
@@ -421,7 +421,7 @@ function drawGroupPanel(y0, sel) {
     drawFit(unitImg(u.id), x + 2, y + 2, sz - 4, sz - 4);
   });
   if (sel.length > per * 2) text(`외 ${sel.length - per * 2}마리`, W - 30, y0 + 176, 14, C.muted, 'right');
-  fitText('빈 곳을 누르면 고른 갈매미들이 그리로 걸어가요', 22, y0 + 198, W - 44, 14, C.muted);
+  fitText('고른 갈매미 중 하나를 끌면 함께 움직여요 · 빈 곳을 누르면 고르기 풀림', 22, y0 + 198, W - 44, 14, C.muted);
   const by = H - 8 - 56;
   button(22, by, (W - 50) / 2, 46, `탐사 보내기 (${sel.length})`, () => sendSelected(sel), 'normal', E.missionOpen(G));
   button(28 + (W - 50) / 2, by, (W - 50) / 2, 46, '고르기 해제', () => { selected = []; }, 'quiet');
@@ -586,7 +586,7 @@ function drawTitle() {
     '  처음 5개 + 웨이브마다 1개. 보스·외부탐사(처음부터)로 더 높은 위습.',
     '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
     '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
-    '· 갈매미는 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
+    '· 갈매미는 끌어서 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
     `· 적 ${E.RULES.limit}마리 넘으면 1초마다 경고, ${E.RULES.warnMax}회 넘으면 패배.`,
     '· 보스는 그 라운드 안에 못 잡으면 바로 패배.',
   ].forEach((l, k) => fitText(l, 44, 522 + k * 36, W - 88, 15, C.text));
@@ -594,7 +594,26 @@ function drawTitle() {
   button(60, 834, W - 120, 72, '시작하기', () => start(), 'primary');
   fitText('로그인 없이 하는 미니 게임 · 기록은 이 기기에만 남아요', W / 2, 930, W - 40, 14, C.muted, 'center');
   musicButton(W - 62, 14);
-  fitText(music.on ? '배경음악 켬' : '배경음악 끔', W - 72, 34, 110, 13, C.muted, 'right');
+  fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
+}
+// 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
+function drawSound() {
+  shadeAll();
+  const x = 50, y = 300, w = W - 100, h = 330;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('소리 설정', x + 20, y + 32, 22, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  text('배경음악', x + 24, y + 96, 18, C.text);
+  button(x + w - 24 - 120, y + 74, 120, 44, music.on ? '켬' : '끔', musicToggle, music.on ? 'primary' : 'normal');
+  text(`음량 ${Math.round(music.vol * 100)}%`, x + 24, y + 160, 18, music.on ? C.text : C.muted);
+  const bx = x + 24 + 56, bw = w - 48 - 112, by = y + 196;
+  button(x + 24, by - 4, 48, 44, '−', () => setVolume(music.vol - 0.05), 'normal');
+  button(x + w - 24 - 48, by - 4, 48, 44, '+', () => setVolume(music.vol + 0.05), 'normal');
+  box(bx, by + 12, bw, 12, 'rgba(0,0,0,.5)', C.line, 6, 1);
+  box(bx, by + 12, bw * music.vol, 12, music.on ? C.gold : '#6f7f88', null, 6);
+  ctx.beginPath(); ctx.arc(bx + bw * music.vol, by + 18, 11, 0, Math.PI * 2); ctx.fillStyle = music.on ? C.goldEdge : '#8b9aa3'; ctx.fill();
+  hit(bx - 10, by - 6, bw + 20, 48, (p) => setVolume((p.x - bx) / bw));
+  fitText('막대를 누르거나 −/+로 조절해요 · 설정은 이 기기에 기억돼요', x + w / 2, y + h - 40, w - 40, 13, C.muted, 'center');
 }
 
 // ── 반복 ──
@@ -611,12 +630,13 @@ function frame(now) {
   musicSync();
   hits = [];
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
-  if (scene === 'title') drawTitle();
+  if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); }
   else {
     drawBackground(); drawField(); drawHud(); drawBottom();
     if (modal?.kind === 'book') drawBook();
     else if (modal?.kind === 'mission') drawMission();
     else if (modal?.kind === 'upgrade') drawUpgrade();
+    else if (modal?.kind === 'sound') drawSound();
     else if (modal?.kind === 'pause') drawPause();
     else if (modal?.kind === 'over') drawOver();
   }
