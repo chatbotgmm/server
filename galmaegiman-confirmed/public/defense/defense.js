@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=c11090757008';
+import * as E from './engine.js?v=3586bb8af353';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -513,7 +513,8 @@ function drawMission() {
     box(x + 12, yy, w - 24, 34, cur ? 'rgba(43,122,98,.2)' : 'rgba(11,30,42,.6)', cur ? (open ? '#2b7a62' : C.edge) : 'rgba(145,122,76,.3)', 6, cur ? 2 : 1);
     fitText(`${r.ch}장 ${r.name}`, x + 24, yy + 17, 220, 15, done ? C.muted : C.text);
     fitText(done ? '완료 ✓' : open ? '진행 가능' : '잠김', x + 250, yy + 17, 80, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
-    fitText(E.wispText(r.reward), x + w - 24, yy + 17, 150, 13, C.gold, 'right');
+    const rw = Object.entries(r.reward).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') + (r.pick ? ' + 선택 ' + Object.entries(r.pick).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') : '');
+    fitText(rw, x + w - 24, yy + 17, 160, 13, C.gold, 'right');
   });
   // 지금 지역
   const cy = ly + E.REGIONS.length * 40 + 10;
@@ -521,8 +522,9 @@ function drawMission() {
   const r = E.REGIONS[G.missionDone], open = E.missionOpen(G);
   const place = img(`${ART}/village/${r.img}.webp`);
   box(x + 12, cy, w - 24, 230, 'rgba(7,19,28,.8)', C.edge, 10);
-  if (place) { ctx.save(); rr(x + 12, cy, w - 24, 230, 10); ctx.clip(); ctx.globalAlpha = 0.3; drawFit(place, x + 12, cy - 30, w - 24, 230); ctx.globalAlpha = 1; ctx.restore(); }
-  text(`${r.ch}장 · ${r.place}`, x + 26, cy + 22, 15, C.goldEdge);
+  if (place) { ctx.save(); rr(x + 12, cy, w - 24, 230, 10); ctx.clip(); drawFit(place, x + 12, cy - 30, w - 24, 230, 0.28); ctx.restore(); }
+  box(x + 18, cy + 8, 230, 28, 'rgba(7,19,28,.85)', null, 6);
+  fitText(`${r.ch}장 · ${r.place}`, x + 26, cy + 22, 216, 15, C.goldEdge);
   const t = E.missionTarget(G), sh = shade(r.look);
   if (sh) drawFit(sh, W / 2 - 60, cy + 36, 120, 120);
   box(x + 40, cy + 166, w - 80, 12, 'rgba(0,0,0,.6)', C.line, 6, 1);
@@ -596,7 +598,7 @@ function drawTitle() {
   box(28, 492, W - 56, 290, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 그 등급 갈매미를 무작위로 불러요.',
-    '  처음 5개 + 웨이브마다 1개. 선택 위습은 원하는 갈매미로.',
+    '  처음 6개 + 웨이브마다 2개. 스토리를 깨면 선택 위습(원하는 갈매미).',
     '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
     '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
     '· 갈매미는 끌어서 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
@@ -617,7 +619,7 @@ function drawPick() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('선택 위습', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('원하는 갈매미를 눌러 소환해요 · 처음 커먼 1개, 보스를 잡으면 더 받아요', x + 18, y + 64, w - 36, 13, C.muted);
+  fitText('원하는 갈매미를 눌러 소환해요 · 스토리(외부탐사)를 깰 때마다 받아요', x + 18, y + 64, w - 36, 13, C.muted);
   const tw = (w - 24 - 18) / 4;
   E.PICK_GRADES.forEach((gr, k) => {
     const tx = x + 12 + k * (tw + 6), on = modal.grade === gr, n = G.picks[gr] ?? 0;

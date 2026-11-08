@@ -25,11 +25,11 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
   waves: 40, waveLen: 40, perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
-  bossEvery: 10, startWisps: 5, wispPerWave: 1,
-  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 4, 3, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
+  bossEvery: 10, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
+  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 3, 3, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
-  hpAnchors: [[1, 130], [2, 250], [3, 380], [4, 560], [5, 850], [6, 1000], [7, 1100], [8, 1250], [10, 1450], [12, 2600], [15, 4200], [20, 6500], [25, 18000], [30, 30000], [35, 80000], [40, 120000]],
+  hpAnchors: [[1, 208], [2, 400], [3, 608], [4, 896], [5, 1360], [6, 1600], [7, 1760], [8, 2000], [10, 2320], [12, 4160], [15, 6720], [20, 11700], [25, 32400], [30, 54000], [35, 144000], [40, 216000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
   armorBase: 4, armorPer: 2.4,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
   dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
@@ -41,21 +41,21 @@ export const RULES = {
   // 칸마다 최대 upgMax단계(풀강). 비용 = upgBase × upgGrowth^단계. 등급이 높을수록 훨씬 비쌈(초반과 상위 강화 비용이 비슷하지 않게)
   upgPct: 0.15, upgMax: 10, upgGrowth: 1.25, upgBase: [5, 20, 60, 180, 260, 500, 1100, 2400, 5000],
   bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
-  // 선택 위습(원하는 갈매미를 골라 소환, 사용자 요청 2026-11-08): 처음 커먼 1개 + 보스 보상
-  startPick: { COMMON: 1 }, bossPick: { 10: { UNCOMMON: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 } },
+  // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
+  startPick: {}, bossPick: {},
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
 // 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 } },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 } },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 } },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 } },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 } },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 } },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 } },
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 1 } },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { UNCOMMON: 1 } },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 }, pick: { UNCOMMON: 1 } },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 }, pick: { RARE: 1 } },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 }, pick: { RARE: 1 } },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 }, pick: { EPIC: 1 } },
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 }, pick: { EPIC: 1 } },
 ];
 
 // 위습 찾기 재주: 상위 갈매미만(사용자 요청 2026-11-08). 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만)
@@ -463,7 +463,8 @@ export function step(g, dt) {
   if (ms && ms.hp <= 0) {
     const r = REGIONS[ms.k];
     addWisps(g, r.reward);
-    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
+    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }
