@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작: 갈매미를 눌러 고르기 · 끌어서 옮기기 · 빈 곳을 끌면 여러 마리 고르기 · 고른 채 빈 곳을 누르면 그리로 이동.
-import * as E from './engine.js?v=4c46818c9942';
+import * as E from './engine.js?v=5de1e1faa69d';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -336,13 +336,13 @@ function drawMainPanel(y0) {
     if (n) hit(x, y, bw, 58, () => doSummon(gr));
   });
   // 강화·탐사·조합법
-  const by = y0 + 100, b4 = (W - 44 - 18) / 4;
-  button(22, by, b4, 58, '물딜 강화', () => { const r = E.upgrade(G, 'phys'); if (!r.ok && r.why) say(r.why); }, 'normal', G.gold >= E.upgradeCost(G, 'phys'), `${G.upgP}단계·${E.upgradeCost(G, 'phys')}`, C.phys);
-  button(22 + (b4 + 6), by, b4, 58, '마딜 강화', () => { const r = E.upgrade(G, 'mag'); if (!r.ok && r.why) say(r.why); }, 'normal', G.gold >= E.upgradeCost(G, 'mag'), `${G.upgM}단계·${E.upgradeCost(G, 'mag')}`, C.mag);
+  const by = y0 + 100, b3 = (W - 44 - 12) / 3;
+  const canUp = [0, 1, 2, 3, 4].some((gi) => G.gold >= E.upgradeCost(G, gi));
+  button(22, by, b3, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화할 수 있어요' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
   const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : open ? '열림!' : `${nextR.unlock}웨이브에 열림`;
-  button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, open && !away ? 'primary' : 'normal', true, msub);
-  button(22 + 3 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
+  button(22 + (b3 + 6), by, b3, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, open && !away ? 'primary' : 'normal', true, msub);
+  button(22 + 2 * (b3 + 6), by, b3, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
   const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
   for (let k = 0; k < E.GOAL_MAX; k++) {
@@ -366,7 +366,7 @@ function drawUnitPanel(y0, u) {
   let cx = 94 + Math.min(150, ctx.measureText(info.name).width) + 8;
   cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
   chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.type === 'phys' ? C.phys : C.mag);
-  const up = 1 + E.RULES.upgPct * (k.type === 'phys' ? G.upgP : G.upgM);
+  const up = E.upgMul(G, k.tier);
   fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap <= 0.6 ? '빠름' : k.gap >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
@@ -501,6 +501,29 @@ function drawMission() {
   button(x + 14, by, (w - 40) / 2, 50, sel.length ? `고른 ${sel.length}마리 보내기` : '판에서 먼저 고르기', () => { if (sel.length) { sendSelected(sel); } else modal = null; }, sel.length ? 'primary' : 'normal');
   button(x + 26 + (w - 40) / 2, by, (w - 40) / 2, 50, '모두 불러오기', () => { const n = E.recall(G); say(`${n}마리가 돌아왔어요.`); }, 'normal', away.length > 0);
 }
+// 등급별 강화 창: 5칸(커먼·언커먼·레어·에픽·전설 이상)
+function drawUpgrade() {
+  shadeAll();
+  const x = 20, y = 150, w = W - 40, h = 600;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('등급별 강화', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText(`한 단계마다 그 등급 갈매미 공격력 +${Math.round(E.RULES.upgPct * 100)}% · 새우는 적을 쓰러뜨리면 생겨요`, x + 18, y + 64, w - 36, 14, C.muted);
+  const sh = img(`${ART}/menu/currency-shrimp.webp`);
+  if (sh) drawFit(sh, x + 18, y + 80, 24, 24);
+  text(`가진 새우 ${G.gold}`, x + 48, y + 93, 17, C.goldEdge);
+  const have = [0, 0, 0, 0, 0];
+  for (const u of E.fieldUnits(G)) have[E.upgGroup(E.tierOf(u.id))]++;
+  const groups = [['COMMON'], ['UNCOMMON'], ['RARE'], ['EPIC'], ['LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL']];
+  for (let gi = 0; gi < 5; gi++) {
+    const yy = y + 118 + gi * 90, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[groups[gi][0]];
+    box(x + 14, yy, w - 28, 80, 'rgba(11,30,42,.85)', col, 10, 2);
+    text(E.UPG_NAME[gi], x + 30, yy + 24, 19, col);
+    text(`${G.upg[gi]}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}%`, x + 30, yy + 54, 15, C.text);
+    fitText(`판에 ${have[gi]}마리`, x + 210, yy + 24, 100, 14, C.muted);
+    button(x + w - 28 - 150, yy + 12, 150, 56, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
+  }
+}
 function drawPause() {
   shadeAll();
   const x = 60, y = 300, w = W - 120, h = 320;
@@ -518,7 +541,7 @@ function drawOver() {
   text(win ? '방어 성공!' : '방어 실패', W / 2, y + 48, 28, win ? C.goldEdge : C.bad, 'center');
   ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
   text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
-  text(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upgP}/${G.upgM}`, W / 2, y + 196, 15, C.muted, 'center');
+  fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
   text(`최고 기록 ${best > E.RULES.waves ? '클리어' : `${best}웨이브`}`, W / 2, y + 226, 15, C.gold, 'center');
   button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(), 'primary');
   button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
@@ -564,6 +587,7 @@ function frame(now) {
     drawBackground(); drawField(); drawHud(); drawBottom();
     if (modal?.kind === 'book') drawBook();
     else if (modal?.kind === 'mission') drawMission();
+    else if (modal?.kind === 'upgrade') drawUpgrade();
     else if (modal?.kind === 'pause') drawPause();
     else if (modal?.kind === 'over') drawOver();
   }

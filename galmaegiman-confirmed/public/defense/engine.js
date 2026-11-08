@@ -32,7 +32,8 @@ export const RULES = {
   dmg: [22, 70, 210, 600, 1700, 2400, 5000, 13000, 34000, 90000],
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   killGold: 1, killGoldPer: 6,
-  upgBase: 30, upgStep: 20, upgPct: 0.08,   // 물딜·마딜 강화 각각: 한 단계마다 +8%
+  // 등급별 강화(사용자 요청 2026-11-08): 커먼·언커먼·레어·에픽·전설 이상 5칸, 한 단계마다 그 등급 공격력 +14%
+  upgPct: 0.14, upgBase: [20, 30, 45, 65, 90], upgStep: [10, 15, 22, 32, 45],
   bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
   guardMul: 25,   // 외부탐사 대장 체력 = (열리는 웨이브+2)의 적 체력 × 이 값
 };
@@ -139,7 +140,7 @@ export function regionGuard(k) {
 
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
   return {
-    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upgP: 0, upgM: 0,
+    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: [0, 0, 0, 0, 0],
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -188,12 +189,16 @@ export function moveUnit(g, uid, x, y, now = false) {
   if (now) { u.x = p.x; u.y = p.y; }
   return true;
 }
-export const upgradeCost = (g, which) => RULES.upgBase + RULES.upgStep * (which === 'phys' ? g.upgP : g.upgM);
-export function upgrade(g, which) {
-  const cost = upgradeCost(g, which);
+// 등급별 강화 칸: 0 커먼 · 1 언커먼 · 2 레어 · 3 에픽 · 4 전설 이상(전설·히든·제한·초월·불멸·영원)
+export const UPG_NAME = ['커먼', '언커먼', '레어', '에픽', '전설 이상'];
+export const upgGroup = (tier) => Math.min(4, tier);
+export const upgradeCost = (g, gi) => RULES.upgBase[gi] + RULES.upgStep[gi] * g.upg[gi];
+export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
+export function upgrade(g, gi) {
+  const cost = upgradeCost(g, gi);
   if (g.over) return { ok: false, why: '' };
   if (g.gold < cost) return { ok: false, why: `새우가 모자라요(${cost} 필요).` };
-  g.gold -= cost; if (which === 'phys') g.upgP++; else g.upgM++;
+  g.gold -= cost; g.upg[gi]++;
   return { ok: true };
 }
 
@@ -273,10 +278,10 @@ function hurt(g, e, raw, k, uid) {
   let m;
   if (k.type === 'phys') {
     const A = Math.max(0, e.armor - (now < e.shredUntil ? e.shred : 0));
-    m = (100 / (100 + A)) * (1 + RULES.upgPct * g.upgP);
+    m = (100 / (100 + A)) * upgMul(g, k.tier);
   } else {
     const M = Math.max(0, e.mr - (now < e.mshredUntil ? e.mshred : 0));
-    m = (100 / (100 + M)) * (1 + (now < e.ampUntil ? e.amp : 0)) * (1 + RULES.upgPct * g.upgM);
+    m = (100 / (100 + M)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   }
   if (k.holy && e.boss) m *= k.holy;
   e.hp -= raw * m; e.by = uid;
