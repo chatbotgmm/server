@@ -1,18 +1,20 @@
-// 갈매미맨 랜덤 디펜스: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
+// 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
+// 조작: 갈매미를 눌러 고르기 · 끌어서 옮기기 · 빈 곳을 끌면 여러 마리 고르기 · 고른 채 빈 곳을 누르면 그리로 이동.
 import * as E from './engine.js';
 
-const { W, H } = E;
+const { W, H, FIELD } = E;
 const ART = '/game60/assets';
 const C = {
-  bg: '#07131c', panel: 'rgba(16,36,51,.94)', header: '#132c3b', slot: '#0b1e2a', text: '#f5ead0', muted: '#b0bec4',
+  bg: '#07131c', panel: 'rgba(16,36,51,.95)', header: '#132c3b', text: '#f5ead0', muted: '#b0bec4',
   gold: '#d9bb7f', goldEdge: '#f3d89e', edge: '#917a4c', line: '#5b675d', ink: '#192e39', bad: '#ff9a8a', good: '#9fe3a8',
-  lane: 'rgba(214,190,140,.22)', laneEdge: 'rgba(243,216,158,.35)',
+  lane: 'rgba(214,190,140,.22)', laneEdge: 'rgba(243,216,158,.35)', phys: '#ffb36b', mag: '#8fc8ff',
 };
 const GRADE_COLOR = { COMMON: '#9aa5ad', UNCOMMON: '#62c370', RARE: '#4d9de0', EPIC: '#a77be8', LEGEND: '#f0a03c', HIDDEN: '#3fd0c0', LIMITED: '#ef5a5a', TRANSCEND: '#ff8fc7', IMMORTAL: '#f3d36b', ETERNAL: '#ffffff' };
-const ELEM_COLOR = { FIRE: '#ff7a3c', WATER: '#4aa8ff', ICE: '#9fe8ff', LIGHTNING: '#ffe14a', NATURE: '#6ee06e', HOLY: '#fff2a8', DARK: '#b07cff', NORMAL: '#f5ead0' };
 const GOAL_COLOR = ['#4fd1e8', '#f07ad8', '#a6e05a'];
+const KIND_NAME = { 일반: '일반', 갑옷: '갑옷(방어력↑)', 결계: '결계(마법방어↑)', boss: '보스' };
 const FONT = '"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const BEST_KEY = 'gmm-defense-best';
+const UNIT_R = 24;   // 갈매미 누르기 반지름
 
 // ── 화면 준비 ──
 const cv = document.getElementById('game');
@@ -38,7 +40,7 @@ function img(src) {
 }
 const unitImg = (id) => img(`${ART}/units/${id}-front.webp`);
 const shades = {};
-function shade(id) {   // 적: 갈매미 그림을 어두운 보라 그림자로
+function shade(id) {
   if (shades[id]) return shades[id];
   const i = unitImg(id);
   if (!i) return null;
@@ -62,18 +64,14 @@ function drawFit(im, x, y, w, h, alpha = 1) {
 }
 
 // ── 그리기 도구 ──
-function rr(x, y, w, h, r) {
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
-}
+function rr(x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
 function box(x, y, w, h, fill, stroke = null, r = 8, lw = 1.5) {
   rr(x, y, w, h, r);
   if (fill) { ctx.fillStyle = fill; ctx.fill(); }
   if (stroke) { ctx.lineWidth = lw; ctx.strokeStyle = stroke; ctx.stroke(); }
 }
-function text(s, x, y, size = 18, color = C.text, align = 'left', base = 'middle', weight = '') {
-  ctx.font = `${weight} ${size}px ${FONT}`;
-  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+function text(s, x, y, size = 18, color = C.text, align = 'left', base = 'middle') {
+  ctx.font = `${size}px ${FONT}`; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
   ctx.fillText(s, x, y);
 }
 function fitText(s, x, y, maxW, size = 18, color = C.text, align = 'left') {
@@ -84,9 +82,8 @@ function fitText(s, x, y, maxW, size = 18, color = C.text, align = 'left') {
 }
 function wrap(s, x, y, maxW, size = 15, color = C.muted, lineH = size * 1.45) {
   ctx.font = `${size}px ${FONT}`;
-  const words = s.split(' ');
   let line = '', yy = y;
-  for (const w of words) {
+  for (const w of s.split(' ')) {
     const t = line ? `${line} ${w}` : w;
     if (ctx.measureText(t).width > maxW && line) { text(line, x, yy, size, color, 'left', 'top'); line = w; yy += lineH; } else line = t;
   }
@@ -94,45 +91,42 @@ function wrap(s, x, y, maxW, size = 15, color = C.muted, lineH = size * 1.45) {
   return yy - y;
 }
 
-// ── 누르기 영역(그릴 때마다 다시 등록) ──
 let hits = [];
-const hit = (x, y, w, h, fn, opt = {}) => hits.push({ x, y, w, h, fn, ...opt });
-function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '') {
+const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
+function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '', subColor = null) {
   const S = {
-    primary: ['linear', '#f3d89e', '#c9a463', C.ink, '#fff3cf'],
-    normal: ['flat', '#163447', null, C.text, C.gold],
-    quiet: ['flat', 'rgba(11,30,42,.6)', null, C.muted, C.line],
-    danger: ['flat', '#5a2418', null, '#ffd9cf', '#b4482a'],
+    primary: ['#f3d89e', '#c9a463', C.ink, '#fff3cf'],
+    normal: ['#163447', null, C.text, C.gold],
+    quiet: ['rgba(11,30,42,.6)', null, C.muted, C.line],
+    danger: ['#5a2418', null, '#ffd9cf', '#b4482a'],
   }[style];
-  if (S[0] === 'linear' && enabled) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, S[1]); g.addColorStop(1, S[2]); box(x, y, w, h, g, S[4], 10, 2); }
-  else box(x, y, w, h, enabled ? S[1] : '#1b2a33', enabled ? S[4] : '#33434d', 10, 1.5);
-  const col = enabled ? S[3] : '#6f7f88';
-  if (sub) { fitText(label, x + w / 2, y + h / 2 - 9, w - 16, 18, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 13, w - 16, 15, enabled ? (style === 'primary' ? '#3d2f1a' : C.muted) : '#5b6a73', 'center'); }
-  else fitText(label, x + w / 2, y + h / 2, w - 16, 18, col, 'center');
+  if (style === 'primary' && enabled) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, S[0]); g.addColorStop(1, S[1]); box(x, y, w, h, g, S[3], 10, 2); }
+  else box(x, y, w, h, enabled ? S[0] : '#1b2a33', enabled ? S[3] : '#33434d', 10, 1.5);
+  const col = enabled ? S[2] : '#6f7f88';
+  if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center'); }
+  else fitText(label, x + w / 2, y + h / 2, w - 12, 17, col, 'center');
   if (enabled) hit(x, y, w, h, fn);
 }
-function gradeChip(g, x, y) {
-  ctx.font = `14px ${FONT}`;
-  const t = E.GRADE_NAME[g], w = ctx.measureText(t).width + 14;
-  box(x, y, w, 22, 'rgba(0,0,0,.35)', GRADE_COLOR[g], 6, 1.5);
-  text(t, x + w / 2, y + 11.5, 14, GRADE_COLOR[g], 'center');
+function chip(s, x, y, color, size = 14) {
+  ctx.font = `${size}px ${FONT}`;
+  const w = ctx.measureText(s).width + 14;
+  box(x, y, w, size + 8, 'rgba(0,0,0,.35)', color, 6, 1.5);
+  text(s, x + w / 2, y + (size + 8) / 2 + 0.5, size, color, 'center');
   return w;
 }
 
 // ── 상태 ──
-let G = null;          // 게임 상태(engine)
-let scene = 'title';   // title | play
-let sel = -1;          // 고른 칸
-let modal = null;      // null | {kind:'book'|'pause'|'over'|'help', scroll}
-let speed = 1, paused = false;
+let G = null, scene = 'title', modal = null, speed = 1;
+let selected = [];   // 고른 갈매미 uid
 let toast = { msg: '', until: 0 };
+let lastNews = 0;
 let best = 0;
 try { best = Number(localStorage.getItem(BEST_KEY)) || 0; } catch { best = 0; }
-const say = (msg) => { toast = { msg, until: performance.now() + 2200 }; };
+const say = (msg) => { toast = { msg, until: performance.now() + 2400 }; };
+const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u && !u.away);
 
 function start() {
-  G = E.newGame();
-  scene = 'play'; sel = -1; modal = null; speed = 1; paused = false;
+  G = E.newGame(); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0;
 }
 function saveBest() {
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
@@ -140,21 +134,20 @@ function saveBest() {
 }
 
 // ── 입력 ──
-let down = null;   // {x,y,slot,scroll0,moved}
-function toLogical(ev) {
-  const r = cv.getBoundingClientRect();
-  return { x: (ev.clientX - r.left) / scale, y: (ev.clientY - r.top) / scale };
+let down = null;
+function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) / scale, y: (ev.clientY - r.top) / scale }; }
+const inField = (p) => p.x >= FIELD.x && p.y >= FIELD.y && p.x < FIELD.x + FIELD.w && p.y < FIELD.y + FIELD.h;
+function unitAt(p) {   // 위에 그려진(나중) 것부터
+  const list = E.fieldUnits(G);
+  for (let i = list.length - 1; i >= 0; i--) { const u = list[i]; if (Math.hypot(u.x - p.x, u.y - 14 - p.y) <= UNIT_R) return u; }
+  return null;
 }
-function slotAt(p) {
-  const { x, y, w, h } = E.GRID;
-  if (p.x < x || p.y < y || p.x >= x + w || p.y >= y + h) return -1;
-  return Math.floor((p.y - y) / E.CELL_H) * E.COLS + Math.floor((p.x - x) / E.CELL_W);
-}
+const playing = () => scene === 'play' && !modal && G && !G.over;
 cv.addEventListener('pointerdown', (ev) => {
   const p = toLogical(ev);
   cv.setPointerCapture?.(ev.pointerId);
-  const playing = scene === 'play' && !modal && G && !G.reward && !G.over;
-  down = { ...p, x0: p.x, y0: p.y, slot: playing ? slotAt(p) : -1, scroll0: modal?.scroll ?? 0, moved: false };
+  const u = playing() && inField(p) ? unitAt(p) : null;
+  down = { x: p.x, y: p.y, x0: p.x, y0: p.y, unit: u, field: playing() && inField(p), scroll0: modal?.scroll ?? 0, moved: false };
 });
 cv.addEventListener('pointermove', (ev) => {
   if (!down) return;
@@ -167,11 +160,29 @@ cv.addEventListener('pointerup', (ev) => {
   if (!down) return;
   const p = toLogical(ev), d = down;
   down = null;
-  // 갈매미 끌어 옮기기
-  if (d.moved && d.slot >= 0 && G.units[d.slot]) {
-    const to = slotAt(p);
-    if (to >= 0 && to !== d.slot) { E.move(G, d.slot, to); sel = to; }
-    return;
+  if (d.field && playing()) {
+    if (d.unit && d.moved) {   // 끌어서 옮기기(고른 무리에 있으면 무리째)
+      const group = selected.includes(d.unit.uid) && selected.length > 1 ? selUnits() : [d.unit];
+      const dx = p.x - d.x0, dy = p.y - d.y0;
+      for (const u of group) E.moveUnit(G, u.uid, u.tx + dx, u.ty + dy, true);
+      if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
+      return;
+    }
+    if (d.unit) { selected = selected.length === 1 && selected[0] === d.unit.uid ? [] : [d.unit.uid]; return; }
+    if (d.moved) {   // 빈 곳을 끌어 여러 마리 고르기
+      const x0 = Math.min(d.x0, p.x), x1 = Math.max(d.x0, p.x), y0 = Math.min(d.y0, p.y), y1 = Math.max(d.y0, p.y);
+      selected = E.fieldUnits(G).filter((u) => u.x >= x0 && u.x <= x1 && u.y - 14 >= y0 && u.y - 14 <= y1).map((u) => u.uid);
+      if (selected.length) say(`${selected.length}마리를 골랐어요. 빈 곳을 누르면 그리로 가요.`);
+      return;
+    }
+    // 고른 채 빈 곳 누르기 → 그리로 이동(무리 모양 유지)
+    const group = selUnits();
+    if (group.length) {
+      const cx = group.reduce((a, u) => a + u.tx, 0) / group.length, cy = group.reduce((a, u) => a + u.ty, 0) / group.length;
+      for (const u of group) E.moveUnit(G, u.uid, p.x + (u.tx - cx), p.y + 14 + (u.ty - cy));
+      G.fx.push({ kind: 'move', x: p.x, y: p.y + 14, t: G.t });
+      return;
+    }
   }
   if (d.moved && modal?.scrollable) return;
   for (let k = hits.length - 1; k >= 0; k--) {
@@ -180,239 +191,263 @@ cv.addEventListener('pointerup', (ev) => {
   }
 });
 cv.addEventListener('pointercancel', () => { down = null; });
-cv.addEventListener('wheel', (ev) => {
-  if (modal?.scrollable) { modal.scroll = Math.max(0, Math.min(modal.maxScroll ?? 0, modal.scroll + ev.deltaY)); ev.preventDefault(); }
-}, { passive: false });
+cv.addEventListener('wheel', (ev) => { if (modal?.scrollable) { modal.scroll = Math.max(0, Math.min(modal.maxScroll ?? 0, modal.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
-  if (scene !== 'play') return;
+  if (scene !== 'play' || !G || G.over) return;
   if (ev.key === ' ' || ev.key === 'Escape') { modal = modal ? null : { kind: 'pause' }; ev.preventDefault(); }
-  if ((ev.key === 's' || ev.key === 'S') && !modal) doSummon();
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && scene === 'play' && G && !G.over && !modal) modal = { kind: 'pause' }; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) modal = { kind: 'pause' }; });
 
-function doSummon() {
-  const r = E.summon(G);
-  if (!r.ok && r.why) say(r.why);
-}
-function tapSlot(i) {
-  if (G.units[i]) { sel = sel === i ? -1 : i; return; }
-  if (sel >= 0) { E.move(G, sel, i); sel = i; return; }
-  sel = -1;
-}
+function doSummon(grade) { const r = E.summon(G, grade); if (!r.ok && r.why) say(r.why); }   // 연달아 누를 수 있게 고르지 않음
 
-// ── 그리기: 판 ──
+// ── 판 ──
 function drawBackground() {
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
   const bg = img(`${ART}/ui/bg-harbor.webp`);
   if (bg) { const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight); ctx.globalAlpha = 0.5; ctx.drawImage(bg, (W - bg.naturalWidth * s) / 2, (H - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); ctx.globalAlpha = 1; }
   ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, W, H);
 }
+function goalColors() {
+  const out = {};
+  G.goals.forEach((gid, k) => { const r = E.recipeFor(gid); if (r) for (const id of new Set(r.in)) (out[id] ??= []).push(GOAL_COLOR[k]); });
+  return out;
+}
 function drawField() {
-  const L = E.LOOP, lane = 42;
-  box(12, 98, W - 24, 566, 'rgba(7,19,28,.55)', C.edge, 12, 1.5);
-  // 길
+  const L = E.LOOP, lane = 40;
+  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, 'rgba(7,19,28,.5)', C.edge, 12, 1.5);
   ctx.lineWidth = lane; ctx.strokeStyle = C.lane; ctx.lineJoin = 'round';
   ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
   ctx.lineWidth = 1.5; ctx.strokeStyle = C.laneEdge;
   ctx.strokeRect(L.x0 - lane / 2, L.y0 - lane / 2, L.x1 - L.x0 + lane, L.y1 - L.y0 + lane);
   ctx.strokeRect(L.x0 + lane / 2, L.y0 + lane / 2, L.x1 - L.x0 - lane, L.y1 - L.y0 - lane);
-  // 출발 표시
   text('▶', L.x0 + 2, L.y0, 16, C.goldEdge, 'center');
-  // 칸
-  const goalOf = goalIngredientColors();
-  for (let i = 0; i < E.SLOTS; i++) {
-    const c = E.slotCenter(i), x = c.x - E.CELL_W / 2 + 3, y = c.y - E.CELL_H / 2 + 3, w = E.CELL_W - 6, h = E.CELL_H - 6;
-    const u = G.units[i];
-    box(x, y, w, h, u ? 'rgba(11,30,42,.88)' : 'rgba(11,30,42,.45)', u ? GRADE_COLOR[E.UNIT[u.id].grade] : 'rgba(145,122,76,.35)', 8, u ? 2 : 1);
-    if (u) {
-      const dragging = down?.moved && down.slot === i;
-      drawFit(unitImg(u.id), x + 4, y + 2, w - 8, h - 8, dragging ? 0.35 : 1);
-      const cols = goalOf[u.id];
-      if (cols) cols.forEach((col, k) => box(x - 2 - k * 3, y - 2 - k * 3, w + 4 + k * 6, h + 4 + k * 6, null, col, 10, 2.5));
-      const fresh = G.t - u.born < 0.4;
-      if (fresh) box(x, y, w, h, 'rgba(243,216,158,.35)', null, 8);
-    }
-    if (i === sel) box(x - 1, y - 1, w + 2, h + 2, null, '#ffffff', 9, 3);
-    hit(x, y, w, h, () => tapSlot(i));
+  // 나타나는 곳
+  ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
+  // 고른 갈매미 사거리(한 마리일 때)
+  const sel = selUnits();
+  if (sel.length === 1) {
+    const k = E.kit(sel[0].id);
+    ctx.beginPath(); ctx.arc(sel[0].x, sel[0].y - 14, k.range, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(243,216,158,.07)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(243,216,158,.55)'; ctx.stroke();
   }
-  // 고른 갈매미 사거리
-  if (sel >= 0 && G.units[sel]) {
-    const st = E.unitStats(G.units[sel].id), c = E.slotCenter(sel);
-    ctx.beginPath(); ctx.arc(c.x, c.y, st.range, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(243,216,158,.08)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(243,216,158,.6)'; ctx.stroke();
-  }
-  // 끌고 있는 갈매미
-  if (down?.moved && down.slot >= 0 && G.units[down.slot]) drawFit(unitImg(G.units[down.slot].id), down.x - 34, down.y - 40, 68, 68, 0.9);
   // 적
   for (const e of G.enemies) {
-    const sz = e.boss ? 76 : 40, sh = shade(e.look);
+    const sz = e.boss ? 76 : 38, sh = shade(e.look);
     if (sh) drawFit(sh, e.x - sz / 2, e.y - sz * 0.75, sz, sz);
-    else { ctx.beginPath(); ctx.arc(e.x, e.y, sz / 3, 0, Math.PI * 2); ctx.fillStyle = '#2a1442'; ctx.fill(); }
-    if (G.t < e.slowUntil) { ctx.beginPath(); ctx.arc(e.x, e.y + 4, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5; ctx.stroke(); }
-    const bw = e.boss ? 70 : 34, bx = e.x - bw / 2, by = e.y - sz * 0.75 - 7;
+    if (G.t < e.stunUntil) text('★', e.x, e.y - sz * 0.75 - 14, 12, '#ffe14a', 'center');
+    if (G.t < e.slowUntil) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5; ctx.stroke(); }
+    const bw = e.boss ? 70 : 32, bx = e.x - bw / 2, by = e.y - sz * 0.75 - 6;
     box(bx, by, bw, 5, 'rgba(0,0,0,.6)', null, 2);
     box(bx, by, bw * Math.max(0, e.hp / e.max), 5, e.boss ? '#ff6b6b' : '#6fd08a', null, 2);
   }
-  // 공격 효과
-  for (const f of G.fx) {
-    const a = 1 - (G.t - f.t) / 0.6;
-    if (f.kind === 'shot' && G.t - f.t < 0.15) {
-      const c = E.slotCenter(f.slot);
-      ctx.globalAlpha = 1 - (G.t - f.t) / 0.15; ctx.strokeStyle = ELEM_COLOR[f.elem]; ctx.lineWidth = f.crit ? 3 : 2;
-      ctx.beginPath(); ctx.moveTo(c.x, c.y - 10); ctx.lineTo(f.x1, f.y1 - 8); ctx.stroke();
-      ctx.beginPath(); ctx.arc(f.x1, f.y1 - 8, f.crit ? 6 : 4, 0, Math.PI * 2); ctx.fillStyle = ELEM_COLOR[f.elem]; ctx.fill();
-      ctx.globalAlpha = 1;
-    } else if (f.kind === 'zap' && G.t - f.t < 0.2) {
-      ctx.strokeStyle = ELEM_COLOR.LIGHTNING; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 8); ctx.lineTo(f.x1, f.y1 - 8); ctx.stroke();
-    } else if (f.kind === 'combine') {
-      const c = E.slotCenter(f.slot);
-      ctx.globalAlpha = Math.max(0, a); ctx.beginPath(); ctx.arc(c.x, c.y, 20 + (1 - a) * 40, 0, Math.PI * 2); ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
+  // 갈매미(아래쪽부터 그려 겹침이 자연스럽게)
+  const gc = goalColors(), selSet = new Set(selected);
+  const list = [...E.fieldUnits(G)].sort((a, b) => a.y - b.y);
+  for (const u of list) {
+    const info = E.UNIT[u.id], col = GRADE_COLOR[info.grade];
+    ctx.beginPath(); ctx.ellipse(u.x, u.y, 20, 7, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+    ctx.lineWidth = selSet.has(u.uid) ? 3 : 2; ctx.strokeStyle = selSet.has(u.uid) ? '#ffffff' : col; ctx.stroke();
+    (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, 24 + k * 4, 9 + k * 2, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
+    drawFit(unitImg(u.id), u.x - 24, u.y - 50, 48, 50);
+    if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20, 30, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  // 겹친 갈매미 수(같은 자리 14px 안)
+  const stacks = [];
+  for (const u of list) { const st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; } else stacks.push({ x: u.x, y: u.y, n: 1 }); }
+  for (const st of stacks) if (st.n > 1) { box(st.x + 10, st.y - 54, 30, 20, 'rgba(7,19,28,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 25, st.y - 43.5, 13, C.goldEdge, 'center'); }
+  // 끌기 표시
+  if (down?.moved && down.field) {
+    if (down.unit) {
+      const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit];
+      for (const u of group) drawFit(unitImg(u.id), u.x - 24 + down.x - down.x0, u.y - 50 + down.y - down.y0, 48, 50, 0.6);
+    } else {
+      box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(243,216,158,.08)', C.goldEdge, 2, 1.5);
     }
   }
-}
-// 목표별 재료 갈매미 → 테두리 색 목록
-function goalIngredientColors() {
-  const out = {};
-  G.goals.forEach((gid, k) => {
-    const r = E.recipeFor(gid);
-    if (!r) return;
-    for (const id of new Set(r.in)) (out[id] ??= []).push(GOAL_COLOR[k]);
-  });
-  return out;
+  // 효과
+  for (const f of G.fx) {
+    const age = G.t - f.t;
+    if (f.kind === 'shot' && age < 0.14) {
+      ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
+      ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
+      ctx.beginPath(); ctx.arc(f.x1, f.y1 - 10, f.job === '보조' ? 3 : 4.5, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill(); ctx.globalAlpha = 1;
+    } else if (f.kind === 'zap' && age < 0.2) {
+      ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
+    } else if (f.kind === 'combine' || f.kind === 'move') {
+      const a = Math.max(0, 1 - age / 0.6); ctx.globalAlpha = a;
+      ctx.beginPath(); ctx.arc(f.x, f.y - (f.kind === 'move' ? 0 : 20), (f.kind === 'move' ? 8 : 20) + (1 - a) * 30, 0, Math.PI * 2);
+      ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+    } else if (f.kind === 'wisp') {
+      const a = Math.max(0, 1 - age / 0.8); ctx.globalAlpha = a;
+      text('✦', f.x, f.y - 20 - (1 - a) * 30, 22, GRADE_COLOR[f.grade], 'center'); ctx.globalAlpha = 1;
+    }
+  }
 }
 
 // ── 위 정보 줄 ──
 function drawHud() {
-  box(8, 6, W - 16, 86, C.header, C.edge, 10);
+  box(8, 6, W - 16, 88, C.header, C.edge, 10);
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
-  text(`웨이브 ${G.wave}/${E.RULES.waves}`, 22, 30, 21, C.text);
-  if (wi.boss) text(`보스 ${left}초 안에 잡기`, 22, 66, 16, left <= 15 ? C.bad : '#ffc2a8');
-  else text(`다음 웨이브 ${left}초`, 22, 66, 16, C.muted);
-  // 적 수
+  text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
+  chip(KIND_NAME[wi.kind], 150, 17, wi.boss ? '#ff8a7a' : wi.kind === '갑옷' ? C.phys : wi.kind === '결계' ? C.mag : C.muted, 13);
+  if (wi.boss) text(G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${left}초 안에 잡기`, 20, 58, 15, G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8');
+  else text(`다음 웨이브 ${left}초`, 20, 58, 15, C.muted);
+  // 적 수·경고
   const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
-  const bx = 200, bw = 150;
-  text(`적 ${n}/${lim}`, bx, 30, 17, ratio > 0.7 ? C.bad : C.text);
-  box(bx, 52, bw, 12, 'rgba(0,0,0,.5)', C.line, 6, 1);
-  box(bx, 52, bw * ratio, 12, ratio > 0.7 ? '#e0533f' : ratio > 0.45 ? '#e8b04a' : '#6fd08a', null, 6);
-  text(`처치 ${G.kills}`, bx, 78, 14, C.muted);
-  // 일시정지·배속
-  button(W - 116, 14, 48, 40, paused || modal?.kind === 'pause' ? '▶' : 'Ⅱ', () => { modal = { kind: 'pause' }; }, 'normal');
-  button(W - 62, 14, 48, 40, `×${speed}`, () => { speed = speed === 1 ? 2 : 1; }, 'normal');
-  // 새우
+  text(`적 ${n}/${lim}`, 20, 82, 14, n > lim ? C.bad : C.text);
+  box(92, 77, 150, 10, 'rgba(0,0,0,.5)', C.line, 5, 1);
+  box(92, 77, 150 * ratio, 10, n > lim ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
+  text(`경고 ${G.warn}/${E.RULES.warnMax}`, 256, 82, 14, G.warn ? C.bad : C.muted);
+  // 새우·강화
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
-  if (sh) drawFit(sh, W - 118, 58, 24, 24);
-  text(`${G.gold}`, W - 90, 71, 18, C.goldEdge);
+  if (sh) drawFit(sh, 340, 64, 22, 22);
+  text(`${G.gold}`, 366, 76, 16, C.goldEdge);
+  button(W - 112, 12, 46, 40, 'Ⅱ', () => { modal = { kind: 'pause' }; }, 'normal');
+  button(W - 60, 12, 46, 40, `×${speed}`, () => { speed = speed === 1 ? 2 : speed === 2 ? 3 : 1; }, 'normal');
+  // 새 소식(위습 획득·탐사 결과)
+  const nw = G.news[G.news.length - 1];
+  if (nw && G.t - nw.t < 3.5) {
+    ctx.font = `15px ${FONT}`;
+    const tw = Math.min(W - 40, ctx.measureText(nw.msg).width + 28);
+    box((W - tw) / 2, FIELD.y + 6, tw, 32, 'rgba(19,44,59,.95)', C.goldEdge, 8, 1.5);
+    fitText(nw.msg, W / 2, FIELD.y + 22, tw - 16, 15, C.goldEdge, 'center');
+  }
 }
 
-// ── 아래 판: 고른 갈매미 / 기본 ──
+// ── 아래 판 ──
 function drawBottom() {
   const y0 = 672;
   box(8, y0, W - 16, H - y0 - 8, C.panel, C.edge, 12);
-  if (sel >= 0 && G.units[sel]) drawUnitPanel(y0);
+  const sel = selUnits();
+  if (sel.length === 1) drawUnitPanel(y0, sel[0]);
+  else if (sel.length > 1) drawGroupPanel(y0, sel);
   else drawMainPanel(y0);
 }
 function drawMainPanel(y0) {
+  // 위습
+  text('위습 (눌러서 소환)', 22, y0 + 18, 14, C.gold);
+  const ws = E.WISP_GRADES, bw = (W - 44 - 4 * 6) / 5;
+  ws.forEach((gr, k) => {
+    const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = y0 + 32;
+    box(x, y, bw, 58, n ? 'rgba(11,30,42,.9)' : 'rgba(11,30,42,.4)', n ? GRADE_COLOR[gr] : '#33434d', 10, n ? 2 : 1);
+    fitText(E.GRADE_NAME[gr], x + bw / 2, y + 18, bw - 8, 15, n ? GRADE_COLOR[gr] : '#5b6a73', 'center');
+    text(`×${n}`, x + bw / 2, y + 41, 19, n ? C.text : '#5b6a73', 'center');
+    if (n) hit(x, y, bw, 58, () => doSummon(gr));
+  });
+  // 강화·탐사·조합법
+  const by = y0 + 100, b4 = (W - 44 - 18) / 4;
+  button(22, by, b4, 58, '물딜 강화', () => { const r = E.upgrade(G, 'phys'); if (!r.ok && r.why) say(r.why); }, 'normal', G.gold >= E.upgradeCost(G, 'phys'), `${G.upgP}단계·${E.upgradeCost(G, 'phys')}`, C.phys);
+  button(22 + (b4 + 6), by, b4, 58, '마딜 강화', () => { const r = E.upgrade(G, 'mag'); if (!r.ok && r.why) say(r.why); }, 'normal', G.gold >= E.upgradeCost(G, 'mag'), `${G.upgM}단계·${E.upgradeCost(G, 'mag')}`, C.mag);
+  const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
+  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : open ? '열림!' : `${nextR.unlock}웨이브에 열림`;
+  button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, open && !away ? 'primary' : 'normal', true, msub);
+  button(22 + 3 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
-  text('조합 목표', 24, y0 + 22, 15, C.gold);
-  text(G.goals.length ? '같은 색 테두리 = 그 목표의 재료' : '조합법에서 ☆로 목표를 정해 보세요', 104, y0 + 22, 14, C.muted);
-  const cnt = E.countOnBoard(G), gw = (W - 48 - 16) / 3;
+  const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
   for (let k = 0; k < E.GOAL_MAX; k++) {
-    const x = 24 + k * (gw + 8), y = y0 + 38, h = 64, gid = G.goals[k];
-    if (!gid) { box(x, y, gw, h, 'rgba(11,30,42,.4)', 'rgba(145,122,76,.35)', 8, 1); text('비어 있음', x + gw / 2, y + h / 2, 14, '#6f7f88', 'center'); hit(x, y, gw, h, () => openBook()); continue; }
-    const r = E.recipeFor(gid), have = needHave(r, cnt), ready = !!E.recipeSlots(G, r);
-    box(x, y, gw, h, 'rgba(11,30,42,.85)', GOAL_COLOR[k], 8, 2.5);
-    drawFit(unitImg(gid), x + 4, y + 4, 48, 56);
-    fitText(E.UNIT[gid].name, x + 56, y + 20, gw - 60, 17, C.text);
-    text(ready ? '조합 가능!' : `재료 ${have}/${r.in.length}`, x + 56, y + 44, 15, ready ? C.good : C.muted);
-    hit(x, y, gw, h, () => { if (ready) { E.combine(G, r); say(`${E.UNIT[gid].name} 완성!`); } else openBook(gid); });
+    const x = 22 + k * (gw + 6), gid = G.goals[k];
+    if (!gid) { box(x, gy, gw, 50, 'rgba(11,30,42,.4)', 'rgba(145,122,76,.35)', 8, 1); text(k === 0 ? '조합 목표 ☆' : '비어 있음', x + gw / 2, gy + 25, 14, '#6f7f88', 'center'); hit(x, gy, gw, 50, () => openBook()); continue; }
+    const r = E.recipeFor(gid), ready = !!E.recipeUnits(G, r);
+    box(x, gy, gw, 50, 'rgba(11,30,42,.85)', GOAL_COLOR[k], 8, 2.5);
+    drawFit(unitImg(gid), x + 3, gy + 3, 40, 44);
+    fitText(E.UNIT[gid].name, x + 46, gy + 16, gw - 50, 15, C.text);
+    text(ready ? '조합 가능!' : `재료 ${have(r, cnt)}/${r.in.length}`, x + 46, gy + 36, 13, ready ? C.good : C.muted);
+    hit(x, gy, gw, 50, () => { if (ready) { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${E.UNIT[gid].name} 완성!`); } } else openBook(gid); });
   }
-  // 버튼
-  const by = y0 + 118, cost = E.summonCost(G), ucost = E.upgradeCost(G);
-  const free = E.freeSlots(G).length;
-  button(24, by, 236, 74, '소환', doSummon, 'primary', G.gold >= cost && free > 0, free ? `새우 ${cost} · 커먼 1마리` : '빈칸 없음');
-  button(270, by, 120, 74, '공격력 강화', () => { const r = E.upgrade(G); if (!r.ok && r.why) say(r.why); else if (r.ok) say(`강화 ${G.upg}단계: 모든 갈매미 공격력 +${Math.round(G.upg * E.RULES.upgPct * 100)}%`); }, 'normal', G.gold >= ucost, `${G.upg}단계 · 새우 ${ucost}`);
-  button(400, by, 116, 74, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
-  wrap('칸을 누르면 정보·조합, 끌면 자리 바꾸기. 적이 70마리를 넘거나 보스를 60초 안에 못 잡으면 끝나요.', 24, by + 88, W - 48, 15, C.muted);
+  fitText('갈매미 누르기=고르기 · 끌기=옮기기 · 빈 곳 끌기=여러 마리', 22, H - 26, W - 44, 14, C.muted);
 }
-function needHave(r, cnt) {
-  const left = { ...cnt };
-  let have = 0;
-  for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; have++; }
-  return have;
+function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; n++; } return n; }
+function drawUnitPanel(y0, u) {
+  const info = E.UNIT[u.id], k = E.kit(u.id);
+  drawFit(unitImg(u.id), 18, y0 + 8, 68, 70);
+  fitText(info.name, 94, y0 + 22, 150, 21, C.text);
+  ctx.font = `21px ${FONT}`;
+  let cx = 94 + Math.min(150, ctx.measureText(info.name).width) + 8;
+  cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
+  chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.type === 'phys' ? C.phys : C.mag);
+  const up = 1 + E.RULES.upgPct * (k.type === 'phys' ? G.upgP : G.upgM);
+  fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap <= 0.6 ? '빠름' : k.gap >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
+  fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
+  button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
+  const list = E.recipesUsing(u.id).map((r) => ({ r, ok: !!E.recipeUnits(G, r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
+  text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
+  const cnt = E.countOnField(G);
+  list.slice(0, 2).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
+  const by = H - 8 - 56, b4 = (W - 44 - 18) / 4;
+  button(22, by, b4, 46, list.length > 2 ? `더 보기 +${list.length - 2}` : '조합법', () => openBook(null, u.id), 'normal');
+  button(22 + (b4 + 6), by, b4, 46, '같은 종류', () => { selected = E.fieldUnits(G).filter((x) => x.id === u.id).map((x) => x.uid); }, 'normal');
+  button(22 + 2 * (b4 + 6), by, b4, 46, '탐사 보내기', () => sendSelected([u]), 'normal', E.missionOpen(G));
+  button(22 + 3 * (b4 + 6), by, b4, 46, `판매 +${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
 }
-function drawUnitPanel(y0) {
-  const u = G.units[sel], info = E.UNIT[u.id], st = E.unitStats(u.id);
-  drawFit(unitImg(u.id), 22, y0 + 10, 72, 72);
-  fitText(info.name, 104, y0 + 24, 170, 22, C.text);
-  const gx = 104 + Math.min(170, (ctx.measureText(info.name).width || 0)) + 8;
-  gradeChip(info.grade, Math.min(gx, W - 200), y0 + 14);
-  const dmg = Math.round(st.dmg * (1 + E.RULES.upgPct * G.upg));
-  fitText(`${info.role} · 공격 ${dmg} · ${st.gap < 0.6 ? '빠름' : st.gap > 1 ? '느림' : '보통'} · 사거리 ${st.range}`, 104, y0 + 54, W - 128, 15, C.muted);
-  fitText(E.ELEM_TIP[st.elem] || (st.stun ? '가끔 적을 잠깐 멈춤' : st.crit ? '가끔 두 배 피해' : '기본 공격'), 104, y0 + 78, W - 128, 15, ELEM_COLOR[st.elem]);
-  button(W - 112, y0 + 12, 88, 40, '닫기', () => { sel = -1; }, 'quiet');
-  // 이 갈매미가 들어가는 조합법(만들 수 있는 것 먼저)
-  const list = E.recipesUsing(u.id).map((r) => ({ r, ok: !!E.recipeSlots(G, r, sel) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
-  text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 공개 조합법이 없어요', 24, y0 + 102, 15, C.gold);
-  const cnt = E.countOnBoard(G);
-  list.slice(0, 2).forEach(({ r, ok }, k) => recipeRow(r, ok, 20, y0 + 114 + k * 52, W - 40, 48, cnt, sel));
-  const by = H - 8 - 58;
-  if (list.length > 2) button(24, by, 190, 46, `조합법 더 보기 (+${list.length - 2})`, () => openBook(null, u.id), 'normal');
-  button(W - 24 - 160, by, 160, 46, `판매 +${st.sell}`, () => { E.sell(G, sel); sel = -1; }, 'danger');
+function drawGroupPanel(y0, sel) {
+  let p = 0, m = 0;
+  for (const u of sel) { const k = E.kit(u.id); if (k.type === 'phys') p++; else m++; }
+  text(`갈매미 ${sel.length}마리 고름`, 22, y0 + 24, 20, C.text);
+  text(`물딜 ${p} · 마딜 ${m}`, 22, y0 + 52, 15, C.muted);
+  button(W - 112, y0 + 10, 90, 40, '해제', () => { selected = []; }, 'quiet');
+  const per = 10, sz = 46;
+  sel.slice(0, per * 2).forEach((u, i) => {
+    const x = 22 + (i % per) * (sz + 4), y = y0 + 72 + Math.floor(i / per) * (sz + 4);
+    box(x, y, sz, sz, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5);
+    drawFit(unitImg(u.id), x + 2, y + 2, sz - 4, sz - 4);
+  });
+  if (sel.length > per * 2) text(`외 ${sel.length - per * 2}마리`, W - 30, y0 + 176, 14, C.muted, 'right');
+  fitText('빈 곳을 누르면 고른 갈매미들이 그리로 걸어가요', 22, y0 + 198, W - 44, 14, C.muted);
+  const by = H - 8 - 56;
+  button(22, by, (W - 50) / 2, 46, `탐사 보내기 (${sel.length})`, () => sendSelected(sel), 'normal', E.missionOpen(G));
+  button(28 + (W - 50) / 2, by, (W - 50) / 2, 46, '고르기 해제', () => { selected = []; }, 'quiet');
 }
-// 조합법 한 줄: 결과 그림·이름, 재료(있으면 밝게), ☆목표, 조합
-function recipeRow(r, ok, x, y, w, h, cnt, keep = -1) {
+function sendSelected(list) {
+  const n = E.sendAway(G, list.map((u) => u.uid));
+  if (n) { say(`${n}마리를 외부탐사 「${E.REGIONS[G.missionDone].name}」에 보냈어요.`); selected = []; }
+}
+// 조합법 한 줄
+function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const out = E.UNIT[r.out], gi = G.goals.indexOf(r.out);
   box(x, y, w, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', gi >= 0 ? GOAL_COLOR[gi] : ok ? '#2b7a62' : 'rgba(145,122,76,.4)', 8, gi >= 0 ? 2.5 : 1.5);
   drawFit(unitImg(r.out), x + 4, y + 2, 40, h - 4);
-  fitText(out.name, x + 50, y + 15, 96, 17, GRADE_COLOR[out.grade]);
-  text(E.GRADE_NAME[out.grade], x + 50, y + 34, 14, C.muted);
-  // 재료
+  fitText(out.name, x + 50, y + 15, 92, 16, GRADE_COLOR[out.grade]);
+  text(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 34, 12, C.muted);
   const left = { ...cnt };
   let cx = x + 150;
-  ctx.font = `15px ${FONT}`;
   const chipMax = (x + w - 112 - cx) / r.in.length - 4;
   for (const id of r.in) {
-    const has = (left[id] ?? 0) > 0;
-    if (has) left[id]--;
-    ctx.font = `15px ${FONT}`;
+    const hasIt = (left[id] ?? 0) > 0;
+    if (hasIt) left[id]--;
+    ctx.font = `14px ${FONT}`;
     const t = E.UNIT[id].name, tw = Math.min(chipMax, ctx.measureText(t).width + 12);
-    box(cx, y + h / 2 - 13, tw, 26, has ? 'rgba(111,208,138,.18)' : 'rgba(0,0,0,.3)', has ? '#6fd08a' : '#46555f', 6, 1);
-    fitText(t, cx + tw / 2, y + h / 2, tw - 6, 15, has ? C.good : '#8b9aa3', 'center');
+    box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.18)' : 'rgba(0,0,0,.3)', hasIt ? '#6fd08a' : '#46555f', 6, 1);
+    fitText(t, cx + tw / 2, y + h / 2, tw - 6, 14, hasIt ? C.good : '#8b9aa3', 'center');
     cx += tw + 4;
   }
-  // 버튼
   const bx = x + w - 108;
-  button(bx, y + 6, 40, h - 12, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name}` : '목표에서 뺐어요'); }, 'quiet');
-  button(bx + 46, y + 6, 58, h - 12, '조합', () => { const at = E.combine(G, r, keep); if (at != null) { sel = at; say(`${out.name} 완성!`); } }, 'primary', ok);
+  button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
+  button(bx + 46, y + 5, 58, h - 10, '조합', () => { const nu = E.combine(G, r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
 }
 
 // ── 모달 ──
 function openBook(focus = null, using = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using }; }
-function shadeAll(alpha = 0.7) { ctx.fillStyle = `rgba(3,9,14,${alpha})`; ctx.fillRect(0, 0, W, H); hit(0, 0, W, H, () => {}); }
+function shadeAll(a = 0.72) { ctx.fillStyle = `rgba(3,9,14,${a})`; ctx.fillRect(0, 0, W, H); hit(0, 0, W, H, () => {}); }
 function drawBook() {
   shadeAll();
   const x = 14, y = 40, w = W - 28, h = H - 80;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  text(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : '조합법 (공개분)', x + 18, y + 30, 20, C.text);
+  fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('☆ 목표 = 판의 재료에 같은 색 테두리 · 히든은 보스 보상', x + 18, y + 64, w - 36, 14, C.muted);
-  const top = y + 82, viewH = h - 92, cnt = E.countOnBoard(G);
+  fitText('☆ 목표 = 판의 재료 갈매미에 같은 색 테두리', x + 18, y + 64, w - 36, 14, C.muted);
+  const top = y + 82, viewH = h - 92, cnt = E.countOnField(G);
   let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
-  rows = rows.map((r) => ({ r, ok: !!E.recipeSlots(G, r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
-  // 등급 머리글 + 줄
+  rows = rows.map((r) => ({ r, ok: !!E.recipeUnits(G, r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
   const items = [];
   let lastG = '';
   for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
   const rowH = (it) => (it.head ? 30 : 52);
   const total = items.reduce((a, it) => a + rowH(it), 0);
   modal.maxScroll = Math.max(0, total - viewH);
-  if (modal.focus && !modal.focused) {   // 목표 칸에서 열면 그 조합법으로
-    let yy = 0; for (const it of items) { if (it.r?.out === modal.focus) break; yy += rowH(it); }
-    modal.scroll = Math.min(modal.maxScroll, Math.max(0, yy - 60)); modal.focused = true;
-  }
+  if (modal.focus && !modal.focused) { let yy = 0; for (const it of items) { if (it.r?.out === modal.focus) break; yy += rowH(it); } modal.scroll = Math.min(modal.maxScroll, Math.max(0, yy - 60)); modal.focused = true; }
   ctx.save(); rr(x + 6, top, w - 12, viewH, 8); ctx.clip();
   let yy = top - modal.scroll;
-  const hitsBefore = hits.length;
+  const before = hits.length;
   for (const it of items) {
     const rh = rowH(it);
     if (yy + rh >= top && yy <= top + viewH) {
@@ -422,38 +457,55 @@ function drawBook() {
     yy += rh;
   }
   ctx.restore();
-  // 보이는 곳 밖 버튼은 누를 수 없게
-  hits = hits.filter((hh, k) => k < hitsBefore || (hh.y >= top && hh.y + hh.h <= top + viewH));
-  // 스크롤 막대
+  hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));
   if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
 }
-function drawReward() {
-  shadeAll(0.75);
-  const x = 20, y = 170, w = W - 40, h = 560;
+function drawMission() {
+  shadeAll();
+  const x = 14, y = 40, w = W - 28, h = H - 80;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  text(`${G.wave}웨이브 보스 처치!`, W / 2, y + 40, 24, C.goldEdge, 'center');
-  text('히든 갈매미 하나를 골라 데려가요', W / 2, y + 74, 16, C.muted, 'center');
-  const cw = (w - 48) / 3;
-  G.reward.forEach((id, k) => {
-    const cx = x + 16 + k * (cw + 8), cy = y + 100, ch = 360, st = E.unitStats(id), u = E.UNIT[id];
-    box(cx, cy, cw, ch, 'rgba(11,30,42,.9)', GRADE_COLOR.HIDDEN, 10, 2);
-    drawFit(unitImg(id), cx + 8, cy + 10, cw - 16, 150);
-    fitText(u.name, cx + cw / 2, cy + 184, cw - 12, 20, C.text, 'center');
-    fitText(u.role, cx + cw / 2, cy + 212, cw - 12, 15, C.muted, 'center');
-    fitText(`공격 ${st.dmg}`, cx + cw / 2, cy + 236, cw - 12, 14, C.text, 'center');
-    ctx.save(); ctx.beginPath(); ctx.rect(cx + 6, cy + 252, cw - 12, 60); ctx.clip();
-    wrap(E.ELEM_TIP[st.elem] || '기본 공격', cx + 10, cy + 252, cw - 20, 14, ELEM_COLOR[st.elem]);
-    ctx.restore();
-    button(cx + 8, cy + ch - 50, cw - 16, 42, '데려가기', () => { E.chooseReward(G, k); say(`${u.name} 합류!`); }, 'primary');
+  text('외부탐사', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText('갈매미를 스토리 지역에 보내 그림자 대장을 쓰러뜨리면 위습을 받아요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, C.muted);
+  // 지역 목록
+  const ly = y + 84;
+  E.REGIONS.forEach((r, k) => {
+    const yy = ly + k * 40, done = k < G.missionDone, cur = k === G.missionDone, open = cur && E.missionOpen(G);
+    box(x + 12, yy, w - 24, 34, cur ? 'rgba(43,122,98,.2)' : 'rgba(11,30,42,.6)', cur ? (open ? '#2b7a62' : C.edge) : 'rgba(145,122,76,.3)', 6, cur ? 2 : 1);
+    fitText(`${r.ch}장 ${r.name}`, x + 24, yy + 17, 220, 15, done ? C.muted : C.text);
+    fitText(done ? '완료 ✓' : open ? '진행 가능' : `${r.unlock}웨이브에 열림`, x + 250, yy + 17, 100, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
+    fitText(E.wispText(r.reward), x + w - 24, yy + 17, 150, 13, C.gold, 'right');
   });
-  text('고르면 다음 웨이브가 시작돼요', W / 2, y + h - 30, 15, C.muted, 'center');
+  // 지금 지역
+  const cy = ly + E.REGIONS.length * 40 + 10;
+  if (G.missionDone >= E.REGIONS.length) { text('모든 지역을 되찾았어요!', W / 2, cy + 80, 20, C.goldEdge, 'center'); return; }
+  const r = E.REGIONS[G.missionDone], open = E.missionOpen(G);
+  const place = img(`${ART}/village/${r.img}.webp`);
+  box(x + 12, cy, w - 24, 230, 'rgba(7,19,28,.8)', C.edge, 10);
+  if (place) { ctx.save(); rr(x + 12, cy, w - 24, 230, 10); ctx.clip(); ctx.globalAlpha = 0.3; drawFit(place, x + 12, cy - 30, w - 24, 230); ctx.globalAlpha = 1; ctx.restore(); }
+  text(`${r.ch}장 · ${r.place}`, x + 26, cy + 22, 15, C.goldEdge);
+  if (!open) { text(`${r.unlock}웨이브부터 보낼 수 있어요`, W / 2, cy + 120, 18, C.muted, 'center'); return; }
+  const t = E.missionTarget(G), sh = shade(r.look);
+  if (sh) drawFit(sh, W / 2 - 60, cy + 36, 120, 120);
+  box(x + 40, cy + 166, w - 80, 12, 'rgba(0,0,0,.6)', C.line, 6, 1);
+  box(x + 40, cy + 166, (w - 80) * Math.max(0, t.hp / t.max), 12, '#ff6b6b', null, 6);
+  box(x + 24, cy + 184, w - 48, 40, 'rgba(7,19,28,.88)', null, 8);
+  fitText(`그림자 대장 체력 ${Math.max(0, Math.ceil(t.hp)).toLocaleString()} · 방어력 ${t.armor} · 마법방어 ${t.mr}`, W / 2, cy + 196, w - 60, 14, C.text, 'center');
+  const away = E.awayUnits(G);
+  text(away.length ? `탐사 중 ${away.length}마리` : '아직 보낸 갈매미가 없어요', W / 2, cy + 214, 14, away.length ? C.good : C.muted, 'center');
+  // 보낸 갈매미
+  const ay = cy + 240;
+  away.slice(0, 20).forEach((u, i) => { const xx = x + 14 + (i % 10) * 48, yy = ay + Math.floor(i / 10) * 48; box(xx, yy, 44, 44, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, 40, 40); });
+  const by = y + h - 64, sel = selUnits();
+  button(x + 14, by, (w - 40) / 2, 50, sel.length ? `고른 ${sel.length}마리 보내기` : '판에서 먼저 고르기', () => { if (sel.length) { sendSelected(sel); } else modal = null; }, sel.length ? 'primary' : 'normal');
+  button(x + 26 + (w - 40) / 2, by, (w - 40) / 2, 50, '모두 불러오기', () => { const n = E.recall(G); say(`${n}마리가 돌아왔어요.`); }, 'normal', away.length > 0);
 }
 function drawPause() {
   shadeAll();
   const x = 60, y = 300, w = W - 120, h = 320;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('잠시 멈춤', W / 2, y + 44, 24, C.text, 'center');
-  text(`웨이브 ${G.wave} · 처치 ${G.kills} · 강화 ${G.upg}단계`, W / 2, y + 84, 15, C.muted, 'center');
+  text(`웨이브 ${G.wave} · 처치 ${G.kills} · 경고 ${G.warn}`, W / 2, y + 84, 15, C.muted, 'center');
   button(x + 30, y + 118, w - 60, 56, '계속하기', () => { modal = null; }, 'primary');
   button(x + 30, y + 186, w - 60, 48, '처음부터 다시', () => start(), 'normal');
   button(x + 30, y + 244, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
@@ -463,38 +515,34 @@ function drawOver() {
   const x = 40, y = 250, w = W - 80, h = 420, win = G.over === 'win';
   box(x, y, w, h, C.panel, win ? C.goldEdge : '#b4482a', 14, 2);
   text(win ? '방어 성공!' : '방어 실패', W / 2, y + 48, 28, win ? C.goldEdge : C.bad, 'center');
-  ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 60); ctx.clip();
-  wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text);
-  ctx.restore();
-  const reached = win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`;
-  text(reached, W / 2, y + 160, 22, C.text, 'center');
-  text(`처치 ${G.kills} · 강화 ${G.upg}단계 · 소환 ${G.summons}번`, W / 2, y + 196, 15, C.muted, 'center');
+  ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
+  text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
+  text(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upgP}/${G.upgM}`, W / 2, y + 196, 15, C.muted, 'center');
   text(`최고 기록 ${best > E.RULES.waves ? '클리어' : `${best}웨이브`}`, W / 2, y + 226, 15, C.gold, 'center');
   button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(), 'primary');
   button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
-
-// ── 시작 화면 ──
 function drawTitle() {
   drawBackground();
   const vil = img(`${ART}/village/identity-coast-panorama.webp`);
   if (vil) { const s = W / vil.naturalWidth * 1.6; ctx.globalAlpha = 0.9; ctx.drawImage(vil, (W - vil.naturalWidth * s) / 2, 120, vil.naturalWidth * s, vil.naturalHeight * s); ctx.globalAlpha = 1; }
   ctx.fillStyle = 'rgba(7,19,28,.35)'; ctx.fillRect(0, 0, W, H);
-  text('갈매미맨', W / 2, 92, 30, C.gold, 'center');
-  text('랜덤 디펜스', W / 2, 140, 46, C.goldEdge, 'center');
-  ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 400, 90, 110));
-  box(28, 540, W - 56, 236, C.panel, C.edge, 12);
-  const lines = [
-    '· 「소환」으로 커먼 갈매미를 무작위로 불러요.',
-    '· 게임 속 조합법대로 합치면 더 높은 등급이 돼요.',
-    '· 조합법에서 ☆로 목표를 정하면 재료에 색 테두리가 생겨요.',
-    '· 10웨이브마다 보스! 잡으면 히든 갈매미를 골라 얻어요.',
-    `· ${E.RULES.waves}웨이브까지 막으면 클리어.`,
-  ];
-  lines.forEach((l, k) => fitText(l, 46, 572 + k * 40, W - 92, 16, C.text));
+  text('갈매미맨', W / 2, 86, 30, C.gold, 'center');
+  text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
+  ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
+  box(28, 492, W - 56, 290, C.panel, C.edge, 12);
+  [
+    '· 위습을 누르면 그 등급 갈매미를 무작위로 불러요.',
+    '  처음 5개 + 웨이브마다 1개. 보스·외부탐사로 더 높은 위습.',
+    '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
+    '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
+    '· 갈매미는 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
+    `· 적 ${E.RULES.limit}마리 넘으면 1초마다 경고, ${E.RULES.warnMax}회 넘으면 패배.`,
+    '· 보스는 그 라운드 안에 못 잡으면 바로 패배.',
+  ].forEach((l, k) => fitText(l, 44, 522 + k * 36, W - 88, 15, C.text));
   text(`최고 기록: ${best ? (best > E.RULES.waves ? '클리어' : `${best}웨이브`) : '아직 없음'}`, W / 2, 808, 16, C.gold, 'center');
-  button(60, 836, W - 120, 72, '시작하기', () => start(), 'primary');
-  fitText('로그인 없이 하는 미니 게임 · 기록은 이 기기에만 남아요', W / 2, 932, W - 40, 14, C.muted, 'center');
+  button(60, 834, W - 120, 72, '시작하기', () => start(), 'primary');
+  fitText('로그인 없이 하는 미니 게임 · 기록은 이 기기에만 남아요', W / 2, 930, W - 40, 14, C.muted, 'center');
 }
 
 // ── 반복 ──
@@ -502,10 +550,10 @@ let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (scene === 'play' && G && !modal && !G.over) {
+  if (playing()) {
     acc += dt * speed;
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
-    if (sel >= 0 && !G.units[sel]) sel = -1;
+    selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
   if (scene === 'play' && G?.over && modal?.kind !== 'over') { saveBest(); modal = { kind: 'over' }; }
   hits = [];
@@ -513,27 +561,25 @@ function frame(now) {
   if (scene === 'title') drawTitle();
   else {
     drawBackground(); drawField(); drawHud(); drawBottom();
-    if (G.reward && !modal) drawReward();
     if (modal?.kind === 'book') drawBook();
+    else if (modal?.kind === 'mission') drawMission();
     else if (modal?.kind === 'pause') drawPause();
     else if (modal?.kind === 'over') drawOver();
   }
   if (performance.now() < toast.until && toast.msg) {
     ctx.font = `15px ${FONT}`;
     const tw = Math.min(W - 40, ctx.measureText(toast.msg).width + 32);
-    box((W - tw) / 2, 600, tw, 40, 'rgba(19,44,59,.96)', C.goldEdge, 10, 1.5);
-    fitText(toast.msg, W / 2, 620, tw - 20, 15, C.text, 'center');
+    box((W - tw) / 2, 618, tw, 40, 'rgba(19,44,59,.96)', C.goldEdge, 10, 1.5);
+    fitText(toast.msg, W / 2, 638, tw - 20, 15, C.text, 'center');
   }
   requestAnimationFrame(frame);
 }
-
-// 글꼴을 받은 뒤 시작(캔버스는 글꼴이 늦게 오면 기본 글꼴로 그림)
 (async () => {
-  try { await Promise.race([document.fonts.load(`20px "Workbench"`, '갈매미'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* 기본 글꼴로 진행 */ }
+  try { await Promise.race([document.fonts.load('20px "Workbench"', '갈매미'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* 기본 글꼴 */ }
   document.getElementById('boot')?.remove();
-  for (const u of E.UNITS) unitImg(u.id);   // 그림 미리 받기
+  for (const u of E.UNITS) unitImg(u.id);
   requestAnimationFrame(frame);
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, start, set sel(v) { sel = v; }, openBook, set modal(v) { modal = v; } };
+window.__defense = { E, get G() { return G; }, start, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; } };
