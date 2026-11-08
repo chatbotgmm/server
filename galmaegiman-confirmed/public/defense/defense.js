@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=8cdc1f41cf9e';
+import * as E from './engine.js?v=73c7dd2bf1ca';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -25,12 +25,18 @@ const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: �
 const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');
 let scale = 1, dpr = 1;
+// 화면 배치: 휴대폰·태블릿 세로는 540×960 한 줄, PC·태블릿 가로는 1100×960(왼쪽 게임, 오른쪽 창)
+const SIDE_X = 560;          // 가로 배치에서 오른쪽 창이 시작하는 곳
+let landscape = false, VW = W;
+let OX = 0;                  // 지금 그리는 곳의 가로 위치(오른쪽 창을 그릴 때 누르기 영역에 더함)
 function fit() {
   dpr = Math.min(window.devicePixelRatio || 1, 3);
-  scale = Math.min(window.innerWidth / W, window.innerHeight / H);
-  cv.style.width = `${Math.floor(W * scale)}px`;
+  landscape = window.innerWidth / window.innerHeight > 0.9;
+  VW = landscape ? SIDE_X + W : W;
+  scale = Math.min(window.innerWidth / VW, window.innerHeight / H);
+  cv.style.width = `${Math.floor(VW * scale)}px`;
   cv.style.height = `${Math.floor(H * scale)}px`;
-  cv.width = Math.floor(W * scale * dpr);
+  cv.width = Math.floor(VW * scale * dpr);
   cv.height = Math.floor(H * scale * dpr);
 }
 window.addEventListener('resize', fit);
@@ -97,7 +103,7 @@ function wrap(s, x, y, maxW, size = 15, color = C.muted, lineH = size * 1.45) {
 }
 
 let hits = [];
-const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
+const hit = (x, y, w, h, fn) => hits.push({ x: x + OX, y, w, h, fn });
 function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '', subColor = null) {
   const S = {
     primary: ['#f3d89e', '#c9a463', C.ink, '#fff3cf'],
@@ -176,22 +182,29 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   for (let i = list.length - 1; i >= 0; i--) { const u = list[i]; if (Math.hypot(u.x - p.x, u.y - 14 - p.y) <= UNIT_R) return u; }
   return null;
 }
-const playing = () => scene === 'play' && !modal && G && !G.over;
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
 const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
+const playing = () => scene === 'play' && G && !G.over && (!modal || (landscape && NONPAUSE.has(modal.kind)));
+// 스크롤할 목록: 가로 배치는 오른쪽 창(창이 없으면 늘 떠 있는 조합법), 세로 배치는 열린 창
+const sideBook = { kind: 'book', scroll: 0, scrollable: true, side: true };
+function scrollerAt(p) {
+  if (landscape) return p.x >= SIDE_X ? (modal ? (modal.scrollable ? modal : null) : (scene === 'play' ? sideBook : null)) : null;
+  return modal?.scrollable ? modal : null;
+}
 cv.addEventListener('pointerdown', (ev) => {
   const p = toLogical(ev);
   cv.setPointerCapture?.(ev.pointerId);
   const u = playing() && inField(p) ? unitAt(p) : null;
-  down = { x: p.x, y: p.y, x0: p.x, y0: p.y, unit: u, field: playing() && inField(p), scroll0: modal?.scroll ?? 0, moved: false };
+  const sc = scrollerAt(p);
+  down = { x: p.x, y: p.y, x0: p.x, y0: p.y, unit: u, field: playing() && inField(p), scroller: sc, scroll0: sc?.scroll ?? 0, moved: false };
 });
 cv.addEventListener('pointermove', (ev) => {
   if (!down) return;
   const p = toLogical(ev);
   if (Math.hypot(p.x - down.x0, p.y - down.y0) > 10) down.moved = true;
   down.x = p.x; down.y = p.y;
-  if (modal?.scrollable && down.moved) modal.scroll = Math.max(0, Math.min(modal.maxScroll ?? 0, down.scroll0 - (p.y - down.y0)));
+  if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.y0)));
 });
 cv.addEventListener('pointerup', (ev) => {
   if (!down) return;
@@ -215,14 +228,14 @@ cv.addEventListener('pointerup', (ev) => {
     // 빈 곳을 누르면 고르기 풀림(옮기기는 끌기로만)
     if (selected.length) { selected = []; return; }
   }
-  if (d.moved && modal?.scrollable) return;
+  if (d.moved && d.scroller) return;
   for (let k = hits.length - 1; k >= 0; k--) {
     const h = hits[k];
     if (p.x >= h.x && p.y >= h.y && p.x < h.x + h.w && p.y < h.y + h.h) { h.fn(p); return; }
   }
 });
 cv.addEventListener('pointercancel', () => { down = null; });
-cv.addEventListener('wheel', (ev) => { if (modal?.scrollable) { modal.scroll = Math.max(0, Math.min(modal.maxScroll ?? 0, modal.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
+cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
   if (scene !== 'play' || !G || G.over) return;
   if (ev.key === ' ' || ev.key === 'Escape') { modal = modal ? null : { kind: 'pause' }; ev.preventDefault(); }
@@ -233,10 +246,10 @@ function doSummon(grade) { const r = E.summon(G, grade); if (!r.ok && r.why) say
 
 // ── 판 ──
 function drawBackground() {
-  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, VW, H);
   const bg = img(`${ART}/ui/bg-harbor.webp`);
-  if (bg) { const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight); ctx.globalAlpha = 0.5; ctx.drawImage(bg, (W - bg.naturalWidth * s) / 2, (H - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); ctx.globalAlpha = 1; }
-  ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, W, H);
+  if (bg) { const s = Math.max(VW / bg.naturalWidth, H / bg.naturalHeight); ctx.globalAlpha = 0.5; ctx.drawImage(bg, (VW - bg.naturalWidth * s) / 2, (H - bg.naturalHeight * s) / 2, bg.naturalWidth * s, bg.naturalHeight * s); ctx.globalAlpha = 1; }
+  ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, VW, H);
 }
 function goalColors() {
   const out = {};
@@ -472,7 +485,7 @@ function drawBook() {
   const x = 14, y = 100, w = W - 28, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
-  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  if (!modal.side) button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   fitText('☆ 목표 = 판의 재료 갈매미에 같은 색 테두리', x + 18, y + 64, w - 36, 14, C.muted);
   const top = y + 82, viewH = h - 92, cnt = E.countOnField(G);
   let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
@@ -590,11 +603,13 @@ function drawOver() {
   button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(), 'primary');
   button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
-function drawTitle() {
+function drawTitleBack() {   // 화면 전체 너비
   drawBackground();
   const vil = img(`${ART}/village/identity-coast-panorama.webp`);
-  if (vil) { const s = W / vil.naturalWidth * 1.6; ctx.globalAlpha = 0.9; ctx.drawImage(vil, (W - vil.naturalWidth * s) / 2, 120, vil.naturalWidth * s, vil.naturalHeight * s); ctx.globalAlpha = 1; }
-  ctx.fillStyle = 'rgba(7,19,28,.35)'; ctx.fillRect(0, 0, W, H);
+  if (vil) { const s = Math.max(W * 1.6, VW) / vil.naturalWidth; ctx.globalAlpha = 0.9; ctx.drawImage(vil, (VW - vil.naturalWidth * s) / 2, 120, vil.naturalWidth * s, vil.naturalHeight * s); ctx.globalAlpha = 1; }
+  ctx.fillStyle = 'rgba(7,19,28,.35)'; ctx.fillRect(0, 0, VW, H);
+}
+function drawTitle() {
   text('갈매미맨', W / 2, 86, 30, C.gold, 'center');
   text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
   ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
@@ -701,6 +716,16 @@ function drawSound() {
   fitText('막대를 누르거나 −/+로 조절해요 · 설정은 이 기기에 기억돼요', x + w / 2, y + h - 40, w - 40, 13, C.muted, 'center');
 }
 
+function drawModal() {
+  if (modal?.kind === 'book') drawBook();
+  else if (modal?.kind === 'mission') drawMission();
+  else if (modal?.kind === 'upgrade') drawUpgrade();
+  else if (modal?.kind === 'sound') drawSound();
+  else if (modal?.kind === 'pick') drawPick();
+  else if (modal?.kind === 'storage') drawStorage();
+  else if (modal?.kind === 'pause') drawPause();
+  else if (modal?.kind === 'over') drawOver();
+}
 // ── 반복 ──
 let last = performance.now(), acc = 0;
 function frame(now) {
@@ -715,17 +740,20 @@ function frame(now) {
   musicSync();
   hits = [];
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
-  if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); }
-  else {
+  if (scene === 'title') {
+    drawTitleBack();
+    const tx = (VW - W) / 2;   // 가로 배치면 가운데
+    ctx.save(); ctx.translate(tx, 0); OX = tx;
+    drawTitle(); if (modal?.kind === 'sound') drawSound();
+    ctx.restore(); OX = 0;
+  } else {
     drawBackground(); drawField(); drawHud(); drawBottom();
-    if (modal?.kind === 'book') drawBook();
-    else if (modal?.kind === 'mission') drawMission();
-    else if (modal?.kind === 'upgrade') drawUpgrade();
-    else if (modal?.kind === 'sound') drawSound();
-    else if (modal?.kind === 'pick') drawPick();
-    else if (modal?.kind === 'storage') drawStorage();
-    else if (modal?.kind === 'pause') drawPause();
-    else if (modal?.kind === 'over') drawOver();
+    if (landscape) {   // 오른쪽 창: 열린 창, 없으면 조합법
+      ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
+      if (modal) drawModal();
+      else { modal = sideBook; drawBook(); modal = null; }
+      ctx.restore(); OX = 0;
+    } else drawModal();
   }
   if (performance.now() < toast.until && toast.msg) {
     ctx.font = `15px ${FONT}`;

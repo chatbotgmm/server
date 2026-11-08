@@ -28,9 +28,9 @@ export const RULES = {
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   bossEvery: 10, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 3, 3, 2, 2, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
-  // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
+  // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 1~10웨이브는 「초반이 많이 어렵다」는 의견으로 ×0.7. 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
-  hpAnchors: [[1, 208], [2, 400], [3, 608], [4, 896], [5, 1360], [6, 1600], [7, 1760], [8, 2000], [10, 2320], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 115200], [40, 172800], [45, 304000], [50, 560000], [55, 1040000], [60, 1920000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
+  hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 115200], [40, 172800], [45, 304000], [50, 560000], [55, 1040000], [60, 1920000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
   armorBase: 4, armorPer: 2.4,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
   dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
@@ -38,6 +38,8 @@ export const RULES = {
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
   // 처치 새우 = killGold + killGoldGrow×웨이브 + killGoldSq×웨이브² (후반일수록 많이: 후반 강화 비용에 맞춤)
   killGold: 1, killGoldGrow: 0.6, killGoldSq: 0.02,
+  startUncommon: 1,   // 처음 언커먼 위습 1개(사용자 요청)
+  startGold: 40,   // 처음 새우: 커먼·언커먼 강화 5단계까지(5+6+7+9+10=37) 바로 가능(사용자 요청)
   // 등급별 강화(사용자 요청 2026-11-08): 커먼·언커먼·레어·에픽·전설 이상 5칸, 한 단계마다 그 등급 공격력 +14%
   // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
   // 칸마다 최대 upgMax단계(풀강). 비용 = upgBase × upgGrowth^단계. 등급이 높을수록 훨씬 비쌈(초반과 상위 강화 비용이 비슷하지 않게)
@@ -175,10 +177,10 @@ export function regionGuard(k) {
 
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
   return {
-    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: Array(8).fill(0),
+    seed, rand: rng(seed), t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
-    wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
+    wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0, autoStore: false,
