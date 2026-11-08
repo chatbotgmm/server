@@ -76,6 +76,9 @@ export const WISP_SKILL = {
   u57: { p: 0.06, table: { EPIC: 0.87, LEGEND: 0.13 } },
 };
 
+// 탐사 특기(사용자 요청 2026-11-08: 외부탐사에 능한 재료 단계 갈매미, 외부탐사에서만 강해짐): 외부탐사 대장에게 주는 피해 배수.
+// 재료로 쓰이면서 판 수비는 약한 보조(고체력)는 ×6, 근접술사는 ×3 → 같은 등급 주력보다 외부탐사 피해가 약 1.5~1.7배
+export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 };
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
@@ -111,7 +114,7 @@ export function kit(id) {
     if (elem === 'DARK') { if (mage) k.mshred = SHRED(t) * 0.5; else k.shred = SHRED(t) * 0.5; }
     if (elem === 'HOLY') k.holy = 1.5;
   }
-  return { ...k, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null };
+  return { ...k, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
 }
 // 화면용 짧은 설명
 export function kitTips(k) {
@@ -121,6 +124,7 @@ export function kitTips(k) {
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
+  if (k.explore) out.push(`탐사 특기: 외부탐사 피해 ×${k.explore}`);
   if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push('주변 범위');
   if (k.splash) out.push('불꽃 튐');
@@ -495,7 +499,7 @@ export function step(g, dt) {
     if (u.away) {
       if (!ms) { u.cd = 0.2; continue; }
       const before = ms.hp;
-      hurt(g, ms, k.dmg * (k.area ? 1.2 : 1), k, u.uid); debuff(g, ms, k, u.uid);
+      hurt(g, ms, k.dmg * (k.area ? 1.2 : 1) * (k.explore || 1), k, u.uid); debuff(g, ms, k, u.uid);
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
       u.cd = k.gap; continue;
     }

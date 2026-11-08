@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=3ced9b463586';
+import * as E from './engine.js?v=bbc20a49be66';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -598,7 +598,7 @@ function drawMission() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('외부탐사', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(coop() ? '같이하기: 친구와 같은 대장을 함께 쳐요. 둘의 피해가 합쳐지고, 깨면 둘 다 보상을 받아요.' : '처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열려요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, coop() ? C.gold : C.muted);
+  fitText(coop() ? '같이하기: 친구와 같은 대장을 함께 쳐요. 둘의 피해가 합쳐지고, 깨면 둘 다 보상을 받아요.' : '앞 장을 끝내면 다음 장이 열려요 · 보낸 동안은 수비에서 빠져요 · ★탐사 특기 갈매미는 피해 ×3~6', x + 18, y + 64, w - 36, 13, coop() ? C.gold : C.muted);
   // 지역 목록
   const ly = y + 84;
   E.REGIONS.forEach((r, k) => {
@@ -634,7 +634,10 @@ function drawMission() {
   } else text(away.length ? `탐사 중 ${away.length}마리` : '아직 보낸 갈매미가 없어요', W / 2, cy + 214, 14, away.length ? C.good : C.muted, 'center');
   // 보낸 갈매미
   const ay = cy + 240;
-  away.slice(0, 20).forEach((u, i) => { const xx = x + 14 + (i % 10) * 48, yy = ay + Math.floor(i / 10) * 48; box(xx, yy, 44, 44, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, 40, 40); });
+  away.slice(0, 20).forEach((u, i) => { const xx = x + 14 + (i % 10) * 48, yy = ay + Math.floor(i / 10) * 48; box(xx, yy, 44, 44, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, 40, 40); if (E.EXPLORE[u.id]) text('★', xx + 37, yy + 9, 13, C.goldEdge, 'center'); });
+  // 판에 있는 탐사 특기 갈매미 안내(보내면 좋은 것)
+  const sp = E.fieldUnits(G).filter((u) => E.EXPLORE[u.id]);
+  if (!away.length) fitText(sp.length ? `판에 탐사 특기 ${sp.length}마리: ${[...new Set(sp.map((u) => `${E.UNIT[u.id].name}(×${E.EXPLORE[u.id]})`))].join(' · ')}` : `탐사 특기: ${Object.entries(E.EXPLORE).map(([id, m]) => `${E.UNIT[id].name}×${m}`).join(' · ')}`, W / 2, ay + 18, w - 30, 13, sp.length ? C.goldEdge : C.muted, 'center');
   const by = y + h - 64, sel = selUnits();
   button(x + 14, by, (w - 40) / 2, 50, sel.length ? `고른 ${sel.length}마리 보내기` : '판에서 먼저 고르기', () => { if (sel.length) { sendSelected(sel); } else modal = null; }, sel.length ? 'primary' : 'normal');
   button(x + 26 + (w - 40) / 2, by, (w - 40) / 2, 50, '모두 불러오기', () => { const n = E.recall(G); say(`${n}마리가 돌아왔어요.`); }, 'normal', away.length > 0);
