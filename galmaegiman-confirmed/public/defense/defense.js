@@ -562,6 +562,26 @@ function drawBottom() {
   else if (sel.length > 1) drawGroupPanel(y0, sel);
   else drawMainPanel(y0);
 }
+// 아래 메뉴 버튼(사용자 지적 2026-11-08: 칸만 커져 여백이 많음): 그림 + 이름 + 상태. 칸이 높으면 그림 위·글자 아래, 낮으면 그림 왼쪽
+const MENU_ICON = ['menu/icon-draw', 'menu/icon-team', 'ui/icon-goldenstrike', 'menu/icon-explore', 'menu/icon-shop', 'menu/icon-combine'];
+function menuButton(x, y, w, h, icon, label, fn, style, sub, subCol) {
+  const prim = style === 'primary';
+  if (prim) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#f3d89e'); g.addColorStop(1, '#c9a463'); box(x, y, w, h, g, '#fff3cf', 12, 2); }
+  else box(x, y, w, h, '#163447', C.gold, 12, 1.5);
+  const im = img(`${ART}/${icon}.webp`), tc = prim ? C.ink : C.text, sc = subCol ?? (prim ? '#3d2f1a' : C.muted);
+  if (h >= 96) {   // 세로로 큰 칸
+    const is = Math.min(h * 0.46, w * 0.5, 64), gap = Math.max(4, (h - is - 52) / 3);
+    drawFit(im, x + (w - is) / 2, y + gap, is, is);
+    fitText(label, x + w / 2, y + gap + is + gap * 0.6 + 12, w - 12, 19, tc, 'center');
+    fitText(sub, x + w / 2, y + gap + is + gap * 0.6 + 34, w - 12, 14, sc, 'center');
+  } else {   // 낮은 칸
+    const is = Math.min(h - 14, 44), tx = x + 10 + is + 8;
+    drawFit(im, x + 10, y + (h - is) / 2, is, is);
+    fitText(label, tx, y + h / 2 - 10, x + w - tx - 6, 17, tc);
+    fitText(sub, tx, y + h / 2 + 12, x + w - tx - 6, 13, sc);
+  }
+  hit(x, y, w, h, fn);
+}
 function drawMainPanel(y0) {
   // 위습
   text('위습 (눌러서 소환)', 22, y0 + 18, 14, C.gold);
@@ -576,7 +596,7 @@ function drawMainPanel(y0) {
   // 강화·탐사·조합법
   // 아래 버튼 6개(3개씩 두 줄): 선택위습 · 용병모집 · 강화 / 외부탐사 · 창고 · 조합법
   const b3 = (W - 44 - 12) / 3, BH = PL.bh, bx = (i) => 22 + (i % 3) * (b3 + 6), byy = (i) => (i < 3 ? PL.by : PL.by2);
-  const btn = (i, label, fn, style, sub, subCol) => button(bx(i), byy(i), b3, BH, label, fn, style, true, sub, subCol);
+  const btn = (i, label, fn, style, sub, subCol) => menuButton(bx(i), byy(i), b3, BH, MENU_ICON[i], label, fn, style, sub, subCol);
   const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
   btn(0, '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', picks ? `${picks}개 있음` : '없음');
   const tk = G.tickets ?? 0;
@@ -1674,6 +1694,7 @@ function frame(now) {
   try { await Promise.race([document.fonts.load('20px "Workbench"', '갈매미'), new Promise((r) => setTimeout(r, 2500))]); } catch { /* 기본 글꼴 */ }
   document.getElementById('boot')?.remove();
   for (const u of E.UNITS) unitImg(u.id);
+  MENU_ICON.forEach((f) => img(`${ART}/${f}.webp`));
   for (const [, band] of E.ENEMY_LOOK) band.forEach(enemyImg);
   E.BOSS_LOOK.forEach(enemyImg); E.REGIONS.forEach((r) => enemyImg(r.look));
   requestAnimationFrame(frame);
