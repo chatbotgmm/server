@@ -15,6 +15,7 @@ const KIND_NAME = { 일반: '일반', 갑옷: '갑옷(방어력↑)', 결계: '�
 const FONT = '"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const BEST_KEY = 'gmm-defense-best';
 const UNIT_R = 24;   // 갈매미 누르기 반지름
+const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: 더 빠르게). 시간이 통째로 빨라져 난이도는 같음
 
 // ── 화면 준비 ──
 const cv = document.getElementById('game');
@@ -551,7 +552,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (playing()) {
-    acc += dt * speed;
+    acc += dt * speed * BASE_SPEED;
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
