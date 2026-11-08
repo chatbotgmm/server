@@ -186,7 +186,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
-    goals: [], mission: null, missionDone: 0, autoStore: false, missionDmg: [], peerDmg: null,
+    goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
     over: null, reason: '', fx: [], news: [],
   };
 }
@@ -213,11 +213,26 @@ export function unstore(g, uids) {
   return n;
 }
 // 커먼 자동 창고: 켜면 판의 커먼을 창고로, 이후 새로 부른 커먼도 바로 창고로
-export function setAutoStore(g, on) {
-  g.autoStore = !!on;
-  return on ? store(g, fieldUnits(g).filter((u) => UNIT[u.id].grade === 'COMMON').map((u) => u.uid)) : 0;
+// 창고 등급 묶음(사용자 요청 2026-11-08: 커먼만 말고 등급별로 한 번에 넣기). auto=새로 부른(위습) 갈매미 자동 창고를 켤 수 있는 묶음
+export const STORE_GROUPS = [
+  { key: 'COMMON', name: '커먼', grades: ['COMMON'], auto: true },
+  { key: 'UNCOMMON', name: '언커먼', grades: ['UNCOMMON'], auto: true },
+  { key: 'RARE', name: '레어', grades: ['RARE'], auto: true },
+  { key: 'EPIC', name: '에픽', grades: ['EPIC'], auto: true },
+  { key: 'LEGEND', name: '전설·히든', grades: ['LEGEND', 'HIDDEN'], auto: true },
+  { key: 'TOP', name: '최상위', grades: ['LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'], auto: false },
+];
+const groupOf = (grade) => STORE_GROUPS.find((q) => q.grades.includes(grade));
+// 그 묶음의 판 갈매미를 한 번에 창고로(위치 고정한 것은 그대로 둠)
+export const storeGroupUnits = (g, key) => fieldUnits(g).filter((u) => !u.lock && groupOf(UNIT[u.id].grade)?.key === key);
+export function storeGroup(g, key) { return store(g, storeGroupUnits(g, key).map((u) => u.uid)); }
+export function setAutoGrade(g, key, on) {
+  (g.autoGrades ??= {})[key] = !!on;
+  if (key === 'COMMON') g.autoStore = !!on;
+  return on ? storeGroup(g, key) : 0;
 }
-const autoStoreNew = (g, u) => { if (g.autoStore && UNIT[u.id].grade === 'COMMON') u.stored = true; };
+export function setAutoStore(g, on) { return setAutoGrade(g, 'COMMON', on); }   // 예전 이름(커먼 자동 창고)
+const autoStoreNew = (g, u) => { const q = groupOf(UNIT[u.id].grade); if (q && (g.autoGrades?.[q.key] || (q.key === 'COMMON' && g.autoStore))) u.stored = true; };
 // 같은 갈매미 모으기: 판의 같은 종류를 한 자리로
 export function gather(g, uid) {
   const t = unitById(g, uid);

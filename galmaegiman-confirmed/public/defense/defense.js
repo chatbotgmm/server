@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=581cbbfad46c';
+import * as E from './engine.js?v=9c008597ae90';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -464,7 +464,7 @@ function drawMainPanel(y0) {
   const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
   button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
   const st = E.storedUnits(G).length;
-  button(22 + 3 * (b4 + 6), by, b4, 58, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${G.autoStore ? '·자동' : ''}`);
+  button(22 + 3 * (b4 + 6), by, b4, 58, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`);
   button(22 + 4 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
   const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
@@ -781,13 +781,20 @@ function drawStorage() {
   text(`창고 ${list.length}마리`, x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   fitText('창고 갈매미는 싸우지 않지만 조합 재료로는 쓰여요 · 게임은 멈추지 않아요', x + 18, y + 62, w - 36, 13, C.muted);
-  text('커먼 자동 창고', x + 18, y + 98, 17, C.text);
-  fitText('켜면 판의 커먼과 새로 부른 커먼이 바로 창고로', x + 18, y + 120, w - 200, 12, C.muted);
-  button(x + w - 18 - 120, y + 82, 120, 44, G.autoStore ? '켬' : '끔', () => { const n = E.setAutoStore(G, !G.autoStore); say(G.autoStore ? `커먼 자동 창고 켬${n ? ` (${n}마리 넣음)` : ''}` : '커먼 자동 창고 끔'); }, G.autoStore ? 'primary' : 'normal');
+  // 등급별 한 번에 넣기 + 자동(새로 부른 갈매미가 바로 창고로)
+  text('등급별 한 번에 넣기', x + 18, y + 90, 15, C.gold);
+  fitText('고정한 건 그대로 · 자동 = 새로 부른 것 바로 창고로', x + w - 18, y + 91, w - 190, 12, C.muted, 'right');
+  const gw = (w - 24 - 5 * 6) / 6;
+  E.STORE_GROUPS.forEach((q, i) => {
+    const gx = x + 12 + i * (gw + 6), n = E.storeGroupUnits(G, q.key).length, col = GRADE_COLOR[q.grades[0]], on = !!G.autoGrades?.[q.key];
+    button(gx, y + 104, gw, 50, `${q.name}`, () => { const m = E.storeGroup(G, q.key); say(m ? `${q.name} ${m}마리를 창고에 넣었어요.` : `판에 넣을 ${q.name}이(가) 없어요.`); }, 'normal', n > 0, `넣기 ${n}`, n ? col : null);
+    if (q.auto) button(gx, y + 158, gw, 30, on ? '자동 켬' : '자동 끔', () => { const m = E.setAutoGrade(G, q.key, !on); say(!on ? `${q.name} 자동 창고 켬${m ? ` (${m}마리 넣음)` : ''}` : `${q.name} 자동 창고 끔`); }, on ? 'primary' : 'quiet');
+    else fitText('자동 없음', gx + gw / 2, y + 173, gw - 6, 11, '#6f7f88', 'center');
+  });
   const groups = [];
   for (const u of list) { let gr = groups.find((q) => q.id === u.id); if (!gr) groups.push(gr = { id: u.id, uids: [] }); gr.uids.push(u.uid); }
   groups.sort((a, b) => (E.tierOf(a.id) - E.tierOf(b.id)) || a.id.localeCompare(b.id));
-  const top = y + 140, viewH = h - 150 - 56, rowH = 62, total = groups.length * rowH;
+  const top = y + 198, viewH = h - 208 - 56, rowH = 62, total = groups.length * rowH;
   modal.maxScroll = Math.max(0, total - viewH);
   if (!groups.length) fitText('창고가 비어 있어요. 갈매미를 고르고 「창고로」를 누르세요.', W / 2, top + 60, w - 40, 15, C.muted, 'center');
   ctx.save(); rr(x + 6, top, w - 12, viewH, 8); ctx.clip();
