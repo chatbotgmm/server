@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작: 갈매미를 눌러 고르기 · 끌어서 옮기기 · 빈 곳을 끌면 여러 마리 고르기 · 고른 채 빈 곳을 누르면 그리로 이동.
-import * as E from './engine.js?v=5de1e1faa69d';
+import * as E from './engine.js?v=0a23bd6a0d20';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -14,6 +14,9 @@ const GOAL_COLOR = ['#4fd1e8', '#f07ad8', '#a6e05a'];
 const KIND_NAME = { 일반: '일반', 갑옷: '갑옷(방어력↑)', 결계: '결계(마법방어↑)', boss: '보스' };
 const FONT = '"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const BEST_KEY = 'gmm-defense-best';
+const MUSIC_KEY = 'gmm-defense-music';
+// 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
+const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름
 const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: 더 빠르게). 시간이 통째로 빨라져 난이도는 같음
 
@@ -123,11 +126,35 @@ let toast = { msg: '', until: 0 };
 let lastNews = 0;
 let best = 0;
 try { best = Number(localStorage.getItem(BEST_KEY)) || 0; } catch { best = 0; }
+// ── 배경음악: 누르기(시작하기·♪) 뒤에만 재생(브라우저 자동 재생 막힘), 일시정지·다른 앱이면 멈춤 ──
+const music = { on: true, el: null };
+try { music.on = localStorage.getItem(MUSIC_KEY) !== 'off'; } catch { music.on = true; }
+function musicEl() {
+  if (!music.el) { music.el = new Audio(BGM_URL); music.el.loop = true; music.el.volume = 0.45; music.el.preload = 'auto'; }
+  return music.el;
+}
+function musicPlay() { if (music.on) musicEl().play().catch(() => {}); }
+function musicToggle() {
+  music.on = !music.on;
+  try { localStorage.setItem(MUSIC_KEY, music.on ? 'on' : 'off'); } catch { /* 저장 못 해도 진행 */ }
+  if (music.on) musicPlay(); else music.el?.pause();
+}
+function musicSync() {   // 매 장면: 들어야 할 때만 재생
+  if (!music.el) return;
+  const want = music.on && scene === 'play' && !document.hidden && modal?.kind !== 'pause';
+  if (want && music.el.paused) music.el.play().catch(() => {});
+  else if (!want && !music.el.paused) music.el.pause();
+}
 const say = (msg) => { toast = { msg, until: performance.now() + 2400 }; };
 const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u && !u.away);
 
 function start() {
   G = E.newGame(); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0;
+  musicPlay();   // 누른 순간 안에서 재생 시작
+}
+function musicButton(x, y) {
+  button(x, y, 46, 40, '♪', musicToggle, 'normal');
+  if (!music.on) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 12, y + 30); ctx.lineTo(x + 34, y + 10); ctx.stroke(); }
 }
 function saveBest() {
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
@@ -303,6 +330,7 @@ function drawHud() {
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, 340, 64, 22, 22);
   text(`${G.gold}`, 366, 76, 16, C.goldEdge);
+  musicButton(W - 164, 12);
   button(W - 112, 12, 46, 40, 'Ⅱ', () => { modal = { kind: 'pause' }; }, 'normal');
   button(W - 60, 12, 46, 40, `×${speed}`, () => { speed = speed === 1 ? 2 : speed === 2 ? 3 : 1; }, 'normal');
   // 새 소식(위습 획득·탐사 결과)
@@ -337,10 +365,10 @@ function drawMainPanel(y0) {
   });
   // 강화·탐사·조합법
   const by = y0 + 100, b3 = (W - 44 - 12) / 3;
-  const canUp = [0, 1, 2, 3, 4].some((gi) => G.gold >= E.upgradeCost(G, gi));
+  const canUp = G.upg.some((_, gi) => G.gold >= E.upgradeCost(G, gi));
   button(22, by, b3, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화할 수 있어요' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
-  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : open ? '열림!' : `${nextR.unlock}웨이브에 열림`;
+  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 보낼 수 있음`;
   button(22 + (b3 + 6), by, b3, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, open && !away ? 'primary' : 'normal', true, msub);
   button(22 + 2 * (b3 + 6), by, b3, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
@@ -467,14 +495,14 @@ function drawMission() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('외부탐사', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('갈매미를 스토리 지역에 보내 그림자 대장을 쓰러뜨리면 위습을 받아요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, C.muted);
+  fitText('처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열려요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, C.muted);
   // 지역 목록
   const ly = y + 84;
   E.REGIONS.forEach((r, k) => {
     const yy = ly + k * 40, done = k < G.missionDone, cur = k === G.missionDone, open = cur && E.missionOpen(G);
     box(x + 12, yy, w - 24, 34, cur ? 'rgba(43,122,98,.2)' : 'rgba(11,30,42,.6)', cur ? (open ? '#2b7a62' : C.edge) : 'rgba(145,122,76,.3)', 6, cur ? 2 : 1);
     fitText(`${r.ch}장 ${r.name}`, x + 24, yy + 17, 220, 15, done ? C.muted : C.text);
-    fitText(done ? '완료 ✓' : open ? '진행 가능' : `${r.unlock}웨이브에 열림`, x + 250, yy + 17, 100, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
+    fitText(done ? '완료 ✓' : open ? '진행 가능' : '잠김', x + 250, yy + 17, 80, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
     fitText(E.wispText(r.reward), x + w - 24, yy + 17, 150, 13, C.gold, 'right');
   });
   // 지금 지역
@@ -485,7 +513,6 @@ function drawMission() {
   box(x + 12, cy, w - 24, 230, 'rgba(7,19,28,.8)', C.edge, 10);
   if (place) { ctx.save(); rr(x + 12, cy, w - 24, 230, 10); ctx.clip(); ctx.globalAlpha = 0.3; drawFit(place, x + 12, cy - 30, w - 24, 230); ctx.globalAlpha = 1; ctx.restore(); }
   text(`${r.ch}장 · ${r.place}`, x + 26, cy + 22, 15, C.goldEdge);
-  if (!open) { text(`${r.unlock}웨이브부터 보낼 수 있어요`, W / 2, cy + 120, 18, C.muted, 'center'); return; }
   const t = E.missionTarget(G), sh = shade(r.look);
   if (sh) drawFit(sh, W / 2 - 60, cy + 36, 120, 120);
   box(x + 40, cy + 166, w - 80, 12, 'rgba(0,0,0,.6)', C.line, 6, 1);
@@ -504,7 +531,7 @@ function drawMission() {
 // 등급별 강화 창: 5칸(커먼·언커먼·레어·에픽·전설 이상)
 function drawUpgrade() {
   shadeAll();
-  const x = 20, y = 150, w = W - 40, h = 600;
+  const x = 20, y = 40, w = W - 40, h = H - 80;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('등급별 강화', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -512,16 +539,15 @@ function drawUpgrade() {
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, x + 18, y + 80, 24, 24);
   text(`가진 새우 ${G.gold}`, x + 48, y + 93, 17, C.goldEdge);
-  const have = [0, 0, 0, 0, 0];
+  const have = Array(E.UPG_COUNT).fill(0);
   for (const u of E.fieldUnits(G)) have[E.upgGroup(E.tierOf(u.id))]++;
-  const groups = [['COMMON'], ['UNCOMMON'], ['RARE'], ['EPIC'], ['LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL']];
-  for (let gi = 0; gi < 5; gi++) {
-    const yy = y + 118 + gi * 90, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[groups[gi][0]];
-    box(x + 14, yy, w - 28, 80, 'rgba(11,30,42,.85)', col, 10, 2);
+  const color = ['UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
+  for (let gi = 0; gi < E.UPG_COUNT; gi++) {
+    const yy = y + 116 + gi * 84, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
+    box(x + 14, yy, w - 28, 76, 'rgba(11,30,42,.85)', col, 10, 2);
     text(E.UPG_NAME[gi], x + 30, yy + 24, 19, col);
-    text(`${G.upg[gi]}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}%`, x + 30, yy + 54, 15, C.text);
-    fitText(`판에 ${have[gi]}마리`, x + 210, yy + 24, 100, 14, C.muted);
-    button(x + w - 28 - 150, yy + 12, 150, 56, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
+    fitText(`${G.upg[gi]}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + 52, w - 230, 15, C.text);
+    button(x + w - 28 - 150, yy + 10, 150, 56, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
   }
 }
 function drawPause() {
@@ -557,7 +583,7 @@ function drawTitle() {
   box(28, 492, W - 56, 290, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 그 등급 갈매미를 무작위로 불러요.',
-    '  처음 5개 + 웨이브마다 1개. 보스·외부탐사로 더 높은 위습.',
+    '  처음 5개 + 웨이브마다 1개. 보스·외부탐사(처음부터)로 더 높은 위습.',
     '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
     '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
     '· 갈매미는 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
@@ -567,6 +593,8 @@ function drawTitle() {
   text(`최고 기록: ${best ? (best > E.RULES.waves ? '클리어' : `${best}웨이브`) : '아직 없음'}`, W / 2, 808, 16, C.gold, 'center');
   button(60, 834, W - 120, 72, '시작하기', () => start(), 'primary');
   fitText('로그인 없이 하는 미니 게임 · 기록은 이 기기에만 남아요', W / 2, 930, W - 40, 14, C.muted, 'center');
+  musicButton(W - 62, 14);
+  fitText(music.on ? '배경음악 켬' : '배경음악 끔', W - 72, 34, 110, 13, C.muted, 'right');
 }
 
 // ── 반복 ──
@@ -580,6 +608,7 @@ function frame(now) {
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
   if (scene === 'play' && G?.over && modal?.kind !== 'over') { saveBest(); modal = { kind: 'over' }; }
+  musicSync();
   hits = [];
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
   if (scene === 'title') drawTitle();
@@ -607,4 +636,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, start, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; } };
+window.__defense = { E, get G() { return G; }, get music() { return music; }, start, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; } };

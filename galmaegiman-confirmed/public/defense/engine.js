@@ -33,29 +33,32 @@ export const RULES = {
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   killGold: 1, killGoldPer: 6,
   // 등급별 강화(사용자 요청 2026-11-08): 커먼·언커먼·레어·에픽·전설 이상 5칸, 한 단계마다 그 등급 공격력 +14%
-  upgPct: 0.14, upgBase: [20, 30, 45, 65, 90], upgStep: [10, 15, 22, 32, 45],
+  // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
+  upgPct: 0.14, upgBase: [20, 45, 65, 90, 100, 120, 150, 180, 220], upgStep: [10, 22, 32, 45, 50, 60, 75, 90, 110],
   bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
-  guardMul: 25,   // 외부탐사 대장 체력 = (열리는 웨이브+2)의 적 체력 × 이 값
+  guardMul: 25,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
-// 외부탐사: 갈매미맨 메인 스토리 7장 지역. 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게)
+// 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
+// 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', unlock: 8, reward: { UNCOMMON: 2 } },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', unlock: 12, reward: { RARE: 1, UNCOMMON: 1 } },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', unlock: 16, reward: { RARE: 2 } },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', unlock: 20, reward: { EPIC: 1 } },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', unlock: 24, reward: { EPIC: 1, RARE: 1 } },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', unlock: 28, reward: { EPIC: 2 } },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', unlock: 32, reward: { EPIC: 2, RARE: 1 } },
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 } },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 } },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 } },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 } },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1, RARE: 1 } },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 2 } },
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 2, RARE: 1 } },
 ];
 
-// 위습 찾기 재주: 이 갈매미가 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만)
+// 위습 찾기 재주: 상위 갈매미만(사용자 요청 2026-11-08). 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만)
+// 황금 계열의 상위: 거장(전설) · 금각(히든) · 가루다(초월) · 리치(불멸) · 여명(영원)
 export const WISP_SKILL = {
-  u05: { p: 0.04, table: { COMMON: 0.75, UNCOMMON: 0.25 } },
-  u17: { p: 0.05, table: { COMMON: 0.4, UNCOMMON: 0.4, RARE: 0.2 } },
-  u25: { p: 0.06, table: { UNCOMMON: 0.4, RARE: 0.4, EPIC: 0.2 } },
-  u33: { p: 0.07, table: { RARE: 0.5, EPIC: 0.38, LEGEND: 0.12 } },
-  u43: { p: 0.07, table: { RARE: 0.4, EPIC: 0.42, LEGEND: 0.18 } },
+  u33: { p: 0.06, table: { RARE: 0.5, EPIC: 0.4, LEGEND: 0.1 } },
+  u43: { p: 0.07, table: { RARE: 0.4, EPIC: 0.45, LEGEND: 0.15 } },
+  u49: { p: 0.07, table: { EPIC: 0.75, LEGEND: 0.25 } },
+  u56: { p: 0.08, table: { EPIC: 0.65, LEGEND: 0.35 } },
+  u57: { p: 0.08, table: { EPIC: 0.5, LEGEND: 0.5 } },
 };
 
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
@@ -134,13 +137,13 @@ export function waveInfo(w) {
     speed: boss ? 34 : 56 + Math.min(30, w), gold: boss ? 50 : RULES.killGold + Math.floor(w / RULES.killGoldPer) };
 }
 export function regionGuard(k) {
-  const r = REGIONS[k], wi = waveInfo(r.unlock + 2);
+  const r = REGIONS[k], wi = waveInfo(r.level + 2);
   return { hp: Math.round(wi.hp * RULES.guardMul), armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
 }
 
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
   return {
-    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: [0, 0, 0, 0, 0],
+    seed, rand: rng(seed), t: 0, gold: 0, kills: 0, upg: Array(9).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -190,8 +193,9 @@ export function moveUnit(g, uid, x, y, now = false) {
   return true;
 }
 // 등급별 강화 칸: 0 커먼 · 1 언커먼 · 2 레어 · 3 에픽 · 4 전설 이상(전설·히든·제한·초월·불멸·영원)
-export const UPG_NAME = ['커먼', '언커먼', '레어', '에픽', '전설 이상'];
-export const upgGroup = (tier) => Math.min(4, tier);
+export const UPG_NAME = ['커먼·언커먼', '레어', '에픽', '전설', '히든', '제한', '초월', '불멸', '영원'];
+export const UPG_COUNT = UPG_NAME.length;
+export const upgGroup = (tier) => Math.max(0, tier - 1);   // 커먼(0)·언커먼(1) → 0칸, 그 위는 등급마다 한 칸
 export const upgradeCost = (g, gi) => RULES.upgBase[gi] + RULES.upgStep[gi] * g.upg[gi];
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
 export function upgrade(g, gi) {
@@ -245,7 +249,7 @@ export function toggleGoal(g, out) {
 }
 
 // ── 외부탐사 ──
-export const missionOpen = (g) => g.missionDone < REGIONS.length && g.wave >= REGIONS[g.missionDone].unlock;
+export const missionOpen = (g) => g.missionDone < REGIONS.length;
 function ensureMission(g) {
   if (!missionOpen(g)) return null;
   if (!g.mission || g.mission.k !== g.missionDone) {
@@ -324,7 +328,6 @@ function startWave(g) {
   g.wave++; g.waveT = 0;
   const wi = waveInfo(g.wave);
   g.spawnLeft = wi.boss ? 1 : RULES.perWave; g.spawnT = 0;
-  if (missionOpen(g) && REGIONS[g.missionDone].unlock === g.wave) news(g, `외부탐사 「${REGIONS[g.missionDone].name}」이(가) 열렸어요!`);
 }
 function spawn(g) {
   const wi = waveInfo(g.wave);
@@ -387,7 +390,7 @@ export function step(g, dt) {
   if (ms && ms.hp <= 0) {
     const r = REGIONS[ms.k];
     addWisps(g, r.reward);
-    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}`);
+    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }

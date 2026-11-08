@@ -5,7 +5,7 @@ Cloudflare가 js·css를 브라우저에 4시간 캐시하라고 덮어써서(�
 파일을 바꿔도 예전 파일이 보이는 문제가 있었다(2026-11-08 확인). 화면(/defense)은 캐시되지 않으므로
 그 안의 파일 주소가 내용에 따라 바뀌면 항상 새 파일을 받는다.
 
-순서(아래 파일이 위 파일 주소에 들어감): data.js → engine.js(data 지문) → defense.js(engine 지문) → index.html(defense·css 지문).
+순서(아래 파일이 위 파일 주소에 들어감): data.js → engine.js(data 지문) → defense.js(engine·bgm.mp3 지문) → index.html(defense·css 지문).
 여러 번 돌려도 결과가 같다. 사용: python3 -I scripts/web/stamp-defense.py [public/defense 폴더]
 """
 import hashlib
@@ -28,6 +28,8 @@ def stamp(path, pattern, ver):
 
 stamp(D / 'engine.js', r"(from '\./data\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'data.js'))
 stamp(D / 'defense.js', r"(from '\./engine\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'engine.js'))
+if (D / 'bgm.mp3').exists():
+    stamp(D / 'defense.js', r"(BGM_URL = '/defense/bgm\.mp3)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'bgm.mp3'))
 stamp(D / 'index.html', r'(/defense/defense\.js)(?:\?v=[0-9a-f]+)?(?=")', h(D / 'defense.js'))
 stamp(D / 'index.html', r'(/defense/defense\.css)(?:\?v=[0-9a-f]+)?(?=")', h(D / 'defense.css'))
 for f in ['data.js', 'engine.js', 'defense.js', 'defense.css', 'index.html']:
