@@ -39,11 +39,15 @@ function fit() {
   landscape = window.innerWidth / window.innerHeight > 0.9;
   VW = landscape ? SIDE_X + W : W;
   VH = stripOn && !landscape ? H + PEER_H : H;
-  scale = Math.min(window.innerWidth / VW, window.innerHeight / VH);
-  cv.style.width = `${Math.floor(VW * scale)}px`;
-  cv.style.height = `${Math.floor(VH * scale)}px`;
-  cv.width = Math.floor(VW * scale * dpr);
-  cv.height = Math.floor(VH * scale * dpr);
+  // 화질(사용자 지적 2026-11-08): 화면 크기(정수 px)를 먼저 정하고 캔버스 픽셀은 그 × 기기 배율로 맞춘다.
+  // 전에는 둘을 따로 내림해 일부 기기에서 화면 전체가 한 번 더 늘어나 흐려질 수 있었음
+  const cssW = Math.floor(VW * Math.min(window.innerWidth / VW, window.innerHeight / VH));
+  const cssH = Math.floor(VH * Math.min(window.innerWidth / VW, window.innerHeight / VH));
+  cv.style.width = `${cssW}px`;
+  cv.style.height = `${cssH}px`;
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  scale = cssW / VW;
 }
 window.addEventListener('resize', fit);
 fit();
@@ -62,8 +66,9 @@ function shade(id) {
   const i = unitImg(id);
   if (!i) return null;
   const c = document.createElement('canvas');
-  c.width = 96; c.height = Math.round(96 * i.naturalHeight / i.naturalWidth);
+  c.width = 256; c.height = Math.round(256 * i.naturalHeight / i.naturalWidth);   // 보스·대장도 고해상도 화면에서 흐리지 않게(전에는 96px)
   const x = c.getContext('2d');
+  x.imageSmoothingQuality = 'high';
   x.drawImage(i, 0, 0, c.width, c.height);
   x.globalCompositeOperation = 'source-atop';
   x.fillStyle = 'rgba(42,20,66,.92)';
@@ -212,7 +217,7 @@ function saveBest() {   // 모드마다 따로
 // ── 입력 ──
 let down = null;
 let moveCount = 0;   // 끌어서 옮긴 횟수(처음 안내)
-function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) / scale, y: (ev.clientY - r.top) / scale }; }
+function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) * VW / r.width, y: (ev.clientY - r.top) * VH / r.height }; }
 const inField = (p) => p.x >= FIELD.x && p.y >= FIELD.y && p.x < FIELD.x + FIELD.w && p.y < FIELD.y + FIELD.h;
 function unitAt(p) {   // 위에 그려진(나중) 것부터
   const list = E.fieldUnits(G);
@@ -369,10 +374,11 @@ function glow(id) {   // 빛 테두리 그림을 한 번만 만들어 둠
   if (glows[id]) return glows[id];
   const i = unitImg(id);
   if (!i) return null;
-  const t = E.tierOf(id), pad = 16, w = 96, h = Math.round(96 * i.naturalHeight / i.naturalWidth);
+  const t = E.tierOf(id), pad = 32, w = 192, h = Math.round(192 * i.naturalHeight / i.naturalWidth);   // 빛 테두리도 2배 해상도
   const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2;
   const x = c.getContext('2d');
-  x.shadowColor = GRADE_COLOR[E.UNIT[id].grade]; x.shadowBlur = 9 + (t - 4) * 1.5;
+  x.imageSmoothingQuality = 'high';
+  x.shadowColor = GRADE_COLOR[E.UNIT[id].grade]; x.shadowBlur = (9 + (t - 4) * 1.5) * 2;
   for (let k = 0; k < 3; k++) x.drawImage(i, pad, pad, w, h);
   x.shadowBlur = 0; x.globalCompositeOperation = 'destination-out'; x.drawImage(i, pad, pad, w, h);   // 그림 자체는 빼고 둘레 빛만
   glows[id] = { c, pad, w };
@@ -1441,6 +1447,7 @@ function drawPeerModal() {
 
 // ── 반복 ──
 let last = performance.now(), acc = 0;
+let seenModal = null;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -1450,11 +1457,14 @@ function frame(now) {
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
+  // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
+  if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
   if (wantStrip !== stripOn) { stripOn = wantStrip; fit(); }
   musicSync();
   hits = [];
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 그림 줄일 때 고품질(기본은 낮음이라 거칠었음)
   if (scene === 'title' || scene === 'lobby') {
     drawTitleBack();
     const tx = (VW - W) / 2;   // 가로 배치면 가운데
