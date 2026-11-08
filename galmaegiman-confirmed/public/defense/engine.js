@@ -81,6 +81,10 @@ export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: 
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
 const SHRED = (t) => (t < 3 ? [2, 4, 7][t] : 20 + 15 * (t - 3));            // 방깍·마방깍: 커먼 2 · 언커먼 4 · 레어 7 · 에픽 20 · 전설 35 …
 const AMP = (t) => (t < 3 ? [0.02, 0.03, 0.05][t] : 0.15 + 0.05 * (t - 3));  // 마딜증폭: 커먼 2% … 에픽 15% · 전설 20% …
+// 이속감소는 갈매미마다 따로 걸려 모두 더한다(사용자 요청 2026-11-08: 20%씩 쌓여 100%가 되면 많이 느리게).
+// 합계는 100%까지, 실제 속도 = 1 − 0.85×합계(합계 100%면 원래 속도의 15%로 기어감, 완전히 멈추는 건 스턴).
+export const SLOW_MAX = 1, SLOW_EFFECT = 0.85;
+export const slowMul = (total) => 1 - SLOW_EFFECT * Math.min(SLOW_MAX, total);
 const SLOW = (t) => (t < 3 ? [0.06, 0.08, 0.12][t] : Math.min(0.5, 0.25 + 0.04 * (t - 3)));  // 이속감소
 const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 * (t - 3))); // 스턴 확률
 // 범위 스턴(전설 이상 보조): 공격마다 확률로 맞은 적 둘레 70 안 모두 스턴. 초월 이상은 20%(사용자 요청: 라인이 안 밀리게)
@@ -117,7 +121,7 @@ export function kitTips(k) {
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
-  if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%`);
+  if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push('주변 범위');
   if (k.splash) out.push('불꽃 튐');
   if (k.chain) out.push('번개 연쇄');
@@ -183,7 +187,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
-    goals: [], mission: null, missionDone: 0, autoStore: false,
+    goals: [], mission: null, missionDone: 0, autoStore: false, missionDmg: [], peerDmg: null,
     over: null, reason: '', fx: [], news: [],
   };
 }
@@ -343,6 +347,11 @@ function ensureMission(g) {
   return g.mission;
 }
 export const missionTarget = (g) => ensureMission(g);
+// 같이하기(사용자 요청 2026-11-08: 외부탐사는 둘이서 같이): 두 사람이 같은 장의 대장을 함께 친다.
+// 장마다 내가 준 피해(missionDmg)를 친구에게 보내고, 친구가 준 피해(peerDmg)를 받아 대장 체력 = 최대 − 내 피해 − 친구 피해.
+// 장별로 쌓아 두므로 한쪽이 먼저 깨도 마지막 피해가 다른 쪽에 전해져 둘 다 같은 장을 깬다. 보상은 각자 전부 받는다.
+export function setPeerMission(g, arr) { g.peerDmg = Array.isArray(arr) ? arr.map((v) => Math.max(0, Number(v) || 0)) : g.peerDmg; }
+export const missionShare = (g) => { const k = g.missionDone; return { mine: g.missionDmg[k] ?? 0, peer: g.peerDmg?.[k] ?? 0 }; };
 export function sendAway(g, uids) {
   if (!ensureMission(g)) return 0;
   let n = 0;
@@ -374,12 +383,15 @@ function hurt(g, e, raw, k, uid) {
   if (k.holy && e.boss) m *= k.holy;
   e.hp -= raw * m; e.by = uid;
 }
-function debuff(g, e, k) {
+function debuff(g, e, k, uid = 0) {
   const now = g.t;
   if (k.shred) { e.shred = now < e.shredUntil ? Math.max(e.shred, k.shred) : k.shred; e.shredUntil = now + 3; }
   if (k.mshred) { e.mshred = now < e.mshredUntil ? Math.max(e.mshred, k.mshred) : k.mshred; e.mshredUntil = now + 3; }
   if (k.amp) { e.amp = now < e.ampUntil ? Math.max(e.amp, k.amp) : k.amp; e.ampUntil = now + 3; }
-  if (k.slow && e.speed) { e.slow = now < e.slowUntil ? Math.max(e.slow, k.slow) : k.slow; e.slowUntil = now + 1.5; }
+  if (k.slow && e.speed) {   // 같은 갈매미는 다시 맞혀도 시간만 늘고, 다른 갈매미 것은 더해진다
+    (e.slows ??= {})[uid] = { v: k.slow, until: now + 1.5 };
+    e.slowUntil = now + 1.5;
+  }
   if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = now + (e.boss ? 0.12 : 0.5);
   if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + (o.boss ? 0.15 : 0.7));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
@@ -399,7 +411,7 @@ function attack(g, u, k) {
     const r = k.area ?? 50;
     for (const e of g.enemies) if (e !== best && e.hp > 0 && Math.hypot(e.x - best.x, e.y - best.y) <= r) hits.push(e);
   }
-  hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k); });
+  hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k, u.uid); });
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
@@ -439,13 +451,16 @@ export function step(g, dt) {
   }
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
-    if (g.t >= e.slowUntil) e.slow = 0;
-    const v = g.t < e.stunUntil ? 0 : e.speed * (1 - e.slow);
+    e.slow = 0;
+    if (e.slows) { for (const id in e.slows) { const sl = e.slows[id]; if (g.t >= sl.until) delete e.slows[id]; else e.slow += sl.v; } }
+    e.slow = Math.min(SLOW_MAX, e.slow);   // 합계(화면에 보여 줌)
+    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow);
     e.s += v * dt;
     const p = pathPos(e.s); e.x = p.x; e.y = p.y;
     if (g.t < e.poisonUntil) hurt(g, e, e.poison * dt, e.poisonK, e.by);
   }
   const byUid = new Map(g.units.map((u) => [u.uid, u]));
+  if (g.peerDmg) ensureMission(g);   // 같이하기: 내가 아무도 안 보냈어도 친구 피해로 깰 수 있게
   const ms = g.mission && missionOpen(g) && g.mission.k === g.missionDone ? g.mission : null;
   for (const u of g.units) {
     if (u.stored) continue;   // 창고: 싸우지 않음
@@ -458,11 +473,14 @@ export function step(g, dt) {
     const k = kit(u.id);
     if (u.away) {
       if (!ms) { u.cd = 0.2; continue; }
-      hurt(g, ms, k.dmg * (k.area ? 1.2 : 1), k, u.uid); debuff(g, ms, k);
+      const before = ms.hp;
+      hurt(g, ms, k.dmg * (k.area ? 1.2 : 1), k, u.uid); debuff(g, ms, k, u.uid);
+      g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
       u.cd = k.gap; continue;
     }
     u.cd = attack(g, u, k) ? k.gap : 0.1;
   }
+  if (ms) ms.hp = ms.max - (g.missionDmg[ms.k] ?? 0) - (g.peerDmg?.[ms.k] ?? 0);
   // 처치
   let bossDown = false;
   g.enemies = g.enemies.filter((e) => {
@@ -479,7 +497,7 @@ export function step(g, dt) {
     addWisps(g, r.reward);
     if (r.gold) g.gold += r.gold;
     if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    news(g, `외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }

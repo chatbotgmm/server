@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=73c7dd2bf1ca';
+import * as E from './engine.js?v=638127cb9f5b';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -189,10 +189,9 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
 const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!modal || (landscape && NONPAUSE.has(modal.kind)));
-// 스크롤할 목록: 가로 배치는 오른쪽 창(창이 없으면 늘 떠 있는 조합법), 세로 배치는 열린 창
-const sideBook = { kind: 'book', scroll: 0, scrollable: true, side: true };
+// 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
-  if (landscape) return p.x >= SIDE_X ? (modal ? (modal.scrollable ? modal : null) : (scene === 'play' && !coop() ? sideBook : null)) : null;
+  if (landscape) return p.x >= SIDE_X ? (modal?.scrollable ? modal : null) : null;
   return modal?.scrollable ? modal : null;
 }
 cv.addEventListener('pointerdown', (ev) => {
@@ -294,7 +293,7 @@ function drawField() {
     const sz = e.boss ? 76 : 38, sh = shade(e.look);
     if (sh) drawFit(sh, e.x - sz / 2, e.y - sz * 0.75, sz, sz);
     if (G.t < e.stunUntil) text('★', e.x, e.y - sz * 0.75 - 14, 12, '#ffe14a', 'center');
-    if (G.t < e.slowUntil) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5; ctx.stroke(); }
+    if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
     const bw = e.boss ? 70 : 32, bx = e.x - bw / 2, by = e.y - sz * 0.75 - 6;
     box(bx, by, bw, 5, 'rgba(0,0,0,.6)', null, 2);
     box(bx, by, bw * Math.max(0, e.hp / e.max), 5, e.boss ? '#ff6b6b' : '#6fd08a', null, 2);
@@ -500,7 +499,7 @@ function drawBook() {
   const x = 14, y = 100, w = W - 28, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
-  if (!modal.side) button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   fitText('☆ 목표 = 판의 재료 갈매미에 같은 색 테두리', x + 18, y + 64, w - 36, 14, C.muted);
   const top = y + 82, viewH = h - 92, cnt = E.countOnField(G);
   let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
@@ -533,7 +532,7 @@ function drawMission() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('외부탐사', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열려요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, C.muted);
+  fitText(coop() ? '같이하기: 친구와 같은 대장을 함께 쳐요. 둘의 피해가 합쳐지고, 깨면 둘 다 보상을 받아요.' : '처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열려요. 보낸 동안은 수비에서 빠져요.', x + 18, y + 64, w - 36, 13, coop() ? C.gold : C.muted);
   // 지역 목록
   const ly = y + 84;
   E.REGIONS.forEach((r, k) => {
@@ -563,7 +562,10 @@ function drawMission() {
   box(x + 24, cy + 184, w - 48, 40, 'rgba(7,19,28,.88)', null, 8);
   fitText(`그림자 대장 체력 ${Math.max(0, Math.ceil(t.hp)).toLocaleString()} · 방어력 ${t.armor} · 마법방어 ${t.mr}`, W / 2, cy + 196, w - 60, 14, C.text, 'center');
   const away = E.awayUnits(G);
-  text(away.length ? `탐사 중 ${away.length}마리` : '아직 보낸 갈매미가 없어요', W / 2, cy + 214, 14, away.length ? C.good : C.muted, 'center');
+  if (coop()) {
+    const sh2 = E.missionShare(G), pct = (v) => `${Math.round(100 * v / t.max)}%`;
+    fitText(`내 갈매미 ${away.length}마리 · 내 피해 ${pct(sh2.mine)} · 친구 피해 ${pct(sh2.peer)}`, W / 2, cy + 214, w - 60, 14, sh2.mine + sh2.peer > 0 ? C.good : C.muted, 'center');
+  } else text(away.length ? `탐사 중 ${away.length}마리` : '아직 보낸 갈매미가 없어요', W / 2, cy + 214, 14, away.length ? C.good : C.muted, 'center');
   // 보낸 갈매미
   const ay = cy + 240;
   away.slice(0, 20).forEach((u, i) => { const xx = x + 14 + (i % 10) * 48, yy = ay + Math.floor(i / 10) * 48; box(xx, yy, 44, 44, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, 40, 40); });
@@ -656,16 +658,17 @@ function drawTitle() {
   text('갈매미맨', W / 2, 86, 30, C.gold, 'center');
   text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
   ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
-  box(28, 492, W - 56, 290, C.panel, C.edge, 12);
+  box(28, 486, W - 56, 296, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 그 등급 갈매미를 무작위로 불러요.',
     '  처음 6개 + 웨이브마다 2개. 스토리를 깨면 선택 위습(원하는 갈매미).',
     '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
-    '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
+    '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·이속감소 보조.',
+    '· 이속감소는 여러 마리 것이 더해져요(합계 100%면 아주 느리게).',
     '· 갈매미는 끌어서 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
     `· 적 ${E.RULES.limit}마리 넘으면 1초마다 경고, ${E.RULES.warnMax}회 넘으면 패배.`,
     '· 보스는 그 라운드 안에 못 잡으면 바로 패배.',
-  ].forEach((l, k) => fitText(l, 44, 522 + k * 36, W - 88, 15, C.text));
+  ].forEach((l, k) => fitText(l, 44, 516 + k * 33, W - 88, 15, C.text));
   text(`최고 기록: ${best ? (best > E.RULES.waves ? '클리어' : `${best}웨이브`) : '아직 없음'}`, W / 2, 808, 16, C.gold, 'center');
   button(40, 834, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, 834, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
@@ -760,6 +763,13 @@ function drawSound() {
   fitText('막대를 누르거나 −/+로 조절해요 · 설정은 이 기기에 기억돼요', x + w / 2, y + h - 40, w - 40, 13, C.muted, 'center');
 }
 
+// 가로 화면에서 연 창이 없을 때 오른쪽: 안내만(창처럼 보이지 않게 흐리게)
+function drawSideEmpty() {
+  box(14, 100, W - 28, H - 108, 'rgba(11,30,42,.35)', 'rgba(145,122,76,.35)', 14, 1.5);
+  text('열린 창 없음', W / 2, 430, 20, C.muted, 'center');
+  fitText('아래 판의 선택위습·강화·외부탐사·창고·조합법을 누르면 여기에 열려요', W / 2, 470, W - 80, 14, '#8b9aa3', 'center');
+  fitText('창을 연 채로도 판의 갈매미를 옮길 수 있어요', W / 2, 498, W - 80, 14, '#8b9aa3', 'center');
+}
 function drawModal() {
   if (modal?.kind === 'book') drawBook();
   else if (modal?.kind === 'mission') drawMission();
@@ -833,7 +843,7 @@ function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
     r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
-    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg,
+    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
   });
@@ -868,6 +878,7 @@ function onSync(j) {
     if (s && typeof s === 'object' && s.r === net.round) {   // 지난 판 모습은 버림
       net.prev = net.peer; net.prevAt = net.peerAt; net.peer = s; net.peerAt = performance.now();
       net.prevMap = new Map((Array.isArray(net.prev?.e) ? net.prev.e : []).filter(Array.isArray).map((e) => [e[0], e]));
+      if (G && scene === 'play') E.setPeerMission(G, s.mdg);   // 외부탐사를 둘이서 같이
     }
   }
 }
@@ -1103,7 +1114,7 @@ function frame(now) {
       else if (coop()) {
         drawPeerFull();
         if (modal?.kind === 'peer') button(W - 150, 684, 128, 44, '내 결과 보기', () => { modal = null; }, 'primary');
-      } else { modal = sideBook; drawBook(); modal = null; }
+      } else drawSideEmpty();   // 닫기를 누르면 오른쪽 창도 비어야 함(사용자 요청 2026-11-08: 전에는 조합법이 늘 떠 있어 닫히지 않는 것처럼 보였음)
       ctx.restore(); OX = 0;
     } else { if (stripOn) drawPeerStrip(); drawModal(); }
   }
