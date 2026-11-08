@@ -18,7 +18,10 @@ const MUSIC_KEY = 'gmm-defense-music';
 const VOLUME_KEY = 'gmm-defense-volume';
 // 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
-const UNIT_R = 24;   // 갈매미 누르기 반지름
+const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
+// 등급별 크기(사용자 요청 2026-11-08: 상위일수록 크게 — 보상 느낌). 커먼·언커먼·레어·에픽·전설·히든·제한·초월·불멸·영원
+const GRADE_SIZE = [1, 1.06, 1.13, 1.22, 1.34, 1.4, 1.5, 1.6, 1.7, 1.82];
+const usz = (id) => GRADE_SIZE[E.tierOf(id)] ?? 1;
 const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: 더 빠르게). 시간이 통째로 빨라져 난이도는 같음
 
 // ── 화면 준비 ──
@@ -182,7 +185,7 @@ function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.c
 const inField = (p) => p.x >= FIELD.x && p.y >= FIELD.y && p.x < FIELD.x + FIELD.w && p.y < FIELD.y + FIELD.h;
 function unitAt(p) {   // 위에 그려진(나중) 것부터
   const list = E.fieldUnits(G);
-  for (let i = list.length - 1; i >= 0; i--) { const u = list[i]; if (Math.hypot(u.x - p.x, u.y - 14 - p.y) <= UNIT_R) return u; }
+  for (let i = list.length - 1; i >= 0; i--) { const u = list[i], z = usz(u.id); if (Math.hypot(u.x - p.x, u.y - 14 * z - p.y) <= UNIT_R * z) return u; }
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
@@ -279,6 +282,13 @@ function drawLanes() {
   // 나타나는 곳
   ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
 }
+// 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
+function drawUnitShape(id, x, y, ring, lw) {
+  const z = usz(id);
+  ctx.beginPath(); ctx.ellipse(x, y, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+  ctx.lineWidth = lw; ctx.strokeStyle = ring; ctx.stroke();
+  drawFit(unitImg(id), x - 24 * z, y - 50 * z, 48 * z, 50 * z);
+}
 function drawField() {
   drawLanes();
   // 고른 갈매미 사거리(한 마리일 때)
@@ -302,22 +312,20 @@ function drawField() {
   const gc = goalColors(), selSet = new Set(selected);
   const list = [...E.fieldUnits(G)].sort((a, b) => a.y - b.y);
   for (const u of list) {
-    const info = E.UNIT[u.id], col = GRADE_COLOR[info.grade];
-    ctx.beginPath(); ctx.ellipse(u.x, u.y, 20, 7, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
-    ctx.lineWidth = selSet.has(u.uid) ? 3 : 2; ctx.strokeStyle = selSet.has(u.uid) ? '#ffffff' : col; ctx.stroke();
-    (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, 24 + k * 4, 9 + k * 2, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
-    drawFit(unitImg(u.id), u.x - 24, u.y - 50, 48, 50);
-    if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20, 30, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
+    const info = E.UNIT[u.id], col = GRADE_COLOR[info.grade], z = usz(u.id);
+    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2);
+    (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
+    if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
   // 겹친 갈매미 수(같은 자리 14px 안)
   const stacks = [];
-  for (const u of list) { const st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; } else stacks.push({ x: u.x, y: u.y, n: 1 }); }
-  for (const st of stacks) if (st.n > 1) { box(st.x + 10, st.y - 54, 30, 20, 'rgba(7,19,28,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 25, st.y - 43.5, 13, C.goldEdge, 'center'); }
+  for (const u of list) { const z = usz(u.id), st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; st.z = Math.max(st.z, z); } else stacks.push({ x: u.x, y: u.y, n: 1, z }); }
+  for (const st of stacks) if (st.n > 1) { const by = st.y - 50 * st.z - 4; box(st.x + 10 * st.z, by, 30, 20, 'rgba(7,19,28,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 10 * st.z + 15, by + 10.5, 13, C.goldEdge, 'center'); }
   // 끌기 표시
   if (down?.moved && down.field) {
     if (down.unit) {
       const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit];
-      for (const u of group) drawFit(unitImg(u.id), u.x - 24 + down.x - down.x0, u.y - 50 + down.y - down.y0, 48, 50, 0.6);
+      for (const u of group) { const z = usz(u.id); drawFit(unitImg(u.id), u.x - 24 * z + down.x - down.x0, u.y - 50 * z + down.y - down.y0, 48 * z, 50 * z, 0.6); }
     } else {
       box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(243,216,158,.08)', C.goldEdge, 2, 1.5);
     }
@@ -978,10 +986,7 @@ function drawPeerField(P) {
   }
   const units = (Array.isArray(P.u) ? P.u : []).filter((u) => Array.isArray(u) && E.UNIT[u[2]]).sort((a, b) => num(a[1]) - num(b[1]));
   for (const u of units) {
-    const x = num(u[0]), y = num(u[1]);
-    ctx.beginPath(); ctx.ellipse(x, y, 20, 7, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = GRADE_COLOR[E.UNIT[u[2]].grade]; ctx.stroke();
-    drawFit(unitImg(u[2]), x - 24, y - 50, 48, 50);
+    drawUnitShape(u[2], num(u[0]), num(u[1]), GRADE_COLOR[E.UNIT[u[2]].grade], 2);
   }
   if (P.ov) {
     const win = P.ov === 'win', cy = FIELD.y + FIELD.h / 2;
