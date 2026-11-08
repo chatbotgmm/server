@@ -26,19 +26,24 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 export const RULES = {
   waves: 40, waveLen: 40, perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   bossEvery: 10, startWisps: 5, wispPerWave: 1,
-  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [9, 5, 2.6, 1.3],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
+  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 4, 3, 2],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
+  // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
+  // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
+  hpAnchors: [[1, 130], [2, 250], [3, 380], [4, 560], [5, 850], [6, 1000], [7, 1100], [8, 1250], [10, 1450], [12, 2600], [15, 4200], [20, 6500], [25, 18000], [30, 30000], [35, 80000], [40, 120000]],
   armorBase: 4, armorPer: 2.4,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
-  dmg: [22, 70, 210, 600, 1700, 2400, 5000, 13000, 34000, 90000],
+  dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
-  killGold: 1, killGoldPer: 6,
+  // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
+  killGold: 1, killGoldGrow: 0.5,
   // 등급별 강화(사용자 요청 2026-11-08): 커먼·언커먼·레어·에픽·전설 이상 5칸, 한 단계마다 그 등급 공격력 +14%
   // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
-  upgPct: 0.14, upgBase: [20, 45, 65, 90, 100, 120, 150, 180, 220], upgStep: [10, 22, 32, 45, 50, 60, 75, 90, 110],
+  // 칸마다 최대 upgMax단계(풀강). 비용 = upgBase × upgGrowth^단계. 등급이 높을수록 훨씬 비쌈(초반과 상위 강화 비용이 비슷하지 않게)
+  upgPct: 0.15, upgMax: 10, upgGrowth: 1.25, upgBase: [5, 20, 60, 180, 260, 500, 1100, 2400, 5000],
   bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
   // 선택 위습(원하는 갈매미를 골라 소환, 사용자 요청 2026-11-08): 처음 커먼 1개 + 보스 보상
   startPick: { COMMON: 1 }, bossPick: { 10: { UNCOMMON: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 } },
-  guardMul: 25,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
+  guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
 // 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
@@ -65,7 +70,11 @@ export const WISP_SKILL = {
 
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
-const SHRED = (t) => 10 + 10 * t, AMP = (t) => 0.12 + 0.03 * t, SLOW = (t) => Math.min(0.5, 0.25 + 0.025 * t);
+// 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
+const SHRED = (t) => (t < 3 ? [2, 4, 7][t] : 20 + 15 * (t - 3));            // 방깍·마방깍: 커먼 2 · 언커먼 4 · 레어 7 · 에픽 20 · 전설 35 …
+const AMP = (t) => (t < 3 ? [0.02, 0.03, 0.05][t] : 0.15 + 0.05 * (t - 3));  // 마딜증폭: 커먼 2% … 에픽 15% · 전설 20% …
+const SLOW = (t) => (t < 3 ? [0.06, 0.08, 0.12][t] : Math.min(0.5, 0.25 + 0.04 * (t - 3)));  // 이속감소
+const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 * (t - 3))); // 스턴 확률
 
 // 갈매미 한 마리의 공격 방식
 export function kit(id) {
@@ -73,7 +82,7 @@ export function kit(id) {
   const tank = role.startsWith('고체력'), ambush = role.includes('기습'), mage = role.endsWith('술사');
   const type = mage ? 'mag' : 'phys';
   let k;
-  if (tank) k = { job: '보조', gap: 1.1, mul: 0.35, range: 150, stun: 0.2, shred: SHRED(t) };
+  if (tank) k = { job: '보조', gap: 1.1, mul: 0.35, range: 150, stun: STUN(t), shred: SHRED(t) };
   else if (ambush && mage) k = { job: '보조', gap: 0.6, mul: 0.3, range: 170, mshred: SHRED(t), amp: AMP(t) };
   else if (ambush) k = { job: '보조', gap: 0.5, mul: 0.3, range: 160, shred: SHRED(t), slow: SLOW(t) };
   else if (role.endsWith('근접술사')) k = { job: '주력', gap: 0.9, mul: 0.75, range: 140, area: 70 };
@@ -82,8 +91,8 @@ export function kit(id) {
   if (k.job === '주력') {   // 주력의 속성 덤(작게)
     if (elem === 'FIRE') k.splash = 0.4;
     if (elem === 'LIGHTNING') k.chain = 2;
-    if (elem === 'ICE') k.slow = 0.2;
-    if (elem === 'WATER') k.slow = 0.12;
+    if (elem === 'ICE') k.slow = SLOW(t) * 0.8;
+    if (elem === 'WATER') k.slow = SLOW(t) * 0.5;
     if (elem === 'NATURE') k.poison = 0.25;
     if (elem === 'DARK') { if (mage) k.mshred = SHRED(t) * 0.5; else k.shred = SHRED(t) * 0.5; }
     if (elem === 'HOLY') k.holy = 1.5;
@@ -128,19 +137,30 @@ const BY_GRADE = Object.fromEntries(GRADES.map((g) => [g, UNITS.filter((u) => u.
 // 웨이브 정보: 일반 → 갑옷(방어력 높음) → 결계(마법방어 높음) 순서, 10웨이브마다 보스
 export function waveInfo(w) {
   const boss = w % RULES.bossEvery === 0;
-  const hp = Math.round(RULES.hpBase * Math.pow(RULES.hpGrowth, w - 1) * (1 + w / RULES.hpLinear));
+  // 적 체력: 초반(hpEarlyN웨이브까지)은 hpEarly배씩 가파르게, 그 뒤는 hpGrowth배씩
+  const nE = RULES.hpEarlyN ?? 0, eW = Math.min(w - 1, nE), lW = Math.max(0, w - 1 - nE);
+  let hp = Math.round(RULES.hpBase * Math.pow(RULES.hpEarly ?? RULES.hpGrowth, eW) * Math.pow(RULES.hpGrowth, lW) * (1 + w / RULES.hpLinear));
+  // 기준점 표가 있으면 그 사이를 곱으로 이어 쓴다(등급별 봇이 버티는 한계에 맞춘 값)
+  const A = RULES.hpAnchors;
+  if (A && A.length) {
+    let k = A.findIndex(([aw]) => aw >= w);
+    if (k < 0) hp = Math.round(A[A.length - 1][1]);
+    else if (k === 0 || A[k][0] === w) hp = Math.round(A[k][1]);
+    else { const [w0, h0] = A[k - 1], [w1, h1] = A[k]; hp = Math.round(h0 * Math.pow(h1 / h0, (w - w0) / (w1 - w0))); }
+  }
   const base = RULES.armorBase + RULES.armorPer * w;
   const kind = boss ? 'boss' : ['결계', '일반', '갑옷'][w % 3];
   const armor = Math.round(base * (kind === '갑옷' ? 2 : kind === '결계' ? 0.5 : kind === 'boss' ? 1.5 : 1));
   const mr = Math.round(base * (kind === '결계' ? 2 : kind === '갑옷' ? 0.5 : kind === 'boss' ? 1.5 : 1));
   const pool = UNITS.filter((u) => gradeTier(u.grade) <= Math.min(9, Math.floor((w - 1) / 4)));
   const look = boss ? ['u33', 'u38', 'u52', 'u60'][Math.min(3, w / RULES.bossEvery - 1)] : pool[(w * 7) % pool.length].id;
-  return { boss, kind, armor, mr, look, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
-    speed: boss ? 34 : 56 + Math.min(30, w), gold: boss ? 50 : RULES.killGold + Math.floor(w / RULES.killGoldPer) };
+  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
+    speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w)) };
 }
 export function regionGuard(k) {
   const r = REGIONS[k], wi = waveInfo(r.level + 2);
-  return { hp: Math.round(wi.hp * RULES.guardMul), armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
+  // 보스 웨이브여도 보스 배수는 쓰지 않는다(예전엔 1장 대장이 보스 체력×25가 되어 깰 수 없었음)
+  return { hp: Math.round(wi.baseHp * RULES.guardMul), armor: Math.round(wi.armor * 1.3), mr: Math.round(wi.mr * 1.3) };
 }
 
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
@@ -213,11 +233,14 @@ export function moveUnit(g, uid, x, y, now = false) {
 export const UPG_NAME = ['커먼·언커먼', '레어', '에픽', '전설', '히든', '제한', '초월', '불멸', '영원'];
 export const UPG_COUNT = UPG_NAME.length;
 export const upgGroup = (tier) => Math.max(0, tier - 1);   // 커먼(0)·언커먼(1) → 0칸, 그 위는 등급마다 한 칸
-export const upgradeCost = (g, gi) => RULES.upgBase[gi] + RULES.upgStep[gi] * g.upg[gi];
+// 강화 비용: 단계마다 upgGrowth배(곱으로 늘어 낮은 등급만 계속 강화해 버티는 것을 막음)
+export const upgradeCost = (g, gi) => Math.round(RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi]));
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
+export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
   if (g.over) return { ok: false, why: '' };
+  if (upgMaxed(g, gi)) return { ok: false, why: '이미 최대 단계(풀강)예요.' };
   if (g.gold < cost) return { ok: false, why: `새우가 모자라요(${cost} 필요).` };
   g.gold -= cost; g.upg[gi]++;
   return { ok: true };
@@ -243,7 +266,8 @@ export function combine(g, r, keepUid = 0) {
   if (g.over) return null;
   const uids = recipeUnits(g, r, keepUid);
   if (!uids) return null;
-  const at = unitById(g, uids[0]), x = at.x, y = at.y;
+  // 조합 결과는 판 가운데(소환되는 곳)에 나온다(사용자 요청: 어디 생겼는지 헷갈리지 않게)
+  const a = g.rand() * Math.PI * 2, rr = 10 + g.rand() * 30, x = SPAWN.x + Math.cos(a) * rr, y = SPAWN.y + Math.sin(a) * rr;
   g.units = g.units.filter((u) => !uids.includes(u.uid));
   const nu = addUnit(g, r.out, x, y);
   g.fx.push({ kind: 'combine', x, y, t: g.t });

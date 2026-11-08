@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=4f11a0978ccd';
+import * as E from './engine.js?v=fe53f80d620c';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -177,6 +177,9 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 const playing = () => scene === 'play' && !modal && G && !G.over;
+// 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
+const NONPAUSE = new Set(['upgrade']);
+const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 cv.addEventListener('pointerdown', (ev) => {
   const p = toLogical(ev);
   cv.setPointerCapture?.(ev.pointerId);
@@ -367,7 +370,7 @@ function drawMainPanel(y0) {
   const by = y0 + 100, b4 = (W - 44 - 18) / 4;
   const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
   button(22, by, b4, 58, '선택 위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개 있음` : '없음');
-  const canUp = G.upg.some((_, gi) => G.gold >= E.upgradeCost(G, gi));
+  const canUp = G.upg.some((_, gi) => !E.upgMaxed(G, gi) && G.gold >= E.upgradeCost(G, gi));
   button(22 + (b4 + 6), by, b4, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
   const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
@@ -532,12 +535,13 @@ function drawMission() {
 }
 // 등급별 강화 창: 5칸(커먼·언커먼·레어·에픽·전설 이상)
 function drawUpgrade() {
-  shadeAll();
-  const x = 20, y = 40, w = W - 40, h = H - 80;
+  shadeAll(0.3);   // 게임은 계속 흐름(위 정보 줄이 보이게 아래쪽에)
+  const x = 20, y = 100, w = W - 40, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('등급별 강화', x + 18, y + 30, 22, C.text);
+  text('게임은 멈추지 않아요', x + 150, y + 31, 13, C.bad);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`한 단계마다 그 등급 갈매미 공격력 +${Math.round(E.RULES.upgPct * 100)}% · 새우는 적을 쓰러뜨리면 생겨요`, x + 18, y + 64, w - 36, 14, C.muted);
+  fitText(`한 단계마다 그 등급 공격력 +${Math.round(E.RULES.upgPct * 100)}% · 칸마다 ${E.RULES.upgMax}단계까지(풀강) · 높은 등급일수록 비싸요`, x + 18, y + 64, w - 36, 14, C.muted);
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, x + 18, y + 80, 24, 24);
   text(`가진 새우 ${G.gold}`, x + 48, y + 93, 17, C.goldEdge);
@@ -545,11 +549,13 @@ function drawUpgrade() {
   for (const u of E.fieldUnits(G)) have[E.upgGroup(E.tierOf(u.id))]++;
   const color = ['UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
   for (let gi = 0; gi < E.UPG_COUNT; gi++) {
-    const yy = y + 116 + gi * 84, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
-    box(x + 14, yy, w - 28, 76, 'rgba(11,30,42,.85)', col, 10, 2);
-    text(E.UPG_NAME[gi], x + 30, yy + 24, 19, col);
-    fitText(`${G.upg[gi]}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + 52, w - 230, 15, C.text);
-    button(x + w - 28 - 150, yy + 10, 150, 56, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
+    const yy = y + 112 + gi * 76, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
+    box(x + 14, yy, w - 28, 70, 'rgba(11,30,42,.85)', col, 10, 2);
+    text(E.UPG_NAME[gi], x + 30, yy + 22, 19, col);
+    const maxed = E.upgMaxed(G, gi);
+    fitText(`${G.upg[gi]}/${E.RULES.upgMax}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + 50, w - 230, 15, maxed ? C.goldEdge : C.text);
+    if (maxed) button(x + w - 28 - 150, yy + 8, 150, 54, '최대(풀강)', () => {}, 'normal', false);
+    else button(x + w - 28 - 150, yy + 8, 150, 54, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
   }
 }
 function drawPause() {
@@ -652,7 +658,7 @@ let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (playing()) {
+  if (running()) {
     acc += dt * speed * BASE_SPEED;
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
