@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=e8a2de37a33f';
+import * as E from './engine.js?v=9845950fe1f8';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -660,7 +660,7 @@ function drawBook() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`☆ 목표 = 판의 재료 갈매미에 같은 색 테두리 · 상위(제한~영원) ${E.topCount(G)}/${E.RULES.topCap}마리`, x + 18, y + 64, w - 36, 14, E.topCount(G) >= E.RULES.topCap ? C.goldEdge : C.muted);
+  fitText(`☆ 목표 = 판의 재료 갈매미에 같은 색 테두리${E.RULES.topCap > 0 ? ` · 상위(제한~영원) ${E.topCount(G)}/${E.RULES.topCap}마리` : ''}`, x + 18, y + 64, w - 36, 14, C.muted);
   const top = y + 82, viewH = h - 92, cnt = E.countOnField(G);
   let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
   rows = rows.map((r) => ({ r, ok: canMake(r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));

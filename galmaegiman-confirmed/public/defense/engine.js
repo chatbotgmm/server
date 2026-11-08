@@ -36,7 +36,7 @@ export const RULES = {
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
   atkSpeed: 2,
   lineBossMul: 0.6, singleBossMul: 1.35, singleMul: 1.8,   // 라인 정리형 보스 피해 ×0.6, 단일 공격형 ×1.35   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
-  topCap: 2,   // 상위(제한~영원) 최대 마릿수
+  topCap: 0,   // 상위(제한~영원) 최대 마릿수(0 = 제한 없음, 사용자 요청 2026-11-08: 따로 막을 필요 없음)
   dmg: [20, 90, 380, 1500, 5500, 7500, 15000, 21000, 28000, 36000],   // 상위는 전설의 약 2.7~6.5배(전엔 3~73배): 상위 한두 마리 + 전설·히든 중심   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
@@ -385,7 +385,7 @@ export function recipeUnits(g, r, keepUid = 0) {
 // 상위(제한·초월·불멸·영원)는 판·창고·탐사를 합쳐 RULES.topCap마리까지(사용자 요청 2026-11-08: 상위는 한두 개, 조합의 중심은 전설·히든)
 export const TOP_TIER = 6;
 export const topCount = (g) => g.units.filter((u) => tierOf(u.id) >= TOP_TIER).length;
-export const topBlocked = (g, r) => tierOf(r.out) >= TOP_TIER && topCount(g) >= RULES.topCap;
+export const topBlocked = (g, r) => RULES.topCap > 0 && tierOf(r.out) >= TOP_TIER && topCount(g) >= RULES.topCap;
 export function combine(g, r, keepUid = 0) {
   if (g.over || topBlocked(g, r)) return null;
   const uids = recipeUnits(g, r, keepUid);
