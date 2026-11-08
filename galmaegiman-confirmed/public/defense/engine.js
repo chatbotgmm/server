@@ -171,7 +171,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
     wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
-    goals: [], mission: null, missionDone: 0,
+    goals: [], mission: null, missionDone: 0, autoStore: false,
     over: null, reason: '', fx: [], news: [],
   };
 }
@@ -182,7 +182,35 @@ export const pickText = (bag) => Object.entries(bag).map(([k, v]) => `${GRADE_NA
 export const PICK_GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC'];
 export const unitsOfGrade = (grade) => BY_GRADE[grade] ?? [];
 
-export const fieldUnits = (g) => g.units.filter((u) => !u.away);
+// 판에서 싸우는 갈매미(탐사 중·창고 제외)
+export const fieldUnits = (g) => g.units.filter((u) => !u.away && !u.stored);
+// 창고: 판에서 빠져 공격은 안 하지만 조합 재료로는 쓰인다(사용자 요청 2026-11-08)
+export const storedUnits = (g) => g.units.filter((u) => u.stored);
+const nearSpawn = (g, u) => { const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 40; const p = clampField(SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r); u.x = u.tx = p.x; u.y = u.ty = p.y; };
+export function store(g, uids) {
+  let n = 0;
+  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away && !u.stored) { u.stored = true; n++; } }
+  return n;
+}
+export function unstore(g, uids) {
+  let n = 0;
+  for (const uid of uids) { const u = unitById(g, uid); if (u && u.stored) { u.stored = false; nearSpawn(g, u); u.cd = 0.3; n++; } }
+  return n;
+}
+// 커먼 자동 창고: 켜면 판의 커먼을 창고로, 이후 새로 부른 커먼도 바로 창고로
+export function setAutoStore(g, on) {
+  g.autoStore = !!on;
+  return on ? store(g, fieldUnits(g).filter((u) => UNIT[u.id].grade === 'COMMON').map((u) => u.uid)) : 0;
+}
+const autoStoreNew = (g, u) => { if (g.autoStore && UNIT[u.id].grade === 'COMMON') u.stored = true; };
+// 같은 갈매미 모으기: 판의 같은 종류를 한 자리로
+export function gather(g, uid) {
+  const t = unitById(g, uid);
+  if (!t || t.away || t.stored) return [];
+  const list = fieldUnits(g).filter((u) => u.id === t.id);
+  for (const u of list) { u.tx = t.tx; u.ty = t.ty; }
+  return list.map((u) => u.uid);
+}
 export const unitById = (g, uid) => g.units.find((u) => u.uid === uid) ?? null;
 
 function addUnit(g, id, x, y) {
@@ -200,6 +228,7 @@ export function summon(g, grade = 'COMMON') {
   const pool = BY_GRADE[grade], id = pool[Math.floor(g.rand() * pool.length)];
   const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
   const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
 }
@@ -211,6 +240,7 @@ export function summonPick(g, id) {
   g.picks[grade]--;
   const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
   const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
 }
@@ -248,7 +278,7 @@ export function upgrade(g, gi) {
 
 // 조합: 판(탐사 중 제외)에 재료가 다 있으면 쓸 갈매미 uid 목록(keep을 먼저)
 export function recipeUnits(g, r, keepUid = 0) {
-  const avail = fieldUnits(g), used = new Set(), out = [], need = [...r.in];
+  const avail = g.units.filter((u) => !u.away), used = new Set(), out = [], need = [...r.in];   // 창고 것도 재료
   if (keepUid) {
     const ku = avail.find((u) => u.uid === keepUid);
     const k = ku ? need.indexOf(ku.id) : -1;
@@ -277,7 +307,7 @@ export const recipesUsing = (id) => RECIPES.filter((r) => r.in.includes(id));
 export const recipeFor = (id) => RECIPES.find((r) => r.out === id) ?? null;
 export function countOnField(g) {
   const c = {};
-  for (const u of g.units) if (!u.away) c[u.id] = (c[u.id] ?? 0) + 1;
+  for (const u of g.units) if (!u.away) c[u.id] = (c[u.id] ?? 0) + 1;   // 창고 것 포함(조합 재료)
   return c;
 }
 export const GOAL_MAX = 3;
@@ -303,7 +333,7 @@ export const missionTarget = (g) => ensureMission(g);
 export function sendAway(g, uids) {
   if (!ensureMission(g)) return 0;
   let n = 0;
-  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away) { u.away = true; u.cd = 0.3; n++; } }
+  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away && !u.stored) { u.away = true; u.cd = 0.3; n++; } }
   return n;
 }
 export function recall(g, uids = null) {
@@ -403,6 +433,7 @@ export function step(g, dt) {
   const byUid = new Map(g.units.map((u) => [u.uid, u]));
   const ms = g.mission && missionOpen(g) && g.mission.k === g.missionDone ? g.mission : null;
   for (const u of g.units) {
+    if (u.stored) continue;   // 창고: 싸우지 않음
     if (!u.away && (u.x !== u.tx || u.y !== u.ty)) {
       const dx = u.tx - u.x, dy = u.ty - u.y, d = Math.hypot(dx, dy), m = WALK * dt;
       if (d <= m) { u.x = u.tx; u.y = u.ty; } else { u.x += dx / d * m; u.y += dy / d * m; }

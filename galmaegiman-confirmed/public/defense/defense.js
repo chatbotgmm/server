@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=fe53f80d620c';
+import * as E from './engine.js?v=4ee33530f304';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -178,7 +178,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
 }
 const playing = () => scene === 'play' && !modal && G && !G.over;
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade']);
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 cv.addEventListener('pointerdown', (ev) => {
   const p = toLogical(ev);
@@ -367,15 +367,17 @@ function drawMainPanel(y0) {
     if (n) hit(x, y, bw, 58, () => doSummon(gr));
   });
   // 강화·탐사·조합법
-  const by = y0 + 100, b4 = (W - 44 - 18) / 4;
+  const by = y0 + 100, b4 = (W - 44 - 24) / 5;
   const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
-  button(22, by, b4, 58, '선택 위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개 있음` : '없음');
+  button(22, by, b4, 58, '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개 있음` : '없음');
   const canUp = G.upg.some((_, gi) => !E.upgMaxed(G, gi) && G.gold >= E.upgradeCost(G, gi));
-  button(22 + (b4 + 6), by, b4, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
+  button(22 + (b4 + 6), by, b4, 58, '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
   const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
   button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
-  button(22 + 3 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
+  const st = E.storedUnits(G).length;
+  button(22 + 3 * (b4 + 6), by, b4, 58, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${G.autoStore ? '·자동' : ''}`);
+  button(22 + 4 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
   const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
   for (let k = 0; k < E.GOAL_MAX; k++) {
@@ -407,11 +409,12 @@ function drawUnitPanel(y0, u) {
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
   list.slice(0, 2).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
-  const by = H - 8 - 56, b4 = (W - 44 - 18) / 4;
-  button(22, by, b4, 46, list.length > 2 ? `더 보기 +${list.length - 2}` : '조합법', () => openBook(null, u.id), 'normal');
-  button(22 + (b4 + 6), by, b4, 46, '같은 종류', () => { selected = E.fieldUnits(G).filter((x) => x.id === u.id).map((x) => x.uid); }, 'normal');
-  button(22 + 2 * (b4 + 6), by, b4, 46, '탐사 보내기', () => sendSelected([u]), 'normal', E.missionOpen(G));
-  button(22 + 3 * (b4 + 6), by, b4, 46, `판매 +${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
+  const by = H - 8 - 56, b4 = (W - 44 - 24) / 5;
+  button(22, by, b4, 46, list.length > 2 ? `더보기+${list.length - 2}` : '조합법', () => openBook(null, u.id), 'normal');
+  button(22 + (b4 + 6), by, b4, 46, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요.`); }, 'normal');
+  button(22 + 2 * (b4 + 6), by, b4, 46, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
+  button(22 + 3 * (b4 + 6), by, b4, 46, '탐사', () => sendSelected([u]), 'normal', E.missionOpen(G));
+  button(22 + 4 * (b4 + 6), by, b4, 46, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
 }
 function drawGroupPanel(y0, sel) {
   let p = 0, m = 0;
@@ -428,8 +431,10 @@ function drawGroupPanel(y0, sel) {
   if (sel.length > per * 2) text(`외 ${sel.length - per * 2}마리`, W - 30, y0 + 176, 14, C.muted, 'right');
   fitText('고른 갈매미 중 하나를 끌면 함께 움직여요 · 빈 곳을 누르면 고르기 풀림', 22, y0 + 198, W - 44, 14, C.muted);
   const by = H - 8 - 56;
-  button(22, by, (W - 50) / 2, 46, `탐사 보내기 (${sel.length})`, () => sendSelected(sel), 'normal', E.missionOpen(G));
-  button(28 + (W - 50) / 2, by, (W - 50) / 2, 46, '고르기 해제', () => { selected = []; }, 'quiet');
+  const b3 = (W - 44 - 12) / 3;
+  button(22, by, b3, 46, `탐사 보내기 (${sel.length})`, () => sendSelected(sel), 'normal', E.missionOpen(G));
+  button(22 + (b3 + 6), by, b3, 46, `창고로 (${sel.length})`, () => { const n = E.store(G, sel.map((u) => u.uid)); selected = []; say(`${n}마리를 창고에 넣었어요.`); }, 'normal');
+  button(22 + 2 * (b3 + 6), by, b3, 46, '고르기 해제', () => { selected = []; }, 'quiet');
 }
 function sendSelected(list) {
   const n = E.sendAway(G, list.map((u) => u.uid));
@@ -463,8 +468,8 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
 function openBook(focus = null, using = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using }; }
 function shadeAll(a = 0.72) { ctx.fillStyle = `rgba(3,9,14,${a})`; ctx.fillRect(0, 0, W, H); hit(0, 0, W, H, () => {}); }
 function drawBook() {
-  shadeAll();
-  const x = 14, y = 40, w = W - 28, h = H - 80;
+  shadeAll(0.35);   // 게임은 계속 흐름(위 정보 줄이 보이게)
+  const x = 14, y = 100, w = W - 28, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -495,8 +500,8 @@ function drawBook() {
   if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
 }
 function drawMission() {
-  shadeAll();
-  const x = 14, y = 40, w = W - 28, h = H - 80;
+  shadeAll(0.35);
+  const x = 14, y = 100, w = W - 28, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('외부탐사', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -607,8 +612,8 @@ function drawTitle() {
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
 // 선택 위습 창: 등급 칸을 고르고, 그 등급 갈매미를 눌러 소환
 function drawPick() {
-  shadeAll();
-  const x = 14, y = 60, w = W - 28, h = H - 120;
+  shadeAll(0.35);
+  const x = 14, y = 100, w = W - 28, h = H - 108;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('선택 위습', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -633,6 +638,44 @@ function drawPick() {
     if (n) hit(cx, cy, cw, ch, () => { const r = E.summonPick(G, id); if (r.ok) { say(`${u.name} 소환!`); if (!(G.picks[gr] > 0)) modal = null; } else if (r.why) say(r.why); });
   });
   if (!n) fitText(`${E.GRADE_NAME[gr]} 선택 위습이 없어요`, W / 2, y + h - 30, w - 40, 15, C.muted, 'center');
+}
+// 창고: 같은 갈매미끼리 묶어 보여 주고 꺼내기·팔기. 창고 것도 조합 재료로 쓰인다
+function drawStorage() {
+  shadeAll(0.3);
+  const x = 14, y = 100, w = W - 28, h = H - 108;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  const list = E.storedUnits(G);
+  text(`창고 ${list.length}마리`, x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText('창고 갈매미는 싸우지 않지만 조합 재료로는 쓰여요 · 게임은 멈추지 않아요', x + 18, y + 62, w - 36, 13, C.muted);
+  text('커먼 자동 창고', x + 18, y + 98, 17, C.text);
+  fitText('켜면 판의 커먼과 새로 부른 커먼이 바로 창고로', x + 18, y + 120, w - 200, 12, C.muted);
+  button(x + w - 18 - 120, y + 82, 120, 44, G.autoStore ? '켬' : '끔', () => { const n = E.setAutoStore(G, !G.autoStore); say(G.autoStore ? `커먼 자동 창고 켬${n ? ` (${n}마리 넣음)` : ''}` : '커먼 자동 창고 끔'); }, G.autoStore ? 'primary' : 'normal');
+  const groups = [];
+  for (const u of list) { let gr = groups.find((q) => q.id === u.id); if (!gr) groups.push(gr = { id: u.id, uids: [] }); gr.uids.push(u.uid); }
+  groups.sort((a, b) => (E.tierOf(a.id) - E.tierOf(b.id)) || a.id.localeCompare(b.id));
+  const top = y + 140, viewH = h - 150 - 56, rowH = 62, total = groups.length * rowH;
+  modal.maxScroll = Math.max(0, total - viewH);
+  if (!groups.length) fitText('창고가 비어 있어요. 갈매미를 고르고 「창고로」를 누르세요.', W / 2, top + 60, w - 40, 15, C.muted, 'center');
+  ctx.save(); rr(x + 6, top, w - 12, viewH, 8); ctx.clip();
+  const before = hits.length;
+  groups.forEach((gr, i) => {
+    const yy = top + i * rowH - modal.scroll;
+    if (yy + rowH < top || yy > top + viewH) return;
+    const u = E.UNIT[gr.id], k = E.kit(gr.id);
+    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(11,30,42,.85)', GRADE_COLOR[u.grade], 8, 1.5);
+    drawFit(unitImg(gr.id), x + 16, yy + 6, 46, rowH - 12);
+    fitText(`${u.name} ×${gr.uids.length}`, x + 68, yy + 22, 150, 16, C.text);
+    text(`${E.GRADE_NAME[u.grade]} · 판매 ${k.sell}`, x + 68, yy + 43, 12, C.muted);
+    const bx = x + w - 12 - 4 - 3 * 82;
+    button(bx, yy + 9, 76, rowH - 18, '1 꺼내기', () => { E.unstore(G, [gr.uids[0]]); }, 'normal');
+    button(bx + 82, yy + 9, 76, rowH - 18, '모두', () => { E.unstore(G, gr.uids); say(`${u.name} ${gr.uids.length}마리를 꺼냈어요.`); }, 'normal');
+    button(bx + 164, yy + 9, 76, rowH - 18, `1 팔기`, () => { E.sell(G, gr.uids[0]); }, 'danger');
+  });
+  ctx.restore();
+  hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));
+  if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
+  button(x + 18, y + h - 52, w - 36, 42, '모두 꺼내기', () => { const n = E.unstore(G, list.map((u) => u.uid)); say(`${n}마리를 꺼냈어요.`); }, 'normal', list.length > 0);
 }
 function drawSound() {
   shadeAll();
@@ -675,6 +718,7 @@ function frame(now) {
     else if (modal?.kind === 'upgrade') drawUpgrade();
     else if (modal?.kind === 'sound') drawSound();
     else if (modal?.kind === 'pick') drawPick();
+    else if (modal?.kind === 'storage') drawStorage();
     else if (modal?.kind === 'pause') drawPause();
     else if (modal?.kind === 'over') drawOver();
   }
