@@ -2,7 +2,7 @@ import {describe,it,expect,beforeAll,afterAll} from 'vitest';
 import Fastify,{type FastifyInstance} from 'fastify';
 import {readFileSync} from 'node:fs';
 import {loadContent} from '../src/content.js';
-import {registerSite,safeFrom,safeNext,R60_PUBLIC,stampFor} from '../src/site.js';
+import {registerSite,safeFrom,safeNext,R60_PUBLIC,stampFor,defenseRooms,DEFENSE_ROOM} from '../src/site.js';
 
 // 공개 홈페이지: 로그인 없이 읽기, 스포일러(히든·최상위) 가림, 로그인 뒤 갈 곳·돌아갈 곳은 허용 경로만, 확인 안 된 다운로드·공지는 만들지 않음
 describe('공개 홈페이지(src/site.ts)',()=>{
@@ -76,5 +76,67 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     await get('/site/reg/cards/C1.webp',404);   // 예전 145종 입사 등록증 경로는 닫음
     await get('/site/../../.env',404);await get('/game/%2e%2e/%2e%2e/package.json',404);await get('/site/a/x.exe',404);
     await get('/game/zzz.js',404);await get('/site/a/none.webp',404);   // 정해진 형식이지만 없는 파일도 404(500 아님)
+  });
+});
+
+// 랜덤 디펜스 「친구랑 같이하기」 방: 6자리 코드, 2명까지, 시작은 방장만(친구 접속 중일 때), 속도·멈춤은 둘이 함께, 시간이 지나면 방이 사라짐
+describe('랜덤 디펜스 같이하기 방(defenseRooms)',()=>{
+  it('만들기·들어가기·상태 주고받기·함께 바뀌는 설정',()=>{
+    let t=1_000_000;const rooms=defenseRooms(()=>t);
+    const host=rooms.create() as {code:string;token:string;seat:number};
+    expect(host.code).toMatch(/^\d{6}$/);expect(host.seat).toBe(0);
+    expect(rooms.join('12')).toEqual({error:'bad'});
+    expect(rooms.join(host.code==='999999'?'100000':'999999')).toEqual({error:'missing'});
+    // 친구가 없으면 시작 안 됨
+    let s=rooms.sync(host.code,host.token,undefined,{start:true}) as {ctl:{round:number};peer:unknown};
+    expect(s.ctl.round).toBe(0);expect(s.peer).toBeNull();
+    const guest=rooms.join(host.code) as {token:string;seat:number};
+    expect(guest.seat).toBe(1);
+    expect(rooms.join(host.code)).toEqual({error:'taken'});
+    // 친구는 시작할 수 없고, 방장은 시작할 수 있음
+    expect((rooms.sync(host.code,guest.token,undefined,{start:true}) as {ctl:{round:number}}).ctl.round).toBe(0);
+    const st=rooms.sync(host.code,host.token,'{"w":1}',{start:true}) as {ctl:{round:number;ver:number;seed:number}};
+    expect(st.ctl.round).toBe(1);expect(st.ctl.ver).toBe(1);
+    // 시작한 방에는 새로 못 들어감
+    expect(rooms.join(host.code)).toEqual({error:'started'});
+    // 상태 글은 상대에게 전달(시작할 때 지난 글은 지움)
+    const g1=rooms.sync(host.code,guest.token,'{"w":2}',{speed:3,paused:true}) as {peer:{on:boolean;snap:string|null};ctl:{speed:number;paused:boolean;ver:number}};
+    expect(g1.peer.on).toBe(true);expect(g1.peer.snap).toBeNull();
+    expect(g1.ctl).toMatchObject({speed:3,paused:true,ver:2});
+    const h1=rooms.sync(host.code,host.token,'{"w":3}',{speed:9}) as {peer:{snap:string};ctl:{speed:number;ver:number}};
+    expect(h1.peer.snap).toBe('{"w":2}');expect(h1.ctl.speed).toBe(3);expect(h1.ctl.ver).toBe(2);   // 잘못된 속도는 무시
+    // 너무 긴 상태 글은 받지 않음, 남의 열쇠로는 못 씀
+    rooms.sync(host.code,guest.token,'x'.repeat(DEFENSE_ROOM.snapMax+1),undefined);
+    expect((rooms.sync(host.code,host.token,undefined,undefined) as {peer:{snap:string}}).peer.snap).toBe('{"w":2}');
+    expect(rooms.sync(host.code,'nope',undefined,undefined)).toEqual({error:'missing'});
+    // 친구가 8초 넘게 소식이 없으면 접속 끊김으로 보임
+    t+=DEFENSE_ROOM.online+1;
+    expect((rooms.sync(host.code,host.token,undefined,undefined) as {peer:{on:boolean}}).peer.on).toBe(false);
+    // 방장이 나가면 방이 닫힘
+    expect(rooms.leave(host.code,host.token)).toBe(true);
+    expect(rooms.sync(host.code,guest.token,undefined,undefined)).toEqual({error:'missing'});
+  });
+  it('오래 비어 있는 방은 지우고, 방 수에 한도가 있음',()=>{
+    let t=0;const rooms=defenseRooms(()=>t);
+    rooms.create();expect(rooms.size).toBe(1);
+    t+=DEFENSE_ROOM.idle+1;rooms.create();expect(rooms.size).toBe(1);
+    for(let k=1;k<DEFENSE_ROOM.max;k++)rooms.create();
+    expect(rooms.size).toBe(DEFENSE_ROOM.max);expect(rooms.create()).toEqual({error:'busy'});
+  });
+  it('주소: /defense/room 만들기·들어가기·sync·나가기, 오류는 한국어 문장과 상태 번호',async()=>{
+    const app=Fastify();await app.register((await import('@fastify/rate-limit')).default,{global:false});
+    registerSite(app,loadContent(),{root:process.cwd(),version:'test',kakao:false});await app.ready();
+    try{
+      const post=(url:string,payload?:object)=>app.inject({method:'POST',url,payload:payload??{}});
+      const made=await post('/defense/room');expect(made.statusCode).toBe(200);expect(made.headers['cache-control']).toBe('no-store');
+      const h=made.json() as {code:string;token:string};
+      const bad=await post('/defense/room/join',{code:'abc'});expect(bad.statusCode).toBe(400);expect(bad.json().error).toContain('6자리');
+      const g=(await post('/defense/room/join',{code:h.code})).json() as {token:string;seat:number};expect(g.seat).toBe(1);
+      const s=await post('/defense/room/sync',{code:h.code,token:h.token,snap:'{"w":1}',ctl:{start:true}});
+      expect(s.statusCode).toBe(200);expect(s.json().ctl.round).toBe(1);
+      expect((await post('/defense/room/sync',{code:h.code,token:'x'})).statusCode).toBe(404);
+      expect((await post('/defense/room/leave',{code:h.code,token:h.token})).statusCode).toBe(200);
+      expect((await post('/defense/room/sync',{code:h.code,token:g.token})).statusCode).toBe(404);
+    }finally{await app.close();}
   });
 });

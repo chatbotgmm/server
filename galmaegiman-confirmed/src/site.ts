@@ -5,7 +5,7 @@
 // - 세계관(/world)은 기존 페이지(쿠폰 조각 포함)를 그대로 쓰고 머리줄에서 연결만 한다.
 // - 공지(data/notices.json)·다운로드(data/downloads.json)는 실제로 확인된 내용만 넣는다. 비어 있으면 「없음」·「연결 대기」로 보인다.
 // - 공개 캐릭터는 기존 공개 도감 정책과 같게 히든·최상위(제한~불멸)를 뺀다.
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -307,6 +307,77 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
     }
     return reply.type(types[ext]).header('Cache-Control','no-cache').send(body);
   });
+  // ── 랜덤 디펜스 「친구랑 같이하기」 방(아래 defenseRooms). 화면이 0.25초마다 자기 판 모습을 보내고 친구 판 모습을 받는다 ──
+  const rooms=defenseRooms();
+  const roomKey=(p:string)=>(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`${p}:${ip}`:p;};
+  const roomLimit=(max:number,p:string)=>({config:{rateLimit:{max,timeWindow:'1 minute',keyGenerator:roomKey(p)}}});
+  const roomReply=(reply:FastifyReply,r:DefenseRoomResult)=>{reply.header('Cache-Control','no-store');return 'error' in r?reply.code(DEFENSE_ROOM_ERROR[r.error][0]).send({error:DEFENSE_ROOM_ERROR[r.error][1]}):reply.send(r);};
+  type RoomBody={Body:{code?:unknown;token?:unknown;snap?:unknown;ctl?:unknown}|undefined};
+  app.post('/defense/room',roomLimit(30,'droom-make'),async(_req,reply)=>roomReply(reply,rooms.create()));
+  app.post<RoomBody>('/defense/room/join',roomLimit(30,'droom-join'),async(req,reply)=>roomReply(reply,rooms.join(req.body?.code)));
+  app.post<RoomBody>('/defense/room/sync',roomLimit(900,'droom-sync'),async(req,reply)=>roomReply(reply,rooms.sync(req.body?.code,req.body?.token,req.body?.snap,req.body?.ctl)));
+  app.post<RoomBody>('/defense/room/leave',roomLimit(60,'droom-leave'),async(req,reply)=>{rooms.leave(req.body?.code,req.body?.token);return reply.header('Cache-Control','no-store').send({ok:true});});
+}
+
+// ── 랜덤 디펜스 「친구랑 같이하기」 방(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
+// 6자리 숫자 코드로 두 사람이 한 방에 들어가 각자 자기 판을 하고, 서로의 판 모습(화면이 만든 짧은 상태 글)을 주고받는다.
+// 서버는 방·자리·상태 글을 메모리에만 잠깐 들고 있다 전해 줄 뿐이다(DB·로그인 없음, 서버를 다시 켜면 방이 사라짐). 게임 판정은 하지 않는다.
+// 함께 바뀌는 것: 시작(방장만, 친구가 접속해 있을 때), 게임 속도, 일시정지. ver는 이것들이 바뀔 때마다 1씩 오른다.
+export interface DefenseCtl{ver:number;round:number;seed:number;speed:number;paused:boolean}
+interface DefenseSeat{token:string;seen:number;snap:string|null;snapAt:number}
+interface DefenseRoom{code:string;made:number;seats:[DefenseSeat|null,DefenseSeat|null];ctl:DefenseCtl}
+export const DEFENSE_ROOM={max:500,online:8_000,idle:120_000,life:6*3600_000,snapMax:24_000};
+type DefenseRoomError='bad'|'missing'|'started'|'taken'|'busy';
+export const DEFENSE_ROOM_ERROR:Record<DefenseRoomError,[number,string]>={
+  bad:[400,'코드는 숫자 6자리예요.'],missing:[404,'방을 찾을 수 없어요. 코드를 확인하거나 새 방을 만들어 주세요.'],
+  started:[409,'이미 게임을 시작한 방이에요. 새 방을 만들어 주세요.'],taken:[409,'방이 꽉 찼어요(2명까지).'],busy:[503,'지금 방이 너무 많아요. 잠시 뒤에 다시 해 주세요.'],
+};
+export type DefenseRoomResult={error:DefenseRoomError}|{code:string;token:string;seat:number}|{seat:number;peer:{on:boolean;snap:string|null;age:number|null}|null;ctl:DefenseCtl};
+export function defenseRooms(clock:()=>number=Date.now){
+  const rooms=new Map<string,DefenseRoom>();
+  const online=(s:DefenseSeat|null)=>!!s&&clock()-s.seen<=DEFENSE_ROOM.online;
+  const sweep=()=>{const t=clock();for(const [c,r] of rooms){const last=Math.max(r.made,r.seats[0]?.seen??0,r.seats[1]?.seen??0);if(t-last>DEFENSE_ROOM.idle||t-r.made>DEFENSE_ROOM.life)rooms.delete(c);}};
+  const seat=():DefenseSeat=>({token:randomBytes(16).toString('hex'),seen:clock(),snap:null,snapAt:0});
+  const find=(code:unknown,token:unknown)=>{
+    if(typeof code!=='string'||typeof token!=='string')return null;
+    const r=rooms.get(code);if(!r)return null;
+    const i=r.seats.findIndex(s=>s?.token===token);return i<0?null:{r,i};
+  };
+  return {
+    get size(){return rooms.size;},
+    create():DefenseRoomResult{
+      sweep();if(rooms.size>=DEFENSE_ROOM.max)return {error:'busy'};
+      let code='';do code=String(randomInt(100000,1000000));while(rooms.has(code));
+      const s=seat();rooms.set(code,{code,made:clock(),seats:[s,null],ctl:{ver:0,round:0,seed:0,speed:1,paused:false}});
+      return {code,token:s.token,seat:0};
+    },
+    join(code:unknown):DefenseRoomResult{
+      sweep();if(typeof code!=='string'||!/^\d{6}$/.test(code))return {error:'bad'};
+      const r=rooms.get(code);if(!r)return {error:'missing'};
+      if(r.ctl.round>0)return {error:'started'};
+      if(online(r.seats[1]))return {error:'taken'};
+      const s=seat();r.seats[1]=s;return {code,token:s.token,seat:1};
+    },
+    sync(code:unknown,token:unknown,snap:unknown,ctl:unknown):DefenseRoomResult{
+      const f=find(code,token);if(!f)return {error:'missing'};
+      const {r,i}=f,me=r.seats[i]!;me.seen=clock();
+      if(typeof snap==='string'&&snap.length<=DEFENSE_ROOM.snapMax){me.snap=snap;me.snapAt=clock();}
+      if(ctl&&typeof ctl==='object'){
+        const c=ctl as Record<string,unknown>;let changed=false;
+        if(c.start===true&&i===0&&online(r.seats[1])){r.ctl.round++;r.ctl.seed=randomInt(0,2**32);r.ctl.speed=1;r.ctl.paused=false;for(const s of r.seats)if(s){s.snap=null;s.snapAt=0;}changed=true;}
+        if((c.speed===1||c.speed===2||c.speed===3)&&r.ctl.speed!==c.speed){r.ctl.speed=c.speed;changed=true;}
+        if(typeof c.paused==='boolean'&&r.ctl.round>0&&r.ctl.paused!==c.paused){r.ctl.paused=c.paused;changed=true;}
+        if(changed)r.ctl.ver++;
+      }
+      const p=r.seats[1-i];
+      return {seat:i,peer:p?{on:online(p),snap:p.snap,age:p.snap?clock()-p.snapAt:null}:null,ctl:{...r.ctl}};
+    },
+    leave(code:unknown,token:unknown){
+      const f=find(code,token);if(!f)return false;
+      if(f.i===0)rooms.delete(f.r.code);else f.r.seats[1]=null;   // 방장이 나가면 방이 닫힌다
+      return true;
+    },
+  };
 }
 
 // ── 지금 게임(60종, roster60) 자료 읽기: 서버에 있는 실제 파일을 읽고, 파일이 바뀌면 다시 읽는다 ──
