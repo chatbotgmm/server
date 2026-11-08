@@ -641,8 +641,11 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
     ctx.font = `14px ${FONT}`;
     const t = E.UNIT[id].name, tw = Math.min(chipMax, ctx.measureText(t).width + 12);
     hit(cx, y + h / 2 - 12, tw, 24, () => showInfo(id));
-    box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.18)' : 'rgba(0,0,0,.3)', hasIt ? '#6fd08a' : '#46555f', 6, 1);
-    fitText(t, cx + tw / 2, y + h / 2, tw - 6, 14, hasIt ? C.good : '#8b9aa3', 'center');
+    // 재료 칸: 테두리·글자 = 그 재료의 등급 색(사용자 요청 2026-11-08), 가진 것은 초록 바탕 + 왼쪽 위 초록 점
+    const gc = GRADE_COLOR[E.UNIT[id].grade];
+    box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.22)' : 'rgba(0,0,0,.35)', gc, 6, hasIt ? 2 : 1.3);
+    fitText(t, cx + tw / 2, y + h / 2, tw - 8, 14, gc, 'center');
+    if (hasIt) { ctx.beginPath(); ctx.arc(cx + 4, y + h / 2 - 9, 3.5, 0, Math.PI * 2); ctx.fillStyle = '#6fd08a'; ctx.fill(); }
     cx += tw + 4;
   }
   const bx = x + w - 108;
