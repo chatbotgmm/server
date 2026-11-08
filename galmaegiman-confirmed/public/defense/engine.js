@@ -224,7 +224,7 @@ export function gather(g, uid) {
   const t = unitById(g, uid);
   if (!t || t.away || t.stored) return [];
   const list = fieldUnits(g).filter((u) => u.id === t.id);
-  for (const u of list) { u.tx = t.tx; u.ty = t.ty; }
+  for (const u of list) if (!u.lock || u === t) { u.tx = t.tx; u.ty = t.ty; }   // 고정한 갈매미는 그 자리에
   return list.map((u) => u.uid);
 }
 export const unitById = (g, uid) => g.units.find((u) => u.uid === uid) ?? null;
@@ -270,10 +270,16 @@ export function sell(g, uid) {
 export const WALK = 320;
 export function moveUnit(g, uid, x, y, now = false) {
   const u = unitById(g, uid);
-  if (!u || u.away) return false;
+  if (!u || u.away || u.lock) return false;   // 고정한 갈매미는 안 움직임
   const p = clampField(x, y); u.tx = p.x; u.ty = p.y;
   if (now) { u.x = p.x; u.y = p.y; }
   return true;
+}
+// 위치 고정(사용자 요청 2026-11-08): 고정하면 끌어도·모으기에도 안 움직임
+export function setLock(g, uids, on) {
+  let n = 0;
+  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away && !u.stored) { u.lock = !!on; n++; } }
+  return n;
 }
 // 등급별 강화 칸: 0 커먼 · 1 언커먼 · 2 레어 · 3 에픽 · 4 전설 이상(전설·히든·제한·초월·불멸·영원)
 export const UPG_NAME = ['커먼·언커먼', '레어', '에픽', '전설·히든', '제한', '초월', '불멸', '영원'];
