@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=8970a95d2cea';
+import * as E from './engine.js?v=0a682d86ae10';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -241,7 +241,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -326,6 +326,7 @@ window.addEventListener('keydown', (ev) => {
   else if (k === 'b') { if (modal?.kind === 'book') modal = null; else openBook(); }
   else if (k === 'p') open('pick', { grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' });
   else if (k === 'd') open('meter', { scroll: 0, scrollable: true });
+  else if (k === 'r') open('recruit');
   else if (k === 'l') { const sel = selUnits(); if (sel.length) { const on = !sel.every((u) => u.lock); E.setLock(G, sel.map((u) => u.uid), on); say(on ? `${sel.length}마리 위치 고정` : `${sel.length}마리 고정 풀기`); } }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) setPause(true); });
@@ -572,19 +573,22 @@ function drawMainPanel(y0) {
     if (n) hit(x, y, bw, PL.wh, () => doSummon(gr));
   });
   // 강화·탐사·조합법
-  const by = PL.by, b4 = (W - 44 - 24) / 5, BH = PL.bh;
+  // 아래 버튼 6개: 선택위습 · 용병모집 · 강화 · 외부탐사 · 창고 · 조합법
+  const by = PL.by, b6 = (W - 44 - 30) / 6, BH = PL.bh, bx = (i) => 22 + i * (b6 + 6);
   const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
-  button(22, by, b4, BH, '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개 있음` : '없음');
+  button(bx(0), by, b6, BH, '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개` : '없음');
+  const tk = G.tickets ?? 0, canRec = tk >= E.RULES.recruitCost;
+  button(bx(1), by, b6, BH, '용병모집', () => { modal = { kind: 'recruit' }; }, canRec ? 'primary' : 'normal', true, `모집권 ${tk}`);
   const canUp = G.upg.some((_, gi) => !E.upgMaxed(G, gi) && G.gold >= E.upgradeCost(G, gi));
-  button(22 + (b4 + 6), by, b4, BH, '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
-  const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
-  const msub = E.modeOf(G).noMission ? '금지 모드' : G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
-  button(22 + 2 * (b4 + 6), by, b4, BH, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
+  button(bx(2), by, b6, BH, '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '가능' : `새우 ${G.gold}`, canUp ? C.good : null);
+  const away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
+  const msub = E.modeOf(G).noMission ? '금지' : G.missionDone >= E.REGIONS.length ? '완료' : away ? `${away}마리` : `${nextR.ch}장`;
+  button(bx(3), by, b6, BH, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
   const st = E.storedUnits(G).length;
-  button(22 + 3 * (b4 + 6), by, b4, BH, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`);
+  button(bx(4), by, b6, BH, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', true, `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`);
   const rc = readyCount();
-  button(22 + 4 * (b4 + 6), by, b4, BH, '조합법', () => openBook(), rc ? 'primary' : 'normal', true, rc ? `조합 가능 ${rc}` : `${E.RECIPES.length}개`, rc ? '#1f5a3c' : null);
-  if (rc) { const bx2 = 22 + 4 * (b4 + 6) + b4 - 4, by2 = by + 4; ctx.beginPath(); ctx.arc(bx2, by2, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(rc), bx2, by2 + 0.5, 13, '#fff', 'center'); }
+  button(bx(5), by, b6, BH, '조합법', () => openBook(), rc ? 'primary' : 'normal', true, rc ? `가능 ${rc}` : `${E.RECIPES.length}개`, rc ? '#1f5a3c' : null);
+  if (rc) { const bx2 = bx(5) + b6 - 4, by2 = by + 4; ctx.beginPath(); ctx.arc(bx2, by2, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(rc), bx2, by2 + 0.5, 13, '#fff', 'center'); }
   // 조합 목표
   const gy = PL.gy, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G), GH = PL.gh;
   for (let k = 0; k < E.GOAL_MAX; k++) {
@@ -639,15 +643,17 @@ function drawGroupPanel(y0, sel) {
   text(`갈매미 ${sel.length}마리 고름`, 22, y0 + 24, 20, C.text);
   text(`물딜 ${p} · 마딜 ${m}`, 22, y0 + 52, 15, C.muted);
   button(W - 112, y0 + 10, 90, 40, '해제', () => { selected = []; }, 'quiet');
-  const sz = 58, per = Math.floor((W - 44 + 6) / (sz + 6));   // 그림 크게(누르기 쉽게, 사용자 요청 2026-11-08)
-  sel.slice(0, per * 2).forEach((u, i) => {
-    const x = 22 + (i % per) * (sz + 6), y = y0 + 64 + Math.floor(i / per) * (sz + 6);
+  const ex = Math.max(0, PBOT - H), BH = 46 + ex * 0.25, by = PBOT - 18 - BH;
+  // 그림 크게(누르기 쉽게, 사용자 요청 2026-11-08): 두 줄이 들어가는 만큼 크게(최대 84), 칸 수는 줄여도 됨
+  const avail = by - 8 - (y0 + 62), sz = Math.max(60, Math.min(84, Math.floor(avail / 2) - 8));
+  const per = Math.floor((W - 44 + 8) / (sz + 8)), rows = Math.max(1, Math.floor((avail + 8) / (sz + 8))), shown = per * rows;
+  sel.slice(0, shown).forEach((u, i) => {
+    const x = 22 + (i % per) * (sz + 8), y = y0 + 62 + Math.floor(i / per) * (sz + 8);
     box(x, y, sz, sz, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5);
     drawFit(unitImg(u.id), x + 2, y + 2, sz - 4, sz - 4);
-    hit(x, y, sz, sz, () => { selected = [u.uid]; });   // 누르면 그 갈매미만 고르기(사용자 요청 2026-11-08)
+    hit(x, y, sz, sz, () => { selected = [u.uid]; });   // 누르면 그 갈매미만 고르기
   });
-  if (sel.length > per * 2) text(`외 ${sel.length - per * 2}마리`, W - 30, y0 + 64 + 2 * (sz + 6) + 6, 14, C.muted, 'right');
-  const ex = Math.max(0, PBOT - H), BH = 46 + ex * 0.25, by = PBOT - 18 - BH;
+  if (sel.length > shown) text(`외 ${sel.length - shown}마리`, W - 124, y0 + 30, 14, C.muted, 'right');
   const b4 = (W - 44 - 18) / 4, allLock = sel.every((u) => u.lock);
   button(22, by, b4, BH, `탐사 보내기 (${sel.length})`, () => sendSelected(sel), 'normal', E.missionOpen(G));
   button(22 + (b4 + 6), by, b4, BH, `창고로 (${sel.length})`, () => { const n = E.store(G, sel.map((u) => u.uid)); selected = []; say(`${n}마리를 창고에 넣었어요.`); }, 'normal');
@@ -681,7 +687,6 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
     const gc = GRADE_COLOR[E.UNIT[id].grade];
     box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.22)' : 'rgba(0,0,0,.35)', gc, 6, hasIt ? 2 : 1.3);
     fitText(t, cx + tw / 2, y + h / 2, tw - 8, 14, gc, 'center');
-    if (hasIt) { ctx.beginPath(); ctx.arc(cx + 4, y + h / 2 - 9, 3.5, 0, Math.PI * 2); ctx.fillStyle = '#6fd08a'; ctx.fill(); }
     if (gn[id]) goalDots(gn[id], cx + tw - 4, y + h / 2 - 11, 4.5);   // 목표 재료면 그 목표 색 동그라미
     cx += tw + 4;
   }
@@ -692,6 +697,19 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
 }
 
 // ── 모달 ──
+// 역할(사용자 요청 2026-11-08: 등급별 말고 역할별로도). 한 갈매미가 여러 역할일 수 있음
+const ROLES = [['all', '전체'], ['phys', '물리딜러'], ['mag', '마법딜러'], ['shred', '방깍'], ['mshred', '마방깍'], ['slow', '이감'], ['stun', '스턴'], ['etc', '기타']];
+function rolesOf(id) {
+  const k = E.kit(id), r = [];
+  if (k.job === '주력') r.push(k.type === 'phys' ? 'phys' : 'mag');
+  if (k.shred) r.push('shred');
+  if (k.mshred) r.push('mshred');
+  if (k.slow) r.push('slow');
+  if (k.stun || k.astun) r.push('stun');
+  if (!r.length || (k.job !== '주력' && !k.shred && !k.mshred && !k.slow && !k.stun && !k.astun)) r.push('etc');
+  return r;
+}
+let bookRole = 'all';
 function openBook(focus = null, using = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using }; }
 // 가로 화면: 창은 오른쪽 위(「이번 웨이브 피해」 자리, 0~664)에 열고 아래 메뉴는 그대로 보이게(사용자 요청 2026-11-08).
 // 일시정지·결과·친구 판 크게 보기만 오른쪽 열 전체
@@ -713,8 +731,16 @@ function drawBook() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  const top = y + 58, viewH = h - 68, cnt = E.countOnField(G);
-  let rows = E.RECIPES.filter((r) => !modal.using || r.in.includes(modal.using));
+  // 역할 칩: 누르면 그 역할을 가진 결과만
+  const cw = (w - 24 - 7 * 4) / 8;
+  ROLES.forEach(([key, nm], i) => {
+    const on = bookRole === key, bx = x + 12 + i * (cw + 4);
+    box(bx, y + 54, cw, 30, on ? 'rgba(243,216,158,.18)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
+    fitText(nm, bx + cw / 2, y + 69, cw - 6, 13, on ? C.goldEdge : C.muted, 'center');
+    hit(bx, y + 54, cw, 30, () => { bookRole = key; modal.scroll = 0; });
+  });
+  const top = y + 92, viewH = h - 102, cnt = E.countOnField(G);
+  let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (bookRole === 'all' || rolesOf(r.out).includes(bookRole)));
   rows = rows.map((r) => ({ r, ok: canMake(r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
   const items = [];
   let lastG = '';
@@ -758,7 +784,7 @@ function drawMission() {
     const my = yy + (lh - 6) / 2;
     fitText(`${r.ch}장 ${r.name}`, x + 24, my, 220, cmp ? 14 : 15, done ? C.muted : C.text);
     fitText(done ? '완료 ✓' : open ? '진행 가능' : '잠김', x + 250, my, 80, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
-    const rw = Object.entries(r.reward).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') + (r.pick ? ' + 선택 ' + Object.entries(r.pick).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') : '');
+    const rw = Object.entries(r.reward).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') + (r.pick ? ' + 선택 ' + Object.entries(r.pick).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') : '') + (r.ticket ? ` + 모집권${r.ticket}` : '');
     fitText(rw, x + w - 24, my, 160, 13, C.gold, 'right');
   });
   // 지금 지역
@@ -770,7 +796,7 @@ function drawMission() {
   if (place) { ctx.save(); rr(x + 12, cy, w - 24, PB, 10); ctx.clip(); drawFit(place, x + 12, cy - 30, w - 24, PB, 0.28); ctx.restore(); }
   box(x + 18, cy + 6, 230, 26, 'rgba(7,19,28,.85)', null, 6);
   fitText(`${r.ch}장 · ${r.place}`, x + 26, cy + 19, 216, 15, C.goldEdge);
-  const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.gold ? `새우 ${r.gold}` : ''].filter(Boolean).join(' · ');
+  const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.ticket ? `모집권 ${r.ticket}` : '', r.gold ? `새우 ${r.gold}` : ''].filter(Boolean).join(' · ');
   box(x + 18, cy + q(40), w - 36, 24, 'rgba(7,19,28,.85)', null, 6);
   fitText(`보상: ${rwAll}`, x + 26, cy + q(40) + 12, w - 52, 13, C.gold);
   const t = E.missionTarget(G), sh = enemyImg(r.look);
@@ -786,7 +812,7 @@ function drawMission() {
   } else fitText(away.length ? `탐사 중 ${away.length}마리` : '보낸 갈매미 없음', W / 2, cy + PB - 16, w - 60, 14, away.length ? C.good : C.muted, 'center');
   // 보낸 갈매미(낮은 창이면 한 줄만)
   const ay = cy + PB + (cmp ? 6 : 10);
-  const AS = 56, aper = Math.floor((w - 28 + 6) / (AS + 6));   // 그림 크게(누르기 쉽게)
+  const AS = 74, aper = Math.floor((w - 28 + 6) / (AS + 6));   // 그림 크게(누르기 쉽게)
   const arows = Math.max(1, Math.floor((y + h - 64 - 8 - ay) / (AS + 6)));   // 남는 높이만큼 여러 줄
   if (away.length > aper * arows) text(`외 ${away.length - aper * arows}마리`, x + w - 20, y + h - 76, 13, C.muted, 'right');
   away.slice(0, aper * arows).forEach((u, i) => { const xx = x + 14 + (i % aper) * (AS + 6), yy = ay + Math.floor(i / aper) * (AS + 6); box(xx, yy, AS, AS, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, AS - 4, AS - 4); if (E.EXPLORE[u.id]) text('★', xx + AS - 8, yy + 10, 14, C.goldEdge, 'center');
@@ -1201,7 +1227,7 @@ function drawTutorial() {
   const steps = [
     { msg: '① 커먼 위습을 눌러 갈매미를 불러 보세요', tx: 22 + b5 / 2, ty: PL.wy, by: 560 },
     { msg: '② 갈매미를 끌어서 길(적이 지나가는 곳) 옆으로 옮겨 보세요', tx: newest?.x ?? W / 2, ty: (newest?.y ?? 400) - 56, by: (newest?.y ?? 400) > 400 ? 150 : 470 },
-    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + 4 * (b4 + 6) + b4 / 2, ty: PL.by, by: 640 },
+    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + 5 * ((W - 44 - 30) / 6 + 6) + (W - 44 - 30) / 12, ty: PL.by, by: 640 },
     { msg: '④ 조합법 줄을 누르면 설명과 재료 나무가 나와요. 이제 직접 해 보세요!', tx: null, ty: null, by: H - 96 },
   ];
   const st = steps[tut.step], bw = W - 60, bh = 74, bx = 30;
@@ -1221,6 +1247,41 @@ function drawTutorial() {
   }
   ctx.restore(); OX = 0; OS = 1;
 }
+// 용병모집 창(사용자 요청 2026-11-08): 모집권 4개 → 레어 30% · 에픽 40% · 실패 30%
+function drawRecruit() {
+  shadeAll(0.3);
+  const { x, y, w, h } = modalRect();
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('용병모집', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  const tk = G.tickets ?? 0, cost = E.RULES.recruitCost, odds = E.RULES.recruitOdds;
+  text(`모집권 ${tk}`, W / 2, y + 96, 30, C.goldEdge, 'center');
+  const fail = Math.round(100 * (1 - Object.values(odds).reduce((a, v) => a + v, 0)));
+  const items = [...Object.entries(odds).map(([g, p]) => [`${E.GRADE_NAME[g]} ${Math.round(p * 100)}%`, GRADE_COLOR[g]]), [`실패 ${fail}%`, C.muted]];
+  ctx.font = `15px ${FONT}`;
+  const tw = items.reduce((a, [t]) => a + ctx.measureText(t).width + 20, 0) - 6;
+  let cx = (W - tw) / 2;
+  for (const [t, c] of items) cx += chip(t, cx, y + 128, c, 15) + 6;
+  const bh = Math.min(96, h * 0.18);
+  button(x + 40, y + 176, w - 80, bh, '모집하기', () => {
+    const r = E.recruit(G);
+    if (!r.ok) { if (r.why) say(r.why); return; }
+    modal.last = r.fail ? { fail: true, t: performance.now() } : { id: r.unit.id, grade: r.grade, t: performance.now() };
+  }, 'primary', tk >= cost, `모집권 ${cost}개`);
+  // 결과
+  const L = modal.last, ry = y + 176 + bh + 24;
+  if (L) {
+    const fresh = performance.now() - L.t < 500 ? 1 + 0.15 * (1 - (performance.now() - L.t) / 500) : 1;
+    box(x + 40, ry, w - 80, Math.min(220, h - (ry - y) - 20), 'rgba(11,30,42,.85)', L.fail ? '#46555f' : GRADE_COLOR[L.grade], 12, 2);
+    if (L.fail) text('모집 실패…', W / 2, ry + 60, 22, C.muted, 'center');
+    else {
+      const s2 = 110 * fresh;
+      drawFit(unitImg(L.id), W / 2 - s2 / 2, ry + 10, s2, s2);
+      text(`${E.UNIT[L.id].name}`, W / 2, ry + 136, 20, GRADE_COLOR[L.grade], 'center');
+      text(`${E.GRADE_NAME[L.grade]} · 판 가운데에 나왔어요`, W / 2, ry + 162, 13, C.muted, 'center');
+    }
+  }
+}
 function drawModal() {
   if (modal?.kind === 'book') drawBook();
   else if (modal?.kind === 'mission') drawMission();
@@ -1232,6 +1293,7 @@ function drawModal() {
   else if (modal?.kind === 'over') drawOver();
   else if (modal?.kind === 'peer') drawPeerModal();
   else if (modal?.kind === 'meter') drawMeter();
+  else if (modal?.kind === 'recruit') drawRecruit();
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
 // 각자 자기 판을 하고, 0.25초마다 자기 판 모습(짧은 상태 글)을 서버(/defense/room)에 보내며 친구 판 모습을 받아 그린다.

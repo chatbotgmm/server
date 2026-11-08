@@ -24,6 +24,8 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
+  // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
+  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1,   // 보스 처치마다 모집권 1(소량)
   storyDeadline: 50,   // 스토리 8장은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
@@ -63,14 +65,14 @@ export const RULES = {
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
   // 스토리 선택 위습: 장마다 커먼 선택 위습 3개(사용자 요청 2026-11-08, 전에는 언커먼~에픽 1개)
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 3 }, gold: 150 },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 3 }, gold: 400 },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, gold: 800 },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 1500 },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 3000 },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 5000 },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 150 },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 400 },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 800 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 3000 },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000 },
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -231,7 +233,7 @@ export const MODES = {
 export const modeOf = (g) => MODES[g.mode] ?? MODES.normal;
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal') {
   return {
-    seed, mode: MODES[mode] ? mode : 'normal', rand: rng(seed), dmg: {}, dmgWave: {}, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
+    seed, mode: MODES[mode] ? mode : 'normal', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -250,7 +252,7 @@ export function loadGame(text) {
     if (!o || o.v !== SAVE_VER || !o.g || !Array.isArray(o.g.units)) return null;
     const g = o.g, s = g.rand >>> 0;
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= [];
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0;
     return g;
   } catch { return null; }
 }
@@ -341,8 +343,27 @@ export function summonPick(g, id) {
 export function sell(g, uid) {
   const k = g.units.findIndex((u) => u.uid === uid);
   if (k < 0 || g.over) return false;
+  const grade = UNIT[g.units[k].id].grade;
   g.gold += kit(g.units[k].id).sell; g.units.splice(k, 1);
-  return true;
+  // 판매 보너스(사용자 요청 2026-11-08): 언커먼 30% 확률로 모집권 1 · 레어 모집권 1 · 에픽 모집권 1 + 커먼 위습 2
+  let got = '';
+  if (grade === 'UNCOMMON' && g.rand() < 0.3) { g.tickets = (g.tickets ?? 0) + 1; got = '모집권 1'; }
+  else if (grade === 'RARE') { g.tickets = (g.tickets ?? 0) + 1; got = '모집권 1'; }
+  else if (grade === 'EPIC') { g.tickets = (g.tickets ?? 0) + 1; addWisps(g, { COMMON: 2 }); got = '모집권 1 · 커먼 위습 2'; }
+  if (got) news(g, `판매 보너스: ${got}`);
+  return got || true;
+}
+// 용병모집: 모집권 RULES.recruitCost개로 레어·에픽 갈매미를 확률로(실패하면 없음)
+export function recruit(g) {
+  if (g.over) return { ok: false, why: '' };
+  if ((g.tickets ?? 0) < RULES.recruitCost) return { ok: false, why: `모집권이 모자라요(${RULES.recruitCost}개 필요).` };
+  g.tickets -= RULES.recruitCost;
+  let r = g.rand(), grade = null;
+  for (const [gr, p] of Object.entries(RULES.recruitOdds)) { if ((r -= p) < 0) { grade = gr; break; } }
+  if (!grade) return { ok: true, fail: true };
+  g.wisps[grade] = (g.wisps[grade] ?? 0) + 1;
+  const res = summon(g, grade);
+  return { ok: true, unit: res.unit, grade };
 }
 // 옮기기: 목표 자리로 걸어간다(걷는 중에도 공격). now=true면 바로 그 자리
 export const WALK = 320;
@@ -596,8 +617,9 @@ export function step(g, dt) {
     const r = REGIONS[ms.k];
     addWisps(g, r.reward);
     if (r.gold) g.gold += r.gold;
+    if (r.ticket) g.tickets = (g.tickets ?? 0) + r.ticket;
     if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }
@@ -615,7 +637,8 @@ export function step(g, dt) {
     if (rw) addWisps(g, rw);
     const rp = RULES.bossPick[g.wave];
     if (rp) for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    if (rw || rp) news(g, `보스 처치! ${[rw && wispText(rw), rp && pickText(rp)].filter(Boolean).join(' · ')}`);
+    if (RULES.bossTicket) g.tickets = (g.tickets ?? 0) + RULES.bossTicket;
+    news(g, `보스 처치! ${[rw && wispText(rw), rp && pickText(rp), RULES.bossTicket && `모집권 ${RULES.bossTicket}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
   }
   g.waveT += dt;
