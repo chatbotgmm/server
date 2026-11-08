@@ -24,6 +24,7 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
+  storyDeadline: 50,   // 스토리 8장은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   bossEvery: 10, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
@@ -62,14 +63,14 @@ export const RULES = {
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
   // 스토리 선택 위습: 장마다 커먼 선택 위습 3개(사용자 요청 2026-11-08, 전에는 언커먼~에픽 1개)
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 3 }, gold: 150 },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 3 }, gold: 400 },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, gold: 800 },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 1500 },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 3000 },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 5000 },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'u58', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 3 }, gold: 150 },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 3 }, gold: 400 },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, gold: 800 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 3000 },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 5000 },
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -178,6 +179,15 @@ export function rng(seed) {   // f.s = 지금 상태(이어하기 저장에 씀)
 const BY_GRADE = Object.fromEntries(GRADES.map((g) => [g, UNITS.filter((u) => u.grade === g).map((u) => u.id)]));
 
 // 웨이브 정보: 일반 → 갑옷(방어력 높음) → 결계(마법방어 높음) 순서, 10웨이브마다 보스
+// 웨이브별 적 모습: 1~15 쭈매미 · 16~30 끼룩단 · 31~45 끼룩단 정예·검게 물든 졸개 · 46~59 흑화 갈매미
+export const ENEMY_LOOK = [
+  [15, ['e:v1', 'e:v2', 'e:v3', 'e:v4']],
+  [30, ['e:v12', 'e:v13', 'e:v14', 'e:v19']],
+  [45, ['e:v16', 'e:v19', 'e:v14', 'e:v13']],
+  [99, ['b:u02', 'b:u06', 'b:u07', 'b:u14', 'b:u23', 'b:u28', 'b:u31']],
+];
+// 보스: 10 여덟발 대장 · 20 쭈라켄 · 30 끼룩단 행동대장 · 40 블랙 갈매미맨 · 50 흑화 대장 · 60 흑화 갈매미맨
+export const BOSS_LOOK = ['e:v5', 'e:v6', 'e:v15', 'e:v17', 'b:u31', 'b:u01'];
 export const defAt = (w) => RULES.defBase + RULES.defPer * Math.min(w, RULES.defLateFrom) + RULES.defLatePer * Math.max(0, w - RULES.defLateFrom);
 // 피해 배율 = (100 / (100 + 남은 방어))^armorPow. 2제곱이라 방어가 높으면 피해가 크게 줄고, 깎으면 크게 늘어난다
 export const defMul = (left) => Math.pow(100 / (100 + Math.max(0, left)), RULES.armorPow);
@@ -199,8 +209,8 @@ export function waveInfo(w) {
   const def = defAt(w);
   const kind = boss ? 'boss' : '일반';
   const armor = Math.round(def * (boss ? RULES.defBossMul : 1)), mr = armor;
-  const pool = UNITS.filter((u) => gradeTier(u.grade) <= Math.min(9, Math.floor((w - 1) / 4)));
-  const look = boss ? ['u33', 'u38', 'u52', 'u60', 'u57', 'u58'][Math.min(5, w / RULES.bossEvery - 1)] : pool[(w * 7) % pool.length].id;
+  // 적 모습(사용자 요청 2026-11-08: 끼룩단·쭈매미·흑화 갈매미맨 그림, 색 입히지 않음). e: 적 그림, b: 흑화 갈매미 그림
+  const look = boss ? BOSS_LOOK[Math.min(BOSS_LOOK.length, w / RULES.bossEvery) - 1] : (() => { const band = ENEMY_LOOK.find(([to]) => w <= to)[1]; return band[w % band.length]; })();
   return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
     speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
@@ -506,8 +516,11 @@ function attack(g, u, k) {
   return true;
 }
 
+export const storyLeft = (g) => !modeOf(g).noMission && g.missionDone < REGIONS.length;
 function startWave(g) {
   if (g.wave >= RULES.waves) return;
+  const left = RULES.storyDeadline - g.wave;   // 이번에 시작하는 웨이브부터 마감까지 남은 웨이브(이번 포함)
+  if (storyLeft(g) && (left === 10 || left === 5)) news(g, `스토리 ${REGIONS.length}장 마감까지 ${left}웨이브! (${RULES.storyDeadline}웨이브까지 못 깨면 패배)`);
   if (g.wave > 0) addWisps(g, { COMMON: RULES.wispPerWave });
   g.wave++; g.waveT = 0; g.dmgWave = {};
   const wi = waveInfo(g.wave);
@@ -609,6 +622,7 @@ export function step(g, dt) {
   if (g.waveT >= RULES.waveLen) {
     if (wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }
     if (g.wave >= RULES.waves) return;
+    if (g.wave === RULES.storyDeadline && storyLeft(g)) { g.over = 'lose'; g.reason = `스토리 ${REGIONS.length}장을 ${RULES.storyDeadline}웨이브까지 끝내지 못했어요.`; return; }
     startWave(g);
   }
 }
