@@ -28,6 +28,7 @@ check(){ local i miss v e; for i in $(seq 1 10); do miss=''
   curl -fsS --max-time 10 http://127.0.0.1:3000/about 2>/dev/null | grep -q 'site/harbor.css' || miss+=' 사이트'
   curl -fsS --max-time 10 http://127.0.0.1:3000/game60 2>/dev/null | grep -q '/game60/game.js' || miss+=' 웹게임'
   curl -sS --max-time 10 -X POST -H 'x-gmm: 1' -H 'content-type: application/json' -d '{"ticket":"x","secret":"y"}' http://127.0.0.1:3000/my/api/app/kakao-poll 2>/dev/null | grep -q '로그인 요청을 찾지 못했어요' || miss+=' 게임카카오로그인'
+  curl -sS --max-time 10 -X POST -H 'content-type: application/json' -d '{"code":"x"}' http://127.0.0.1:3000/defense/room/join 2>/dev/null | grep -q '6자리' || miss+=' 같이하기방'
   [ -z "$miss" ] && return 0; sleep 2; done
   echo "확인 실패 항목:$miss"; return 1; }
 
