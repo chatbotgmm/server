@@ -36,6 +36,8 @@ export const RULES = {
   // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
   upgPct: 0.14, upgBase: [20, 45, 65, 90, 100, 120, 150, 180, 220], upgStep: [10, 22, 32, 45, 50, 60, 75, 90, 110],
   bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 2 } },
+  // 선택 위습(원하는 갈매미를 골라 소환, 사용자 요청 2026-11-08): 처음 커먼 1개 + 보스 보상
+  startPick: { COMMON: 1 }, bossPick: { 10: { UNCOMMON: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 } },
   guardMul: 25,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
@@ -147,6 +149,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: 0, RARE: 0, EPIC: 0, LEGEND: 0 },
+    picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0,
     over: null, reason: '', fx: [], news: [],
@@ -155,6 +158,9 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0) {
 const news = (g, msg) => { g.news.push({ msg, t: g.t }); if (g.news.length > 6) g.news.shift(); };
 const addWisps = (g, bag) => { for (const [k, v] of Object.entries(bag)) g.wisps[k] = (g.wisps[k] ?? 0) + v; };
 export const wispText = (bag) => Object.entries(bag).map(([k, v]) => `${GRADE_NAME[k]} 위습 ${v}개`).join(' · ');
+export const pickText = (bag) => Object.entries(bag).map(([k, v]) => `${GRADE_NAME[k]} 선택 위습 ${v}개`).join(' · ');
+export const PICK_GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC'];
+export const unitsOfGrade = (grade) => BY_GRADE[grade] ?? [];
 
 export const fieldUnits = (g) => g.units.filter((u) => !u.away);
 export const unitById = (g, uid) => g.units.find((u) => u.uid === uid) ?? null;
@@ -172,6 +178,17 @@ export function summon(g, grade = 'COMMON') {
   if (!(g.wisps[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 위습이 없어요.` };
   g.wisps[grade]--;
   const pool = BY_GRADE[grade], id = pool[Math.floor(g.rand() * pool.length)];
+  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
+  const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
+  return { ok: true, unit: u };
+}
+// 선택 위습: 그 등급의 원하는 갈매미 1마리
+export function summonPick(g, id) {
+  const grade = UNIT[id]?.grade;
+  if (g.over || !grade) return { ok: false, why: '' };
+  if (!(g.picks[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 선택 위습이 없어요.` };
+  g.picks[grade]--;
   const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
   const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
@@ -405,7 +422,10 @@ export function step(g, dt) {
   if (wi.boss && bossDown) {
     if (g.wave >= RULES.waves) { g.over = 'win'; g.reason = `${RULES.waves}웨이브 보스까지 모두 막았어요!`; return; }
     const rw = RULES.bossReward[g.wave];
-    if (rw) { addWisps(g, rw); news(g, `보스 처치! ${wispText(rw)}`); }
+    if (rw) addWisps(g, rw);
+    const rp = RULES.bossPick[g.wave];
+    if (rp) for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
+    if (rw || rp) news(g, `보스 처치! ${[rw && wispText(rw), rp && pickText(rp)].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
   }
   g.waveT += dt;

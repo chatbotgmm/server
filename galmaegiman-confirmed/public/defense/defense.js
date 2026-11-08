@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=0a23bd6a0d20';
+import * as E from './engine.js?v=4f11a0978ccd';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -364,13 +364,15 @@ function drawMainPanel(y0) {
     if (n) hit(x, y, bw, 58, () => doSummon(gr));
   });
   // 강화·탐사·조합법
-  const by = y0 + 100, b3 = (W - 44 - 12) / 3;
+  const by = y0 + 100, b4 = (W - 44 - 18) / 4;
+  const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
+  button(22, by, b4, 58, '선택 위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', true, picks ? `${picks}개 있음` : '없음');
   const canUp = G.upg.some((_, gi) => G.gold >= E.upgradeCost(G, gi));
-  button(22, by, b3, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화할 수 있어요' : `새우 ${G.gold}`, canUp ? C.good : null);
+  button(22 + (b4 + 6), by, b4, 58, '등급별 강화', () => { modal = { kind: 'upgrade' }; }, 'normal', true, canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
   const open = E.missionOpen(G), away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
-  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 보낼 수 있음`;
-  button(22 + (b3 + 6), by, b3, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, open && !away ? 'primary' : 'normal', true, msub);
-  button(22 + 2 * (b3 + 6), by, b3, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
+  const msub = G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
+  button(22 + 2 * (b4 + 6), by, b4, 58, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', true, msub);
+  button(22 + 3 * (b4 + 6), by, b4, 58, '조합법', () => openBook(), 'normal', true, `${E.RECIPES.length}개`);
   // 조합 목표
   const gy = y0 + 170, gw = (W - 44 - 12) / 3, cnt = E.countOnField(G);
   for (let k = 0; k < E.GOAL_MAX; k++) {
@@ -583,7 +585,7 @@ function drawTitle() {
   box(28, 492, W - 56, 290, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 그 등급 갈매미를 무작위로 불러요.',
-    '  처음 5개 + 웨이브마다 1개. 보스·외부탐사(처음부터)로 더 높은 위습.',
+    '  처음 5개 + 웨이브마다 1개. 선택 위습은 원하는 갈매미로.',
     '· 조합법대로 합쳐 강하게! ☆목표면 재료에 색 테두리.',
     '· 타격수=물딜, 술사=마딜, 고체력·기습=방깍·스턴·마방깍 보조.',
     '· 갈매미는 끌어서 아무 데나, 겹쳐 둬도 돼요. 빈 곳을 끌면 여러 마리.',
@@ -597,6 +599,35 @@ function drawTitle() {
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
+// 선택 위습 창: 등급 칸을 고르고, 그 등급 갈매미를 눌러 소환
+function drawPick() {
+  shadeAll();
+  const x = 14, y = 60, w = W - 28, h = H - 120;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('선택 위습', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText('원하는 갈매미를 눌러 소환해요 · 처음 커먼 1개, 보스를 잡으면 더 받아요', x + 18, y + 64, w - 36, 13, C.muted);
+  const tw = (w - 24 - 18) / 4;
+  E.PICK_GRADES.forEach((gr, k) => {
+    const tx = x + 12 + k * (tw + 6), on = modal.grade === gr, n = G.picks[gr] ?? 0;
+    box(tx, y + 82, tw, 52, on ? 'rgba(243,216,158,.14)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : GRADE_COLOR[gr], 8, on ? 2.5 : 1.5);
+    fitText(E.GRADE_NAME[gr], tx + tw / 2, y + 100, tw - 8, 15, GRADE_COLOR[gr], 'center');
+    text(`×${n}`, tx + tw / 2, y + 121, 15, n ? C.text : '#6f7f88', 'center');
+    hit(tx, y + 82, tw, 52, () => { modal.grade = gr; });
+  });
+  const gr = modal.grade, n = G.picks[gr] ?? 0, list = E.unitsOfGrade(gr);
+  const cw = (w - 24 - 18) / 4, ch = 168;
+  list.forEach((id, i) => {
+    const cx = x + 12 + (i % 4) * (cw + 6), cy = y + 148 + Math.floor(i / 4) * (ch + 8), u = E.UNIT[id], k = E.kit(id);
+    box(cx, cy, cw, ch, n ? 'rgba(11,30,42,.9)' : 'rgba(11,30,42,.5)', n ? GRADE_COLOR[gr] : '#33434d', 10, n ? 2 : 1);
+    drawFit(unitImg(id), cx + 8, cy + 6, cw - 16, 96, n ? 1 : 0.45);
+    fitText(u.name, cx + cw / 2, cy + 116, cw - 10, 16, n ? C.text : '#6f7f88', 'center');
+    fitText(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx + cw / 2, cy + 138, cw - 10, 13, k.type === 'phys' ? C.phys : C.mag, 'center');
+    fitText(E.kitTips(k)[0] ?? '기본 공격', cx + cw / 2, cy + 156, cw - 10, 12, C.muted, 'center');
+    if (n) hit(cx, cy, cw, ch, () => { const r = E.summonPick(G, id); if (r.ok) { say(`${u.name} 소환!`); if (!(G.picks[gr] > 0)) modal = null; } else if (r.why) say(r.why); });
+  });
+  if (!n) fitText(`${E.GRADE_NAME[gr]} 선택 위습이 없어요`, W / 2, y + h - 30, w - 40, 15, C.muted, 'center');
+}
 function drawSound() {
   shadeAll();
   const x = 50, y = 300, w = W - 100, h = 330;
@@ -637,6 +668,7 @@ function frame(now) {
     else if (modal?.kind === 'mission') drawMission();
     else if (modal?.kind === 'upgrade') drawUpgrade();
     else if (modal?.kind === 'sound') drawSound();
+    else if (modal?.kind === 'pick') drawPick();
     else if (modal?.kind === 'pause') drawPause();
     else if (modal?.kind === 'over') drawOver();
   }
