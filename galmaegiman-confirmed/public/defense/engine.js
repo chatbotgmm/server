@@ -371,12 +371,13 @@ function debuff(g, e, k) {
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
 }
 function attack(g, u, k) {
-  let best = null;
+  // 공격 대상: 사거리 안에서 가장 가까운 적 먼저(사용자 요청 2026-11-08)
+  let best = null, bestD = Infinity;
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
-    const dx = e.x - u.x, dy = e.y - u.y;
-    if (dx * dx + dy * dy > k.range * k.range) continue;
-    if (!best || e.s > best.s) best = e;
+    const dx = e.x - u.x, dy = e.y - u.y, d2 = dx * dx + dy * dy;
+    if (d2 > k.range * k.range || d2 >= bestD) continue;
+    best = e; bestD = d2;
   }
   if (!best) return false;
   const hits = [best];
