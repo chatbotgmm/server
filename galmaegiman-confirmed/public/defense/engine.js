@@ -33,6 +33,7 @@ export const RULES = {
   hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 115200], [40, 172800], [45, 304000], [50, 560000], [55, 1040000], [60, 1920000]],   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
   armorBase: 4, armorPer: 2.4,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
+  atkSpeed: 2,   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
   dmg: [20, 90, 380, 1500, 5500, 7500, 18000, 50000, 140000, 400000],   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
@@ -107,7 +108,10 @@ export function kit(id) {
   else if (mage) k = { job: '주력', gap: 1.1, mul: 1.4, range: 230 };
   else k = { job: '주력', gap: 0.8, mul: 1, range: 170 };
   if (k.job === '주력') {   // 주력의 속성 덤(작게)
-    if (elem === 'FIRE') k.splash = 0.4;
+    // 스플래시(사용자 요청 2026-11-08: 범위·스플래시 공격): 술사(집중)는 맞은 적 둘레 45 안에 30%, 불 속성은 50 안에 40%(타격수 포함)
+    // 낮은 등급은 작게(초반 난이도 유지): 커먼·언커먼 10% · 레어 20% · 에픽 이상 30%
+    if (mage && !k.area) { k.splash = t < 2 ? 0.1 : t < 3 ? 0.2 : 0.3; k.splashR = 45; }
+    if (elem === 'FIRE') { k.splash = 0.4; k.splashR = 50; }
     if (elem === 'LIGHTNING') k.chain = 2;
     if (elem === 'ICE') k.slow = SLOW(t) * 0.8;
     if (elem === 'WATER') k.slow = SLOW(t) * 0.5;
@@ -115,7 +119,13 @@ export function kit(id) {
     if (elem === 'DARK') { if (mage) k.mshred = SHRED(t) * 0.5; else k.shred = SHRED(t) * 0.5; }
     if (elem === 'HOLY') k.holy = 1.5;
   }
-  return { ...k, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  // 공격 속도(사용자 요청 2026-11-08: 공속이 느려 보는 맛이 없음): 공격 간격 ÷AS, 한 번 피해 ÷AS → 초당 피해는 같음.
+  // 공격마다 굴리는 스턴·범위 스턴 확률도 ÷AS(초당 스턴 횟수 같게), 독은 한 번 피해에 비례하므로 ×AS(초당 독 피해 같게)
+  const AS = RULES.atkSpeed ?? 1;
+  if (k.stun) k.stun /= AS;
+  if (k.astun) k.astun /= AS;
+  if (k.poison) k.poison *= AS;
+  return { ...k, gap: k.gap / AS, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
 }
 // 화면용 짧은 설명
 export function kitTips(k) {
@@ -127,8 +137,8 @@ export function kitTips(k) {
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
   if (k.explore) out.push(`탐사 특기: 외부탐사 피해 ×${k.explore}`);
   if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
-  if (k.area) out.push('주변 범위');
-  if (k.splash) out.push('불꽃 튐');
+  if (k.area) out.push(`범위 공격(반경 ${k.area})`);
+  if (k.splash) out.push(`스플래시 ${Math.round(k.splash * 100)}%(반경 ${k.splashR ?? 50})`);
   if (k.chain) out.push('번개 연쇄');
   if (k.poison) out.push('독');
   if (k.holy) out.push('보스 추가 피해');
@@ -460,8 +470,9 @@ function attack(g, u, k) {
   if (!best) return false;
   const hits = [best];
   if (k.area || k.splash) {
-    const r = k.area ?? 50;
+    const r = k.area ?? k.splashR ?? 50;
     for (const e of g.enemies) if (e !== best && e.hp > 0 && Math.hypot(e.x - best.x, e.y - best.y) <= r) hits.push(e);
+    g.fx.push({ kind: 'boom', x: best.x, y: best.y, r, area: !!k.area, type: k.type, elem: k.elem, t: g.t });   // 화면에 범위 표시
   }
   hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k, u.uid); });
   if (k.chain) {
@@ -529,9 +540,9 @@ export function step(g, dt) {
       const before = ms.hp;
       hurt(g, ms, k.dmg * (k.area ? 1.2 : 1) * (k.explore || 1), k, u.uid); debuff(g, ms, k, u.uid);
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
-      u.cd = k.gap; continue;
+      u.cd = Math.max(-0.05, u.cd) + k.gap; continue;
     }
-    u.cd = attack(g, u, k) ? k.gap : 0.1;
+    u.cd = attack(g, u, k) ? Math.max(-0.05, u.cd) + k.gap : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
   }
   if (ms) ms.hp = ms.max - (g.missionDmg[ms.k] ?? 0) - (g.peerDmg?.[ms.k] ?? 0);
   // 처치

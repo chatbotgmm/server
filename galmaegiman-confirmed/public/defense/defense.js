@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=df1dc3b8f3a1';
+import * as E from './engine.js?v=45613f3f22e6';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -29,11 +29,15 @@ const cv = document.getElementById('game');
 const ctx = cv.getContext('2d');
 let scale = 1, dpr = 1;
 // 화면 배치: 휴대폰·태블릿 세로는 540×960 한 줄, PC·태블릿 가로는 1100×960(왼쪽 게임, 오른쪽 창)
-const SIDE_X = 560;          // 가로 배치에서 오른쪽 창이 시작하는 곳
+// 가로 배치(사용자 요청 2026-11-08: 전투 화면을 크게, 아래 메뉴는 오른쪽으로): 왼쪽에 위 정보 줄+판(논리 0~680)을 세로 가득 키우고(LS배),
+// 오른쪽(SIDE_X부터 540폭)에 메뉴(아래)와 창을 둔다
+const LS = 960 / 680;        // 왼쪽 판 확대 배율(약 1.41)
+const SIDE_X = 772;          // 오른쪽 열이 시작하는 곳(540×LS ≈ 762 + 간격)
 let landscape = false, VW = W, VH = H;
 const PEER_H = 208;          // 세로 화면 같이하기: 아래에 붙는 친구 판 줄 높이
 let stripOn = false;         // 친구 판 줄을 붙였는가(frame이 정함)
 let OX = 0;                  // 지금 그리는 곳의 가로 위치(오른쪽 창을 그릴 때 누르기 영역에 더함)
+let OS = 1;                  // 지금 그리는 곳의 배율(가로 배치 왼쪽 판은 LS)
 function fit() {
   dpr = Math.min(window.devicePixelRatio || 1, 3);
   landscape = window.innerWidth / window.innerHeight > 0.9;
@@ -116,7 +120,7 @@ function wrap(s, x, y, maxW, size = 15, color = C.muted, lineH = size * 1.45) {
 let hits = [];
 // fn은 그 창 안의 좌표를 받는다(가로 화면 오른쪽 창이면 SIDE_X를 뺀 값). drag면 누른 채 끌어도 계속 불림(볼륨 막대)
 // 2026-11-08: 전에는 화면 전체 좌표를 넘겨 가로 화면에서 볼륨 막대가 누른 곳과 다르게(늘 끝까지) 움직였음
-const hit = (x, y, w, h, fn, drag = false) => { const ox = OX; hits.push({ x: x + ox, y, w, h, fn: (p) => fn({ x: p.x - ox, y: p.y }), drag }); };
+const hit = (x, y, w, h, fn, drag = false) => { const ox = OX, os = OS; hits.push({ x: x * os + ox, y: y * os, w: w * os, h: h * os, fn: (p) => fn({ x: (p.x - ox) / os, y: p.y / os }), drag }); };
 const hitAt = (p) => { for (let k = hits.length - 1; k >= 0; k--) { const h = hits[k]; if (p.x >= h.x && p.y >= h.y && p.x < h.x + h.w && p.y < h.y + h.h) return h; } return null; };
 function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '', subColor = null) {
   const S = {
@@ -233,28 +237,33 @@ function scrollerAt(p) {
   if (landscape) return p.x >= SIDE_X ? (modal?.scrollable ? modal : null) : null;
   return modal?.scrollable ? modal : null;
 }
+// 화면 좌표 → 판 좌표(가로 배치 왼쪽 판은 LS배로 그려짐)
+const toBoard = (p) => (landscape ? { x: p.x / LS, y: p.y / LS } : p);
+const onBoard = (p) => !landscape || p.x < SIDE_X;
 cv.addEventListener('pointerdown', (ev) => {
-  const p = toLogical(ev);
+  const p = toLogical(ev), bp = toBoard(p);
   cv.setPointerCapture?.(ev.pointerId);
   const top = hitAt(p), dragFn = top?.drag ? top.fn : null;
-  if (dragFn) { dragFn(p); down = { x: p.x, y: p.y, x0: p.x, y0: p.y, dragFn, moved: false }; return; }
-  const u = playing() && inField(p) ? unitAt(p) : null;
+  if (dragFn) { dragFn(p); down = { x: p.x, y: p.y, x0: p.x, y0: p.y, sy0: p.y, dragFn, moved: false }; return; }
+  const field = playing() && onBoard(p) && inField(bp);
+  const u = field ? unitAt(bp) : null;
   const sc = scrollerAt(p);
-  down = { x: p.x, y: p.y, x0: p.x, y0: p.y, unit: u, field: playing() && inField(p), scroller: sc, scroll0: sc?.scroll ?? 0, moved: false };
+  down = { x: bp.x, y: bp.y, x0: bp.x, y0: bp.y, sy0: p.y, unit: u, field, scroller: sc, scroll0: sc?.scroll ?? 0, moved: false };
 });
 cv.addEventListener('pointermove', (ev) => {
   if (!down) return;
-  const p = toLogical(ev);
-  if (Math.hypot(p.x - down.x0, p.y - down.y0) > 10) down.moved = true;
-  down.x = p.x; down.y = p.y;
+  const p = toLogical(ev), bp = down.dragFn ? p : toBoard(p);
+  if (Math.hypot(bp.x - down.x0, bp.y - down.y0) > 10) down.moved = true;
+  down.x = bp.x; down.y = bp.y;
   if (down.dragFn) { down.dragFn(p); return; }
-  if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.y0)));
+  if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.sy0)));
 });
 cv.addEventListener('pointerup', (ev) => {
   if (!down) return;
-  const p = toLogical(ev), d = down;
+  const sp = toLogical(ev), d = down;
   down = null;
-  if (d.dragFn) { d.dragFn(p); return; }
+  if (d.dragFn) { d.dragFn(sp); return; }
+  const p = d.field ? toBoard(sp) : sp;
   if (d.field && playing()) {
     if (d.unit && d.moved) {   // 끌어서 옮기기(고른 무리에 있으면 무리째, 고정한 갈매미는 그 자리에)
       const group = selected.includes(d.unit.uid) && selected.length > 1 ? selUnits() : [d.unit];
@@ -276,8 +285,8 @@ cv.addEventListener('pointerup', (ev) => {
     if (selected.length) { selected = []; return; }
   }
   if (d.moved && d.scroller) return;
-  const h = hitAt(p);
-  if (h) h.fn(p);
+  const h = hitAt(sp);
+  if (h) h.fn(sp);
 });
 cv.addEventListener('pointercancel', () => { down = null; });
 cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
@@ -437,6 +446,12 @@ function drawField() {
       ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
       ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
       ctx.beginPath(); ctx.arc(f.x1, f.y1 - 10, f.job === '보조' ? 3 : 4.5, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill(); ctx.globalAlpha = 1;
+    } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
+      const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
+      const col = f.elem === 'FIRE' ? '255,140,70' : f.type === 'phys' ? '255,179,107' : '143,200,255';
+      ctx.beginPath(); ctx.arc(f.x, f.y - 10, rr2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
+      ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
     } else if (f.kind === 'zap' && age < 0.2) {
       ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
     } else if (f.kind === 'combine' || f.kind === 'move') {
@@ -534,7 +549,7 @@ function drawMainPanel(y0) {
     text(ready ? '조합 가능!' : `재료 ${have(r, cnt)}/${r.in.length}`, x + 46, gy + 36, 13, ready ? C.good : C.muted);
     hit(x, gy, gw, 50, () => { if (ready) { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${E.UNIT[gid].name} 완성!`); } } else showInfo(gid); });
   }
-  fitText(landscape ? '단축키  1~5 위습 · U 강화 · M 탐사 · S 창고 · B 조합법 · P 선택 · D 피해 · L 고정' : '끌기=옮기기 · 누르기=고르기 · 빈 곳 끌기=여러 마리 고르기', 22, H - 26, W - 44, 14, C.muted);
+  fitText('끌기=옮기기 · 누르기=고르기 · 빈 곳 끌기=여러 마리 고르기', 22, H - 26, W - 44, 14, C.muted);
 }
 // 지금 조합할 수 있는 조합법 수(0.5초마다 다시 셈)
 let readyCache = { t: 0, n: 0, g: null };
@@ -554,7 +569,7 @@ function drawUnitPanel(y0, u) {
   cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
   chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.type === 'phys' ? C.phys : C.mag);
   const up = E.upgMul(G, k.tier);
-  fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap <= 0.6 ? '빠름' : k.gap >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
+  fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: !!E.recipeUnits(G, r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
@@ -924,6 +939,33 @@ function drawSound() {
 }
 
 // 가로 화면에서 연 창이 없을 때 오른쪽: 안내만(창처럼 보이지 않게 흐리게)
+function drawToast() {   // 짧은 알림(판 아래쪽 가운데)
+  if (!(performance.now() < toast.until && toast.msg)) return;
+  ctx.font = `15px ${FONT}`;
+  const tw = Math.min(W - 40, ctx.measureText(toast.msg).width + 32);
+  box((W - tw) / 2, 618, tw, 40, 'rgba(19,44,59,.96)', C.goldEdge, 10, 1.5);
+  fitText(toast.msg, W / 2, 638, tw - 20, 15, C.text, 'center');
+}
+// 가로 화면 오른쪽 위(창이 없을 때): 이번 웨이브 피해 순위 미니판 + 안내
+function drawSideTop() {
+  box(8, 6, W - 16, 658, 'rgba(16,36,51,.82)', C.edge, 12);
+  text('이번 웨이브 피해', 22, 30, 17, C.gold);
+  fitText('D 또는 위 「피해」: 전체 순위', W - 22, 31, 220, 12, C.muted, 'right');
+  const rows = E.fieldUnits(G).concat(E.awayUnits(G)).map((u) => ({ u, d: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d).slice(0, 8);
+  const top = rows[0]?.d ?? 1;
+  if (!rows.length) fitText('아직 이번 웨이브에 피해를 준 갈매미가 없어요', W / 2, 90, W - 60, 14, C.muted, 'center');
+  rows.forEach((r, i) => {
+    const y = 52 + i * 50, col = GRADE_COLOR[E.UNIT[r.u.id].grade];
+    drawFit(unitImg(r.u.id), 18, y, 40, 44);
+    fitText(`${E.UNIT[r.u.id].name}${r.u.away ? ' (탐사)' : ''}`, 64, y + 14, 180, 14, col);
+    box(64, y + 27, W - 64 - 120, 8, 'rgba(0,0,0,.45)', null, 4);
+    box(64, y + 27, (W - 64 - 120) * r.d / top, 8, col, null, 4);
+    fitText(fmtN(r.d), W - 24, y + 22, 90, 14, C.text, 'right');
+  });
+  const hy = 470;
+  ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(22, hy, W - 44, 1);
+  ['선택위습·강화·외부탐사·창고·조합법을 누르면 이 오른쪽에 창이 열려요.', '창을 연 채로도 왼쪽 판의 갈매미를 옮길 수 있어요.', '단축키: 1~5 위습 · U 강화 · M 탐사 · S 창고 · B 조합법 · P 선택 · D 피해 · L 고정'].forEach((l, k) => fitText(l, 22, hy + 30 + k * 30, W - 44, 13, C.muted));
+}
 function drawSideEmpty() {
   box(14, 100, W - 28, H - 108, 'rgba(11,30,42,.35)', 'rgba(145,122,76,.35)', 14, 1.5);
   text('열린 창 없음', W / 2, 430, 20, C.muted, 'center');
@@ -1003,7 +1045,7 @@ function drawInfo() {
   let cx = x + 106;
   cx += chip(E.GRADE_NAME[u.grade], cx, y + 50, col) + 6;
   chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y + 50, k.type === 'phys' ? C.phys : C.mag);
-  fitText(`공격 ${Math.round(k.dmg * E.upgMul(G, k.tier)).toLocaleString()} · ${k.gap <= 0.6 ? '빠름' : k.gap >= 1.1 ? '느림' : '보통'}(${k.gap}초) · 사거리 ${k.range}`, x + 106, y + 92, w - 120, 14, C.muted);
+  fitText(`공격 ${Math.round(k.dmg * E.upgMul(G, k.tier)).toLocaleString()} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${k.gap}초) · 사거리 ${k.range}`, x + 106, y + 92, w - 120, 14, C.muted);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { info = null; }, 'quiet');
   if (info.stack.length) { const back = info.stack[info.stack.length - 1]; button(x + w - 96, y + 56, 82, 36, '← 뒤로', () => { info = { id: back, stack: info.stack.slice(0, -1) }; }, 'normal'); }
   // 유틸
@@ -1089,7 +1131,9 @@ function drawTutorial() {
   const st = steps[tut.step], bw = W - 60, bh = 74, bx = 30;
   let by = st.by;
   ctx.save();
-  if (tut.step === 3 && landscape) { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+  if (landscape) {   // 가로 배치: 메뉴·조합법은 오른쪽 열, 갈매미 끌기는 왼쪽 큰 판
+    if (tut.step === 1) { ctx.scale(LS, LS); OS = LS; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+  }
   box(bx, by, bw, bh, 'rgba(19,44,59,.97)', C.goldEdge, 12, 2);
   ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 6, bw - 120, bh - 12); ctx.clip(); wrap(st.msg, bx + 14, by + 12, bw - 130, 15, C.text, 22); ctx.restore();
   button(bx + bw - 100, by + 18, 88, 38, '안내 끄기', tutDone, 'quiet');
@@ -1099,7 +1143,7 @@ function drawTutorial() {
     ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(st.tx, st.ty - dir * (10 - bob)); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(st.tx, st.ty + dir * bob); ctx.lineTo(st.tx - 9, st.ty - dir * (14 - bob)); ctx.lineTo(st.tx + 9, st.ty - dir * (14 - bob)); ctx.closePath(); ctx.fillStyle = C.goldEdge; ctx.fill();
   }
-  ctx.restore(); OX = 0;
+  ctx.restore(); OX = 0; OS = 1;
 }
 function drawModal() {
   if (modal?.kind === 'book') drawBook();
@@ -1365,7 +1409,7 @@ function chipRow(items, x, y, maxX, size = 14) {   // 넘치면 다음 줄
   return cy + size + 8;
 }
 // 친구 판 전체(가로 화면 오른쪽 창·크게 보기): 위 정보 줄 + 판 + 친구 상황
-function drawPeerFull(withButtons = false) {
+function drawPeerFull(withButtons = false, topOnly = false) {
   const P = net.peer, [stText, stCol] = peerState();
   box(8, 6, W - 16, 88, C.header, C.edge, 10);
   chip('친구 판', 20, 15, C.goldEdge, 14);
@@ -1385,6 +1429,7 @@ function drawPeerFull(withButtons = false) {
   ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
   if (P) drawPeerField(P); else drawLanes();
   ctx.restore();
+  if (topOnly) { if (withButtons) button(W - 22 - 150, FIELD.y + 8, 150, 38, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); return; }
   const y0 = 672;
   box(8, y0, W - 16, H - y0 - 8, C.panel, C.edge, 12);
   text('친구 상황', 22, y0 + 24, 17, C.gold);
@@ -1472,25 +1517,23 @@ function frame(now) {
     if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); } else drawLobby();
     ctx.restore(); OX = 0;
   } else {
-    drawBackground(); drawField(); drawHud(); drawBottom();
-    if (landscape) {   // 오른쪽 창: 열린 창, 없으면 조합법(같이하기면 친구 판)
+    drawBackground();
+    if (landscape) {
+      // 왼쪽: 위 정보 줄 + 판을 크게
+      ctx.save(); ctx.scale(LS, LS); OS = LS;
+      drawField(); drawHud(); drawToast();
+      ctx.restore(); OS = 1;
+      // 오른쪽: 창이 열리면 창(열 전체), 없으면 위에 피해 미니판(같이하기면 친구 판) + 아래 메뉴
       ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
       if (modal && modal.kind !== 'peer') { drawModal(); if (coop()) drawPeerBar(); }
-      else if (coop()) {
-        drawPeerFull(true);
-        if (modal?.kind === 'peer') button(W - 150, 684, 128, 44, '내 결과 보기', () => { modal = null; }, 'primary');
-      } else drawSideEmpty();
-      if (info) drawInfo();   // 닫기를 누르면 오른쪽 창도 비어야 함(사용자 요청 2026-11-08: 전에는 조합법이 늘 떠 있어 닫히지 않는 것처럼 보였음)
+      else if (modal?.kind === 'peer') { drawPeerFull(true); button(W - 150, 684, 128, 44, '내 결과 보기', () => { modal = null; }, 'primary'); }
+      else { if (coop()) drawPeerFull(true, true); else drawSideTop(); drawBottom(); }
+      if (info) drawInfo();
       ctx.restore(); OX = 0;
-    } else { if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); }
+    } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawToast(); }
   }
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
-  if (performance.now() < toast.until && toast.msg) {
-    ctx.font = `15px ${FONT}`;
-    const tw = Math.min(W - 40, ctx.measureText(toast.msg).width + 32);
-    box((W - tw) / 2, 618, tw, 40, 'rgba(19,44,59,.96)', C.goldEdge, 10, 1.5);
-    fitText(toast.msg, W / 2, 638, tw - 20, 15, C.text, 'center');
-  }
+  if (scene !== 'play') drawToast();
   requestAnimationFrame(frame);
 }
 // /defense?room=123456 으로 열면 그 방에 바로 들어간다(방장이 보낸 링크)
