@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=a06a78549537';
+import * as E from './engine.js?v=5a87ac73cc35';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -17,6 +17,10 @@ const BEST_KEY = 'gmm-defense-best';
 const MUSIC_KEY = 'gmm-defense-music';
 const VOLUME_KEY = 'gmm-defense-volume';
 const SFX_KEY = 'gmm-defense-sfx';
+const FX_KEY = 'gmm-defense-fxlite';   // 공격 효과 줄이기(느린 휴대폰용)
+let fxLite = false;
+try { fxLite = localStorage.getItem(FX_KEY) === '1'; } catch { /* 진행 */ }
+function setFxLite(on) { fxLite = on; try { localStorage.setItem(FX_KEY, on ? '1' : '0'); } catch { /* 진행 */ } }
 // 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
@@ -487,10 +491,11 @@ function drawLanes() {
   ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
-function drawUnitShape(id, x, y, ring, lw, lock = false) {
-  const z = usz(id);
-  ctx.beginPath(); ctx.ellipse(x, y, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1) {   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
+  let z = usz(id);
+  ctx.beginPath(); ctx.ellipse(x0, y0, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
   ctx.lineWidth = lw; ctx.strokeStyle = ring; ctx.stroke();
+  const x = x0 + ox, y = y0 + oy; z *= zm;
   const im = unitImg(id), gl = E.tierOf(id) >= 4 ? glow(id) : null;
   if (im && gl) {   // 전설 이상: 그림 둘레가 등급 색으로 빛남(천천히 밝아졌다 어두워짐)
     const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
@@ -500,7 +505,7 @@ function drawUnitShape(id, x, y, ring, lw, lock = false) {
     ctx.globalAlpha = 1;
   }
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
-  if (lock) drawLockMark(x + 22 * z, y - 2);
+  if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
 const glows = {};
 function glow(id) {   // 빛 테두리 그림을 한 번만 만들어 둠
@@ -522,7 +527,15 @@ function drawLockMark(x, y) {   // 위치 고정 자물쇠(어두운 동그라�
   ctx.beginPath(); ctx.arc(x, y - 5, 3.6, Math.PI, 0); ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 2; ctx.stroke();
   box(x - 5.5, y - 5, 11, 8.5, C.goldEdge, null, 2);
 }
+// 화면 흔들림(상위 등급이 보스를 칠 때 아주 작게)
+const shake = { until: 0, mag: 0 };
 function drawField() {
+  const sh = !fxLite && G.t < shake.until;
+  if (sh) { ctx.save(); const r = shake.mag * (shake.until - G.t) / 0.12; ctx.translate((Math.random() - 0.5) * 2 * r, (Math.random() - 0.5) * 2 * r); }
+  drawFieldInner();
+  if (sh) ctx.restore();
+}
+function drawFieldInner() {
   drawLanes();
   // 고른 갈매미 사거리(한 마리일 때)
   const sel = selUnits();
@@ -531,10 +544,25 @@ function drawField() {
     ctx.beginPath(); ctx.arc(sel[0].x, sel[0].y - 14, k.range, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(243,216,158,.07)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(243,216,158,.55)'; ctx.stroke();
   }
+  // 이감·마방깍 갈매미 범위(범위 안 적 모두에게 걸림, 옅게)
+  if (!fxLite) for (const u of E.fieldUnits(G)) {
+    const k = E.kit(u.id); if (!k.slow && !k.mshred) continue;
+    ctx.beginPath(); ctx.arc(u.x, u.y - 8, k.range, 0, Math.PI * 2);
+    ctx.setLineDash([4, 7]); ctx.lineWidth = 1.2; ctx.strokeStyle = k.slow ? 'rgba(159,232,255,.16)' : 'rgba(143,200,255,.13)'; ctx.stroke(); ctx.setLineDash([]);
+  }
   // 적
   for (const e of G.enemies) {
     const sz = e.boss ? 84 : 44, sh = enemyImg(e.look);
-    if (sh) drawFit(sh, e.x - sz / 2, e.y - sz * 0.75, sz, sz);
+    const ha = G.t - (e.hitT ?? -9), jit = !fxLite && ha < 0.07 ? (((e.id * 7) % 3) - 1) * 1.5 : 0;   // 맞은 순간 살짝 떨림
+    if (sh) drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz);
+    if (sh && !fxLite && ha < 0.08) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 * (1 - ha / 0.08); drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz); ctx.restore(); }   // 하얗게 번쩍
+    if (!fxLite && G.t < (e.poisonUntil ?? 0)) for (let b = 0; b < 2; b++) { const ph = ((G.t * 1.6 + b * 0.5 + e.id * 0.13) % 1); ctx.beginPath(); ctx.arc(e.x - 8 + b * 14, e.y - sz * 0.3 - ph * 22, 2.5 + b, 0, Math.PI * 2); ctx.fillStyle = `rgba(120,220,110,${0.7 * (1 - ph)})`; ctx.fill(); }
+    if (!fxLite) {   // 방깍(주황)·마방깍(파랑)이 걸려 있으면 체력 칸 옆에 ▼
+      const on = (m) => m && Object.values(m).some((q) => G.t < q.until);
+      const mx = e.x + (e.boss ? 38 : 19), my = e.y - sz * 0.75 - 4;
+      if (on(e.shreds)) text('▼', mx, my, 9, C.phys, 'left');
+      if (on(e.mshreds)) text('▼', mx + 9, my, 9, C.mag, 'left');
+    }
     if (G.t < e.stunUntil) text('★', e.x, e.y - sz * 0.75 - 14, 12, '#ffe14a', 'center');
     if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
     const bw = e.boss ? 70 : 32, bx = e.x - bw / 2, by = e.y - sz * 0.75 - 6;
@@ -544,9 +572,18 @@ function drawField() {
   // 갈매미(아래쪽부터 그려 겹침이 자연스럽게)
   const gc = goalColors(), selSet = new Set(selected);
   const list = [...E.fieldUnits(G)].sort((a, b) => a.y - b.y);
+  const lastShot = new Map();   // 갈매미마다 가장 최근 공격(동작용)
+  for (const f of G.fx) if (f.kind === 'shot' && f.uid) { const q = lastShot.get(f.uid); if (!q || q.t < f.t) lastShot.set(f.uid, f); }
   for (const u of list) {
     const info = E.UNIT[u.id], col = GRADE_COLOR[info.grade], z = usz(u.id);
-    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock);
+    let ox = 0, oy = 0, zm = 1;
+    const f = !fxLite && lastShot.get(u.uid), a = f ? G.t - f.t : 9;
+    if (f && a < 0.18) {   // 근접: 적 쪽으로 돌진했다 돌아옴 · 원거리: 살짝 뒤로 반동 · 둘 다 잠깐 커짐
+      const dx = f.x1 - f.x0, dy = f.y1 - f.y0, d = Math.hypot(dx, dy) || 1, w = Math.sin(Math.PI * a / 0.18);
+      const m = f.near ? Math.min(14, d * 0.25) : -3;
+      ox = dx / d * m * w; oy = dy / d * m * w; zm = 1 + 0.07 * w;
+    }
+    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm);
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
@@ -566,10 +603,18 @@ function drawField() {
   // 효과
   for (const f of G.fx) {
     const age = G.t - f.t;
-    if (f.kind === 'shot' && age < 0.14) {
-      ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
-      ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
-      ctx.beginPath(); ctx.arc(f.x1, f.y1 - 10, f.job === '보조' ? 3 : 4.5, 0, Math.PI * 2); ctx.fillStyle = ctx.strokeStyle; ctx.fill(); ctx.globalAlpha = 1;
+    if (f.kind === 'shot') {
+      if (fxLite) { if (age < 0.14) {   // 줄인 효과: 예전 직선
+        ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
+        ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
+      else drawShot(f, age);
+    } else if (f.kind === 'num' && age < 0.75 && !fxLite) {   // 보스 피해 숫자(전설 이상)
+      const a = 1 - age / 0.75, big = f.tier >= 6;
+      ctx.globalAlpha = Math.min(1, a * 1.6);
+      const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 60) - 30)), ny = f.y - 92 - (sq % 4) * 15 - age * 40;   // 겹치지 않게 흩어 뜨리고 체력 칸 위에서
+      text(fmtN(f.v), nx + 1.5, ny + 1.5, big ? 19 : 15, 'rgba(7,19,28,.9)', 'center');
+      text(fmtN(f.v), nx, ny, big ? 19 : 15, big ? '#ffd76a' : '#fff1d6', 'center');
+      ctx.globalAlpha = 1;
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
       const col = f.elem === 'FIRE' ? '255,140,70' : f.type === 'phys' ? '255,179,107' : '143,200,255';
@@ -589,6 +634,47 @@ function drawField() {
   }
 }
 
+// ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
+// 속성마다 다른 투사체가 날아가고(근접은 베기), 닿으면 불꽃 파편. 전설 이상은 크게, 제한 이상은 보스를 칠 때 화면이 살짝 흔들림
+const ELEM_COL = { FIRE: '255,140,70', WATER: '90,170,255', ICE: '190,240,255', LIGHTNING: '255,225,74', NATURE: '120,220,110', HOLY: '255,240,190', DARK: '186,120,255', NORMAL: '255,200,140' };
+function drawShot(f, age) {
+  const sx = f.x0, sy = f.y0 - 24, tx = f.x1, ty = f.y1 - 10, dx = tx - sx, dy = ty - sy, dist = Math.hypot(dx, dy) || 1;
+  const big = f.tier >= 4, sc = (f.job === '보조' ? 0.75 : 1) * (big ? 1.4 : 1), col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
+  const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
+  const ang = Math.atan2(dy, dx), seed = (f.t * 1000 + f.x0) % 97;
+  if (age < T) {
+    const p = age / T, x = sx + dx * p, y = sy + dy * p;
+    if (f.near && f.type === 'phys') {   // 근접 물리: 적 앞에서 칼날 호
+      ctx.beginPath(); ctx.arc(tx - Math.cos(ang) * 6, ty - Math.sin(ang) * 6, 14 * sc, ang - 1.1 + p * 0.6, ang + 0.2 + p * 0.9);
+      ctx.strokeStyle = `rgba(${col},${0.9})`; ctx.lineWidth = 3.2 * sc; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
+    } else if (f.elem === 'LIGHTNING') {   // 번개: 지그재그(바로 닿음)
+      ctx.beginPath(); ctx.moveTo(sx, sy);
+      for (let i = 1; i < 6; i++) { const q = i / 6, off = (((seed * (i + 3)) % 13) - 6) * 1.6; ctx.lineTo(sx + dx * q - Math.sin(ang) * off, sy + dy * q + Math.cos(ang) * off); }
+      ctx.lineTo(tx, ty); ctx.strokeStyle = `rgba(${col},${0.95 - p * 0.4})`; ctx.lineWidth = 2.2 * sc; ctx.stroke();
+    } else if (f.elem === 'HOLY') {   // 성: 빛줄기
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(x, y); ctx.strokeStyle = `rgba(${col},0.35)`; ctx.lineWidth = 7 * sc; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2 * sc; ctx.stroke();
+    } else {
+      // 꼬리(불·어둠·물은 길게, 나머지는 짧게)
+      const tail = f.elem === 'FIRE' || f.elem === 'DARK' ? 3 : f.elem === 'WATER' ? 2 : 1;
+      for (let i = tail; i >= 1; i--) { const q = Math.max(0, p - i * 0.12); ctx.beginPath(); ctx.arc(sx + dx * q, sy + dy * q, (3 + (tail - i)) * sc * 0.8, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},${0.18 + 0.12 * (tail - i)})`; ctx.fill(); }
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      if (f.elem === 'ICE') { ctx.beginPath(); ctx.moveTo(8 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-6 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1; ctx.stroke(); }
+      else if (f.elem === 'NATURE') { ctx.rotate(age * 30); ctx.beginPath(); ctx.ellipse(0, 0, 6 * sc, 2.6 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); }
+      else if (f.type === 'phys' && f.elem === 'NORMAL') { ctx.beginPath(); ctx.moveTo(-9 * sc, 0); ctx.lineTo(6 * sc, 0); ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 2.4 * sc; ctx.stroke(); ctx.beginPath(); ctx.moveTo(7 * sc, 0); ctx.lineTo(2 * sc, 2.6 * sc); ctx.lineTo(2 * sc, -2.6 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},1)`; ctx.fill(); }   // 화살
+      else { const r = (f.elem === 'FIRE' ? 5 : f.elem === 'DARK' ? 4.6 : 4) * sc; ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.22)`; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.98)`; ctx.fill(); if (f.elem === 'DARK') { ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(40,10,70,.9)'; ctx.stroke(); } }
+      ctx.restore();
+    }
+    return;
+  }
+  const a2 = age - T;
+  if (a2 < 0.13) {   // 닿음: 불꽃 파편
+    const q = a2 / 0.13, n = big ? 7 : 5;
+    ctx.strokeStyle = `rgba(${col},${0.9 * (1 - q)})`; ctx.lineWidth = big ? 2.2 : 1.6;
+    for (let i = 0; i < n; i++) { const an = ang + Math.PI + (i - (n - 1) / 2) * 0.55 + ((seed + i * 17) % 7 - 3) * 0.05, r0 = 3 + q * 6, r1 = r0 + (big ? 9 : 6) * (1 - q * 0.5); ctx.beginPath(); ctx.moveTo(tx + Math.cos(an) * r0, ty + Math.sin(an) * r0); ctx.lineTo(tx + Math.cos(an) * r1, ty + Math.sin(an) * r1); ctx.stroke(); }
+    if (f.tier >= 6 && f.boss && a2 < 0.02 && shake.until < G.t + 0.05) { shake.until = G.t + 0.12; shake.mag = f.tier >= 8 ? 3 : 2; }
+  }
+}
 // ── 위 정보 줄 ──
 function drawHud() {
   box(8, 6, W - 16, 88, C.header, C.edge, 10);
@@ -1214,7 +1300,7 @@ function drawSound() {
   shadeAll();
   const x = 50, y = 270, w = W - 100, h = 410;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  text('소리 설정', x + 20, y + 32, 22, C.text);
+  text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   text('배경음악', x + 24, y + 96, 18, C.text);
   button(x + w - 24 - 120, y + 74, 120, 44, music.on ? '켬' : '끔', musicToggle, music.on ? 'primary' : 'normal');
@@ -1228,6 +1314,8 @@ function drawSound() {
   hit(bx - 14, by - 10, bw + 28, 56, (p) => setVolume((p.x - bx) / bw), true);   // 누르거나 끌어서
   // 효과음 음량
   const sy = by + 80;
+  text('공격 효과', x + 24, sy + 82, 18, C.text);
+  button(x + w - 24 - 150, sy + 60, 150, 44, fxLite ? '줄임(가볍게)' : '화려하게', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');

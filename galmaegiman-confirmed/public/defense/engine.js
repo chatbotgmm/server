@@ -519,7 +519,8 @@ function effSum(e, key, now) {
 }
 export const shredNow = (e, now) => ({ shred: effSum(e, 'shreds', now), mshred: effSum(e, 'mshreds', now) });
 function hurt(g, e, raw, k, uid) {
-  if (e.hp <= 0) return;
+  if (e.hp <= 0) return 0;
+  e.hitT = g.t;   // 화면: 맞은 적이 잠깐 번쩍임(규칙에는 안 쓰임)
   const now = g.t;
   let m;
   if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now)) * upgMul(g, k.tier);
@@ -528,6 +529,7 @@ function hurt(g, e, raw, k, uid) {
   const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
   if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
+  return d;
 }
 function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍은 판에서는 범위 효과(applyAuras)라 때릴 때 걸지 않음
   const now = g.t;
@@ -576,12 +578,16 @@ function attack(g, u, k) {
     for (const e of g.enemies) if (e !== best && e.hp > 0 && Math.hypot(e.x - best.x, e.y - best.y) <= r) hits.push(e);
     g.fx.push({ kind: 'boom', x: best.x, y: best.y, r, area: !!k.area, type: k.type, elem: k.elem, t: g.t });   // 화면에 범위 표시
   }
-  hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k, u.uid, true); });
+  let d0 = 0;
+  hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
+  // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
+  if (best.boss && k.tier >= 4 && d0 > 0 && g.fx.filter((f) => f.kind === 'num').length < 4) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
   }
-  g.fx.push({ kind: 'shot', x0: u.x, y0: u.y, x1: best.x, y1: best.y, type: k.type, job: k.job, elem: k.elem, t: g.t });
+  // shot: 화면이 갈매미 동작(근접은 돌진·원거리는 반동)과 속성별 투사체를 그림. near = 근접(사거리 150 이하·범위 공격)
+  g.fx.push({ kind: 'shot', x0: u.x, y0: u.y, x1: best.x, y1: best.y, type: k.type, job: k.job, elem: k.elem, uid: u.uid, tier: k.tier, near: k.range <= 150 || !!k.area, boss: !!best.boss, t: g.t });
   return true;
 }
 
