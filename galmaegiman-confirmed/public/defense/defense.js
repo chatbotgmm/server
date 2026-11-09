@@ -16,6 +16,7 @@ const FONT = '"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",s
 const BEST_KEY = 'gmm-defense-best';
 const MUSIC_KEY = 'gmm-defense-music';
 const VOLUME_KEY = 'gmm-defense-volume';
+const SFX_KEY = 'gmm-defense-sfx';
 // 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
@@ -177,6 +178,54 @@ function musicEl() {
   if (!music.el) { music.el = new Audio(BGM_URL); music.el.loop = true; music.el.volume = music.vol; music.el.preload = 'auto'; }
   return music.el;
 }
+// ── 효과음(사용자 요청 2026-11-08): 소리 파일 없이 브라우저에서 짧은 음을 만들어 냄. 첫 누르기 뒤에만(자동 재생 막힘) ──
+const sfxState = { vol: 0.5, ctx: null, last: {} };
+try { const v = Number(localStorage.getItem(SFX_KEY)); if (localStorage.getItem(SFX_KEY) !== null && v >= 0 && v <= 1) sfxState.vol = v; } catch { /* 기본값 */ }
+function sfxCtx() {
+  if (!sfxState.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; sfxState.ctx = new AC(); }
+  if (sfxState.ctx.state === 'suspended') sfxState.ctx.resume().catch(() => {});
+  return sfxState.ctx;
+}
+// [주파수, 시작(초), 길이(초), 파형] 묶음
+const SFX = {
+  summon: [[660, 0, 0.08, 'triangle'], [990, 0.06, 0.1, 'triangle']],
+  combine: [[523, 0, 0.12, 'triangle'], [784, 0.09, 0.14, 'triangle'], [1047, 0.18, 0.2, 'sine']],
+  boss: [[110, 0, 0.5, 'sawtooth'], [82, 0.25, 0.6, 'sawtooth']],
+  warn: [[880, 0, 0.09, 'square']],
+  recruitOk: [[587, 0, 0.1, 'triangle'], [880, 0.08, 0.12, 'triangle'], [1175, 0.17, 0.22, 'sine']],
+  recruitFail: [[300, 0, 0.15, 'sine'], [220, 0.12, 0.25, 'sine']],
+  story: [[523, 0, 0.12, 'triangle'], [659, 0.1, 0.12, 'triangle'], [784, 0.2, 0.12, 'triangle'], [1047, 0.3, 0.3, 'sine']],
+  signal: [[1320, 0, 0.08, 'sine'], [1760, 0.09, 0.12, 'sine']],
+  wisp: [[1568, 0, 0.1, 'sine'], [2093, 0.07, 0.14, 'sine']],
+};
+function sfx(name) {
+  if (!(sfxState.vol > 0)) return;
+  const now0 = performance.now();
+  if (now0 - (sfxState.last[name] ?? 0) < 60) return;   // 같은 소리가 한꺼번에 겹치지 않게
+  sfxState.last[name] = now0;
+  const ac = sfxCtx(); if (!ac) return;
+  const t0 = ac.currentTime, vol = sfxState.vol * (name === 'boss' ? 0.18 : 0.12);
+  for (const [f, at, dur, type] of SFX[name] ?? []) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
+    o.connect(g).connect(ac.destination); o.start(t0 + at); o.stop(t0 + at + dur + 0.02);
+  }
+}
+function setSfxVolume(v) { sfxState.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20; try { localStorage.setItem(SFX_KEY, String(sfxState.vol)); } catch { /* 진행 */ } }
+// 판 상태가 바뀐 것을 보고 소리: 보스 등장·경고·외부탐사 성공·위습 찾음
+const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, fx: new WeakSet() };
+function sfxTick() {
+  if (scene !== 'play' || !G) return;
+  if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone }); return; }
+  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) sfx('boss'); sfxWatch.wave = G.wave; }
+  if (G.warn > sfxWatch.warn) sfx('warn');
+  sfxWatch.warn = G.warn;
+  if (G.missionDone > sfxWatch.md) sfx('story');
+  sfxWatch.md = G.missionDone;
+  for (const f of G.fx) if (f.kind === 'wisp' && !sfxWatch.fx.has(f)) { sfxWatch.fx.add(f); sfx('wisp'); }
+}
+function combineNow(r, keep = 0) { const nu = E.combine(G, r, keep); if (nu) sfx('combine'); return nu; }
 function setVolume(v) {
   music.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20;   // 5% 단위
   if (music.el) music.el.volume = music.vol;
@@ -241,7 +290,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -253,6 +302,7 @@ function scrollerAt(p) {
 const toBoard = (p) => (landscape ? { x: p.x / LS, y: p.y / LS } : p);
 const onBoard = (p) => !landscape || p.x < SIDE_X;
 cv.addEventListener('pointerdown', (ev) => {
+  if (!sfxState.ctx) sfxCtx();   // 첫 누르기에서 소리 준비
   const p = toLogical(ev), bp = toBoard(p);
   cv.setPointerCapture?.(ev.pointerId);
   const top = hitAt(p), dragFn = top?.drag ? top.fn : null;
@@ -303,6 +353,7 @@ cv.addEventListener('pointerup', (ev) => {
 cv.addEventListener('pointercancel', () => { down = null; });
 cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
+  if (document.activeElement === searchEl) { if (ev.key === 'Escape') searchEl.blur(); return; }   // 검색 입력 중에는 단축키 안 씀
   if (scene === 'lobby' && lobby.mode === 'enter') {
     if (/^[0-9]$/.test(ev.key)) typeDigit(ev.key);
     else if (ev.key === 'Backspace') lobby.input = lobby.input.slice(0, -1);
@@ -331,7 +382,7 @@ window.addEventListener('keydown', (ev) => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) setPause(true); });
 
-function doSummon(grade) { const r = E.summon(G, grade); if (!r.ok && r.why) say(r.why); }   // 연달아 누를 수 있게 고르지 않음
+function doSummon(grade) { const r = E.summon(G, grade); if (!r.ok && r.why) say(r.why); else if (r.ok) sfx('summon'); }   // 연달아 누를 수 있게 고르지 않음
 
 // ── 판 ──
 function drawBackground() {
@@ -670,14 +721,17 @@ function drawUnitPanel(y0, u) {
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
-  list.slice(0, 2).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
-  const ex = Math.max(0, PBOT - H), BH = 46 + ex * 0.25, by = PBOT - 18 - BH, b6 = (W - 44 - 30) / 6, bx = (i) => 22 + i * (b6 + 6);
-  button(bx(0), by, b6, BH, list.length > 2 ? `더보기+${list.length - 2}` : '조합법', () => openBook(null, u.id), 'normal');
-  button(bx(1), by, b6, BH, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요(고정한 것은 그 자리).`); }, 'normal');
-  button(bx(2), by, b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
-  button(bx(3), by, b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
-  button(bx(4), by, b6, BH, '탐사', () => sendSelected([u]), 'normal', E.missionOpen(G));
-  button(bx(5), by, b6, BH, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
+  // 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 휴대폰에서 작음), 조합법 줄은 남는 높이만큼
+  const ex = Math.max(0, PBOT - H), BH = Math.min(70, 44 + ex * 0.15), b6 = (W - 44 - 12) / 3;
+  const by2 = PBOT - 16 - BH, by1 = by2 - 6 - BH, rowsN = Math.max(1, Math.min(4, Math.floor((by1 - 6 - (y0 + 112)) / 50)));
+  list.slice(0, rowsN).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
+  const bx = (i) => 22 + (i % 3) * (b6 + 6), byOf = (i) => (i < 3 ? by1 : by2);
+  button(bx(0), byOf(0), b6, BH, list.length > rowsN ? `조합법 +${list.length - rowsN}` : '조합법', () => openBook(null, u.id), 'normal');
+  button(bx(1), byOf(1), b6, BH, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요(고정한 것은 그 자리).`); }, 'normal');
+  button(bx(2), byOf(2), b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
+  button(bx(3), byOf(3), b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
+  button(bx(4), byOf(4), b6, BH, '탐사', () => sendSelected([u]), 'normal', E.missionOpen(G));
+  button(bx(5), byOf(5), b6, BH, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
 }
 function drawGroupPanel(y0, sel) {
   let p = 0, m = 0;
@@ -735,7 +789,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = E.combine(G, r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
+  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = combineNow(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
 }
 
 // ── 모달 ──
@@ -752,6 +806,20 @@ function rolesOf(id) {
   return r;
 }
 let bookRole = 'all';
+// 조합법 찾기(사용자 요청 2026-11-08): 만들 수 있는 것만 · 재료 많이 모인 순 · 이름 검색(캔버스 위에 실제 입력칸을 겹쳐 띄움)
+const bookOpt = { ready: false, near: false, q: '' };
+let bookSearchRect = null;
+const searchEl = document.createElement('input');
+searchEl.type = 'search'; searchEl.placeholder = '이름 검색'; searchEl.autocomplete = 'off'; searchEl.enterKeyHint = 'search';
+Object.assign(searchEl.style, { position: 'fixed', display: 'none', zIndex: 5, boxSizing: 'border-box', border: '1.5px solid #917a4c', borderRadius: '8px', background: '#0b1e2a', color: '#f5ead0', padding: '0 10px', outline: 'none', fontFamily: 'inherit' });
+searchEl.addEventListener('input', () => { bookOpt.q = searchEl.value.trim(); if (modal?.kind === 'book') modal.scroll = 0; });
+document.body.appendChild(searchEl);
+function placeSearch() {   // 매 장면: 조합법 창이 열려 있을 때만 입력칸을 그 자리에
+  const R = modal?.kind === 'book' && scene === 'play' && !info ? bookSearchRect : null;
+  if (!R) { if (searchEl.style.display !== 'none') { searchEl.style.display = 'none'; searchEl.blur(); } return; }
+  const c = cv.getBoundingClientRect(), k = c.width / VW;
+  Object.assign(searchEl.style, { display: 'block', left: `${c.left + R.x * k}px`, top: `${c.top + R.y * k}px`, width: `${R.w * k}px`, height: `${R.h * k}px`, fontSize: `${Math.max(12, 15 * k)}px` });
+}
 function openBook(focus = null, using = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using }; }
 // 가로 화면: 창은 오른쪽 위(「이번 웨이브 피해」 자리, 0~664)에 열고 아래 메뉴는 그대로 보이게(사용자 요청 2026-11-08).
 // 일시정지·결과·친구 판 크게 보기만 오른쪽 열 전체
@@ -771,8 +839,18 @@ function drawBook() {
   shadeAll(0.35);   // 게임은 계속 흐름(위 정보 줄이 보이게)
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  fitText(modal.using ? `${E.UNIT[modal.using].name}이(가) 들어가는 조합법` : `조합법 ${E.RECIPES.length}개`, x + 18, y + 30, w - 140, 20, C.text);
+  fitText(modal.using ? `${E.UNIT[modal.using].name} 재료` : '조합법', x + 18, y + 30, 120, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  bookSearchRect = { x: OX + x + 144, y: y + 12, w: w - 144 - 108, h: 36 };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
+  box(x + 144, y + 12, w - 144 - 108, 36, '#0b1e2a', C.edge, 8, 1.5);
+  // 보기 옵션 2개
+  const tw2 = (w - 24 - 6) / 2;
+  [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순']].forEach(([key, nm], i) => {
+    const on = bookOpt[key], bx = x + 12 + i * (tw2 + 6);
+    box(bx, y + 90, tw2, 28, on ? 'rgba(111,208,138,.16)' : 'rgba(11,30,42,.8)', on ? '#6fd08a' : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
+    fitText(`${on ? '✓ ' : ''}${nm}`, bx + tw2 / 2, y + 104, tw2 - 8, 13, on ? C.good : C.muted, 'center');
+    hit(bx, y + 90, tw2, 28, () => { bookOpt[key] = !bookOpt[key]; modal.scroll = 0; });
+  });
   // 역할 칩: 누르면 그 역할을 가진 결과만
   const cw = (w - 24 - 7 * 4) / 8;
   ROLES.forEach(([key, nm], i) => {
@@ -781,12 +859,21 @@ function drawBook() {
     fitText(nm, bx + cw / 2, y + 69, cw - 6, 13, on ? C.goldEdge : C.muted, 'center');
     hit(bx, y + 54, cw, 30, () => { bookRole = key; modal.scroll = 0; });
   });
-  const top = y + 92, viewH = h - 102, cnt = E.countOnField(G);
-  let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (bookRole === 'all' || rolesOf(r.out).includes(bookRole)));
-  rows = rows.map((r) => ({ r, ok: canMake(r) })).sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
+  const top = y + 126, viewH = h - 136, cnt = E.countOnField(G), q = bookOpt.q;
+  let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (bookRole === 'all' || rolesOf(r.out).includes(bookRole))
+    && (!q || E.UNIT[r.out].name.includes(q) || r.in.some((id) => E.UNIT[id].name.includes(q))));
+  rows = rows.map((r) => ({ r, ok: canMake(r), frac: have(r, cnt) / r.in.length }));
+  if (bookOpt.ready) rows = rows.filter((it) => it.ok);
   const items = [];
-  let lastG = '';
-  for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
+  if (bookOpt.near) {   // 재료가 많이 모인 순(등급 묶음 없이)
+    rows.sort((a, b) => (b.frac - a.frac) || (E.tierOf(b.r.out) - E.tierOf(a.r.out)));
+    items.push(...rows);
+  } else {
+    rows.sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
+    let lastG = '';
+    for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
+  }
+  if (!items.length) fitText(q ? `「${q}」에 맞는 조합법이 없어요` : '해당하는 조합법이 없어요', W / 2, top + 50, w - 40, 15, C.muted, 'center');
   const rowH = (it) => (it.head ? 30 : 52);
   const total = items.reduce((a, it) => a + rowH(it), 0);
   modal.maxScroll = Math.max(0, total - viewH);
@@ -1064,7 +1151,7 @@ function drawModes() {
 }
 function drawSound() {
   shadeAll();
-  const x = 50, y = 300, w = W - 100, h = 330;
+  const x = 50, y = 270, w = W - 100, h = 410;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -1078,6 +1165,15 @@ function drawSound() {
   box(bx, by + 12, bw * music.vol, 12, music.on ? C.gold : '#6f7f88', null, 6);
   ctx.beginPath(); ctx.arc(bx + bw * music.vol, by + 18, 11, 0, Math.PI * 2); ctx.fillStyle = music.on ? C.goldEdge : '#8b9aa3'; ctx.fill();
   hit(bx - 14, by - 10, bw + 28, 56, (p) => setVolume((p.x - bx) / bw), true);   // 누르거나 끌어서
+  // 효과음 음량
+  const sy = by + 80;
+  text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
+  button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
+  button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
+  box(bx, sy + 12, bw, 12, 'rgba(0,0,0,.5)', C.line, 6, 1);
+  box(bx, sy + 12, bw * sfxState.vol, 12, C.gold, null, 6);
+  ctx.beginPath(); ctx.arc(bx + bw * sfxState.vol, sy + 18, 11, 0, Math.PI * 2); ctx.fillStyle = C.goldEdge; ctx.fill();
+  hit(bx - 14, sy - 10, bw + 28, 56, (p) => setSfxVolume((p.x - bx) / bw), true);
 }
 
 // 가로 화면에서 연 창이 없을 때 오른쪽: 안내만(창처럼 보이지 않게 흐리게)
@@ -1221,7 +1317,7 @@ function drawInfo() {
     const gi = G.goals.indexOf(id), bw = (w - 40) / 2;
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
     if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
-    button(x + 26 + bw, y + h - 76, bw, 56, '조합', () => { const nu = E.combine(G, r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
+    button(x + 26 + bw, y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
   }
 }
 // 피해 순위표(사용자 요청 2026-11-08): 갈매미마다 이번 판·이번 웨이브에 준 피해(외부탐사 대장 포함)
@@ -1308,6 +1404,7 @@ function drawRecruit() {
   button(x + 40, y + 176, w - 80, bh, '모집하기', () => {
     const r = E.recruit(G);
     if (!r.ok) { if (r.why) say(r.why); return; }
+    sfx(r.fail ? 'recruitFail' : 'recruitOk');
     modal.last = r.fail ? { fail: true, t: performance.now() } : { id: r.unit.id, grade: r.grade, t: performance.now() };
   }, 'primary', tk >= cost, `모집권 ${cost}개`);
   // 결과
@@ -1336,6 +1433,7 @@ function drawModal() {
   else if (modal?.kind === 'peer') drawPeerModal();
   else if (modal?.kind === 'meter') drawMeter();
   else if (modal?.kind === 'recruit') drawRecruit();
+  else if (modal?.kind === 'signal') drawSignalPicker();
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
 // 각자 자기 판을 하고, 0.25초마다 자기 판 모습(짧은 상태 글)을 서버(/defense/room)에 보내며 친구 판 모습을 받아 그린다.
@@ -1353,7 +1451,7 @@ async function roomApi(path, body) {
   return j;
 }
 function resetNet() {
-  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, err: '', giftSent: 0, giftRecv: 0 });
+  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, err: '', giftSent: 0, giftRecv: 0, sigSeq: 0, sigKind: 0, sigSeen: 0 });
 }
 async function makeRoom() {
   if (lobby.wait) return;
@@ -1412,6 +1510,29 @@ function roomGone() {   // 방이 닫힘(방장이 나갔거나 오래 비어 �
 const GIFT = 50;
 const canGift = () => coop() && G && !G.over && G.gold >= GIFT && net.peerOn && net.peer && !net.peer.ov;
 function sendGift() { if (!canGift()) return; G.gold -= GIFT; net.giftSent += GIFT; say(`친구에게 새우 ${GIFT}을(를) 보냈어요.`); netTick(); }
+// 신호(사용자 요청 2026-11-08): 짧은 말을 친구 화면에 잠깐 띄움. 판 모습에 [번호, 종류]를 실어 보냄
+const SIGNALS = [['!', '도와줘!'], ['★', '보스 온다!'], ['➜', '탐사 보내자'], ['♥', '좋아요!']];
+let sigShow = null;
+function sendSignal(k) { if (!coop()) return; net.sigSeq++; net.sigKind = k; say(`신호 보냄: ${SIGNALS[k][1]}`); netTick(); }
+function drawSignalPicker() {
+  shadeAll(0.3);
+  const { x, y, w, h } = modalRect(), hh = Math.min(h, 300), yy = y + (h - hh) / 2;
+  box(x, yy, w, hh, C.panel, C.goldEdge, 14, 2);
+  text('친구에게 신호', x + 18, yy + 30, 20, C.text);
+  button(x + w - 96, yy + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  const bw = (w - 36) / 2, bh = (hh - 90) / 2;
+  SIGNALS.forEach(([ic, msg], i) => button(x + 12 + (i % 2) * (bw + 12), yy + 62 + Math.floor(i / 2) * (bh + 10), bw, bh, `${ic}  ${msg}`, () => { sendSignal(i); modal = null; }, i === 0 ? 'danger' : 'normal'));
+}
+function drawSignalBanner() {   // 받은 신호(판 위쪽 가운데)
+  if (!sigShow || performance.now() > sigShow.until) return;
+  const a = Math.min(1, (sigShow.until - performance.now()) / 400);
+  ctx.globalAlpha = a;
+  ctx.font = `20px ${FONT}`;
+  const tw = Math.min(W - 60, ctx.measureText(`친구: ${sigShow.msg}`).width + 70);
+  box((W - tw) / 2, FIELD.y + 50, tw, 50, 'rgba(90,36,24,.95)', '#ffb08f', 12, 2.5);
+  text(`${sigShow.icon}  친구: ${sigShow.msg}`, W / 2, FIELD.y + 75, 20, '#fff3cf', 'center');
+  ctx.globalAlpha = 1;
+}
 function sendCtl(c) { net.pend = { ...(net.pend ?? {}), ...c }; netTick(); }
 function setPause(on) {
   if (!G || G.over) return;
@@ -1424,7 +1545,7 @@ function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
     r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
-    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
+    a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, sg: [net.sigSeq, net.sigKind], mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
   });
@@ -1461,6 +1582,10 @@ function onSync(j) {
       net.prevMap = new Map((Array.isArray(net.prev?.e) ? net.prev.e : []).filter(Array.isArray).map((e) => [e[0], e]));
       if (G && scene === 'play') {
         E.setPeerMission(G, s.mdg);   // 외부탐사를 둘이서 같이
+        if (Array.isArray(s.sg) && num(s.sg[0]) > net.sigSeen) {   // 친구가 보낸 신호
+          net.sigSeen = num(s.sg[0]); const k = SIGNALS[num(s.sg[1])];
+          if (k) { sigShow = { msg: k[1], icon: k[0], until: performance.now() + 3500 }; sfx('signal'); }
+        }
         const gift = Math.min(1e7, num(s.gs) - net.giftRecv);   // 친구가 보낸 새우(보낸 합계가 늘어난 만큼)
         if (gift > 0) { net.giftRecv += gift; if (!G.over) { G.gold += gift; say(`친구가 새우 ${gift}을(를) 보냈어요!`); } }
       }
@@ -1469,7 +1594,7 @@ function onSync(j) {
 }
 function applyCtl(c) {
   if (num(c.round) > net.round) {   // 방장이 시작함: 둘이 같은 씨앗으로 새 판
-    net.round = num(c.round); net.peer = net.prev = net.prevMap = null; net.peerRaw = ''; net.giftSent = 0; net.giftRecv = 0;
+    net.round = num(c.round); net.peer = net.prev = net.prevMap = null; net.peerRaw = ''; net.giftSent = 0; net.giftRecv = 0; net.sigSeq = 0; net.sigSeen = 0;
     start(num(c.seed)); lobby.mode = net.seat === 0 ? 'host' : 'guest';
   }
   if (!coop() || scene !== 'play' || !G) return;
@@ -1609,7 +1734,7 @@ function drawPeerFull(withButtons = false, topOnly = false) {
   ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
   if (P) drawPeerField(P); else drawLanes();
   ctx.restore();
-  if (topOnly) { if (withButtons) button(W - 22 - 150, FIELD.y + 8, 150, 38, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); return; }
+  if (topOnly) { if (withButtons) { button(W - 22 - 150, FIELD.y + 8, 150, 38, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); button(W - 22 - 150, FIELD.y + 52, 150, 38, '신호 보내기', () => { modal = { kind: 'signal' }; }, 'normal', coop()); } return; }
   const y0 = 672;
   box(8, y0, W - 16, H - y0 - 8, C.panel, C.edge, 12);
   text('친구 상황', 22, y0 + 24, 17, C.gold);
@@ -1622,7 +1747,7 @@ function drawPeerFull(withButtons = false, topOnly = false) {
     const up = Array.isArray(P.up) ? P.up : [];
     chipRow(E.UPG_NAME.map((nm, gi) => [`${nm} ${num(up[gi])}`, num(up[gi]) >= E.RULES.upgMax ? C.goldEdge : C.muted]), 22, gy + 24, W - 22, 13);
   }
-  if (withButtons) button(W - 22 - 150, 672 + 8, 150, 40, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift());
+  if (withButtons) { button(W - 22 - 150, 672 + 8, 150, 40, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); button(W - 22 - 150 - 130, 672 + 8, 122, 40, '신호', () => { modal = { kind: 'signal' }; }, 'normal', coop()); }
 }
 // 가로 화면에서 창을 연 동안: 오른쪽 위에 친구 소식 한 줄
 function drawPeerBar() {
@@ -1655,9 +1780,10 @@ function drawPeerStrip() {
     fitText(`경고 ${num(P.wn)}/${E.RULES.warnMax} · 새우 ${num(P.g)}`, tx, y0 + 103, tw, 14, num(P.wn) ? C.bad : C.muted);
     fitText(`처치 ${num(P.k)} · 탐사 ${num(P.md)}곳 · 창고 ${num(P.st)}`, tx, y0 + 126, tw, 13, C.muted);
   }
-  const hw = (tw - 6) / 2;
-  button(tx, y0 + PEER_H - 62, hw, 44, '크게 보기', () => { modal = { kind: 'peer' }; }, 'normal');
-  button(tx + hw + 6, y0 + PEER_H - 62, hw, 44, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift());
+  const hw = (tw - 12) / 3;
+  button(tx, y0 + PEER_H - 62, hw, 44, '크게', () => { modal = { kind: 'peer' }; }, 'normal');
+  button(tx + hw + 6, y0 + PEER_H - 62, hw, 44, `새우 ${GIFT}`, sendGift, 'normal', canGift());
+  button(tx + 2 * (hw + 6), y0 + PEER_H - 62, hw, 44, '신호', () => { modal = { kind: 'signal' }; }, 'normal', coop());
 }
 // 세로 화면 크게 보기(게임은 계속 흐름)
 function drawPeerModal() {
@@ -1685,7 +1811,7 @@ function frame(now) {
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
   if (wantStrip !== stripOn) { stripOn = wantStrip; fit(); }
-  musicSync();
+  musicSync(); sfxTick(); placeSearch();
   hits = [];
   ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 그림 줄일 때 고품질(기본은 낮음이라 거칠었음)
@@ -1700,7 +1826,7 @@ function frame(now) {
     if (landscape) {
       // 왼쪽: 위 정보 줄 + 판을 크게
       ctx.save(); ctx.scale(LS, LS); OS = LS;
-      drawField(); drawHud(); drawToast();
+      drawField(); drawHud(); drawSignalBanner(); drawToast();
       ctx.restore(); OS = 1;
       // 오른쪽: 창이 열리면 창(열 전체), 없으면 위에 피해 미니판(같이하기면 친구 판) + 아래 메뉴
       ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
@@ -1710,7 +1836,7 @@ function frame(now) {
       else { if (coop()) drawPeerFull(true, true); else drawSideTop(); drawBottom(); }
       if (info) drawInfo();
       ctx.restore(); OX = 0;
-    } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawToast(); }
+    } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene !== 'play') drawToast();
@@ -1734,4 +1860,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, get G() { return G; }, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
