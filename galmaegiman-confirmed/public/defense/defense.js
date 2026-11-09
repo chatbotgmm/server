@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=8ec6736e2598';
+import * as E from './engine.js?v=a06a78549537';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -595,11 +595,11 @@ function drawHud() {
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
   text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
   // 방어(방어력=마법방어력)와 내 판의 방깍·마방깍 합계(사용자 요청 2026-11-08: 후반엔 깎는 조합이 있어야 깸)
-  const armorNow = E.armorAt(G, Math.max(1, G.wave));
-  const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${armorNow}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
+  const armorNow = E.armorAt(G, Math.max(1, G.wave)), mrNow = E.mrAt(G, Math.max(1, G.wave));
+  const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${armorNow}${mrNow !== armorNow ? `·마${mrNow}` : ''}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
   let shSum = 0, mshSum = 0;
   for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; }
-  const okCol = (v) => (v >= armorNow * 0.7 ? C.good : v >= armorNow * 0.35 ? C.goldEdge : C.bad);
+  const okCol = (v, a = armorNow) => (v >= a * 0.7 ? C.good : v >= a * 0.35 ? C.goldEdge : C.bad);
   ctx.font = `12px ${FONT}`;
   const sx = 150 + cw + 8, maxW = W - 224 - sx;
   if (maxW > 40) {
@@ -607,7 +607,7 @@ function drawHud() {
     const tw = ctx.measureText(t1 + t2).width, sc2 = Math.min(1, maxW / tw), fs = Math.max(10, Math.floor(12 * sc2));
     text(t1, sx, 28, fs, okCol(shSum));
     ctx.font = `${fs}px ${FONT}`;
-    text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum));
+    text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum, mrNow));
   }
   const rest = E.resting(G);
   const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.RULES.waveLen - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
@@ -1087,12 +1087,13 @@ function drawTitle() {
   text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
   ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
   // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
-  box(28, 236, W - 56, 112, 'rgba(11,30,42,.88)', C.edge, 12);
-  text('난이도', 44, 262, 16, C.gold);
+  box(28, 196, W - 56, 156, 'rgba(11,30,42,.9)', C.edge, 12);
+  text('난이도', 44, 222, 17, C.gold);
   const dd = E.DIFFS[selDiff];
-  fitText(`적 체력 ×${dd.hp} · 방어 ×${dd.def}${dd.legend40 ? ' · 40웨이브에 전설 위습 1개' : ' · 전설 위습 보상 없음'}`, 110, 262, W - 160, 13, C.muted);
   const dw = (W - 56 - 24 - 4 * 6) / 5;
-  E.DIFF_ORDER.forEach((d, i) => button(40 + i * (dw + 6), 280, dw, 52, E.DIFFS[d].name, () => { selDiff = d; best = bestOf('normal', d); try { localStorage.setItem(DIFF_KEY, d); } catch { /* 진행 */ } }, d === selDiff ? 'primary' : 'normal'));
+  E.DIFF_ORDER.forEach((d, i) => button(40 + i * (dw + 6), 238, dw, 52, E.DIFFS[d].name, () => { selDiff = d; best = bestOf('normal', d); try { localStorage.setItem(DIFF_KEY, d); } catch { /* 진행 */ } }, d === selDiff ? 'primary' : 'normal'));
+  fitText(`라인 체력 ×${dd.line} · 보스 체력 ×${dd.boss} · 방어 ×${dd.armor} · 마법방어 ×${dd.mr}`, W / 2, 312, W - 80, 15, C.text, 'center');
+  fitText(dd.legend40 ? '40웨이브에 전설 위습 1개' : '40웨이브 전설 위습 보상 없음', W / 2, 336, W - 80, 14, dd.legend40 ? C.goldEdge : C.muted, 'center');
   box(28, 492, W - 56, 234, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 갈매미가 나와요.',

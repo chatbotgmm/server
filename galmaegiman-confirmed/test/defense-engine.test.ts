@@ -124,6 +124,13 @@ describe('랜덤 디펜스 엔진', () => {
     g.units = []; for (let i = 0; i < 10; i++) E.step(g, 0.05);   // 갈매미가 없어지면 0.3초 뒤 풀림
     expect(E.shredNow(a, g.t).mshred).toBe(0);
   });
+  it('전설·히든에 이감·스턴 갈매미가 각각 여럿(선택지)', () => {
+    for (const grade of ['LEGEND', 'HIDDEN']) {
+      const ks = E.UNITS.filter((u: { grade: string }) => u.grade === grade).map((u: { id: string }) => E.kit(u.id));
+      expect(ks.filter((k: { slow?: number }) => k.slow).length).toBeGreaterThanOrEqual(3);
+      expect(ks.filter((k: { stun?: number; astun?: number }) => k.stun || k.astun).length).toBeGreaterThanOrEqual(2);
+    }
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);
@@ -145,6 +152,13 @@ describe('랜덤 디펜스 엔진', () => {
     const hp = order.map((d) => { const g = E.newGame(9, 'normal', d); g.wave = 1; g.waveT = 0; g.spawnLeft = 1; g.spawnT = 0; E.step(g, 0.01); return g.enemies[0].max; });
     for (let i = 1; i < hp.length; i++) expect(hp[i]).toBeGreaterThan(hp[i - 1]);
     expect(hp[3]).toBeCloseTo(E.waveInfo(1).hp);   // 달인 = 예전 규칙
+    // 보스 체력·방어·마법방어도 난이도마다 따로(보스는 라인과 다른 배수)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const boss = order.map((d) => { const g: any = E.newGame(9, 'normal', d); g.wave = 5; g.waveT = 0; g.spawnLeft = 1; g.spawnT = 0; E.step(g, 0.01); return g.enemies[0]; });
+    for (let i = 1; i < boss.length; i++) { expect(boss[i].max).toBeGreaterThan(boss[i - 1].max); expect(boss[i].armor).toBeGreaterThanOrEqual(boss[i - 1].armor); expect(boss[i].mr).toBeGreaterThanOrEqual(boss[i - 1].mr); }
+    expect(boss[3].max).toBeCloseTo(E.waveInfo(5).hp);
+    for (const d of order) { const D = E.DIFFS[d]; for (const key of ['line', 'boss', 'armor', 'mr']) expect(typeof D[key]).toBe('number'); }
+    expect(E.DIFFS.intro.boss).not.toBe(E.DIFFS.intro.line);
     expect(E.newGame(1).diff).toBe('master'); expect(E.newGame(1, 'normal', 'x').diff).toBe('master');
     for (const [d, want] of [['master', 1], ['intro', 1], ['artisan', 0]] as const) {
       const g = E.newGame(4, 'normal', d); g.units = []; g.wave = 39; g.waveT = E.RULES.waveLen - 0.01; g.spawnLeft = 0; g.enemies = []; g.missionDone = E.REGIONS.length;

@@ -93,6 +93,9 @@ export const WISP_SKILL = {
 // 탐사 특기(사용자 요청 2026-11-08: 외부탐사에 능한 재료 단계 갈매미, 외부탐사에서만 강해짐): 외부탐사 대장에게 주는 피해 배수.
 // 재료로 쓰이면서 판 수비는 약한 보조(고체력)는 ×6, 근접술사는 ×3 → 같은 등급 주력보다 외부탐사 피해가 약 1.5~1.7배
 export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 };
+// 전설·히든 이감·스턴 더하기(2026-11-09 사용자 요청: 선택지가 적음). 값은 그 등급 기본 세기에 곱하는 비율(전담 보조보다 조금 약하게)
+// 전설: 이감 가시여왕·네레이드·설랑 / 스턴 거장·뇌호 · 히든: 이감 수경·꽃무덤·몽마 / 스턴 무명, 범위 스턴 금각
+export const UTIL_EXTRA = { u34: { slow: 0.7 }, u37: { stun: 0.6 }, u39: { stun: 0.6 }, u40: { slow: 0.6 }, u43: { astun: 0.6 }, u44: { slow: 0.7 } };
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
@@ -131,6 +134,12 @@ export function kit(id) {
     if (elem === 'NATURE') k.poison = 0.25;
     if (elem === 'DARK') { if (mage) k.mshred = SHRED(t); else k.shred = SHRED(t); }   // 어둠: 방깍·마방깍 그대로(마방깍 갈매미가 적어 후반 마법방어를 깎을 수 있게)
     if (elem === 'HOLY') k.holy = 1.5;
+  }
+  const ux = UTIL_EXTRA[id];
+  if (ux) {
+    if (ux.slow) k.slow = Math.max(k.slow ?? 0, SLOW(t) * ux.slow);
+    if (ux.stun) k.stun = Math.max(k.stun ?? 0, STUN(t) * ux.stun);
+    if (ux.astun) k.astun = Math.max(k.astun ?? 0, Math.max(ASTUN(t), 0.12) * ux.astun);
   }
   // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
   if (k.job === '주력') {
@@ -238,16 +247,18 @@ export const MODES = {
 };
 export const modeOf = (g) => MODES[g.mode] ?? MODES.normal;
 // 난이도(2026-11-09 사용자 요청): 지금까지의 규칙 = 달인. 적 체력·방어 배수, 달인까지는 40웨이브에 전설 랜덤 위습 1개
+// 2026-11-09 사용자 요청: 난이도마다 라인 몬스터 체력·보스 체력·방어력·마법방어 차이를 따로(보스·외부탐사 대장은 boss)
 export const DIFFS = {
-  intro: { name: '입문', hp: 0.45, def: 0.6, legend40: true },
-  mid: { name: '중급', hp: 0.6, def: 0.75, legend40: true },
-  high: { name: '상급', hp: 0.8, def: 0.9, legend40: true },
-  master: { name: '달인', hp: 1, def: 1, legend40: true },
-  artisan: { name: '장인', hp: 1.25, def: 1.15, legend40: false },
+  intro: { name: '입문', line: 0.45, boss: 0.35, armor: 0.55, mr: 0.5, legend40: true },
+  mid: { name: '중급', line: 0.6, boss: 0.5, armor: 0.7, mr: 0.65, legend40: true },
+  high: { name: '상급', line: 0.8, boss: 0.75, armor: 0.9, mr: 0.85, legend40: true },
+  master: { name: '달인', line: 1, boss: 1, armor: 1, mr: 1, legend40: true },
+  artisan: { name: '장인', line: 1.2, boss: 1.35, armor: 1.15, mr: 1.25, legend40: false },
 };
 export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
 export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
-export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).def);   // 이 판(난이도)의 그 웨이브 방어
+export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor);   // 이 판(난이도)의 그 웨이브 방어력
+export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr);            // 마법방어
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal', diff = 'master') {
   return {
     seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
@@ -471,8 +482,8 @@ function ensureMission(g) {
   if (!missionOpen(g)) return null;
   if (!g.mission || g.mission.k !== g.missionDone) {
     const gd = regionGuard(g.missionDone);
-    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).hp);
-    g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: Math.round(gd.armor * diffOf(g).def), mr: Math.round(gd.mr * diffOf(g).def), boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
+    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).boss);
+    g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: Math.round(gd.armor * diffOf(g).armor), mr: Math.round(gd.mr * diffOf(g).mr), boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
   }
   return g.mission;
 }
@@ -587,8 +598,8 @@ function startWave(g) {
 }
 function spawn(g) {
   const wi = waveInfo(g.wave);
-  const hp = wi.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).hp, df = diffOf(g).def;
-  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df), mr: Math.round(wi.mr * df),
+  const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line);
+  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr),
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
 }
 function rollWisp(g, skill) {
