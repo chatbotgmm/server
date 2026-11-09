@@ -145,7 +145,10 @@ function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '
   if (style === 'primary' && enabled) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, S[0]); g.addColorStop(1, S[1]); box(x, y, w, h, g, S[3], 10, 2); }
   else box(x, y, w, h, enabled ? S[0] : '#1b2a33', enabled ? S[3] : '#33434d', 10, 1.5);
   const col = enabled ? S[2] : '#6f7f88';
-  if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center'); }
+  if (sub && h < 48) {   // 낮은 버튼: 이름과 부가 글을 한 줄에(글자가 칸 밖으로 넘치지 않게)
+    fitText(label, x + w * 0.3, y + h / 2, w * 0.5, 16, col, 'center');
+    fitText(sub, x + w * 0.72, y + h / 2, w * 0.48, 13, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center');
+  } else if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center'); }
   else fitText(label, x + w / 2, y + h / 2, w - 12, 17, col, 'center');
   if (enabled) hit(x, y, w, h, fn);
 }
@@ -962,14 +965,14 @@ function drawUpgrade() {
   text('등급별 강화', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
-  if (sh) drawFit(sh, x + 18, y + 80, 24, 24);
-  text(`가진 새우 ${G.gold}`, x + 48, y + 93, 17, C.goldEdge);
+  if (sh) drawFit(sh, x + 18, y + 56, 24, 24);
+  text(`가진 새우 ${G.gold}`, x + 48, y + 69, 17, C.goldEdge);
   const have = Array(E.UPG_COUNT).fill(0);
   for (const u of E.fieldUnits(G)) have[E.upgGroup(E.tierOf(u.id))]++;
   const color = ['UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
-  const rowH = Math.min(84, (h - 118) / E.UPG_COUNT), bh = rowH - 10;   // 창 높이에 맞춰 줄 높이
+  const rowH = Math.min(84, (h - 96) / E.UPG_COUNT), bh = rowH - 8;   // 창 높이에 맞춰 줄 높이
   for (let gi = 0; gi < E.UPG_COUNT; gi++) {
-    const yy = y + 112 + gi * rowH, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
+    const yy = y + 88 + gi * rowH, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
     box(x + 14, yy, w - 28, bh, 'rgba(11,30,42,.85)', col, 10, 2);
     text(E.UPG_NAME[gi], x + 30, yy + bh * 0.32, bh < 62 ? 17 : 19, col);
     const maxed = E.upgMaxed(G, gi);
