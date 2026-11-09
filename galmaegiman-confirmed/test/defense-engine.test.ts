@@ -131,6 +131,14 @@ describe('랜덤 디펜스 엔진', () => {
       expect(ks.filter((k: { stun?: number; astun?: number }) => k.stun || k.astun).length).toBeGreaterThanOrEqual(2);
     }
   });
+  it('마방깍 갈매미가 모든 등급에 있고(에픽·히든은 2종), 범위 효과', () => {
+    const grades = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
+    for (const g of grades) {
+      const n = E.UNITS.filter((u: { grade: string; id: string }) => u.grade === g && E.kit(u.id).mshred).length;
+      expect(n, g).toBeGreaterThanOrEqual(g === 'EPIC' || g === 'HIDDEN' ? 2 : 1);
+    }
+    expect(E.kitTips(E.kit('u32')).some((t: string) => t.startsWith('주변 마방깍'))).toBe(true);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

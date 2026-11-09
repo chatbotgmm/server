@@ -95,7 +95,12 @@ export const WISP_SKILL = {
 export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 };
 // 전설·히든 이감·스턴 더하기(2026-11-09 사용자 요청: 선택지가 적음). 값은 그 등급 기본 세기에 곱하는 비율(전담 보조보다 조금 약하게)
 // 전설: 이감 가시여왕·네레이드·설랑 / 스턴 거장·뇌호 · 히든: 이감 수경·꽃무덤·몽마 / 스턴 무명, 범위 스턴 금각
-export const UTIL_EXTRA = { u34: { slow: 0.7 }, u37: { stun: 0.6 }, u39: { stun: 0.6 }, u40: { slow: 0.6 }, u43: { astun: 0.6 }, u44: { slow: 0.7 } };
+// 마방깍 더하기(2026-11-09 사용자 요청: 마방깍 유닛이 너무 적음 — 방깍 13종·마방깍 4종이었음): 비어 있던 등급마다 술사(주력)에 그 등급 마방깍의 60%
+// 언커먼 먹구름 · 레어 요정 · 에픽 드라이어드·화룡 · 전설 잿불새 · 제한 베히모스 · 초월 가루다 · 불멸 등불정령
+export const UTIL_EXTRA = {
+  u34: { slow: 0.7 }, u37: { stun: 0.6 }, u39: { stun: 0.6 }, u40: { slow: 0.6 }, u43: { astun: 0.6 }, u44: { slow: 0.7 },
+  u16: { mshred: 0.6 }, u18: { mshred: 0.6 }, u26: { mshred: 0.6 }, u32: { mshred: 0.6 }, u38: { mshred: 0.6 }, u46: { mshred: 0.6 }, u49: { mshred: 0.6 }, u54: { mshred: 0.6 },
+};
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
@@ -140,6 +145,7 @@ export function kit(id) {
     if (ux.slow) k.slow = Math.max(k.slow ?? 0, SLOW(t) * ux.slow);
     if (ux.stun) k.stun = Math.max(k.stun ?? 0, STUN(t) * ux.stun);
     if (ux.astun) k.astun = Math.max(k.astun ?? 0, Math.max(ASTUN(t), 0.12) * ux.astun);
+    if (ux.mshred) k.mshred = Math.max(k.mshred ?? 0, Math.round(SHRED(t) * ux.mshred));
   }
   // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
   if (k.job === '주력') {
