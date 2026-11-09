@@ -126,6 +126,26 @@ describe('랜덤 디펜스 엔진', () => {
     expect(nostory.over).toBeFalsy();
   });
 
+  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습 2개(모집권은 10웨이브 보스만)', () => {
+    expect([1, 4, 5, 9, 10, 15, 60].map((w) => E.waveInfo(w).boss)).toEqual([false, false, true, false, true, true, true]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const killBoss = (g: any, w: number) => {
+      g.units = []; g.wave = w; g.waveT = 1; g.spawnLeft = 0; g.missionDone = E.REGIONS.length;
+      g.enemies = [{ id: 1, hp: 0, max: 1, s: 0, speed: 0, boss: true, look: 'e:v5', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 46, y: 134, by: 0 }];
+      E.step(g, 0.05);
+    };
+    const g = E.newGame(3); const p0 = g.picks.COMMON, t0 = g.tickets ?? 0;
+    killBoss(g, 5);
+    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + 2); expect(g.tickets ?? 0).toBe(t0);
+    killBoss(g, 10);
+    expect(g.picks.COMMON).toBe(p0 + 4); expect(g.tickets).toBe(t0 + 1);
+  });
+  it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {
+    expect(E.defAt(40)).toBeLessThanOrEqual(45);
+    expect(E.defAt(20)).toBeLessThan(30);
+    expect(E.defAt(50) - E.defAt(40)).toBeGreaterThan(100);
+    expect(E.defAt(60)).toBe(305);
+  });
   it('도전 모드: 하드 체력 ×1.5 · 강화 금지 · 외부탐사 금지', () => {
     const h = E.newGame(1, 'hard'); run(h, 1);
     expect(h.enemies[0].max).toBeCloseTo(E.waveInfo(1).hp * 1.5);

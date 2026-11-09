@@ -25,17 +25,20 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
   // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
-  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1,   // 보스 처치마다 모집권 1(소량)
+  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10,   // 10웨이브 보스 처치마다 모집권 1(소량). 보스가 5웨이브마다로 바뀐 뒤에도 모집권 양은 그대로
   storyDeadline: 50,   // 스토리 8장은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
-  bossEvery: 10, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
-  hpBase: 55, hpGrowth: 1.16, hpLinear: 25, bossMul: [3.5, 3, 3, 2, 2, 1.5],   // 보스 체력 = 그 웨이브 적 체력 × (10·20·30·40)
+  bossEvery: 5, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
+  hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
+  // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
+  bossMul: { 5: 2, 10: 3.5, 15: 3, 20: 3, 25: 3, 30: 3, 35: 2.5, 40: 2, 45: 2, 50: 2, 55: 1.8, 60: 1.5 },
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 1~10웨이브는 「초반이 많이 어렵다」는 의견으로 ×0.7. 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
   hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 70000], [40, 75000], [45, 82000], [50, 95000], [55, 114000], [60, 134000]],   // 2026-11-08 상위 한두 마리·전설·히든 중심으로 바꾸며 31웨이브부터 점점 낮춤(60웨이브 ×0.07)   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
   armorBase: 4, armorPer: 2.4,   // (예전 값, 지금은 아래 def… 사용)
-  defBase: 5, defPer: 2, defLateFrom: 30, defLatePer: 8, defBossMul: 1.3, armorPow: 2,   // 방어: 30웨이브 65 → 40웨이브 145 → 50웨이브 225 → 60웨이브 305(보스 ×1.3)
+  // 방어(2026-11-09 사용자 요청: 40웨이브부터 오르고 그 전은 널널하게): 10웨이브 15 · 20웨이브 25 · 40웨이브 45 → 50웨이브 175 → 60웨이브 305(보스 ×1.3)
+  defBase: 5, defPer: 1, defLateFrom: 40, defLatePer: 13, defBossMul: 1.3, armorPow: 2,
   // 등급별 기본 공격력(주력 기준 한 번 때릴 때)과 판매값(새우)
   atkSpeed: 2,
   lineBossMul: 0.6, singleBossMul: 1.35, singleMul: 1.8,   // 라인 정리형 보스 피해 ×0.6, 단일 공격형 ×1.35   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
@@ -54,7 +57,8 @@ export const RULES = {
   upgPct: 0.15, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
   bossReward: { 10: { RARE: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
-  startPick: {}, bossPick: {},
+  // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
+  startPick: {}, bossPickEach: { COMMON: 2 }, bossPick: {},
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
   guardHp: [20000, 150000, 400000, 600000, 3000000, 2500000, 6000000, 8000000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
@@ -212,8 +216,8 @@ export function waveInfo(w) {
   const kind = boss ? 'boss' : '일반';
   const armor = Math.round(def * (boss ? RULES.defBossMul : 1)), mr = armor;
   // 적 모습(사용자 요청 2026-11-08: 끼룩단·쭈매미·흑화 갈매미맨 그림, 색 입히지 않음). e: 적 그림, b: 흑화 갈매미 그림
-  const look = boss ? BOSS_LOOK[Math.min(BOSS_LOOK.length, w / RULES.bossEvery) - 1] : (() => { const band = ENEMY_LOOK.find(([to]) => w <= to)[1]; return band[w % band.length]; })();
-  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * RULES.bossMul[Math.min(RULES.bossMul.length, w / RULES.bossEvery) - 1] : hp,
+  const look = boss ? BOSS_LOOK[Math.min(BOSS_LOOK.length, Math.ceil(w / 10)) - 1] : (() => { const band = ENEMY_LOOK.find(([to]) => w <= to)[1]; return band[w % band.length]; })();
+  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) : hp,
     speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
@@ -635,10 +639,12 @@ export function step(g, dt) {
     if (g.wave >= RULES.waves) { g.over = 'win'; g.reason = `${RULES.waves}웨이브 보스까지 모두 막았어요!`; return; }
     const rw = RULES.bossReward[g.wave];
     if (rw) addWisps(g, rw);
-    const rp = RULES.bossPick[g.wave];
-    if (rp) for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    if (RULES.bossTicket) g.tickets = (g.tickets ?? 0) + RULES.bossTicket;
-    news(g, `보스 처치! ${[rw && wispText(rw), rp && pickText(rp), RULES.bossTicket && `모집권 ${RULES.bossTicket}`].filter(Boolean).join(' · ')}`);
+    const rp = { ...(RULES.bossPickEach ?? {}) };
+    for (const [k, v] of Object.entries(RULES.bossPick[g.wave] ?? {})) rp[k] = (rp[k] ?? 0) + v;
+    for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
+    const tk = RULES.bossTicket && g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 ? RULES.bossTicket : 0;
+    if (tk) g.tickets = (g.tickets ?? 0) + tk;
+    news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
   }
   g.waveT += dt;
