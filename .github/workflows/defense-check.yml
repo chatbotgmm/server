@@ -1,0 +1,55 @@
+# 랜덤 디펜스(/defense) 작업 갈래 자동 시험: 올릴 때마다 규칙·같이하기 방 시험, 문법, 파일 지문(?v=)을 확인한다.
+name: defense-check
+
+on:
+  push:
+    branches:
+      - claude/charming-bardeen-sct1b0
+    paths:
+      - galmaegiman-confirmed/public/defense/**
+      - galmaegiman-confirmed/src/site.ts
+      - galmaegiman-confirmed/test/defense-engine.test.ts
+      - galmaegiman-confirmed/test/site.test.ts
+      - galmaegiman-confirmed/scripts/web/stamp-defense.py
+      - .github/workflows/defense-check.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: defense-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  defense:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: galmaegiman-confirmed
+    env:
+      DATABASE_URL: file:./ci.db
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: galmaegiman-confirmed/package-lock.json
+      - name: 의존성 설치
+        run: npm ci
+      - name: Prisma 클라이언트 만들기
+        run: npx prisma generate
+      - name: 화면 파일 문법 확인
+        run: |
+          for f in public/defense/defense.js public/defense/engine.js public/defense/data.js; do node --check "$f"; done
+      - name: 파일 지문(?v=)이 내용과 맞는지 확인
+        run: |
+          python3 -I scripts/web/stamp-defense.py
+          git diff --exit-code -- public/defense || { echo '::error::stamp-defense.py를 돌린 뒤 커밋하세요(파일 주소 지문이 내용과 다름)'; exit 1; }
+      - name: 규칙·같이하기 방 시험
+        run: npx vitest run test/defense-engine.test.ts test/site.test.ts
