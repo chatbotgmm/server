@@ -18,7 +18,7 @@ export interface Notice{id:string;title:string;date:string;category?:string;body
 export interface DownloadInfo{label:string;version:string;url:string;note?:string;sha256?:string;requirement?:string}
 export interface SiteOptions{root:string;version:string;kakao:boolean}
 // 로그인 뒤 갈 곳·취소하면 돌아갈 곳: 사이트 안의 정해진 경로만(바깥 주소·//·\\ 거부)
-const NEXT=new Set(['/game','/game60','/account']);
+const NEXT=new Set(['/game','/game60','/account','/defense']);   // /defense: 디펜스 계정 저장(로그인 뒤 돌아옴)
 const FROM=/^\/(?:about|world|characters|notices(?:\/[A-Za-z0-9_-]{1,40})?|download|dex(?:\/[A-Za-z0-9_-]{1,12})?|recipes|hidden|rank|event|talk|odds|privacy)?$/;
 // 로그인 뒤 기본으로 가는 곳은 지금 게임(60종) 웹게임. 예전 /game은 /game60으로 보낸다(2026-11-07)
 export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?(v==='/game'?'/game60':v):'/game60';

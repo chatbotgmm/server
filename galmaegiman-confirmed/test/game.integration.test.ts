@@ -36,7 +36,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
   });
   beforeEach(async()=>{
     await db.$transaction([
-      db.webLogin.deleteMany(),db.playerItem.deleteMany(),db.kakaoLink.deleteMany(),db.storySave.deleteMany(),db.chatAppUser.deleteMany(),db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
+      db.webLogin.deleteMany(),db.playerItem.deleteMany(),db.kakaoLink.deleteMany(),db.storySave.deleteMany(),db.defenseSave.deleteMany(),db.chatAppUser.deleteMany(),db.commentLike.deleteMany(),db.comment.deleteMany(),db.pendingAction.deleteMany(),db.adminSnapshot.deleteMany(),db.auditEvent.deleteMany(),db.achievement.deleteMany(),db.dailyProgress.deleteMany(),db.collectionEntry.deleteMany(),db.ownedCharacter.deleteMany(),db.expedition.deleteMany(),db.player.deleteMany()
     ]);
     now=new Date('2026-10-02T08:00:00+09:00');
     // 기본 테스트 계정은 튜토리얼을 마친 상태(튜토리얼 보상은 별도 테스트)
@@ -1088,6 +1088,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       await db.collectionEntry.create({data:{playerId:p.id,characterId:'C1'}});
       await db.playerItem.create({data:{playerId:p.id,itemId:'potion',count:2}});
       await db.storySave.create({data:{playerId:p.id,data:'{}'}});
+      await db.defenseSave.create({data:{playerId:p.id,best:'{"normal":9}'}});
       await db.kakaoLink.create({data:{kakaoId:'555',playerId:p.id}});
       const c=await db.comment.create({data:{playerId:p.id,characterId:'C1',text:'안녕'}});
       const oc=await db.comment.create({data:{playerId:other.id,characterId:'C1',text:'남아요'}});
@@ -1100,7 +1101,7 @@ suite('격리 SQLite 실제 트랜잭션 (v0.3)',()=>{
       expect(ok.statusCode).toBe(200);expect(String(ok.headers['set-cookie'])).toContain('Max-Age=0');
       expect(await db.player.count({where:{id:p.id}})).toBe(0);
       for(const n of [await db.ownedCharacter.count({where:{playerId:p.id}}),await db.collectionEntry.count({where:{playerId:p.id}}),await db.playerItem.count({where:{playerId:p.id}}),
-        await db.storySave.count({where:{playerId:p.id}}),await db.kakaoLink.count({where:{playerId:p.id}}),await db.comment.count({where:{playerId:p.id}}),await db.auditEvent.count({where:{playerId:p.id}}),await db.webLogin.count({where:{playerId:p.id}})])expect(n).toBe(0);
+        await db.storySave.count({where:{playerId:p.id}}),await db.defenseSave.count({where:{playerId:p.id}}),await db.kakaoLink.count({where:{playerId:p.id}}),await db.comment.count({where:{playerId:p.id}}),await db.auditEvent.count({where:{playerId:p.id}}),await db.webLogin.count({where:{playerId:p.id}})])expect(n).toBe(0);
       expect(await db.commentLike.count()).toBe(1);                        // 남의 댓글에 남이 누른 좋아요만 남음
       expect(await db.ownedCharacter.count({where:{playerId:other.id}})).toBe(1);expect(await db.comment.count({where:{id:oc.id}})).toBe(1);
       expect((await app.inject({method:'GET',url:'/my/api/me',headers:{cookie}})).statusCode).toBe(401);

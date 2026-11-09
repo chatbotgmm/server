@@ -258,7 +258,7 @@ function start(seed, mode = 'normal') {
 function saveNow() {
   if (scene !== 'play' || !G || G.over) return;
   if (coop()) ls.set(ROOM_SAVE_KEY, JSON.stringify({ code: net.code, round: net.round, gs: net.giftSent, gr: net.giftRecv, save: E.saveGame(G) }));
-  else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
+  else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode, at: Date.now() }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); cloudSave(false); }
 }
 function clearSave() { ls.del(SAVE_KEY); ls.del(SAVE_META_KEY); resumeMeta = null; }
 function resume() {
@@ -269,8 +269,43 @@ function resume() {
   musicPlay();
 }
 setInterval(saveNow, 3000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
-window.addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { saveNow(); cloudSave(true); } });
+window.addEventListener('pagehide', () => { saveNow(); cloudSave(true); });
+// ── 계정 저장(2026-11-09): 로그인돼 있으면 최고 기록·이어하기 판을 계정에도(/my/api/defense). 안 돼 있으면 지금처럼 이 기기에만 ──
+const cloud = { on: false, can: false, nick: null, upAt: 0, upWave: 0 };   // can: 서버에 계정 저장 기능이 있음(401·200), 없으면(404) 안내도 숨김
+function cloudPost(body, keepalive = false) {
+  if (!cloud.on) return Promise.resolve(null);
+  return fetch('/my/api/defense', { method: 'POST', headers: { 'content-type': 'application/json', 'x-gmm': '1' }, credentials: 'same-origin', keepalive: keepalive && JSON.stringify(body).length < 60000, body: JSON.stringify(body) })
+    .then((r) => { if (r.status === 401) cloud.on = false; return r.ok ? r.json() : null; }).catch(() => null);
+}
+function cloudSave(force) {   // 웨이브가 바뀌었거나 30초 지났을 때(떠날 때는 바로)
+  if (!cloud.on || !resumeMeta || scene !== 'play' || !G || G.over || coop() || inRoom()) return;
+  const now = Date.now();
+  if (!force && G.wave === cloud.upWave && now - cloud.upAt < 30000) return;
+  const data = ls.get(SAVE_KEY); if (!data) return;
+  cloud.upAt = now; cloud.upWave = G.wave;
+  cloudPost({ save: { data, wave: Math.max(1, resumeMeta.wave), mode: resumeMeta.mode ?? 'normal', at: resumeMeta.at ?? now } }, force);
+}
+async function cloudInit() {
+  let me = null;
+  try { const r = await fetch('/my/api/defense', { headers: { 'x-gmm': '1' }, credentials: 'same-origin', cache: 'no-store' }); cloud.can = r.ok || r.status === 401; me = r.ok ? await r.json() : null; } catch { me = null; }
+  if (!me || typeof me !== 'object') return;
+  cloud.on = true; cloud.nick = me.nickname ?? null;
+  // 최고 기록: 모드마다 큰 값으로 합치고, 이 기기 기록이 더 크면 계정에도 올림
+  const up = {};
+  for (const k of Object.keys(E.MODES)) {
+    const mine = bestOf(k), theirs = Number(me.best?.[k]) || 0;
+    if (theirs > mine) ls.set(bestKey(k), String(theirs)); else if (mine > theirs) up[k] = mine;
+  }
+  best = bestOf('normal');
+  // 이어하기: 더 나중에 저장한 쪽을 씀(계정 판은 읽을 수 있을 때만)
+  const sv = me.save, localAt = resumeMeta?.at ?? 0;
+  if (sv && sv.at > localAt && E.loadGame(sv.data)) { ls.set(SAVE_KEY, sv.data); resumeMeta = { wave: sv.wave, mode: sv.mode, at: sv.at }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
+  const body = Object.keys(up).length ? { best: up } : {};
+  if (resumeMeta && ls.get(SAVE_KEY) && (!sv || localAt > sv.at)) body.save = { data: ls.get(SAVE_KEY), wave: Math.max(1, resumeMeta.wave), mode: resumeMeta.mode ?? 'normal', at: localAt || Date.now() };
+  if (Object.keys(body).length) cloudPost(body);
+}
+cloudInit();
 function musicButton(x, y) {
   button(x, y, 46, 40, '♪', () => { modal = { kind: 'sound' }; musicPlay(); }, 'normal');
   if (!music.on) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 12, y + 30); ctx.lineTo(x + 34, y + 10); ctx.stroke(); }
@@ -279,7 +314,9 @@ function saveBest() {   // 모드마다 따로
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
   if (w > bestOf(G.mode)) ls.set(bestKey(G.mode), String(w));
   best = bestOf('normal');
-  if (coop()) ls.del(ROOM_SAVE_KEY); else if (!inRoom()) clearSave();   // 끝난 판은 이어하기에서 지움
+  const solo = !coop() && !inRoom();
+  if (coop()) ls.del(ROOM_SAVE_KEY); else if (solo) clearSave();   // 끝난 판은 이어하기에서 지움
+  cloudPost({ best: { [G.mode ?? 'normal']: Math.min(E.RULES.waves + 1, w) }, ...(solo ? { save: null } : {}) });   // 계정에도 기록(혼자 판이면 계정 이어하기도 지움)
 }
 
 // ── 입력 ──
@@ -1058,7 +1095,12 @@ function drawTitle() {
   else button(52 + half, 786, half, 40, '이어할 판 없음', () => {}, 'normal', false);
   button(40, 834, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, 834, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
-  fitText(`최고 기록 ${bestText(best)} · 로그인 없이 하는 미니 게임 · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
+  if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 930, W - 40, 14, C.good, 'center');
+  else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
+  else {
+    fitText(`최고 기록 ${bestText(best)} · 로그인하면 다른 기기에서도 이어할 수 있어요 ›`, W / 2, 930, W - 40, 14, C.goldEdge, 'center');
+    hit(20, 912, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
+  }
   musicButton(W - 62, 14);
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }

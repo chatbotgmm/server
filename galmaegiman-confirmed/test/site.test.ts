@@ -62,7 +62,7 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     for(const [url,type] of [['/game60/game.js','javascript'],['/game60/game.css','text/css'],['/game60/assets/units/u01-front.webp','image/webp'],['/game60/assets/black/u01.webp','image/webp'],['/game60/assets/fonts/workbench-noto-regular.otf','font/otf']] as const)
       expect((await app.inject({method:'GET',url})).headers['content-type'],url).toContain(type);
     await get('/game60/../package.json',404);await get('/game60/assets/none.webp',404);
-    expect(safeNext('/game60')).toBe('/game60');
+    expect(safeNext('/game60')).toBe('/game60');expect(safeNext('/defense')).toBe('/defense');
     // 버전 값은 파일 내용에서 나온다: 수정 시각이 같아도 내용이 다르면 다른 값
     const {mkdtempSync,mkdirSync,writeFileSync,utimesSync}=await import('node:fs');const {join}=await import('node:path');const {tmpdir}=await import('node:os');
     const root=mkdtempSync(join(tmpdir(),'stamp-'));mkdirSync(join(root,'public'));const f=join(root,'public','a.js'),t=new Date('2026-11-07T00:00:00Z');

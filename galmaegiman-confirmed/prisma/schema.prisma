@@ -49,6 +49,7 @@ model Player {
   items         PlayerItem[]
   kakao         KakaoLink?
   story         StorySave?
+  defense       DefenseSave?
   chatApp       ChatAppUser?
 }
 
@@ -213,6 +214,18 @@ model KakaoLink {
 model StorySave {
   playerId  String   @id
   data      String
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id])
+}
+
+// 랜덤 디펜스(/defense) 계정 저장(2026-11-09): 모드별 최고 웨이브와 이어하기 판 하나. 브라우저 저장과 합쳐 씀
+model DefenseSave {
+  playerId  String   @id
+  best      String   @default("{}") // {"normal":12,"hard":5} 모드별 최고(61 = 클리어)
+  save      String? // 이어하기 판(엔진 saveGame 결과 JSON 글자)
+  saveWave  Int?
+  saveMode  String?
+  saveAt    DateTime?
   updatedAt DateTime @updatedAt
   player    Player   @relation(fields: [playerId], references: [id])
 }

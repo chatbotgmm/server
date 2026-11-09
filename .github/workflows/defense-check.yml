@@ -1,4 +1,4 @@
-# 랜덤 디펜스(/defense) 작업 갈래 자동 시험: 올릴 때마다 규칙·같이하기 방 시험, 문법, 파일 지문(?v=)을 확인한다.
+# 랜덤 디펜스(/defense) 작업 갈래 자동 시험: 올릴 때마다 규칙·같이하기 방 시험, 계정 저장 API(임시 DB), 문법, 파일 지문(?v=)을 확인한다.
 name: defense-check
 
 on:
@@ -8,6 +8,10 @@ on:
     paths:
       - galmaegiman-confirmed/public/defense/**
       - galmaegiman-confirmed/src/site.ts
+      - galmaegiman-confirmed/src/my.ts
+      - galmaegiman-confirmed/src/defense-save.ts
+      - galmaegiman-confirmed/prisma/schema.prisma
+      - galmaegiman-confirmed/test/defense-save.integration.test.ts
       - galmaegiman-confirmed/test/defense-engine.test.ts
       - galmaegiman-confirmed/test/site.test.ts
       - galmaegiman-confirmed/scripts/web/stamp-defense.py
@@ -53,3 +57,11 @@ jobs:
           git diff --exit-code -- public/defense || { echo '::error::stamp-defense.py를 돌린 뒤 커밋하세요(파일 주소 지문이 내용과 다름)'; exit 1; }
       - name: 규칙·같이하기 방 시험
         run: npx vitest run test/defense-engine.test.ts test/site.test.ts
+      - name: 계정 저장 API 시험(임시 SQLite)
+        run: |
+          dir=$(mktemp -d "${RUNNER_TEMP}/galmaegiman-tests-XXXXXX")
+          touch "$dir/test.db"
+          export DATABASE_URL="file:$dir/test.db" TEST_DB_URL="file:$dir/test.db"
+          node node_modules/prisma/build/index.js db push --skip-generate
+          node --import tsx prisma/seed.ts
+          npx vitest run test/defense-save.integration.test.ts
