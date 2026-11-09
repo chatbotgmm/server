@@ -138,6 +138,12 @@ describe('랜덤 디펜스 엔진', () => {
       expect(n, g).toBeGreaterThanOrEqual(g === 'EPIC' || g === 'HIDDEN' ? 2 : 1);
     }
     expect(E.kitTips(E.kit('u32')).some((t: string) => t.startsWith('주변 마방깍'))).toBe(true);
+    // 전설·히든은 모두, 마법 딜러(술사 주력)는 등급 상관없이 모두 마방깍
+    for (const u of E.UNITS) { const k = E.kit(u.id); if (k.tier === 4 || k.tier === 5 || (k.type === 'mag' && k.job === '주력')) expect(k.mshred, u.name).toBeGreaterThan(0); }
+  });
+  it('20웨이브부터 보스 체력은 마방깍 없이 마법만으로는 못 잡을 만큼(기준 조합 실측으로 정한 배수)', () => {
+    for (const w of [20, 30, 40, 50, 60]) expect(E.RULES.bossMul[w]).toBeGreaterThanOrEqual(3.7);
+    E.RULES.simNoMshred = false;
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');

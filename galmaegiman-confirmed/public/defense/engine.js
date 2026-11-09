@@ -33,7 +33,9 @@ export const RULES = {
   bossEvery: 5, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
-  bossMul: { 5: 2, 10: 3.5, 15: 3, 20: 3, 25: 3, 30: 3, 35: 2.5, 40: 2, 45: 2, 50: 2, 55: 1.8, 60: 1.5 },
+  // 2026-11-09 사용자 요청: 마방깍 없이 마법 딜러만으로는 보스를 못 잡게. 웨이브별 기준 마법 조합이 보스에게 40초 동안 주는 피해를 재서
+  // 체력 = 「마방깍 없을 때 피해×1.2」 이상 · 「있을 때 피해×0.75」 이하가 되게 맞춤(20웨이브부터, 사이 웨이브는 앞뒤 사이 값). 기준 물리 조합(방깍 포함)도 잡을 수 있음
+  bossMul: { 5: 2, 10: 3.5, 15: 4, 20: 5.4, 25: 4.5, 30: 3.8, 35: 5.1, 40: 6.6, 45: 7.3, 50: 8, 55: 5.7, 60: 3.7 },
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 1~10웨이브는 「초반이 많이 어렵다」는 의견으로 ×0.7. 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
   hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 70000], [40, 75000], [45, 82000], [50, 95000], [55, 114000], [60, 134000]],   // 2026-11-08 상위 한두 마리·전설·히든 중심으로 바꾸며 31웨이브부터 점점 낮춤(60웨이브 ×0.07)   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
@@ -147,6 +149,8 @@ export function kit(id) {
     if (ux.astun) k.astun = Math.max(k.astun ?? 0, Math.max(ASTUN(t), 0.12) * ux.astun);
     if (ux.mshred) k.mshred = Math.max(k.mshred ?? 0, Math.round(SHRED(t) * ux.mshred));
   }
+  // 2026-11-09 사용자 요청: 전설·히든은 모두, 마법 딜러(술사 주력)는 등급 상관없이 모두 마방깍(적더라도). 위 표에 없으면 그 등급 마방깍의 35%
+  if (!k.mshred && (t === 4 || t === 5 || (mage && k.job === '주력'))) k.mshred = Math.max(1, Math.round(SHRED(t) * (RULES.mshredAll ?? 0.35)));
   // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
   if (k.job === '주력') {
     k.line = !!(k.area || k.chain || (k.splash ?? 0) >= 0.3); k.bossMul = k.line ? RULES.lineBossMul : RULES.singleBossMul;
@@ -530,7 +534,7 @@ function hurt(g, e, raw, k, uid) {
   const now = g.t;
   let m;
   if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now)) * upgMul(g, k.tier);
-  else m = defMul(e.mr - effSum(e, 'mshreds', now)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
+  else m = defMul(e.mr - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now))) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
   const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
