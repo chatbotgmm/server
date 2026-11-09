@@ -1297,8 +1297,15 @@ function drawInfo() {
   // 재료 피라미드
   const py = y + 200;
   ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(x + 12, py - 14, w - 24, 1);
+  // 선택 위습으로 바로 소환(사용자 요청 2026-11-09): 그 등급 선택 위습으로 고를 수 있는 갈매미면 버튼
+  const pickable = E.PICK_GRADES.includes(u.grade) && E.unitsOfGrade(u.grade).includes(id), pn = G.picks[u.grade] ?? 0;
+  const pickBtn = (bx, bw) => button(bx, y + h - 76, bw, 56, '선택위습 사용', () => {
+    const res = E.summonPick(G, id);
+    if (res.ok) { selected = [res.unit.uid]; say(`${u.name} 소환! (${E.GRADE_NAME[u.grade]} 선택 위습 ${G.picks[u.grade]}개 남음)`); } else if (res.why) say(res.why);
+  }, 'primary', pn > 0, `${E.GRADE_NAME[u.grade]} ${pn}개`);
   if (!r) {
     fitText(`조합법이 없어요 · ${E.GRADE_NAME[u.grade]} 위습으로 소환해요`, W / 2, py + 30, w - 40, 15, C.muted, 'center');
+    if (pickable) pickBtn(x + 14, w - 28);
   } else {
     text('재료 나무', x + 16, py + 6, 15, C.gold);
     // 표시 설명
@@ -1317,10 +1324,11 @@ function drawInfo() {
     else if (miss) wrap(`더 필요: ${miss}`, x + 22, y + h - 127, w - 44, 13, C.goldEdge, 19);
     else fitText('하위 재료는 다 있어요. 아래 단부터 조합해 올라가세요.', W / 2, y + h - 107, w - 40, 14, C.goldEdge, 'center');
     ctx.restore();
-    const gi = G.goals.indexOf(id), bw = (w - 40) / 2;
+    const gi = G.goals.indexOf(id), nb = pickable ? 3 : 2, bw = (w - 28 - 12 * (nb - 1)) / nb;
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
     if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
-    button(x + 26 + bw, y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
+    if (pickable) pickBtn(x + 26 + bw, bw);
+    button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
   }
 }
 // 피해 순위표(사용자 요청 2026-11-08): 갈매미마다 이번 판·이번 웨이브에 준 피해(외부탐사 대장 포함)
