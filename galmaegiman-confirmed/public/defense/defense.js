@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=9f5c02ebe0ed';
+import * as E from './engine.js?v=8ec6736e2598';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -168,10 +168,15 @@ let lastNews = 0;
 // 기기 저장(이어하기·같이하기 다시 접속·처음 안내). 막힌 브라우저에서도 게임은 진행
 const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* 저장 못 해도 진행 */ } }, del(k) { try { localStorage.removeItem(k); } catch { /* 진행 */ } } };
 const SAVE_KEY = 'gmm-defense-save', SAVE_META_KEY = 'gmm-defense-save-meta', ROOM_KEY = 'gmm-defense-room', ROOM_SAVE_KEY = 'gmm-defense-room-save', TUT_KEY = 'gmm-defense-tutorial';
-const bestKey = (mode) => (mode && mode !== 'normal' ? `${BEST_KEY}-${mode}` : BEST_KEY);
-const bestOf = (mode) => Number(ls.get(bestKey(mode))) || 0;
+const recKey = (mode = 'normal', diff = 'master') => `${mode || 'normal'}${diff && diff !== 'master' ? `.${diff}` : ''}`;   // 'normal' · 'hard' · 'normal.intro' …
+const bestKey = (mode, diff) => { const rk = recKey(mode, diff); return rk === 'normal' ? BEST_KEY : `${BEST_KEY}-${rk}`; };
+const bestOf = (mode, diff) => Number(ls.get(bestKey(mode, diff))) || 0;
+const DIFF_KEY = 'gmm-defense-diff';
+let selDiff = 'master';   // 시작 화면에서 고른 난이도(2026-11-09 사용자 요청, 지금까지의 규칙 = 달인)
+try { const d = localStorage.getItem(DIFF_KEY); if (d && E.DIFFS[d]) selDiff = d; } catch { /* 진행 */ }
+const diffName = (d) => E.DIFFS[d]?.name ?? '달인';
 const bestText = (b) => (b ? (b > E.RULES.waves ? '클리어' : `${b}웨이브`) : '아직 없음');
-let best = bestOf('normal');
+let best = bestOf('normal', selDiff);
 let resumeMeta = null;   // 이어할 판 {wave, mode}
 try { resumeMeta = JSON.parse(ls.get(SAVE_META_KEY) ?? 'null'); } catch { resumeMeta = null; }
 // ── 배경음악: 누르기(시작하기·♪) 뒤에만 재생(브라우저 자동 재생 막힘), 일시정지·다른 앱이면 멈춤 ──
@@ -249,8 +254,8 @@ function musicSync() {   // 매 장면: 들어야 할 때만 재생
 const say = (msg) => { toast = { msg, until: performance.now() + 2400 }; };
 const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u && !u.away);
 
-function start(seed, mode = 'normal') {
-  G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
+function start(seed, mode = 'normal', diff = selDiff) {
+  G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode, diff); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
   tut = !inRoom() && mode === 'normal' && !ls.get(TUT_KEY) ? { step: 0, n0: G.units.length, t: performance.now() } : null;
 }
@@ -258,7 +263,7 @@ function start(seed, mode = 'normal') {
 function saveNow() {
   if (scene !== 'play' || !G || G.over) return;
   if (coop()) ls.set(ROOM_SAVE_KEY, JSON.stringify({ code: net.code, round: net.round, gs: net.giftSent, gr: net.giftRecv, save: E.saveGame(G) }));
-  else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode, at: Date.now() }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); cloudSave(false); }
+  else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode, diff: G.diff, at: Date.now() }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); cloudSave(false); }
 }
 function clearSave() { ls.del(SAVE_KEY); ls.del(SAVE_META_KEY); resumeMeta = null; }
 function resume() {
@@ -293,14 +298,15 @@ async function cloudInit() {
   cloud.on = true; cloud.nick = me.nickname ?? null;
   // 최고 기록: 모드마다 큰 값으로 합치고, 이 기기 기록이 더 크면 계정에도 올림
   const up = {};
-  for (const k of Object.keys(E.MODES)) {
-    const mine = bestOf(k), theirs = Number(me.best?.[k]) || 0;
-    if (theirs > mine) ls.set(bestKey(k), String(theirs)); else if (mine > theirs) up[k] = mine;
+  for (const m of Object.keys(E.MODES)) for (const d of E.DIFF_ORDER) {
+    const rk = recKey(m, d), mine = bestOf(m, d), theirs = Number(me.best?.[rk]) || 0;
+    if (theirs > mine) ls.set(bestKey(m, d), String(theirs)); else if (mine > theirs) up[rk] = mine;
   }
-  best = bestOf('normal');
+  best = bestOf('normal', selDiff);
   // 이어하기: 더 나중에 저장한 쪽을 씀(계정 판은 읽을 수 있을 때만)
   const sv = me.save, localAt = resumeMeta?.at ?? 0;
-  if (sv && sv.at > localAt && E.loadGame(sv.data)) { ls.set(SAVE_KEY, sv.data); resumeMeta = { wave: sv.wave, mode: sv.mode, at: sv.at }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
+  const svg = sv && sv.at > localAt ? E.loadGame(sv.data) : null;
+  if (svg) { ls.set(SAVE_KEY, sv.data); resumeMeta = { wave: sv.wave, mode: sv.mode, diff: svg.diff, at: sv.at }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
   const body = Object.keys(up).length ? { best: up } : {};
   if (resumeMeta && ls.get(SAVE_KEY) && (!sv || localAt > sv.at)) body.save = { data: ls.get(SAVE_KEY), wave: Math.max(1, resumeMeta.wave), mode: resumeMeta.mode ?? 'normal', at: localAt || Date.now() };
   if (Object.keys(body).length) cloudPost(body);
@@ -312,11 +318,11 @@ function musicButton(x, y) {
 }
 function saveBest() {   // 모드마다 따로
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
-  if (w > bestOf(G.mode)) ls.set(bestKey(G.mode), String(w));
-  best = bestOf('normal');
+  if (w > bestOf(G.mode, G.diff)) ls.set(bestKey(G.mode, G.diff), String(w));
+  best = bestOf('normal', selDiff);
   const solo = !coop() && !inRoom();
   if (coop()) ls.del(ROOM_SAVE_KEY); else if (solo) clearSave();   // 끝난 판은 이어하기에서 지움
-  cloudPost({ best: { [G.mode ?? 'normal']: Math.min(E.RULES.waves + 1, w) }, ...(solo ? { save: null } : {}) });   // 계정에도 기록(혼자 판이면 계정 이어하기도 지움)
+  cloudPost({ best: { [recKey(G.mode, G.diff)]: Math.min(E.RULES.waves + 1, w) }, ...(solo ? { save: null } : {}) });   // 계정에도 기록(혼자 판이면 계정 이어하기도 지움)
 }
 
 // ── 입력 ──
@@ -589,10 +595,11 @@ function drawHud() {
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
   text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
   // 방어(방어력=마법방어력)와 내 판의 방깍·마방깍 합계(사용자 요청 2026-11-08: 후반엔 깎는 조합이 있어야 깸)
-  const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${wi.armor}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
+  const armorNow = E.armorAt(G, Math.max(1, G.wave));
+  const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${armorNow}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
   let shSum = 0, mshSum = 0;
   for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; }
-  const okCol = (v) => (v >= wi.armor * 0.7 ? C.good : v >= wi.armor * 0.35 ? C.goldEdge : C.bad);
+  const okCol = (v) => (v >= armorNow * 0.7 ? C.good : v >= armorNow * 0.35 ? C.goldEdge : C.bad);
   ctx.font = `12px ${FONT}`;
   const sx = 150 + cw + 8, maxW = W - 224 - sx;
   if (maxW > 40) {
@@ -602,13 +609,14 @@ function drawHud() {
     ctx.font = `${fs}px ${FONT}`;
     text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum));
   }
-  const line2 = wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${left}초 안에 잡기`) : `다음 웨이브 ${left}초`;
-  text(line2, 20, 58, 15, wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
+  const rest = E.resting(G);
+  const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.RULES.waveLen - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
+  text(line2, 20, 58, 15, rest ? C.good : wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
   if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
-    const nx = E.waveInfo(G.wave + 1);
+    const nx = E.waveInfo(G.wave + 1); nx.armor = E.armorAt(G, G.wave + 1);
     ctx.font = `15px ${FONT}`;
     const lx = 20 + ctx.measureText(line2).width + 10;
-    fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.armor > wi.armor ? C.goldEdge : C.muted);
+    fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.armor > armorNow ? C.goldEdge : C.muted);
   }
   // 적 수·경고
   const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
@@ -754,8 +762,8 @@ function drawUnitPanel(y0, u) {
   let cx = 94 + Math.min(150, ctx.measureText(info.name).width) + 8;
   cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
   chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.type === 'phys' ? C.phys : C.mag);
-  const up = E.upgMul(G, k.tier);
-  fitText(`공격 ${Math.round(k.dmg * up)} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'} · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
+  const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
+  fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
@@ -1013,7 +1021,7 @@ function drawUpgrade() {
     box(x + 14, yy, w - 28, bh, 'rgba(11,30,42,.85)', col, 10, 2);
     text(E.UPG_NAME[gi], x + 30, yy + bh * 0.32, bh < 62 ? 17 : 19, col);
     const maxed = E.upgMaxed(G, gi);
-    fitText(`${G.upg[gi]}/${E.RULES.upgMax}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + bh * 0.72, w - 230, bh < 62 ? 13 : 15, maxed ? C.goldEdge : C.text);
+    fitText(`${G.upg[gi]}/${E.RULES.upgMax}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 공속 +${Math.round(G.upg[gi] * (E.RULES.upgSpd ?? 0) * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + bh * 0.72, w - 230, bh < 62 ? 13 : 15, maxed ? C.goldEdge : C.text);
     if (maxed) button(x + w - 28 - 150, yy + 6, 150, bh - 12, '최대(풀강)', () => {}, 'normal', false);
     else button(x + w - 28 - 150, yy + 6, 150, bh - 12, '강화', () => { const r = E.upgrade(G, gi); if (!r.ok && r.why) say(r.why); }, 'primary', G.gold >= cost, `새우 ${cost}`);
   }
@@ -1033,9 +1041,9 @@ function drawPause() {
   const x = 60, y = 300, w = W - 120, h = 320;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('잠시 멈춤', W / 2, y + 44, 24, C.text, 'center');
-  text(`${G.mode !== 'normal' ? `[${E.modeOf(G).name}] ` : ''}웨이브 ${G.wave} · 처치 ${G.kills} · 경고 ${G.warn}`, W / 2, y + 84, 15, C.muted, 'center');
+  text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 웨이브 ${G.wave} · 처치 ${G.kills} · 경고 ${G.warn}`, W / 2, y + 84, 15, C.muted, 'center');
   button(x + 30, y + 118, w - 60, 56, '계속하기', () => { modal = null; }, 'primary');
-  button(x + 30, y + 186, w - 60, 48, '처음부터 다시', () => start(undefined, G.mode), 'normal');
+  button(x + 30, y + 186, w - 60, 48, '처음부터 다시', () => start(undefined, G.mode, G.diff), 'normal');
   button(x + 30, y + 244, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
 function drawOver() {
@@ -1047,8 +1055,8 @@ function drawOver() {
   ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
   text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
   fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
-  text(`${G.mode !== 'normal' ? `[${E.modeOf(G).name}] ` : ''}최고 기록 ${bestText(bestOf(G.mode))}`, W / 2, y + 226, 15, C.gold, 'center');
-  button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(undefined, G.mode), 'primary');
+  text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
+  button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
   button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
 function drawOverCoop() {
@@ -1078,6 +1086,13 @@ function drawTitle() {
   text('갈매미맨', W / 2, 86, 30, C.gold, 'center');
   text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
   ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
+  // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
+  box(28, 236, W - 56, 112, 'rgba(11,30,42,.88)', C.edge, 12);
+  text('난이도', 44, 262, 16, C.gold);
+  const dd = E.DIFFS[selDiff];
+  fitText(`적 체력 ×${dd.hp} · 방어 ×${dd.def}${dd.legend40 ? ' · 40웨이브에 전설 위습 1개' : ' · 전설 위습 보상 없음'}`, 110, 262, W - 160, 13, C.muted);
+  const dw = (W - 56 - 24 - 4 * 6) / 5;
+  E.DIFF_ORDER.forEach((d, i) => button(40 + i * (dw + 6), 280, dw, 52, E.DIFFS[d].name, () => { selDiff = d; best = bestOf('normal', d); try { localStorage.setItem(DIFF_KEY, d); } catch { /* 진행 */ } }, d === selDiff ? 'primary' : 'normal'));
   box(28, 492, W - 56, 234, C.panel, C.edge, 12);
   [
     '· 위습을 누르면 갈매미가 나와요.',
@@ -1091,7 +1106,7 @@ function drawTitle() {
   fitText(`♪ 게임 속 배경음악이 나와요. 오른쪽 위 ♪에서 음량을 조절하세요${music.on ? '' : ' (지금 꺼짐)'}`, W / 2, 756, W - 80, 14, C.goldEdge, 'center');
   const half = (W - 92) / 2;
   button(40, 786, half, 40, '도전 모드', () => { modal = { kind: 'modes' }; }, 'normal');
-  if (resumeMeta) button(52 + half, 786, half, 40, `이어하기 · ${resumeMeta.wave}웨이브${resumeMeta.mode && resumeMeta.mode !== 'normal' ? ` (${E.MODES[resumeMeta.mode]?.name ?? ''})` : ''}`, resume, 'primary');
+  if (resumeMeta) button(52 + half, 786, half, 40, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'primary');
   else button(52 + half, 786, half, 40, '이어할 판 없음', () => {}, 'normal', false);
   button(40, 834, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, 834, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
@@ -1184,13 +1199,13 @@ function drawModes() {
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('도전 모드', x + 20, y + 34, 24, C.text);
   button(x + w - 96, y + 14, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText('규칙을 바꿔 도전해요 · 최고 기록은 모드마다 따로 남아요', x + 20, y + 72, w - 40, 14, C.muted);
+  fitText(`난이도 ${diffName(selDiff)} · 규칙을 바꿔 도전해요 · 최고 기록은 모드·난이도마다 따로`, x + 20, y + 72, w - 40, 14, C.muted);
   keys.forEach((k, i) => {
     const m = E.MODES[k], yy = y + 96 + i * 104;
     box(x + 14, yy, w - 28, 92, 'rgba(11,30,42,.85)', k === 'normal' ? C.edge : C.gold, 10, 1.5);
     text(m.name, x + 30, yy + 26, 19, k === 'normal' ? C.text : C.goldEdge);
     fitText(m.desc, x + 30, yy + 54, w - 200, 14, C.muted);
-    fitText(`최고 기록 ${bestText(bestOf(k))}`, x + 30, yy + 76, w - 200, 13, C.gold);
+    fitText(`최고 기록 ${bestText(bestOf(k, selDiff))}`, x + 30, yy + 76, w - 200, 13, C.gold);
     button(x + w - 28 - 110, yy + 20, 110, 52, '시작', () => start(undefined, k), 'primary');
   });
 }

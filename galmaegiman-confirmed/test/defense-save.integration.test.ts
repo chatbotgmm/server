@@ -3,7 +3,7 @@ import {PrismaClient} from '@prisma/client';
 import {GameService} from '../src/game.js';
 import {loadContent} from '../src/content.js';
 import {buildApp} from '../src/app.js';
-import {DEFENSE_MODES} from '../src/defense-save.js';
+import {DEFENSE_MODES,DEFENSE_DIFFS} from '../src/defense-save.js';
 
 // 랜덤 디펜스 계정 저장(/my/api/defense): 로그인 확인, 최고 기록 합치기, 이어하기 판(나중 것만), 계정 삭제 때 함께 지움
 const enabled=Boolean(process.env.TEST_DB_URL);
@@ -35,8 +35,9 @@ suite('랜덤 디펜스 계정 저장',()=>{
 
   it('모드 목록이 게임 엔진과 같다',async()=>{
     const p='../public/defense/engine.js';
-    const E=await import(p) as {MODES:Record<string,unknown>};
+    const E=await import(p) as {MODES:Record<string,unknown>;DIFF_ORDER:string[]};
     expect([...DEFENSE_MODES].sort()).toEqual(Object.keys(E.MODES).sort());
+    expect([...DEFENSE_DIFFS]).toEqual(E.DIFF_ORDER);
   });
 
   it('로그인해야 쓰고, 최고 기록은 큰 값으로 합치고, 이어하기는 나중 것만 받는다',async()=>{
@@ -49,13 +50,13 @@ suite('랜덤 디펜스 계정 저장',()=>{
       expect((await get(cookie,{})).statusCode).toBe(403);                     // 다른 사이트 요청 막기(x-gmm 없음)
       expect((await get(cookie)).json()).toEqual({nickname:'디펜스왕',best:{},save:null});
       expect((await post({best:{normal:12,hard:3}},cookie)).statusCode).toBe(200);
-      expect((await post({best:{normal:9,noupg:7}},cookie)).json()).toMatchObject({best:{normal:12,hard:3,noupg:7}});   // 작은 값은 무시
+      expect((await post({best:{normal:9,noupg:7,'normal.intro':40}},cookie)).json()).toMatchObject({best:{normal:12,hard:3,noupg:7,'normal.intro':40}});   // 작은 값은 무시, 난이도별 키도 받음
       const save={data:JSON.stringify({v:1,wave:14}),wave:14,mode:'normal',at:2_000_000};
       expect((await post({save},cookie)).json()).toMatchObject({saved:true,save});
       const stale={...save,data:JSON.stringify({v:1,wave:5}),wave:5,at:1_000_000};
       expect((await post({save:stale},cookie)).json()).toMatchObject({saved:false,save});    // 오래된 탭의 저장은 덮어쓰지 않음
       expect((await get(cookie)).json()).toMatchObject({best:{normal:12},save});
-      for(const bad of [{best:{normal:99}},{best:{weird:3}},{save:{...save,data:'not json'}},{save:{...save,mode:'x'}},{save:{...save,extra:1}},{other:1},{save:{...save,data:'x'.repeat(120_001)}}])
+      for(const bad of [{best:{normal:99}},{best:{weird:3}},{best:{'normal.master':3}},{save:{...save,data:'not json'}},{save:{...save,mode:'x'}},{save:{...save,extra:1}},{other:1},{save:{...save,data:'x'.repeat(120_001)}}])
         expect((await post(bad,cookie)).statusCode).toBe(400);
       const big={...save,data:JSON.stringify({v:1,pad:'x'.repeat(100_000)}),at:3_000_000};   // 기본 요청 크기(32KB)보다 큰 판도 받음
       expect((await post({save:big},cookie)).json()).toMatchObject({saved:true});

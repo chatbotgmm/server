@@ -107,6 +107,53 @@ describe('랜덤 디펜스 엔진', () => {
     expect(E.slowMul(2)).toBeCloseTo(0.15);
   });
 
+  it('이감·마방깍은 사거리 안 적 모두에게(때리지 않아도), 벗어나면 곧 풀림', () => {
+    const slowId = E.UNITS.map((u: { id: string }) => u.id).find((id: string) => E.kit(id).slow && !E.kit(id).mshred)!;
+    const mshId = E.UNITS.map((u: { id: string }) => u.id).find((id: string) => E.kit(id).mshred)!;
+    const g = E.newGame(5); g.units = []; g.wave = 3; g.waveT = 1; g.spawnLeft = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const add = (id: string) => { const u: any = { uid: g.units.length + 100, id, x: 100, y: 134, tx: 100, ty: 134, cd: 99, lock: true }; g.units.push(u); return u; };
+    add(slowId); add(mshId);   // cd 99: 공격하지 않음
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enemy = (id: number, x: number): any => ({ id, hp: 1e9, max: 1e9, s: 0, speed: 1, boss: false, look: 'e:v1', gold: 0, armor: 50, mr: 50, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x, y: 134, by: 0 });
+    g.enemies = [enemy(1, 110), enemy(2, 140), enemy(3, 900)];
+    E.step(g, 0.05);
+    const [a, b, far] = g.enemies;
+    for (const e of [a, b]) { expect(Object.keys(e.slows ?? {}).length).toBe(1); expect(E.shredNow(e, g.t).mshred).toBe(E.kit(mshId).mshred); }
+    expect(far.slows ?? {}).toEqual({}); expect(E.shredNow(far, g.t).mshred).toBe(0);
+    g.units = []; for (let i = 0; i < 10; i++) E.step(g, 0.05);   // 갈매미가 없어지면 0.3초 뒤 풀림
+    expect(E.shredNow(a, g.t).mshred).toBe(0);
+  });
+  it('강화하면 공격력과 공격 속도가 함께 오름', () => {
+    const g = E.newGame(1), k = E.kit('u01');
+    expect(E.gapOf(g, k)).toBeCloseTo(k.gap);
+    g.upg[0] = 10;
+    expect(E.upgMul(g, k.tier)).toBeCloseTo(1 + 10 * E.RULES.upgPct);
+    expect(E.gapOf(g, k)).toBeCloseTo(k.gap / (1 + 10 * E.RULES.upgSpd));
+  });
+  it('10웨이브마다 끝나고 30초 쉬는 시간(적이 더 나오지 않음)', () => {
+    expect(E.waveLenOf(9)).toBe(E.RULES.waveLen); expect(E.waveLenOf(10)).toBe(E.RULES.waveLen + 30); expect(E.waveLenOf(60)).toBe(E.RULES.waveLen);
+    const g = E.newGame(2); g.units = []; g.wave = 10; g.bossDone = 10; g.waveT = E.RULES.waveLen - 0.01; g.spawnLeft = 0; g.enemies = []; g.missionDone = E.REGIONS.length;
+    E.step(g, 0.05);
+    expect(g.wave).toBe(10); expect(E.resting(g)).toBe(true); expect(Math.ceil(E.nextWaveIn(g))).toBe(30);
+    while (g.wave === 10 && g.t < 100) { E.step(g, 0.05); expect(g.enemies.length).toBe(0); }
+    expect(g.wave).toBe(11);
+  });
+  it('난이도: 체력·방어 배수, 달인까지 40웨이브에 전설 위습 1개(장인은 없음)', () => {
+    const order = ['intro', 'mid', 'high', 'master', 'artisan'];
+    expect(E.DIFF_ORDER).toEqual(order);
+    const hp = order.map((d) => { const g = E.newGame(9, 'normal', d); g.wave = 1; g.waveT = 0; g.spawnLeft = 1; g.spawnT = 0; E.step(g, 0.01); return g.enemies[0].max; });
+    for (let i = 1; i < hp.length; i++) expect(hp[i]).toBeGreaterThan(hp[i - 1]);
+    expect(hp[3]).toBeCloseTo(E.waveInfo(1).hp);   // 달인 = 예전 규칙
+    expect(E.newGame(1).diff).toBe('master'); expect(E.newGame(1, 'normal', 'x').diff).toBe('master');
+    for (const [d, want] of [['master', 1], ['intro', 1], ['artisan', 0]] as const) {
+      const g = E.newGame(4, 'normal', d); g.units = []; g.wave = 39; g.waveT = E.RULES.waveLen - 0.01; g.spawnLeft = 0; g.enemies = []; g.missionDone = E.REGIONS.length;
+      const l0 = g.wisps.LEGEND; E.step(g, 0.05);
+      expect(g.wave).toBe(40); expect(g.wisps.LEGEND - l0).toBe(want);
+    }
+    const sv = E.loadGame(E.saveGame(E.newGame(1, 'normal', 'high')));
+    expect(sv.diff).toBe('high');
+  });
   it('상위 마릿수 제한은 없음(topCap 0)', () => {
     const g = E.newGame(1); g.units = [];
     ['u57', 'u56', 'u58'].forEach((id) => put(g, id));

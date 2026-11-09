@@ -29,6 +29,7 @@ export const RULES = {
   storyDeadline: 50,   // 스토리 8장은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
+  restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
@@ -54,7 +55,8 @@ export const RULES = {
   // 칸: 커먼·언커먼(묶음) · 레어 · 에픽 · 전설 · 히든 · 제한 · 초월 · 불멸 · 영원 (사용자 요청 2026-11-08)
   // 칸마다 최대 upgMax단계(풀강). 비용 = upgBase × upgGrowth^단계. 등급이 높을수록 훨씬 비쌈(초반과 상위 강화 비용이 비슷하지 않게)
   // 칸: 커먼·언커먼 · 레어 · 에픽 · 전설·히든(묶음) · 제한 · 초월 · 불멸 · 영원 (8칸)
-  upgPct: 0.15, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
+  // 강화(2026-11-09 사용자 요청: 공격 속도도 오르게): 단계마다 공격력 +10% · 공격 속도 +3%. 10단계면 공격력 ×2 · 공속 ×1.3(예전 공격력 +15%×10 = ×2.5와 초당 피해가 비슷)
+  upgPct: 0.10, upgSpd: 0.03, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
   bossReward: { 10: { RARE: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
@@ -147,13 +149,13 @@ export function kit(id) {
 export function kitTips(k) {
   const out = [];
   if (k.shred) out.push(`방깍 ${Math.round(k.shred)}`);
-  if (k.mshred) out.push(`마방깍 ${Math.round(k.mshred)}`);
+  if (k.mshred) out.push(`주변 마방깍 ${Math.round(k.mshred)}`);
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
   if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
   if (k.explore) out.push(`탐사 특기: 외부탐사 피해 ×${k.explore}`);
-  if (k.slow) out.push(`이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
+  if (k.slow) out.push(`주변 이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
   if (k.splash) out.push(`스플래시 ${Math.round(k.splash * 100)}%(반경 ${k.splashR ?? 50})`);
   if (k.chain) out.push('번개 연쇄');
@@ -235,9 +237,20 @@ export const MODES = {
   nostory: { name: '외부탐사 금지', desc: '외부탐사(스토리)를 보낼 수 없어요', noMission: true },
 };
 export const modeOf = (g) => MODES[g.mode] ?? MODES.normal;
-export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal') {
+// 난이도(2026-11-09 사용자 요청): 지금까지의 규칙 = 달인. 적 체력·방어 배수, 달인까지는 40웨이브에 전설 랜덤 위습 1개
+export const DIFFS = {
+  intro: { name: '입문', hp: 0.45, def: 0.6, legend40: true },
+  mid: { name: '중급', hp: 0.6, def: 0.75, legend40: true },
+  high: { name: '상급', hp: 0.8, def: 0.9, legend40: true },
+  master: { name: '달인', hp: 1, def: 1, legend40: true },
+  artisan: { name: '장인', hp: 1.25, def: 1.15, legend40: false },
+};
+export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
+export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
+export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).def);   // 이 판(난이도)의 그 웨이브 방어
+export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal', diff = 'master') {
   return {
-    seed, mode: MODES[mode] ? mode : 'normal', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
+    seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -256,7 +269,7 @@ export function loadGame(text) {
     if (!o || o.v !== SAVE_VER || !o.g || !Array.isArray(o.g.units)) return null;
     const g = o.g, s = g.rand >>> 0;
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0;
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master';
     return g;
   } catch { return null; }
 }
@@ -392,6 +405,8 @@ export const upgGroup = (tier) => [0, 0, 1, 2, 3, 3, 4, 5, 6, 7][tier];
 // 강화 비용: 단계마다 upgGrowth배(곱으로 늘어 낮은 등급만 계속 강화해 버티는 것을 막음)
 export const upgradeCost = (g, gi) => Math.round(RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi]));
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
+export const upgSpdMul = (g, tier) => 1 + (RULES.upgSpd ?? 0) * g.upg[upgGroup(tier)];
+export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier);   // 강화하면 공격 간격이 짧아짐
 export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
@@ -456,8 +471,8 @@ function ensureMission(g) {
   if (!missionOpen(g)) return null;
   if (!g.mission || g.mission.k !== g.missionDone) {
     const gd = regionGuard(g.missionDone);
-    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1));
-    g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: gd.armor, mr: gd.mr, boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
+    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).hp);
+    g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: Math.round(gd.armor * diffOf(g).def), mr: Math.round(gd.mr * diffOf(g).def), boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
   }
   return g.mission;
 }
@@ -503,18 +518,36 @@ function hurt(g, e, raw, k, uid) {
   e.hp -= raw * m; e.by = uid;
   if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
 }
-function debuff(g, e, k, uid = 0) {
+function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍은 판에서는 범위 효과(applyAuras)라 때릴 때 걸지 않음
   const now = g.t;
   if (k.shred) (e.shreds ??= {})[uid] = { v: k.shred, until: now + 3 };
-  if (k.mshred) (e.mshreds ??= {})[uid] = { v: k.mshred, until: now + 3 };
+  if (k.mshred && !aura) (e.mshreds ??= {})[uid] = { v: k.mshred, until: now + 3 };
   if (k.amp) { e.amp = now < e.ampUntil ? Math.max(e.amp, k.amp) : k.amp; e.ampUntil = now + 3; }
-  if (k.slow && e.speed) {   // 같은 갈매미는 다시 맞혀도 시간만 늘고, 다른 갈매미 것은 더해진다
+  if (k.slow && e.speed && !aura) {   // 같은 갈매미는 다시 맞혀도 시간만 늘고, 다른 갈매미 것은 더해진다
     (e.slows ??= {})[uid] = { v: k.slow, until: now + 1.5 };
     e.slowUntil = now + 1.5;
   }
   if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = now + (e.boss ? 0.12 : 0.5);
   if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + (o.boss ? 0.15 : 0.7));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
+}
+// 이감·마방깍(2026-11-09 사용자 요청): 때린 적만이 아니라 그 갈매미 사거리 안의 적 모두에게 걸림. 갈매미마다 따로 더해지고, 벗어나면 곧 풀림
+const AURA_HOLD = 0.3;
+function applyAuras(g) {
+  const now = g.t;
+  for (const u of g.units) {
+    if (u.away || u.stored) continue;
+    const k = kit(u.id);
+    if (!k.slow && !k.mshred) continue;
+    const r2 = k.range * k.range;
+    for (const e of g.enemies) {
+      if (e.hp <= 0) continue;
+      const dx = e.x - u.x, dy = e.y - u.y;
+      if (dx * dx + dy * dy > r2) continue;
+      if (k.mshred) (e.mshreds ??= {})[u.uid] = { v: k.mshred, until: now + AURA_HOLD };
+      if (k.slow && e.speed) { (e.slows ??= {})[u.uid] = { v: k.slow, until: now + AURA_HOLD }; e.slowUntil = now + AURA_HOLD; }
+    }
+  }
 }
 function attack(g, u, k) {
   // 공격 대상: 사거리 안에서 가장 가까운 적 먼저(사용자 요청 2026-11-08)
@@ -532,7 +565,7 @@ function attack(g, u, k) {
     for (const e of g.enemies) if (e !== best && e.hp > 0 && Math.hypot(e.x - best.x, e.y - best.y) <= r) hits.push(e);
     g.fx.push({ kind: 'boom', x: best.x, y: best.y, r, area: !!k.area, type: k.type, elem: k.elem, t: g.t });   // 화면에 범위 표시
   }
-  hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k, u.uid); });
+  hits.forEach((e, i) => { hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); debuff(g, e, k, u.uid, true); });
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
@@ -548,13 +581,14 @@ function startWave(g) {
   if (storyLeft(g) && (left === 10 || left === 5)) news(g, `스토리 ${REGIONS.length}장 마감까지 ${left}웨이브! (${RULES.storyDeadline}웨이브까지 못 깨면 패배)`);
   if (g.wave > 0) addWisps(g, { COMMON: RULES.wispPerWave });
   g.wave++; g.waveT = 0; g.dmgWave = {};
+  if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
   const wi = waveInfo(g.wave);
   g.spawnLeft = wi.boss ? 1 : RULES.perWave; g.spawnT = 0;
 }
 function spawn(g) {
   const wi = waveInfo(g.wave);
-  const hp = wi.hp * (modeOf(g).hpMul ?? 1);
-  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: wi.armor, mr: wi.mr,
+  const hp = wi.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).hp, df = diffOf(g).def;
+  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df), mr: Math.round(wi.mr * df),
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
 }
 function rollWisp(g, skill) {
@@ -574,6 +608,7 @@ export function step(g, dt) {
     g.spawnT -= dt;
     if (g.spawnT <= 0) { spawn(g); g.spawnLeft--; g.spawnT = RULES.spawnGap; }
   }
+  applyAuras(g);
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
     e.slow = 0;
@@ -601,9 +636,9 @@ export function step(g, dt) {
       const before = ms.hp;
       hurt(g, ms, k.dmg * (k.area ? 1.2 : 1) * (k.explore || 1), k, u.uid); debuff(g, ms, k, u.uid);
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
-      u.cd = Math.max(-0.05, u.cd) + k.gap; continue;
+      u.cd = Math.max(-0.05, u.cd) + gapOf(g, k); continue;
     }
-    u.cd = attack(g, u, k) ? Math.max(-0.05, u.cd) + k.gap : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
+    u.cd = attack(g, u, k) ? Math.max(-0.05, u.cd) + gapOf(g, k) : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
   }
   if (ms) ms.hp = ms.max - (g.missionDmg[ms.k] ?? 0) - (g.peerDmg?.[ms.k] ?? 0);
   // 처치
@@ -648,11 +683,15 @@ export function step(g, dt) {
     g.bossDone = g.wave;
   }
   g.waveT += dt;
-  if (g.waveT >= RULES.waveLen) {
-    if (wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }
+  if (g.waveT >= RULES.waveLen && wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }
+  if (g.waveT >= waveLenOf(g.wave)) {
     if (g.wave >= RULES.waves) return;
     if (g.wave === RULES.storyDeadline && storyLeft(g)) { g.over = 'lose'; g.reason = `스토리 ${REGIONS.length}장을 ${RULES.storyDeadline}웨이브까지 끝내지 못했어요.`; return; }
     startWave(g);
   }
 }
-export const nextWaveIn = (g) => Math.max(0, RULES.waveLen - g.waveT);
+// 10·20…웨이브는 끝나고 쉬는 시간만큼 길다(적은 더 나오지 않음)
+export const restWave = (w) => !!RULES.restEvery && w % RULES.restEvery === 0 && w < RULES.waves;
+export const waveLenOf = (w) => RULES.waveLen + (restWave(w) ? RULES.restLen : 0);
+export const resting = (g) => restWave(g.wave) && g.waveT >= RULES.waveLen;
+export const nextWaveIn = (g) => Math.max(0, waveLenOf(g.wave) - g.waveT);
