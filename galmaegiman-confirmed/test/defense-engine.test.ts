@@ -214,6 +214,23 @@ describe('랜덤 디펜스 엔진', () => {
     expect(g.units.some((u: { id: string }) => u.id === E.TRANSCEND_KEY)).toBe(false);   // 재료로 사라짐
     expect(E.recipeUnits(g, r)).toBeFalsy();
   });
+  it('6장 보상은 고르기: 초월 갈매미맨 / 전설 위습 1 / 에픽 선택 위습 2 중 하나(기본 보상은 그대로)', () => {
+    const g = E.newGame(5); g.units = []; g.enemies = []; g.missionDone = 5;
+    E.step(g, 0.05);   // 첫 웨이브 시작
+    E.missionTarget(g); g.missionDmg[5] = g.mission.max;   // 대장에게 체력만큼 피해(쌓인 피해로 체력을 계산함)
+    const ep = g.wisps.EPIC ?? 0;
+    E.step(g, 0.05);
+    expect(g.missionDone).toBe(6); expect(g.choice).toEqual({ k: 5 });
+    expect(g.units.some((u: { id: string }) => u.id === E.TRANSCEND_KEY)).toBe(false);   // 고르기 전에는 안 줌
+    expect(g.wisps.EPIC).toBe(ep + 1);                                                     // 기본 보상(에픽 위습 1)은 받음
+    const lg = g.wisps.LEGEND ?? 0;
+    expect(E.chooseReward(g, 1)).toBe(true); expect(g.wisps.LEGEND).toBe(lg + 1); expect(g.choice).toBeNull();
+    expect(E.chooseReward(g, 0)).toBe(false);                                              // 한 번만
+    const g2 = E.newGame(5); g2.units = []; g2.choice = { k: 5 }; const pe = g2.picks.EPIC ?? 0;
+    E.chooseReward(g2, 2); expect(g2.picks.EPIC).toBe(pe + 2);
+    const g3 = E.newGame(5); g3.units = []; g3.choice = { k: 5 };
+    E.chooseReward(g3, 0); expect(g3.units.filter((u: { id: string }) => u.id === E.TRANSCEND_KEY).length).toBe(1);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

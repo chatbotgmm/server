@@ -89,7 +89,9 @@ export const REGIONS = [
   { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 800 },
   { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 1500 },
   { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 3000 },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000, unit: 'u81' },
+  // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000, unit: 'u81',
+    choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
   { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 9000 },
   { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
@@ -539,6 +541,18 @@ export function toggleGoal(g, out) {
 }
 
 // ── 외부탐사 ──
+// 고르는 보상(6장): 선택지 글자와 받기
+export const choiceText = (c) => (c.unit ? UNIT[c.unit].name : c.wisps ? wispText(c.wisps) : c.picks ? pickText(c.picks) : '');
+export function chooseReward(g, i) {
+  const r = g.choice && REGIONS[g.choice.k], c = r?.choice?.[i];
+  if (!c) return false;
+  if (c.unit) { const nu = addUnit(g, c.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }
+  if (c.wisps) addWisps(g, c.wisps);
+  if (c.picks) for (const [k, v] of Object.entries(c.picks)) g.picks[k] = (g.picks[k] ?? 0) + v;
+  g.choice = null;
+  news(g, `${r.ch}장 보상: ${choiceText(c)}을(를) 받았어요`);
+  return true;
+}
 export const missionOpen = (g) => g.missionDone < REGIONS.length && !modeOf(g).noMission;
 function ensureMission(g) {
   if (!missionOpen(g)) return null;
@@ -738,8 +752,9 @@ export function step(g, dt) {
     if (r.gold) g.gold += r.gold;
     if (r.ticket) g.tickets = (g.tickets ?? 0) + r.ticket;
     if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    if (r.unit) { const nu = addUnit(g, r.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }   // 6장: 초월 갈매미맨
-    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${r.unit ? ` · ${UNIT[r.unit].name}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    if (r.choice) g.choice = { k: ms.k };   // 고르는 보상: 화면에서 chooseReward로
+    else if (r.unit) { const nu = addUnit(g, r.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }
+    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${r.choice ? ' · 보상 하나를 골라요' : r.unit ? ` · ${UNIT[r.unit].name}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }

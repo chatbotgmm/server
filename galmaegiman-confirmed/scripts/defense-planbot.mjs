@@ -27,6 +27,7 @@ function expand(goal, have, allowed, leaves, top = true) {
   for (const i of r.in) expand(i, have, allowed, leaves, false);
 }
 function bot(g, st) {
+  if (g.choice) E.chooseReward(g, 0);   // 6장 보상: 초월 갈매미맨(초월 등급을 만들 수 있게)
   const have = ownedMap(g);
   // 지금 목표: 목록에서 아직 없는 것 2개
   const keyOk = (id) => !(recipeOf.get(id)?.in.includes(E.TRANSCEND_KEY)) || (have[E.TRANSCEND_KEY] ?? 0) > 0;   // 초월은 초월 갈매미맨이 있어야
