@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=ddcf125aef26';
+import * as E from './engine.js?v=4dea650fb477';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1480,6 +1480,7 @@ function drawTitle() {
   musicButton(W - 62, 14);
   button(14, 14, 70, 40, '기록', () => { modal = { kind: 'records' }; }, 'normal');   // 판 기록(조합 포함)
   button(90, 14, 84, 40, '꾸미기', openCustomize, 'normal');   // 클리어 보상: 날개·오라
+  if (cloud.can && !cloud.on) button(180, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');   // 계정 저장 기능이 있는 서버에서만(2026-11-10 사용자 지적: 로그인 버튼이 없음)
   if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(170, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 새 칸이 열렸으면 빨간 점
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
