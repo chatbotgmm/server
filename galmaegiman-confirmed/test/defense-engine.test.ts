@@ -231,6 +231,15 @@ describe('랜덤 디펜스 엔진', () => {
     const g3 = E.newGame(5); g3.units = []; g3.choice = { k: 5 };
     E.chooseReward(g3, 0); expect(g3.units.filter((u: { id: string }) => u.id === E.TRANSCEND_KEY).length).toBe(1);
   });
+  it('탐사 특기: 새 전설·히든(고체력 ×6·근접술사 ×3), 그 재료로 만든 초불영제는 (배수−1)×0.5를 물려받음', () => {
+    for (const id of ['u66', 'u76']) expect(E.kit(id).explore, id).toBe(6);
+    for (const id of ['u63', 'u69', 'u75']) expect(E.kit(id).explore, id).toBe(3);
+    for (const u of E.UNITS.filter((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE)) {
+      const m = Math.max(0, ...E.recipeFor(u.id).in.map((i: string) => E.EXPLORE[i] ?? 0));
+      expect(E.kit(u.id).explore || 0, u.name).toBe(m > 1 ? 1 + (m - 1) * E.EXPLORE_INHERIT : 0);
+    }
+    expect(E.kitTips(E.kit('u45')).some((t: string) => t.includes('물려받음') && t.includes('탐사'))).toBe(true);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

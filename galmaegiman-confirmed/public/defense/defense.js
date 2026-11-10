@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=e621069f34c8';
+import * as E from './engine.js?v=fbb8be787ff6';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1297,7 +1297,7 @@ function drawMission() {
   text('외부탐사', x + 18, y + 30, 22, C.text);
   text(`완료 ${G.missionDone}/${E.REGIONS.length}장`, x + 120, y + 31, 15, G.missionDone ? C.good : C.muted);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`${coop() ? '친구와 함께 · ' : ''}${E.RULES.storyDeadline}웨이브까지 ${E.REGIONS.length}장 · ★특기 피해 ×3~6`, x + 18, y + 64, w - 36, 13, E.storyLeft(G) && G.wave >= E.RULES.storyDeadline - 10 ? C.bad : C.muted);
+  fitText(`${coop() ? '친구와 함께 · ' : ''}${E.RULES.storyDeadline}웨이브까지 ${E.REGIONS.length}장 · ★특기 피해 ×2~6`, x + 18, y + 64, w - 36, 13, E.storyLeft(G) && G.wave >= E.RULES.storyDeadline - 10 ? C.bad : C.muted);
   if (E.modeOf(G).noMission) { text('외부탐사 금지 모드예요', W / 2, y + 200, 20, C.bad, 'center'); fitText('이 모드에서는 스토리를 보낼 수 없어요. 판 수비만으로 버텨 보세요.', W / 2, y + 236, w - 40, 14, C.muted, 'center'); return; }
   // 지역 목록: 지금 장과 다음 장만(사용자 요청 2026-11-08: 목록이 길어 갈매미 칸을 늘리려고)
   const ly = y + 84, cmp = h < 800, lh = cmp ? 32 : 40;   // cmp: 가로 화면 위쪽 창(낮음)
@@ -1345,8 +1345,9 @@ function drawMission() {
     hit(xx, yy, AS, AS, () => { if (E.recall(G, [u.uid])) say(`${E.UNIT[u.id].name}이(가) 판으로 돌아왔어요.`); });   // 누르면 그 갈매미만 불러오기
   });
   // 판에 있는 탐사 특기 갈매미 안내(보내면 좋은 것)
-  const sp = E.fieldUnits(G).filter((u) => E.EXPLORE[u.id]);
-  if (!away.length) fitText(sp.length ? `판에 탐사 특기 ${sp.length}마리: ${[...new Set(sp.map((u) => `${E.UNIT[u.id].name}(×${E.EXPLORE[u.id]})`))].join(' · ')}` : `탐사 특기: ${Object.entries(E.EXPLORE).map(([id, m]) => `${E.UNIT[id].name}×${m}`).join(' · ')}`, W / 2, ay + 18, w - 30, 13, sp.length ? C.goldEdge : C.muted, 'center');
+  // 탐사 특기: 정해진 것 + 그 재료로 만든 초불영제(물려받음). 길면 줄이고 「…」(2026-11-10 특기가 늘어남)
+  const sp = E.fieldUnits(G).filter((u) => E.kit(u.id).explore);
+  if (!away.length) chipLabel(sp.length ? `판에 탐사 특기 ${sp.length}마리: ${[...new Set(sp.map((u) => `${E.UNIT[u.id].name}(×${E.kit(u.id).explore})`))].join(' · ')}` : `탐사 특기 ${Object.keys(E.EXPLORE).length}종: ${Object.entries(E.EXPLORE).map(([id, m]) => `${E.UNIT[id].name}×${m}`).join(' · ')} · 이들로 만든 초불영제도`, W / 2, ay + 18, w - 30, 13, sp.length ? C.goldEdge : C.muted);
   const by = y + h - 64, sel = selUnits();
   button(x + 14, by, (w - 40) / 2, 50, sel.length ? `고른 ${sel.length}마리 보내기` : '판에서 먼저 고르기', () => { if (sel.length) { sendSelected(sel); } else modal = null; }, sel.length ? 'primary' : 'normal');
   button(x + 26 + (w - 40) / 2, by, (w - 40) / 2, 50, '모두 불러오기', () => { const n = E.recall(G); say(`${n}마리가 돌아왔어요.`); }, 'normal', away.length > 0);

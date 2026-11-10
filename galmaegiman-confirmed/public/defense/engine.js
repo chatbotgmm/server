@@ -107,7 +107,9 @@ export const WISP_SKILL = {
 
 // 탐사 특기(사용자 요청 2026-11-08: 외부탐사에 능한 재료 단계 갈매미, 외부탐사에서만 강해짐): 외부탐사 대장에게 주는 피해 배수.
 // 재료로 쓰이면서 판 수비는 약한 보조(고체력)는 ×6, 근접술사는 ×3 → 같은 등급 주력보다 외부탐사 피해가 약 1.5~1.7배
-export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 };
+// 2026-11-10 사용자 요청: 새 전설·히든에도 탐사 특기(같은 규칙 — 고체력 보조 ×6, 근접술사 ×3), 그 유닛을 재료로 쓰는 초불영제는 일부를 물려받음(EXPLORE_INHERIT)
+export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3, u63: 3, u66: 6, u69: 3, u75: 3, u76: 6 };
+export const EXPLORE_INHERIT = 0.5;   // 초불영제: 재료 중 가장 높은 탐사 특기의 (배수−1)×0.5를 더함(×6 재료 → ×3.5, ×3 재료 → ×2)
 // 전설·히든 이감·스턴 더하기(2026-11-09 사용자 요청: 선택지가 적음). 값은 그 등급 기본 세기에 곱하는 비율(전담 보조보다 조금 약하게)
 // 전설: 이감 가시여왕·네레이드·설랑 / 스턴 거장·뇌호 · 히든: 이감 수경·꽃무덤·몽마 / 스턴 무명, 범위 스턴 금각
 // 마방깍 더하기(2026-11-09 사용자 요청: 마방깍 유닛이 너무 적음 — 방깍 13종·마방깍 4종이었음): 비어 있던 등급마다 술사(주력)에 그 등급 마방깍의 60%
@@ -193,7 +195,11 @@ function kitRaw(id) {
   if (k.astun) k.astun /= AS;
   if (k.poison) k.poison *= AS;
   const out = { ...k, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
-  if (tt >= TOP_TIER) inheritUtil(id, out);
+  if (tt >= TOP_TIER) {
+    inheritUtil(id, out);
+    const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
+    if (m > 1) { const v = 1 + (m - 1) * EXPLORE_INHERIT; if (v > (out.explore || 0)) { out.explore = v; out.exploreFrom = true; } }
+  }
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
@@ -224,7 +230,7 @@ export function kitTips(k) {
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
   if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
-  if (k.explore) out.push(`탐사 특기: 외부탐사 피해 ×${k.explore}`);
+  if (k.explore) out.push(`탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}`);
   if (k.slow) out.push(`주변 이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
   if (k.splash) out.push(`스플래시 ${Math.round(k.splash * 100)}%(반경 ${k.splashR ?? 50})`);
