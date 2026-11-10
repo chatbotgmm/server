@@ -21,6 +21,16 @@ describe('공개 홈페이지(src/site.ts)',()=>{
     expect(h).toContain('href="/download"');expect(h).not.toMatch(/href="[^"]*\.apk"/);
     expect(h).not.toMatch(/location\.(replace|href)\s*=\s*['"]\/game/);
   });
+  it('메인 사이트에서 랜덤 디펜스·상위 조합식으로 연결, /defense/recipes는 조합식 페이지(2026-11-10)',async()=>{
+    const h=await get('/');
+    expect(h).toContain('href="/defense"');expect(h).toContain('href="/defense/recipes"');
+    const about=await get('/about');expect(about).toContain('<a href="/defense"');expect(about).toContain('href="/defense/recipes"');
+    const r=await app.inject({method:'GET',url:'/defense/recipes'});
+    expect(r.statusCode).toBe(200);expect(r.headers['cache-control']).toBe('no-cache');expect(r.body).toContain('상위 조합식');
+    const js=/\/defense\/recipes\.js\?v=[0-9a-f]+/.exec(r.body)![0];
+    expect((await app.inject({method:'GET',url:js})).statusCode).toBe(200);
+    expect((await app.inject({method:'GET',url:/\/defense\/recipes\.css\?v=[0-9a-f]+/.exec(r.body)![0]})).statusCode).toBe(200);
+  });
   it('캐릭터 소개: 지금 게임(60종)의 공개 등급만, 히든·최상위 이름과 예전 145종은 내보내지 않음',async()=>{
     const h=await get('/characters');
     const units=JSON.parse(readFileSync('data/test-profiles/five-stat-device-test-v1/catalog.json','utf8')).characters as {id:string;name:string;rarity:string}[];

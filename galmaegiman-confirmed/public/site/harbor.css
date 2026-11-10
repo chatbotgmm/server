@@ -132,7 +132,7 @@ body.harbor>main{flex:1 0 auto}
   .harbor .brand{font-size:22px;gap:9px}
   .harbor .crest{width:36px;height:36px;font-size:29px}
   .harbor .brand small{font-size:9px;margin-top:5px}
-  .harbor .nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 7px}
+  .harbor .nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 7px}
   .harbor .nav a{font-size:12px;padding:5px 0}
   .harbor .acts{gap:6px}
   .harbor .nav-cta,.harbor .gold-cta{min-height:44px;padding:0 11px;font-size:12px}

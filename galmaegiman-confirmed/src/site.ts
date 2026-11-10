@@ -27,7 +27,7 @@ export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
 // 공개 페이지 공통 틀(머리줄·메뉴·바닥). 새 공개 페이지(site.ts)와 예전 공개 페이지(web.ts: 도감·조합법·랭킹·이벤트 등)가 같이 쓴다
 export interface ShellOptions{path:string;title:string;desc:string;body:string;bare?:boolean;script?:string;noindex?:boolean;image?:string;legacy?:boolean;canonical?:boolean}
 // 예전부터 있던 공개 페이지(내용·기능 그대로, 새 디자인 틀): 메뉴의 「둘러보기」와 바닥에 연결
-const MORE:[string,string][]=[['/odds','모집 확률']];
+const MORE:[string,string][]=[['/odds','모집 확률'],['/defense/recipes','디펜스 조합식']];
 // 파일 수정 시각을 주소 뒤에 붙여, 파일이 바뀌면 브라우저가 새로 받게 한다
 // 2026-11-07: 수정 시각 대신 파일 내용 지문(sha256 앞 12자)을 붙인다. 배포 묶음은 수정 시각이 같을 수 있어
 // 내용이 바뀌어도 주소가 같으면 브라우저·Cloudflare가 예전 파일을 계속 보여 줬다. 파일 번호(inode)·크기·시각이 같으면 다시 계산하지 않는다(배포 묶음은 파일을 새로 만들어 번호가 바뀜, 재시작하면 새로 계산)
@@ -38,7 +38,7 @@ export function siteShell(root:string,version:string,content:Content){
   const channel=content.economy.kakaoChannel;
   const stamp=stampFor(root);
   // 첫 화면(home-v4)과 같은 메뉴·문장(머리줄이 화면마다 달라 보이지 않게)
-  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터'],['/notices','공지사항'],['/download','다운로드'],['/village','마을 둘러보기']];
+  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터'],['/notices','공지사항'],['/download','다운로드'],['/village','마을 둘러보기'],['/defense','랜덤 디펜스']];
   const logo='<span class="crest" aria-hidden="true">✦</span><span class="brand-name">갈매미맨 <small>방 범 대</small></span>';
   return (o:ShellOptions)=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -65,7 +65,7 @@ ${o.bare?'':`<div class="drawer" id="drawer" hidden><div class="drawer-in" role=
 <main id="main">${o.body}</main>
 <footer class="foot"><div class="wrap">
 <div class="foot-head"><a class="brand" href="/" aria-label="갈매미맨 방범대 홈">${logo}</a><p>우리의 항구에서, 다음 모험을.</p></div>
-<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a><a href="/notices">공지사항</a><a href="/download">다운로드</a></p>
+<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a><a href="/notices">공지사항</a><a href="/download">다운로드</a><a href="/defense">랜덤 디펜스</a><a href="/defense/recipes">디펜스 조합식</a></p>
 <div class="foot-bottom"><span>GALMAEMIMAN · v${esc(version)}</span><a href="#main">맨 위로 ↑</a></div>
 </div></footer>
 <script src="${stamp('site/site.js')}" defer></script>${o.script??''}
@@ -288,6 +288,11 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   // 모듈 파일(defense.js → engine.js → data.js)이 서로 다른 판으로 섞이지 않게 매번 새로 받게 한다(no-cache)
   app.get('/defense',limit,async(_req,reply)=>{
     let body:string;try{body=readFileSync(resolve(opt.root,'public/defense/index.html'),'utf8');}catch{return reply.code(404).send({error:'not found'});}
+    return send(reply,body,'no-cache');
+  });
+  // 상위 조합식 페이지(2026-11-10 사용자 요청). 게임과 같은 자료(engine.js·data.js)를 읽어 그린다
+  app.get('/defense/recipes',limit,async(_req,reply)=>{
+    let body:string;try{body=readFileSync(resolve(opt.root,'public/defense/recipes.html'),'utf8');}catch{return reply.code(404).send({error:'not found'});}
     return send(reply,body,'no-cache');
   });
   app.get<{Params:{'*':string}}>('/defense/*',limit,async(req,reply)=>{

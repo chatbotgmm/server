@@ -263,10 +263,16 @@ describe('랜덤 디펜스 엔진', () => {
     expect(heir).toBeTruthy();
     expect(E.kitTips(E.kit(heir.id)).some((t: string) => t.includes('물려받음') && t.includes('탐사'))).toBe(true);
   });
-  it('전설·히든은 모두 적어도 한 초불영제의 재료(만들어도 위로 안 이어지는 것 없음, 2026-11-10)', () => {
+  it('전설·히든은 모두 물딜 초불영제와 마딜 초불영제의 재료(패에 맞춰 어느 쪽으로든 갈 수 있게), 유닛마다 조합법은 하나(2026-11-10)', () => {
     const tops = E.RECIPES.filter((r: { out: string }) => E.tierOf(r.out) >= 6);
-    for (const u of E.UNITS.filter((x: { id: string }) => [4, 5].includes(E.tierOf(x.id))))
-      expect(tops.some((r: { in: string[] }) => r.in.includes(u.id)), u.name).toBe(true);
+    const mag = (id: string) => E.UNIT[id].role.endsWith('술사');
+    for (const u of E.UNITS.filter((x: { id: string }) => [4, 5].includes(E.tierOf(x.id)))) {
+      expect(tops.some((r: { out: string; in: string[] }) => !mag(r.out) && r.in.includes(u.id)), `${u.name} → 물딜`).toBe(true);
+      expect(tops.some((r: { out: string; in: string[] }) => mag(r.out) && r.in.includes(u.id)), `${u.name} → 마딜`).toBe(true);
+    }
+    expect(new Set(E.RECIPES.map((r: { out: string }) => r.out)).size).toBe(E.RECIPES.length);                       // 한 유닛 한 조합법
+    expect(new Set(E.RECIPES.map((r: { in: string[] }) => [...r.in].sort().join('+'))).size).toBe(E.RECIPES.length);   // 같은 재료 조합 없음
+    for (let n = 82; n <= 93; n++) expect(E.tierOf(`u${n}`), `u${n}`).toBeGreaterThanOrEqual(6);                        // 새 초불영제 12종
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');

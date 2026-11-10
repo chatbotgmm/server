@@ -45,3 +45,7 @@
 @media(max-width:1000px){.head-acts{margin-left:auto}.site-header .nav-cta{margin-left:0}.site-header nav a{font-size:14px}}
 @media(max-width:650px){.head-acts{gap:6px}.site-header .nav-cta,.site-header .gold-cta{min-height:44px;padding:0 11px;font-size:12px}.site-header nav a{font-size:12px}}
 .platforms .status a{text-decoration:underline;text-underline-offset:3px;color:#eac77f}
+/* 2026-11-10: 랜덤 디펜스 칸을 더해 세 칸, 휴대폰 메뉴는 7개라 네 칸씩 */
+.platforms{grid-template-columns:repeat(3,1fr);max-width:1180px}
+@media(max-width:1000px){.platforms{grid-template-columns:1fr}.platforms article+article{border-left:0;border-top:1px solid #9f8154}}
+@media(max-width:650px){.site-header nav{grid-template-columns:repeat(4,minmax(0,1fr))}}
