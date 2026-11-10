@@ -65,15 +65,20 @@ function bot(g, st) {
     let bi = -1, bv = 0; for (let gi = 0; gi < E.UPG_COUNT; gi++) { if (E.upgMaxed(g, gi)) continue; const v = d[gi] / E.upgradeCost(g, gi); if (v > bv) { bv = v; bi = gi; } }
     if (bi < 0 || !E.upgrade(g, bi).ok) break;
   }
-  // 외부탐사(목표 재료는 안 보냄)
-  if (E.missionOpen(g) && !E.awayUnits(g).length && g.enemies.length < 25) {
-    const t = E.missionTarget(g), needDps = t.hp / 150;
+  // 외부탐사(목표 재료는 안 보냄). 2026-11-10부터 보낸 갈매미가 장을 깨도 남으므로, 남은 대장 체력을 150초 안에 못 잡을 만큼이면 더 보냄
+  if (E.missionOpen(g) && g.enemies.length < 25 && (st.nextSend ?? 0) <= g.t) {
+    const t = E.missionTarget(g);
     const edps = (u) => { const k = E.kit(u.id); return k.dmg * (k.explore || 1) / k.gap * 100 / (100 + (k.type === 'phys' ? t.armor : t.mr)); };
-    const list = E.fieldUnits(g).filter((u) => !allowed.has(u.id) && !(leaves[u.id] > 0)).map((u) => [u, edps(u)]).sort((a, b) => b[1] - a[1]);
-    const total = E.fieldUnits(g).reduce((a, u) => a + edps(u), 0);
-    let sum = 0; const send = [];
-    for (const [u, dd] of list) { if (sum >= needDps) break; send.push(u.uid); sum += dd; }
-    if (sum >= needDps && sum <= total * 0.6) E.sendAway(g, send);
+    const have = E.awayUnits(g).reduce((a, u) => a + edps(u), 0), needDps = t.hp / 150 - have;
+    if (needDps > 0) {
+      const list = E.fieldUnits(g).filter((u) => !allowed.has(u.id) && !(leaves[u.id] > 0)).map((u) => [u, edps(u)]).sort((a, b) => b[1] - a[1]);
+      const total = E.fieldUnits(g).reduce((a, u) => a + edps(u), 0);
+      let sum = 0; const send = [];
+      for (const [u, dd] of list) { if (sum >= needDps) break; send.push(u.uid); sum += dd; }
+      if (sum >= needDps && sum <= total * 0.6) E.sendAway(g, send);
+      else if (sum > 0 && sum <= total * 0.4 && have > 0) E.sendAway(g, send);   // 다 못 채워도 조금씩 보탬
+    }
+    st.nextSend = g.t + 10;
   }
   if (E.awayUnits(g).length && g.enemies.length > 50) E.recall(g);
 }

@@ -48,7 +48,7 @@ suite('랜덤 디펜스 계정 저장',()=>{
       expect((await get()).statusCode).toBe(401);                              // 로그인 안 하면 브라우저에만
       const cookie=await login(app);
       expect((await get(cookie,{})).statusCode).toBe(403);                     // 다른 사이트 요청 막기(x-gmm 없음)
-      expect((await get(cookie)).json()).toEqual({nickname:'디펜스왕',best:{},save:null});
+      expect((await get(cookie)).json()).toEqual({nickname:'디펜스왕',best:{},extra:null,save:null});
       expect((await post({best:{normal:12,hard:3}},cookie)).statusCode).toBe(200);
       expect((await post({best:{normal:9,noupg:7,'normal.intro':40}},cookie)).json()).toMatchObject({best:{normal:12,hard:3,noupg:7,'normal.intro':40}});   // 작은 값은 무시, 난이도별 키도 받음
       const save={data:JSON.stringify({v:1,wave:14}),wave:14,mode:'normal',at:2_000_000};
@@ -61,6 +61,10 @@ suite('랜덤 디펜스 계정 저장',()=>{
       const big={...save,data:JSON.stringify({v:1,pad:'x'.repeat(100_000)}),at:3_000_000};   // 기본 요청 크기(32KB)보다 큰 판도 받음
       expect((await post({save:big},cookie)).json()).toMatchObject({saved:true});
       expect((await post({save:null,best:{normal:61}},cookie)).json()).toMatchObject({save:null,best:{normal:61}});   // 끝난 판은 지우고 클리어 기록
+      const extra=JSON.stringify({v:1,stats:{byDiff:{master:2},earned:1},cosmetic:{slots:[]},hist:[],bestComp:{}});   // 2026-11-10 꾸미기·기록·포인트
+      expect((await post({extra},cookie)).json()).toMatchObject({extra,best:{normal:61}});
+      expect((await get(cookie)).json()).toMatchObject({extra});
+      for(const bad of [{extra:'[]'},{extra:'nope'},{extra:JSON.stringify({pad:'x'.repeat(60_001)})}])expect((await post(bad,cookie)).statusCode).toBe(400);
       // 다른 계정에는 보이지 않음
       await db.player.create({data:{identity:'defense-other',tutorial:5}});
       const other=await login(app,'defense-other');

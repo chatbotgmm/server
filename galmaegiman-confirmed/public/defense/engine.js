@@ -40,7 +40,9 @@ export const RULES = {
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
-  bossEvery: 5, startWisps: 6, wispPerWave: 4, wispPerWaveUp: { UNCOMMON: 1 },   // 처음 커먼 위습 6개, 웨이브마다 커먼 4개 + 언커먼 1개(2026-11-10 조합 비용을 올린 만큼 공급도 늘림: 예전 커먼 2개)
+  bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
+  lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.015,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +1.5%(60웨이브 체력 ×1.8·속도 ×1.3)
+  finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
   // 2026-11-09 사용자 요청: 마방깍 없이 마법 딜러만으로는 보스를 못 잡게. 웨이브별 기준 마법 조합이 보스에게 40초 동안 주는 피해를 재서
@@ -73,7 +75,7 @@ export const RULES = {
   bossReward: { 10: { RARE: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
-  startPick: {}, bossPickEach: { COMMON: 4 }, bossPick: {},   // 2026-11-10: 보스마다 커먼 선택 위습 2 → 4(조합 비용 재조정)
+  startPick: {}, bossPickEach: { COMMON: 1 }, bossPick: {},   // 보스마다 커먼 선택 위습 1(2026-11-10: 4였다가 사용자 「선택위습을 너무 많이 줌」으로 줄임)
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
   guardHp: [20000, 150000, 400000, 600000, 3000000, 2500000, 6000000, 8000000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
@@ -83,17 +85,17 @@ export const RULES = {
 // 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
-  // 스토리 선택 위습: 장마다 커먼 선택 위습 3개(사용자 요청 2026-11-08, 전에는 언커먼~에픽 1개)
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 150 },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 400 },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 800 },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 1500 },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 3000 },
+  // 스토리 선택 위습: 장마다 커먼 선택 위습 1개(2026-11-10 사용자 「선택위습이 너무 많음」으로 3 → 1)
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 150 },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 400 },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 800 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 3000 },
   // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000, unit: 'u81',
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
     choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -134,6 +136,8 @@ export const slowMul = (total) => 1 - SLOW_EFFECT * Math.min(SLOW_MAX, total);
 const SLOW = (t) => (t < 3 ? [0.06, 0.08, 0.12][t] : Math.min(0.5, 0.25 + 0.04 * (t - 3)));  // 이속감소
 const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 * (t - 3))); // 스턴 확률
 // 범위 스턴(전설 이상 보조): 공격마다 확률로 맞은 적 둘레 70 안 모두 스턴. 초월 이상은 20%(사용자 요청: 라인이 안 밀리게)
+export const STUN_TIME = (t) => (t >= 6 ? 2 : [1, 1, 1, 1, 1.25, 1.5][t] ?? 1);
+export const BOSS_STUN = 0.25;   // 보스는 스턴 시간의 1/4
 const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
 // 갈매미 한 마리의 공격 방식. 같은 규칙이면 결과가 같으므로 한 번 계산해 둠(2026-11-10 렉 줄이기: 매 프레임·매 틱 유닛마다 다시 계산했음).
@@ -194,12 +198,18 @@ function kitRaw(id) {
   if (k.stun) k.stun /= AS;
   if (k.astun) k.astun /= AS;
   if (k.poison) k.poison *= AS;
+  // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
+  if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison']) delete k[key];
   const out = { ...k, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
   if (tt >= TOP_TIER) {
     inheritUtil(id, out);
     const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
     if (m > 1) { const v = 1 + (m - 1) * EXPLORE_INHERIT; if (v > (out.explore || 0)) { out.explore = v; out.exploreFrom = true; } }
   }
+  // 2026-11-10 사용자 요청: 방깍과 마방깍은 둘 다 갖지 못함 → 물딜은 방깍, 마딜은 마방깍만 남김
+  if (out.shred && out.mshred) { if (out.type === 'phys') delete out.mshred; else delete out.shred; }
+  // 스턴(2026-11-10 사용자 요청): 맞힐 때 스턴 확률로 그 적이 1~2초 멈춤(에픽 1 · 전설 1.25 · 히든 1.5 · 초불영제 2초). 보스는 그 1/4
+  if (out.stun || out.astun) out.stunTime = STUN_TIME(tt);
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
@@ -227,8 +237,8 @@ export function kitTips(k) {
   if (k.shred) out.push(`방깍 ${Math.round(k.shred)}`);
   if (k.mshred) out.push(`주변 마방깍 ${Math.round(k.mshred)}`);
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
-  if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%`);
-  if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%`);
+  if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%(${k.stunTime ?? 1}초)`);
+  if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
   if (k.explore) out.push(`탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}`);
   if (k.slow) out.push(`주변 이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
@@ -296,8 +306,10 @@ export function waveInfo(w) {
   const armor = Math.round(def * (boss ? RULES.defBossMul : 1)), mr = armor;
   // 적 모습(사용자 요청 2026-11-08: 끼룩단·쭈매미·흑화 갈매미맨 그림, 색 입히지 않음). e: 적 그림, b: 흑화 갈매미 그림
   const look = boss ? BOSS_LOOK[Math.min(BOSS_LOOK.length, Math.ceil(w / 10)) - 1] : (() => { const band = ENEMY_LOOK.find(([to]) => w <= to)[1]; return band[w % band.length]; })();
-  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) : hp,
-    speed: boss ? 34 : 56 + Math.min(30, w), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
+  // 2026-11-10 사용자 요청(장인도 40웨이브쯤이면 다 만들어져 느슨함): lateFrom웨이브부터 일반 적 체력·이동속도가 웨이브마다 더 오름(보스는 그대로)
+  const late = Math.max(0, w - (RULES.lateFrom ?? 999));
+  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late)),
+    speed: boss ? 34 : (56 + Math.min(30, w)) * (1 + (RULES.lateSpdPer ?? 0) * late), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
   const r = REGIONS[k], wi = waveInfo(r.level + 2);
@@ -622,10 +634,12 @@ function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍�
     (e.slows ??= {})[uid] = { v: k.slow, until: now + 1.5 };
     e.slowUntil = now + 1.5;
   }
-  if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = now + (e.boss ? 0.12 : 0.5);
-  if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + (o.boss ? 0.15 : 0.7));
+  const st = k.stunTime ?? 1;
+  if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = Math.max(e.stunUntil, now + st * (e.boss ? BOSS_STUN : 1));
+  if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
 }
+export const debuffForTest = (g, e, k, uid) => debuff(g, e, k, uid);   // 시험용
 // 이감·마방깍(2026-11-09 사용자 요청): 때린 적만이 아니라 그 갈매미 사거리 안의 적 모두에게 걸림. 갈매미마다 따로 더해지고, 벗어나면 곧 풀림
 const AURA_HOLD = 0.3;
 function applyAuras(g) {
@@ -761,7 +775,7 @@ export function step(g, dt) {
     if (r.choice) g.choice = { k: ms.k };   // 고르는 보상: 화면에서 chooseReward로
     else if (r.unit) { const nu = addUnit(g, r.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }
     news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${r.choice ? ' · 보상 하나를 골라요' : r.unit ? ` · ${UNIT[r.unit].name}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
-    recall(g);
+    if (ms.k + 1 >= REGIONS.length) recall(g);   // 2026-11-10 사용자 요청: 보낸 갈매미는 다음 장도 계속 탐사, 마지막(8장)을 깨면 자동으로 돌아옴
     g.missionDone++; g.mission = null;
   }
   g.fx = g.fx.filter((f) => g.t - f.t < 0.8);
@@ -773,7 +787,8 @@ export function step(g, dt) {
   } else g.warnAcc = 0;
   // 보스·웨이브 진행
   if (wi.boss && bossDown) {
-    if (g.wave >= RULES.waves) { g.over = 'win'; g.reason = `${RULES.waves}웨이브 보스까지 모두 막았어요!`; return; }
+    if (g.wave >= RULES.waves) { g.finaleAt ??= g.t; g.bossDone = g.wave; news(g, `${RULES.waves}웨이브 보스 처치! 남은 적을 ${RULES.finaleLen}초 안에 모두 잡으면 완벽 클리어`); }
+    else {
     const rw = RULES.bossReward[g.wave];
     if (rw) addWisps(g, rw);
     const rp = { ...(RULES.bossPickEach ?? {}) };
@@ -783,6 +798,16 @@ export function step(g, dt) {
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
     news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
+    }
+  }
+  // 마지막 보스 뒤: 남은 적(아직 안 나온 것 포함)을 다 잡거나 finaleLen초가 지나면 끝. 남은 수를 기록(0마리면 완벽 클리어)
+  if (g.finaleAt != null) {
+    const left = g.enemies.length + (g.spawnLeft ?? 0);
+    if (!left || g.t - g.finaleAt >= RULES.finaleLen) {
+      g.leftover = left; g.over = 'win';
+      g.reason = left ? `${RULES.waves}웨이브 보스까지 막았어요! 남은 적 ${left}마리` : `완벽 클리어! ${RULES.waves}웨이브 보스와 남은 적까지 모두 잡았어요`;
+    }
+    return;
   }
   g.waveT += dt;
   if (g.waveT >= RULES.waveLen && wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }

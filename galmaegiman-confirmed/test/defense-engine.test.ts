@@ -131,15 +131,36 @@ describe('랜덤 디펜스 엔진', () => {
       expect(ks.filter((k: { stun?: number; astun?: number }) => k.stun || k.astun).length).toBeGreaterThanOrEqual(2);
     }
   });
-  it('마방깍 갈매미가 모든 등급에 있고(에픽·히든은 2종), 범위 효과', () => {
-    const grades = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
-    for (const g of grades) {
-      const n = E.UNITS.filter((u: { grade: string; id: string }) => u.grade === g && E.kit(u.id).mshred).length;
-      expect(n, g).toBeGreaterThanOrEqual(g === 'EPIC' || g === 'HIDDEN' ? 2 : 1);
+  it('효과는 에픽 이상만, 방깍·마방깍은 하나만, 마방깍은 에픽 이상 모든 등급에(2026-11-10)', () => {
+    const UTIL = ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison'];
+    for (const u of E.UNITS) {
+      const k = E.kit(u.id);
+      if (E.tierOf(u.id) < 3) for (const key of UTIL) expect(k[key], `${u.name} ${key}`).toBeFalsy();   // 커먼·언커먼·레어는 공격만
+      expect(!!(k.shred && k.mshred), u.name).toBe(false);                                              // 둘 다는 없음
+      if (k.shred && !k.mshred) expect(k.type === 'phys' || !k.mshred).toBe(true);
     }
+    for (const g of ['EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'])
+      expect(E.UNITS.filter((u: { grade: string; id: string }) => u.grade === g && E.kit(u.id).mshred).length, g).toBeGreaterThanOrEqual(1);
     expect(E.kitTips(E.kit('u32')).some((t: string) => t.startsWith('주변 마방깍'))).toBe(true);
-    // 전설·히든은 모두, 마법 딜러(술사 주력)는 등급 상관없이 모두 마방깍
-    for (const u of E.UNITS) { const k = E.kit(u.id); if (k.tier === 4 || k.tier === 5 || (k.type === 'mag' && k.job === '주력')) expect(k.mshred, u.name).toBeGreaterThan(0); }
+    // 마법 딜러(술사 주력)는 에픽 이상이면 모두 마방깍
+    for (const u of E.UNITS) { const k = E.kit(u.id); if (E.tierOf(u.id) >= 3 && k.type === 'mag' && k.job === '주력') expect(k.mshred, u.name).toBeGreaterThan(0); }
+  });
+  it('스턴: 맞힐 때 확률로 1~2초(에픽 1·전설 1.25·히든 1.5·초불영제 2), 보스는 1/4', () => {
+    expect([3, 4, 5, 6, 9].map((t) => E.STUN_TIME(t))).toEqual([1, 1.25, 1.5, 2, 2]);
+    for (const u of E.UNITS) { const k = E.kit(u.id); if (k.stun || k.astun) { expect(k.stunTime).toBeGreaterThanOrEqual(1); expect(k.stunTime).toBeLessThanOrEqual(2); } }
+    const g = E.newGame(2); g.units = []; g.rand = Object.assign(() => 0, { s: 0 });   // 확률 굴림이 늘 성공
+    const k = E.kit('u33');   // 거장(전설, 스턴)
+    const mk = (boss: boolean) => ({ id: 1, hp: 1e9, max: 1e9, s: 0, speed: 50, boss, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 200, y: 134, by: 0 });
+    const e = mk(false), b = mk(true); g.enemies = [e, b];
+    E.debuffForTest(g, e, k, 1); E.debuffForTest(g, b, k, 1);
+    expect(e.stunUntil - g.t).toBeCloseTo(1.25); expect(b.stunUntil - g.t).toBeCloseTo(1.25 * E.BOSS_STUN);
+  });
+  it('40웨이브부터 일반 적 체력·이동속도가 더 오름(보스는 그대로)', () => {
+    const r = E.RULES, base = (w: number) => { const s = { ...r }; r.lateFrom = 999; const v = E.waveInfo(w); Object.assign(r, s); return v; };
+    expect(E.waveInfo(39).hp).toBe(base(39).hp);
+    expect(E.waveInfo(51).hp / base(51).hp).toBeCloseTo(1 + r.lateHpPer * 11);
+    expect(E.waveInfo(51).speed / base(51).speed).toBeCloseTo(1 + r.lateSpdPer * 11);
+    expect(E.waveInfo(50).hp).toBe(base(50).hp);   // 보스
   });
   it('20웨이브부터 보스 체력은 마방깍 없이 마법만으로는 못 잡을 만큼(기준 조합 실측으로 정한 배수)', () => {
     for (const w of [20, 30, 40, 50, 60]) expect(E.RULES.bossMul[w]).toBeGreaterThanOrEqual(3.7);
@@ -296,7 +317,7 @@ describe('랜덤 디펜스 엔진', () => {
     expect(nostory.over).toBeFalsy();
   });
 
-  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습 4개(2026-11-10 2 → 4)(모집권은 10웨이브 보스만)', () => {
+  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습(RULES.bossPickEach)(모집권은 10웨이브 보스만)', () => {
     expect([1, 4, 5, 9, 10, 15, 60].map((w) => E.waveInfo(w).boss)).toEqual([false, false, true, false, true, true, true]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const killBoss = (g: any, w: number) => {
@@ -306,9 +327,10 @@ describe('랜덤 디펜스 엔진', () => {
     };
     const g = E.newGame(3); const p0 = g.picks.COMMON, t0 = g.tickets ?? 0;
     killBoss(g, 5);
-    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + 4); expect(g.tickets ?? 0).toBe(t0);
+    const pe = E.RULES.bossPickEach.COMMON;
+    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + pe); expect(g.tickets ?? 0).toBe(t0);
     killBoss(g, 10);
-    expect(g.picks.COMMON).toBe(p0 + 8); expect(g.tickets).toBe(t0 + 1);
+    expect(g.picks.COMMON).toBe(p0 + 2 * pe); expect(g.tickets).toBe(t0 + 1);
   });
   it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {
     expect(E.defAt(40)).toBeLessThanOrEqual(45);
@@ -331,7 +353,21 @@ describe('랜덤 디펜스 엔진', () => {
     expect(g.missionDone).toBe(1);
     for (const [k, v] of Object.entries(r.reward)) expect(g.wisps[k] - (w0 as Record<string, number>)[k]).toBe(v);
     expect(g.tickets - t0).toBe(r.ticket); expect(g.gold - g0).toBeGreaterThanOrEqual(r.gold);
-    expect(g.units[0].away).toBe(false);   // 깨면 돌아옴
+    expect(g.units[0].away).toBe(true);    // 2026-11-10: 깨도 다음 장 탐사를 계속(마지막 장만 돌아옴)
+    g.missionDone = E.REGIONS.length - 1; E.missionTarget(g); g.missionDmg[E.REGIONS.length - 1] = 1e12; run(g, 0.1);
+    expect(g.missionDone).toBe(E.REGIONS.length); expect(g.units[0].away).toBe(false);   // 8장을 깨면 돌아옴
+  });
+  it('60웨이브 보스를 잡아도 남은 적을 처리하는 시간, 끝나면 남은 적 수 기록(0마리면 완벽)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const setup = (left: number): any => { const g = E.newGame(4); g.units = []; g.wave = 60; g.waveT = 5; g.spawnLeft = 0; g.missionDone = E.REGIONS.length;
+      const en = (boss: boolean, i: number) => ({ id: 10 + i, hp: boss ? 0 : 1e12, max: 1, s: i * 30, speed: 0, boss, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 46, y: 134, by: 0 });
+      g.enemies = [en(true, 0), ...Array.from({ length: left }, (_, i) => en(false, i + 1))]; return g; };
+    const g = setup(3); E.step(g, 0.05);
+    expect(g.over).toBeFalsy(); expect(g.finaleAt).toBeDefined();                      // 바로 끝나지 않음
+    for (let i = 0; i < (E.RULES.finaleLen + 1) / 0.5 && !g.over; i++) E.step(g, 0.5);
+    expect(g.over).toBe('win'); expect(g.leftover).toBe(3);
+    const p = setup(0); E.step(p, 0.05); E.step(p, 0.05);
+    expect(p.over).toBe('win'); expect(p.leftover).toBe(0); expect(p.reason).toContain('완벽');
   });
 
   it('같이하기 외부탐사: 친구 피해가 더해져 같은 장을 깸', () => {

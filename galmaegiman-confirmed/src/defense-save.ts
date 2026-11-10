@@ -9,16 +9,19 @@ export const DEFENSE_DIFFS=['intro','mid','high','master','artisan'] as const;  
 export const DEFENSE_REC_KEYS=DEFENSE_MODES.flatMap(m=>DEFENSE_DIFFS.map(d=>d==='master'?m:`${m}.${d}`)) as [string,...string[]];
 export const DEFENSE_CLEAR=61;                                            // 60웨이브 클리어 = 61
 export const DEFENSE_SAVE_MAX=120_000;                                    // 이어하기 판 글자 수 상한
-export const DEFENSE_BODY_LIMIT=160_000;
+export const DEFENSE_EXTRA_MAX=60_000;                                     // 꾸미기·판 기록·클리어 수·포인트 덩어리(글자 수 상한)
+export const DEFENSE_BODY_LIMIT=240_000;
 
 const mode=z.enum(DEFENSE_MODES),recKey=z.enum(DEFENSE_REC_KEYS);
 const wave=z.number().int().min(0).max(DEFENSE_CLEAR);
+const jsonObject=(max:number)=>z.string().min(2).max(max).refine(s=>{try{const v=JSON.parse(s);return !!v&&typeof v==='object'&&!Array.isArray(v);}catch{return false;}},'모양이 아니에요');
 export const defenseBody=z.object({
   best:z.partialRecord(recKey,wave).optional(),
   save:z.union([z.null(),z.object({
     data:z.string().min(2).max(DEFENSE_SAVE_MAX).refine(s=>{try{const v=JSON.parse(s);return !!v&&typeof v==='object'&&!Array.isArray(v);}catch{return false;}},'판 저장 모양이 아니에요'),
     wave:wave.min(1),mode,at:z.number().int().positive(),
   }).strict()]).optional(),
+  extra:jsonObject(DEFENSE_EXTRA_MAX).optional(),   // 2026-11-10: 꾸미기·판 기록·클리어 수·포인트(브라우저가 합쳐서 올림, 서버는 그대로 보관)
 }).strict();
 export type DefenseBody=z.infer<typeof defenseBody>;
 
@@ -26,8 +29,9 @@ type Best=Partial<Record<string,number>>;
 const readBest=(raw:string|undefined):Best=>{
   try{const v=JSON.parse(raw??'{}');const r=z.partialRecord(recKey,wave).safeParse(v);return r.success?r.data as Best:{};}catch{return {};}
 };
-const view=(row:{best:string;save:string|null;saveWave:number|null;saveMode:string|null;saveAt:Date|null}|null)=>({
+const view=(row:{best:string;save:string|null;saveWave:number|null;saveMode:string|null;saveAt:Date|null;extra?:string|null}|null)=>({
   best:readBest(row?.best),
+  extra:row?.extra??null,
   save:row?.save&&row.saveAt?{data:row.save,wave:row.saveWave??1,mode:row.saveMode??'normal',at:row.saveAt.getTime()}:null,
 });
 
@@ -41,7 +45,8 @@ export async function defenseStore(db:PrismaClient,playerId:string,body:DefenseB
     const row=await tx.defenseSave.findUnique({where:{playerId}});
     const best=readBest(row?.best);
     for(const [k,v] of Object.entries(body.best??{}) as [keyof Best,number][])if(v>(best[k]??0))best[k]=v;
-    const data:{best:string;save?:string|null;saveWave?:number|null;saveMode?:string|null;saveAt?:Date|null}={best:JSON.stringify(best)};
+    const data:{best:string;save?:string|null;saveWave?:number|null;saveMode?:string|null;saveAt?:Date|null;extra?:string}={best:JSON.stringify(best)};
+    if(body.extra!==undefined)data.extra=body.extra;
     let saved=false;
     if(body.save===null){Object.assign(data,{save:null,saveWave:null,saveMode:null,saveAt:null});saved=true;}
     else if(body.save&&!(row?.saveAt&&row.saveAt.getTime()>body.save.at)){

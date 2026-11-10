@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=fbb8be787ff6';
+import * as E from './engine.js?v=cc877f34b12f';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -33,7 +33,7 @@ const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: �
 
 // ── 화면 준비 ──
 const cv = document.getElementById('game');
-const ctx = cv.getContext('2d');
+let ctx = cv.getContext('2d');   // let: 잘 안 바뀌는 그림을 따로 그려 둘 때 잠깐 바꿔 씀(cachedLayer)
 let scale = 1, dpr = 1;
 // 화면 배치: 휴대폰·태블릿 세로는 540×960 한 줄, PC·태블릿 가로는 1100×960(왼쪽 게임, 오른쪽 창)
 // 가로 배치(사용자 요청 2026-11-08: 전투 화면을 크게, 아래 메뉴는 오른쪽으로): 왼쪽에 위 정보 줄+판(논리 0~680)을 세로 가득 키우고(LS배),
@@ -50,6 +50,11 @@ let OS = 1;                  // 지금 그리는 곳의 배율(가로 배치 왼
 // 자동 화질(2026-11-10 사용자 의견: 렉): 게임 중 프레임이 계속 느리면(중앙값 22ms 넘음) 캔버스 배율을 3 → 2 → 1.5로 한 단계씩 낮춤(올리지는 않음)
 let dprCap = 3;
 const perf = { t: [], at: 0 };
+// 성능 표시(2026-11-10 렉 원인 찾기용): 설정에서 켜면 화면 왼쪽 아래에 초당 프레임·그리기·계산 시간(최근 평균)
+const PERF_KEY = 'gmm-defense-perf';
+const perfShow = { on: false, fps: 0, draw: 0, sim: 0 };
+try { perfShow.on = localStorage.getItem(PERF_KEY) === '1'; } catch { /* 진행 */ }
+const ema = (a, v) => (a ? a * 0.92 + v * 0.08 : v);
 function perfTick(ms) {
   if (!(scene === 'play' && running()) || ms > 250) return;   // 멈춤·창 전환 뒤 첫 프레임은 빼고
   perf.t.push(ms);
@@ -292,6 +297,7 @@ const say = (msg) => { toast = { msg, until: performance.now() + 2400 }; };
 const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u && !u.away);
 
 function start(seed, mode = 'normal', diff = selDiff) {
+  shake.until = 0;
   G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode, diff); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
   tut = !inRoom() && mode === 'normal' && !ls.get(TUT_KEY) ? { step: 0, n0: G.units.length, t: performance.now() } : null;
@@ -345,6 +351,8 @@ async function cloudInit() {
   const svg = sv && sv.at > localAt ? E.loadGame(sv.data) : null;
   if (svg) { ls.set(SAVE_KEY, sv.data); resumeMeta = { wave: sv.wave, mode: sv.mode, diff: svg.diff, at: sv.at }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); }
   const body = Object.keys(up).length ? { best: up } : {};
+  let ex = null; try { ex = me.extra ? JSON.parse(me.extra) : null; } catch { ex = null; }
+  if (mergeExtra(ex) || (!me.extra && (hist.length || clearCount() || cosmetic.slots.some(Boolean)))) body.extra = JSON.stringify(extraBlob());   // 합친 게 다르면 다시 올림
   if (resumeMeta && ls.get(SAVE_KEY) && (!sv || localAt > sv.at)) body.save = { data: ls.get(SAVE_KEY), wave: Math.max(1, resumeMeta.wave), mode: resumeMeta.mode ?? 'normal', at: localAt || Date.now() };
   if (Object.keys(body).length) cloudPost(body);
 }
@@ -376,7 +384,7 @@ function compOf(g) {   // 판의 갈매미(창고·탐사 포함) 종류별 마�
   return Object.entries(c).sort((a, b) => (E.tierOf(b[0]) - E.tierOf(a[0])) || (b[1] - a[1])).slice(0, 16);
 }
 function recordRun(w) {
-  const rec = { at: Date.now(), diff: G.diff, mode: G.mode, wave: w, win: G.over === 'win', coop: coop(), upg: [...G.upg], comp: compOf(G) };
+  const rec = { at: Date.now(), diff: G.diff, mode: G.mode, wave: w, win: G.over === 'win', coop: coop(), upg: [...G.upg], comp: compOf(G), ...(G.leftover != null ? { left: G.leftover } : {}) };
   hist = [rec, ...hist].slice(0, 30); ls.set(HIST_KEY, JSON.stringify(hist));
   const k = recKey(G.mode, G.diff), old = bestComp[k];
   if (!old || w > old.wave) { bestComp[k] = rec; ls.set(BESTCOMP_KEY, JSON.stringify(bestComp)); }
@@ -391,7 +399,7 @@ function saveBest() {   // 모드마다 따로
   best = bestOf('normal', selDiff);
   const solo = !coop() && !inRoom();
   if (coop()) ls.del(ROOM_SAVE_KEY); else if (solo) clearSave();   // 끝난 판은 이어하기에서 지움
-  cloudPost({ best: { [recKey(G.mode, G.diff)]: Math.min(E.RULES.waves + 1, w) }, ...(solo ? { save: null } : {}) });   // 계정에도 기록(혼자 판이면 계정 이어하기도 지움)
+  cloudPost({ best: { [recKey(G.mode, G.diff)]: Math.min(E.RULES.waves + 1, w) }, extra: JSON.stringify(extraBlob()), ...(solo ? { save: null } : {}) }, true);   // 판이 끝나면 바로 계정에(최고 기록·판 기록·클리어 수·포인트, 혼자 판이면 계정 이어하기도 지움)
 }
 
 // ── 꾸미기(2026-11-10 사용자 요청: 클리어 횟수를 채우면 원하는 유닛에 날개·오라를 달고 색을 고름) ──
@@ -420,8 +428,22 @@ if (!Array.isArray(cosmetic.slots)) cosmetic = { slots: [] };
 for (const c of cosmetic.slots) if (c?.wing === 'fairy') { c.wing = ''; if (!c.aura) c.aura = 'wrap'; }   // 예전 요정 날개 → 두름 오라
 const clearCount = () => Object.keys(CLEAR_PTS).reduce((a, d) => a + (stats.byDiff[d] ?? 0), 0);   // 화면에 보이는 클리어 횟수
 const clearPts = () => Object.entries(CLEAR_PTS).reduce((a, [d, k]) => a + k * (stats.byDiff[d] ?? 0), 0);   // 칸 열기에 쓰는 수
-const cosOpen = () => COS_SLOTS.filter((n) => clearPts() >= n).length;
-const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0;
+// 꾸미기 포인트(2026-11-10 사용자 요청): 60웨이브 보스 뒤 남은 적까지 0마리로 끝내면(완벽 클리어) 달인 1점·장인 2점(클리어 수와 같은 기준).
+// 잠긴 칸 하나 열기 3점, 무지개 색 열기 5점. 번 것(earned)과 쓴 것(spent)을 따로 두어 기기끼리 합칠 때 큰 값으로 합침
+const COS_COST = { slot: 3, rainbow: 5 };
+const pointsLeft = () => Math.max(0, (stats.earned ?? 0) - (stats.spent ?? 0));
+const cosOpen = () => Math.min(COS_SLOTS.length, COS_SLOTS.filter((n) => clearPts() >= n).length + (stats.boughtSlots ?? 0));
+const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0 || !!stats.boughtRainbow;
+function buyCos(kind) {
+  const cost = COS_COST[kind];
+  if (kind === 'slot' && cosOpen() >= COS_SLOTS.length) return say('모든 칸이 열려 있어요.');
+  if (kind === 'rainbow' && rainbowOpen()) return;
+  if (pointsLeft() < cost) return say(`포인트 ${cost}점이 필요해요(지금 ${pointsLeft()}점). 남은 적 0마리로 클리어하면 받아요(달인 1·장인 2점).`);
+  stats.spent = (stats.spent ?? 0) + cost;
+  if (kind === 'slot') stats.boughtSlots = (stats.boughtSlots ?? 0) + 1; else stats.boughtRainbow = true;
+  stats.at = Date.now(); ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild(); cloudSaveExtra();
+  say(kind === 'slot' ? `포인트 ${cost}점으로 꾸미기 칸을 열었어요.` : `포인트 ${cost}점으로 무지개 색을 열었어요.`);
+}
 const COS_MIN_TIER = 4;   // 전설·히든·초불영제만 꾸밀 수 있음
 const cosAllowed = (id) => !!E.UNIT[id] && E.tierOf(id) >= COS_MIN_TIER && E.UNIT[id].role !== E.SPECIAL_ROLE;
 cosmetic.slots = cosmetic.slots.map((c) => (c?.id && !cosAllowed(c.id) ? null : c));   // 예전에 고른 낮은 등급 칸은 비움
@@ -431,10 +453,34 @@ function cosRebuild() {   // 열린 칸의 꾸밈만 유닛별로(칸이 닫혀 
   cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && cosAllowed(c.id) && (c.wing || c.aura)) cosById[c.id] = c; });
 }
 cosRebuild();
-function cosSave() { ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); }
+function cosSave() { cosmetic.at = Date.now(); ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); cloudSaveExtra(); }
+// ── 꾸미기·기록·클리어 수·포인트도 계정에(2026-11-10 사용자 요청). 한 덩어리(extra)로 올리고, 받을 때 이 기기 것과 합침 ──
+function extraBlob() { return { v: 1, stats, cosmetic, hist, bestComp }; }
+let extraTimer = 0;
+function cloudSaveExtra(now = false) {   // 바뀌면 2초 뒤에 한 번(여러 번 바꿔도 한 번), now면 바로
+  if (!cloud.on) return;
+  clearTimeout(extraTimer);
+  const go = () => cloudPost({ extra: JSON.stringify(extraBlob()) }, now);
+  if (now) go(); else extraTimer = setTimeout(go, 2000);
+}
+function mergeExtra(x) {   // 계정에 있던 것(x)과 이 기기 것을 합침: 클리어 수·포인트는 큰 값, 기록은 합치기, 꾸미기는 나중에 바꾼 쪽
+  if (!x || typeof x !== 'object') return false;
+  const before = JSON.stringify(extraBlob());
+  const xs = x.stats ?? {}, bd = { ...(stats.byDiff ?? {}) };
+  for (const [d, n] of Object.entries(xs.byDiff ?? {})) if (Number(n) > (bd[d] ?? 0)) bd[d] = Number(n);
+  const mx = (k) => Math.max(Number(stats[k]) || 0, Number(xs[k]) || 0);
+  stats = { ...stats, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow) };
+  if (x.cosmetic && Array.isArray(x.cosmetic.slots) && (Number(x.cosmetic.at) || 0) > (Number(cosmetic.at) || 0)) cosmetic = { at: x.cosmetic.at, slots: x.cosmetic.slots.map((c) => (c?.id && cosAllowed(c.id) ? c : null)) };
+  if (Array.isArray(x.hist)) { const seen = new Set(hist.map((r) => r.at)); hist = [...hist, ...x.hist.filter((r) => r && !seen.has(r.at))].sort((a, b) => b.at - a.at).slice(0, 30); }
+  for (const [k, r] of Object.entries(x.bestComp ?? {})) if (r && (!bestComp[k] || r.wave > bestComp[k].wave)) bestComp[k] = r;
+  ls.set(STATS_KEY, JSON.stringify(stats)); ls.set(COS_KEY, JSON.stringify(cosmetic)); ls.set(HIST_KEY, JSON.stringify(hist)); ls.set(BESTCOMP_KEY, JSON.stringify(bestComp)); cosRebuild();
+  return JSON.stringify(extraBlob()) !== before;
+}
 function addClear(diff) {
   const before = cosOpen(), rb = rainbowOpen();
   stats.byDiff = { ...stats.byDiff, [diff]: (stats.byDiff?.[diff] ?? 0) + 1 };
+  if (G.leftover === 0 && CLEAR_PTS[diff]) { stats.earned = (stats.earned ?? 0) + CLEAR_PTS[diff]; G.pointNews = `완벽 클리어! 꾸미기 포인트 +${CLEAR_PTS[diff]}(지금 ${pointsLeft()}점)`; }
+  stats.at = Date.now();
   ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild();
   // 판 끝 창 안에 한 줄로(알림 띠는 창의 버튼을 가림 — 검토에서 찾음)
   if (!CLEAR_PTS[diff]) G.cosNews = '꾸미기 클리어 횟수는 달인부터 세요';
@@ -591,7 +637,23 @@ function needTree(id, cnt) {
   const r = E.recipeFor(id);
   return { id, have: false, top: true, kids: r ? r.in.map((x) => node(x, 1)) : [] };
 }
-function drawLanes() {
+// 잘 안 바뀌는 그림(판·길·사거리 원)을 한 번 그려 두고 붙이기(2026-11-10 렉 원인: 매 프레임 판 전체 칠하기·점선 원이 비쌌음).
+// 지금 배율(가로 화면 확대·기기 배율)마다 따로 저장, key가 바뀌면(갈매미가 움직이면) 새로 그림
+const layers = new Map();
+function cachedLayer(key, x, y, w, h, draw) {
+  const tr = ctx.getTransform(), sc = Math.hypot(tr.a, tr.b), k = `${key}|${sc.toFixed(3)}`;
+  let c = layers.get(k);
+  if (!c) {
+    for (const old of layers.keys()) if (old.startsWith(key.split(':')[0] + ':') && old.endsWith(`|${sc.toFixed(3)}`)) layers.delete(old);   // 같은 종류의 예전 그림은 버림
+    c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * sc)); c.height = Math.max(1, Math.ceil(h * sc));
+    const c2 = c.getContext('2d'); c2.setTransform(sc, 0, 0, sc, -x * sc, -y * sc);
+    const keep = ctx; ctx = c2; try { draw(); } finally { ctx = keep; }
+    layers.set(k, c); if (layers.size > 16) layers.delete(layers.keys().next().value);
+  }
+  ctx.drawImage(c, x, y, w, h);
+}
+function drawLanes() { cachedLayer('lanes:', FIELD.x - 2, FIELD.y - 2, FIELD.w + 4, FIELD.h + 4, drawLanesRaw); }
+function drawLanesRaw() {
   const L = E.LOOP, lane = 40;
   box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, '#0c1c27', C.edge, 12, 1.5);
   ctx.lineWidth = lane; ctx.strokeStyle = C.lane; ctx.lineJoin = 'round';
@@ -761,8 +823,11 @@ function drawLockMark(x, y) {   // 위치 고정 자물쇠(어두운 동그라�
 // 화면 흔들림(상위 등급이 보스를 칠 때 아주 작게)
 const shake = { until: 0, mag: 0 };
 function drawField() {
+  // 2026-11-10 버그 수정(사용자: 한 번 클리어하고 나면 판이 안 보임): 흔들림 끝 시각이 지난 판의 판 시간(G.t) 그대로 남아,
+  // 새 판(G.t가 0부터)에서 「남은 시간 ÷ 0.12」배로 판을 수천 px 밀어냈음 → 0.2초보다 길게 남았으면 지난 판 값이므로 지우고, 거리도 mag 이하로
+  if (shake.until - G.t > 0.2) shake.until = 0;
   const sh = !fxLite && G.t < shake.until;
-  if (sh) { ctx.save(); const r = shake.mag * (shake.until - G.t) / 0.12; ctx.translate((Math.random() - 0.5) * 2 * r, (Math.random() - 0.5) * 2 * r); }
+  if (sh) { ctx.save(); const r = Math.min(shake.mag, shake.mag * (shake.until - G.t) / 0.12); ctx.translate((Math.random() - 0.5) * 2 * r, (Math.random() - 0.5) * 2 * r); }
   drawFieldInner();
   if (sh) ctx.restore();
 }
@@ -776,10 +841,17 @@ function drawFieldInner() {
     ctx.fillStyle = 'rgba(243,216,158,.07)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(243,216,158,.55)'; ctx.stroke();
   }
   // 이감·마방깍 갈매미 범위(범위 안 적 모두에게 걸림, 옅게)
-  if (!fxLite) for (const u of E.fieldUnits(G)) {
-    const k = E.kit(u.id); if (!k.slow && !k.mshred) continue;
-    ctx.beginPath(); ctx.arc(u.x, u.y - 8, k.range, 0, Math.PI * 2);
-    ctx.setLineDash([4, 7]); ctx.lineWidth = 1.2; ctx.strokeStyle = k.slow ? 'rgba(159,232,255,.16)' : 'rgba(143,200,255,.13)'; ctx.stroke(); ctx.setLineDash([]);
+  if (!fxLite) {   // 갈매미가 움직일 때만 새로 그림(점선 원 수십 개를 매 프레임 그리던 것)
+    const au = E.fieldUnits(G).filter((u) => { const k = E.kit(u.id); return k.slow || k.mshred; });
+    if (au.length) cachedLayer('aura:' + au.map((u) => `${u.id}@${Math.round(u.x)},${Math.round(u.y)}`).join(';'), FIELD.x, FIELD.y, FIELD.w, FIELD.h, () => {
+      ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
+      for (const u of au) {
+        const k = E.kit(u.id);
+        ctx.beginPath(); ctx.arc(u.x, u.y - 8, k.range, 0, Math.PI * 2);
+        ctx.setLineDash([4, 7]); ctx.lineWidth = 1.2; ctx.strokeStyle = k.slow ? 'rgba(159,232,255,.16)' : 'rgba(143,200,255,.13)'; ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.restore();
+    });
   }
   // 적
   for (const e of G.enemies) {
@@ -1202,7 +1274,7 @@ function rolesOf(id) {
   if (!r.length || (k.job !== '주력' && !k.shred && !k.mshred && !k.slow && !k.stun && !k.astun)) r.push('etc');
   return r;
 }
-let bookRole = 'all';
+let bookRoles = new Set();   // 역할 칩 여러 개(2026-11-10 사용자 요청: 이감+방깍처럼 둘 다 가진 것 찾기). 비어 있으면 전체, 여러 개면 모두 가진 것만
 // 조합법 찾기(사용자 요청 2026-11-08): 만들 수 있는 것만 · 재료 많이 모인 순 · 이름 검색(캔버스 위에 실제 입력칸을 겹쳐 띄움)
 const bookOpt = { ready: false, near: false, q: '' };
 let bookSearchRect = null;
@@ -1248,16 +1320,16 @@ function drawBook() {
     fitText(`${on ? '✓ ' : ''}${nm}`, bx + tw2 / 2, y + 104, tw2 - 8, 13, on ? C.good : C.muted, 'center');
     hit(bx, y + 90, tw2, 28, () => { bookOpt[key] = !bookOpt[key]; modal.scroll = 0; });
   });
-  // 역할 칩: 누르면 그 역할을 가진 결과만
+  // 역할 칩: 누르면 켜고 끔(여러 개면 모두 가진 결과만), 「전체」는 모두 끔
   const cw = (w - 24 - 7 * 4) / 8;
   ROLES.forEach(([key, nm], i) => {
-    const on = bookRole === key, bx = x + 12 + i * (cw + 4);
+    const on = key === 'all' ? !bookRoles.size : bookRoles.has(key), bx = x + 12 + i * (cw + 4);
     box(bx, y + 54, cw, 30, on ? 'rgba(243,216,158,.18)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
     fitText(nm, bx + cw / 2, y + 69, cw - 6, 13, on ? C.goldEdge : C.muted, 'center');
-    hit(bx, y + 54, cw, 30, () => { bookRole = key; modal.scroll = 0; });
+    hit(bx, y + 54, cw, 30, () => { if (key === 'all') bookRoles.clear(); else if (bookRoles.has(key)) bookRoles.delete(key); else bookRoles.add(key); modal.scroll = 0; });
   });
   const top = y + 126, viewH = h - 136, cnt = E.countOnField(G), q = bookOpt.q;
-  let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (bookRole === 'all' || rolesOf(r.out).includes(bookRole))
+  let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (!bookRoles.size || [...bookRoles].every((k) => rolesOf(r.out).includes(k)))
     && (!q || E.UNIT[r.out].name.includes(q) || r.in.some((id) => E.UNIT[id].name.includes(q))));
   rows = rows.map((r) => ({ r, ok: canMake(r), frac: have(r, cnt) / r.in.length }));
   if (bookOpt.ready) rows = rows.filter((it) => it.ok);
@@ -1403,8 +1475,8 @@ function drawOver() {
   box(x, y, w, h, C.panel, win ? C.goldEdge : '#b4482a', 14, 2);
   text(win ? '방어 성공!' : '방어 실패', W / 2, y + 48, 28, win ? C.goldEdge : C.bad, 'center');
   ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
-  text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
-  fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
+  text(win ? `${E.RULES.waves}웨이브 클리어${G.leftover != null ? ` · 남은 적 ${G.leftover}마리` : ''}` : `${G.wave}웨이브`, W / 2, y + 160, 22, win && G.leftover === 0 ? C.goodText ?? C.good : C.text, 'center');
+  fitText(G.pointNews ?? `처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, G.pointNews ? C.good : C.muted, 'center');
   text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
   text('이번 조합', x + 24, y + 256, 13, C.muted);
   if (G.cosNews) fitText(G.cosNews, x + w - 24, y + 256, w - 130, 13, C.good, 'right');
@@ -1629,13 +1701,17 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('꾸미기', x + 18, y + 32, 24, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''}`, x + 18, y + 66, w - 36, 14, C.muted);
+  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''} · 포인트 ${pointsLeft()}점`, x + 18, y + 66, w - 36, 14, C.muted);
   // 칸 8개
   const sw = (w - 24 - 7 * 6) / 8;
   COS_SLOTS.forEach((need, i) => {
     const sx = x + 12 + i * (sw + 6), sy = y + 82, on = i < open, cur = modal.slot === i, c = cosmetic.slots[i];
     box(sx, sy, sw, 62, on ? (cur ? 'rgba(243,216,158,.16)' : 'rgba(11,30,42,.85)') : 'rgba(11,30,42,.45)', cur ? C.goldEdge : on ? C.edge : '#33434d', 8, cur ? 2.5 : 1.2);
-    if (!on) { drawLockMark(sx + sw / 2, sy + 26); fitText(`${need}번`, sx + sw / 2, sy + 50, sw - 6, 12, '#7d8c94', 'center'); return; }
+    if (!on) {   // 잠긴 칸: 클리어로 열거나, 첫 잠긴 칸은 포인트로 열기(누르면)
+      drawLockMark(sx + sw / 2, sy + 22); fitText(`${need}번`, sx + sw / 2, sy + 42, sw - 6, 11, '#7d8c94', 'center');
+      if (i === open) { fitText(`${COS_COST.slot}점`, sx + sw / 2, sy + 55, sw - 6, 11, pointsLeft() >= COS_COST.slot ? C.good : '#7d8c94', 'center'); hit(sx, sy, sw, 62, () => buyCos('slot')); }
+      return;
+    }
     if (c?.id) { drawFit(unitImg(c.id), sx + 5, sy + 4, sw - 10, 40); fitText(c.wing || c.aura ? '꾸밈' : '없음', sx + sw / 2, sy + 52, sw - 6, 11, c.wing || c.aura ? C.goldEdge : C.muted, 'center'); }
     else { text('+', sx + sw / 2, sy + 26, 24, C.gold, 'center'); fitText('빈 칸', sx + sw / 2, sy + 50, sw - 6, 12, C.muted, 'center'); }
     hit(sx, sy, sw, 62, () => { modal.slot = i; const id = cosmetic.slots[i]?.id; if (id) modal.tab = Math.max(0, COS_TABS.findIndex((q) => q[1].includes(E.UNIT[id].grade))); });
@@ -1672,7 +1748,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     ctx.globalAlpha = en && !lock ? 1 : 0.35; ctx.fill(); ctx.globalAlpha = 1;
     ctx.lineWidth = on ? 3 : 1.2; ctx.strokeStyle = on ? '#ffffff' : 'rgba(0,0,0,.5)'; ctx.stroke();
     if (lock) drawLockMark(cx, cy + 2);
-    if (en) hit(cx - cs / 2 - 2, cy - cs / 2 - 4, cs + 4, cs + 8, () => { if (lock) say('무지개 색은 장인 난이도를 한 번 클리어하면 열려요.'); else set('color', v); });
+    if (en) hit(cx - cs / 2 - 2, cy - cs / 2 - 4, cs + 4, cs + 8, () => { if (lock) { if (pointsLeft() >= COS_COST.rainbow) buyCos('rainbow'); else say(`무지개 색은 장인을 한 번 클리어하거나 포인트 ${COS_COST.rainbow}점으로 열려요(지금 ${pointsLeft()}점).`); } else set('color', v); });
   });
   fitText(en ? `${COS_COLORS.find((q) => q[0] === (cur.color ?? '#ffd66b'))?.[1] ?? ''}${rainbowOpen() ? '' : ' · 무지개는 장인 클리어로 열림'}` : '', ox, py + 204, ow, 12, C.muted);
   // 유닛 고르기: 등급 칸 → 그림
@@ -1716,7 +1792,7 @@ function drawModes() {
 }
 function drawSound() {
   shadeAll();
-  const x = 50, y = 250, w = W - 100, h = 460;
+  const x = 50, y = 220, w = W - 100, h = 546;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -1736,6 +1812,9 @@ function drawSound() {
   button(x + w - 24 - 120, sy + 60, 120, 44, fxLite ? '끔' : '켬', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
   fitText('끄면 공격 효과·꾸밈·빛 테두리·움직이는 장식을 줄이고', x + 24, sy + 128, w - 48, 13, C.muted);
   fitText('화면 해상도를 조금 낮춰 가볍게 그려요(렉이 있는 기기용). 게임 규칙은 같아요.', x + 24, sy + 150, w - 48, 13, C.muted);
+  text('성능 표시', x + 24, sy + 200, 18, C.text);
+  button(x + w - 24 - 120, sy + 178, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
+  fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 236, w - 48, 13, C.muted);
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
@@ -2415,6 +2494,8 @@ let last = performance.now(), acc = 0;
 let seenModal = null;
 function frame(now) {
   perfTick(now - last);
+  if (perfShow.on && now > last) perfShow.fps = ema(perfShow.fps, 1000 / (now - last));
+  const tSim0 = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (running()) {
@@ -2422,6 +2503,7 @@ function frame(now) {
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
+  if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
   else if (scene === 'play' && G?.choice && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
   // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
@@ -2430,6 +2512,7 @@ function frame(now) {
   if (wantStrip !== stripOn) { stripOn = wantStrip; fit(); }
   musicSync(); sfxTick(); placeSearch();
   hits = [];
+  const tDraw0 = performance.now();
   ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 그림 줄일 때 고품질(기본은 낮음이라 거칠었음)
   if (scene === 'title' || scene === 'lobby') {
@@ -2457,6 +2540,12 @@ function frame(now) {
   }
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene !== 'play') drawToast();
+  if (perfShow.on) {
+    perfShow.draw = ema(perfShow.draw, performance.now() - tDraw0);
+    const t = `FPS ${perfShow.fps.toFixed(0)} · 그리기 ${perfShow.draw.toFixed(1)}ms · 계산 ${perfShow.sim.toFixed(1)}ms · 배율 ${dpr}${G ? ` · 적 ${G.enemies.length} · 갈매미 ${E.fieldUnits(G).length} · 효과 ${G.fx.length}` : ''}`;
+    ctx.font = `12px ${FONT}`; const tw = ctx.measureText(t).width + 12;
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(4, VH - 22, tw, 18); text(t, 10, VH - 13, 12, '#9fe3a8');
+  }
   requestAnimationFrame(frame);
 }
 // /defense?room=123456 으로 열면 그 방에 바로 들어간다(방장이 보낸 링크)
