@@ -350,13 +350,52 @@ function recordRun(w) {
   G.lastRec = rec;
 }
 function saveBest() {   // 모드마다 따로
+  if (G.lastRec) return;   // 한 판에 한 번만(같이하기에서 친구 판을 보고 돌아와도 다시 기록하지 않음)
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
   recordRun(w);
+  if (G.over === 'win') addClear(G.diff);
   if (w > bestOf(G.mode, G.diff)) ls.set(bestKey(G.mode, G.diff), String(w));
   best = bestOf('normal', selDiff);
   const solo = !coop() && !inRoom();
   if (coop()) ls.del(ROOM_SAVE_KEY); else if (solo) clearSave();   // 끝난 판은 이어하기에서 지움
   cloudPost({ best: { [recKey(G.mode, G.diff)]: Math.min(E.RULES.waves + 1, w) }, ...(solo ? { save: null } : {}) });   // 계정에도 기록(혼자 판이면 계정 이어하기도 지움)
+}
+
+// ── 꾸미기(2026-11-10 사용자 요청: 클리어 횟수를 채우면 원하는 유닛에 날개·오라를 달고 색을 고름) ──
+// 클리어(60웨이브까지 버팀)는 난이도·모드·같이하기 모두 1번으로 센다. 능력치는 그대로, 판 위 그림만 바뀐다. 이 기기에만 저장
+const STATS_KEY = 'gmm-defense-stats', COS_KEY = 'gmm-defense-cosmetic';
+const COS_SLOTS = [1, 3, 5, 10, 15, 20, 30, 50];   // 칸이 열리는 누적 클리어 수
+const COS_WINGS = [['', '없음'], ['feather', '깃털'], ['fairy', '요정']];
+const COS_AURAS = [['', '없음'], ['glow', '빛'], ['flame', '불꽃']];
+const COS_COLORS = [['#ffd66b', '금빛'], ['#ff5a5a', '빨강'], ['#ff8fc7', '분홍'], ['#b07bff', '보라'], ['#5aa8ff', '파랑'], ['#6fe8ff', '하늘'], ['#6fe08a', '초록'], ['#ffffff', '흰색'], ['rainbow', '무지개']];
+const RAINBOW_DIFF = 'artisan';   // 무지개 색은 장인 클리어로 열림
+let stats = readJson(STATS_KEY, null);
+if (!stats || typeof stats.clears !== 'number') {   // 처음: 지금까지 남은 기록(최근 판·클리어한 최고 기록)으로 시작
+  const wins = hist.filter((r) => r.win), byDiff = {};
+  for (const r of wins) byDiff[r.diff] = (byDiff[r.diff] ?? 0) + 1;
+  let cleared = 0;
+  for (const m of Object.keys(E.MODES)) for (const d of E.DIFF_ORDER) if (bestOf(m, d) > E.RULES.waves) { cleared++; byDiff[d] = Math.max(byDiff[d] ?? 0, 1); }
+  stats = { clears: Math.max(wins.length, cleared), byDiff, seen: 0 };
+  ls.set(STATS_KEY, JSON.stringify(stats));
+}
+let cosmetic = readJson(COS_KEY, {});
+if (!Array.isArray(cosmetic.slots)) cosmetic = { slots: [] };
+const cosOpen = () => COS_SLOTS.filter((n) => stats.clears >= n).length;
+const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0;
+let cosById = {};
+function cosRebuild() {   // 열린 칸의 꾸밈만 유닛별로(칸이 닫혀 있거나 비어 있으면 그리지 않음)
+  cosById = {};
+  cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && E.UNIT[c.id] && (c.wing || c.aura)) cosById[c.id] = c; });
+}
+cosRebuild();
+function cosSave() { ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); }
+function addClear(diff) {
+  const before = cosOpen(), rb = rainbowOpen();
+  stats.clears++; stats.byDiff = { ...stats.byDiff, [diff]: (stats.byDiff?.[diff] ?? 0) + 1 };
+  ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild();
+  // 판 끝 창 안에 한 줄로(알림 띠는 창의 버튼을 가림 — 검토에서 찾음)
+  if (cosOpen() > before) G.cosNews = `꾸미기 칸 ${cosOpen()}번째 열림!`;
+  else if (!rb && rainbowOpen()) G.cosNews = '꾸미기 무지개 색 열림!';
 }
 
 // ── 입력 ──
@@ -537,6 +576,73 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
+// 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
+function cosRGB(c, seed = 0) {   // [r,g,b] — 무지개는 시간에 따라 색이 돎
+  if (c.color !== 'rainbow') { const h = parseInt((c.color ?? '#ffd66b').slice(1), 16); return [(h >> 16) & 255, (h >> 8) & 255, h & 255]; }
+  const hue = ((performance.now() / 14 + seed * 37) % 360) / 60, f = (n) => { const k = (n + hue) % 6; return Math.round(255 * (1 - 0.62 * Math.max(0, Math.min(k, 4 - k, 1)))); };
+  return [f(5), f(3), f(1)];
+}
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const light = (c, k) => c.map((v) => Math.round(v + (255 - v) * k));
+function cosWing(style, col, cx, cy, s, side, flap) {
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(side * s, s); ctx.rotate(-flap);
+  const lt = light(col, 0.55);
+  if (style === 'fairy') {   // 요정: 비치는 두 잎(위 큰 잎 + 아래 작은 잎)
+    const g = ctx.createLinearGradient(0, 0, 40, -30); g.addColorStop(0, rgba(lt, 0.85)); g.addColorStop(1, rgba(col, 0.32));
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(8, -34, 42, -46, 44, -24); ctx.bezierCurveTo(46, -10, 22, -4, 0, 0);
+    ctx.moveTo(0, 2); ctx.bezierCurveTo(14, 6, 32, 14, 26, 26); ctx.bezierCurveTo(20, 34, 4, 18, 0, 2);
+    ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1.6 / s; ctx.strokeStyle = rgba(lt, 0.9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2, -2); ctx.quadraticCurveTo(20, -20, 36, -26); ctx.moveTo(2, 3); ctx.quadraticCurveTo(14, 12, 20, 22);
+    ctx.lineWidth = 1 / s; ctx.strokeStyle = rgba([255, 255, 255], 0.55); ctx.stroke();
+  } else {   // 깃털: 위로 휜 날개, 아래 가장자리는 깃털 끝 물결
+    const g = ctx.createLinearGradient(0, 0, 46, -30); g.addColorStop(0, rgba(lt, 0.97)); g.addColorStop(1, rgba(col, 0.6));
+    const tip = [[48, -34], [45, -21], [39, -11], [31, -3], [21, 3], [10, 5], [0, 2]];
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(6, -24, 26, -40, 48, -34);
+    for (let k = 1; k < tip.length; k++) { const [ax, ay] = tip[k - 1], [bx, by] = tip[k]; ctx.quadraticCurveTo((ax + bx) / 2 + 5, (ay + by) / 2 + 5, bx, by); }
+    ctx.closePath(); ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1.4 / s; ctx.strokeStyle = rgba(light(col, 0.85), 0.95); ctx.stroke();
+    ctx.beginPath(); for (let k = 1; k < tip.length - 1; k++) { ctx.moveTo(tip[k][0] * 0.35, tip[k][1] * 0.35 - 4); ctx.lineTo(tip[k][0] * 0.9, tip[k][1] * 0.9); }
+    ctx.lineWidth = 1 / s; ctx.strokeStyle = rgba(col, 0.55); ctx.stroke();
+  }
+  ctx.restore();
+}
+function cosBack(c, x, y, z, seed = 0) {
+  const t = performance.now() / 1000, col = cosRGB(c, seed), still = fxLite;
+  if (c.aura) {   // 발밑 빛 웅덩이(숨 쉬듯 커졌다 작아짐)
+    const p = still ? 0.5 : 0.5 + 0.5 * Math.sin(t * 2.4 + seed);
+    const r = (26 + 6 * p) * z, g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(col, c.aura === 'flame' ? 0.6 : 0.5)); g.addColorStop(1, rgba(col, 0));
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.38); ctx.translate(-x, -y);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+    if (c.aura === 'glow') {   // 몸을 감싸는 옅은 빛 기둥
+      const g2 = ctx.createLinearGradient(0, y, 0, y - 62 * z); g2.addColorStop(0, rgba(col, 0.28 + 0.12 * p)); g2.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y - 28 * z, 24 * z, 36 * z, 0, 0, Math.PI * 2); ctx.fill();
+    } else {   // 불꽃: 몸 뒤로 너울거리는 혀 셋
+      for (let k = 0; k < 3; k++) {
+        const ph = t * 3.2 + k * 2.1 + seed, hgt = (40 + 12 * Math.sin(ph)) * z, bx = x + (k - 1) * 13 * z, sw = 4 * z * Math.sin(ph * 1.3);
+        const g3 = ctx.createLinearGradient(0, y, 0, y - hgt); g3.addColorStop(0, rgba(light(col, 0.3), 0.55)); g3.addColorStop(1, rgba(col, 0));
+        ctx.beginPath(); ctx.moveTo(bx - 10 * z, y - 2 * z); ctx.quadraticCurveTo(bx - 9 * z + sw, y - hgt * 0.6, bx + sw * 1.5, y - hgt); ctx.quadraticCurveTo(bx + 9 * z + sw, y - hgt * 0.6, bx + 10 * z, y - 2 * z);
+        ctx.fillStyle = g3; ctx.fill();
+      }
+    }
+  }
+  if (c.wing) {   // 등 뒤 날개 한 쌍(천천히 퍼덕임)
+    const flap = still ? 0.05 : 0.12 * Math.sin(t * (c.wing === 'fairy' ? 7 : 3.6) + seed), s = 0.62 * z, cy = y - 34 * z;
+    cosWing(c.wing, col, x - 7 * z, cy, s, -1, flap); cosWing(c.wing, col, x + 7 * z, cy, s, 1, flap);
+  }
+}
+function cosFront(c, x, y, z, seed = 0) {
+  if (!c.aura || fxLite) return;
+  const t = performance.now() / 1000, col = cosRGB(c, seed);
+  if (c.aura === 'glow') for (let k = 0; k < 4; k++) {   // 몸 둘레를 도는 반짝이
+    const a = t * 1.6 + k * Math.PI / 2 + seed, sx = x + Math.cos(a) * 24 * z, sy = y - 26 * z + Math.sin(a) * 9 * z + Math.sin(t * 3 + k) * 6 * z;
+    const r = (1.8 + 1.2 * Math.sin(t * 5 + k)) * z;
+    ctx.beginPath(); ctx.moveTo(sx, sy - r * 2.4); ctx.lineTo(sx + r * 0.7, sy - r * 0.7); ctx.lineTo(sx + r * 2.4, sy); ctx.lineTo(sx + r * 0.7, sy + r * 0.7); ctx.lineTo(sx, sy + r * 2.4); ctx.lineTo(sx - r * 0.7, sy + r * 0.7); ctx.lineTo(sx - r * 2.4, sy); ctx.lineTo(sx - r * 0.7, sy - r * 0.7); ctx.closePath();
+    ctx.fillStyle = rgba(light(col, 0.6), 0.95); ctx.fill();
+  } else for (let k = 0; k < 4; k++) {   // 불꽃: 위로 날리는 불티
+    const ph = (t * 0.9 + k * 0.25 + seed * 0.13) % 1, sx = x + (((k * 37 + Math.floor(t * 0.9 + k * 0.25)) % 5) - 2) * 7 * z, sy = y - 8 * z - ph * 56 * z;
+    ctx.beginPath(); ctx.arc(sx, sy, (2.4 - ph * 1.4) * z, 0, Math.PI * 2); ctx.fillStyle = rgba(light(col, 0.5), 0.9 * (1 - ph)); ctx.fill();
+  }
+}
 const glows = {};
 function glow(id) {   // 빛 테두리 그림을 한 번만 만들어 둠
   if (glows[id]) return glows[id];
@@ -613,7 +719,10 @@ function drawFieldInner() {
       const m = f.near ? Math.min(14, d * 0.25) : -3;
       ox = dx / d * m * w; oy = dy / d * m * w; zm = 1 + 0.07 * w;
     }
+    const cos = cosById[u.id];
+    if (cos) cosBack(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm);
+    if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
@@ -1189,6 +1298,7 @@ function drawOver() {
   fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
   text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
   text('이번 조합', x + 24, y + 256, 13, C.muted);
+  if (G.cosNews) fitText(`${G.cosNews} 시작 화면 「꾸미기」`, x + w - 24, y + 256, w - 130, 13, C.good, 'right');
   drawCompStrip(G.lastRec?.comp ?? compOf(G), x + 24, y + 268, w - 48, 34);
   button(x + 30, y + 318, w - 60, 54, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
   button(x + 30, y + 382, w - 60, 44, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
@@ -1209,6 +1319,7 @@ function drawOverCoop() {
   } else fitText('방장이 「같이 다시 하기」를 누르면 함께 시작해요', W / 2, y + 307, w - 40, 15, C.muted, 'center');
   button(x + 30, y + 352, w - 60, 48, '방 나가기', () => leaveRoom(), 'quiet');
   text(`최고 기록 ${bestText(best)}`, W / 2, y + 432, 15, C.gold, 'center');
+  if (G.cosNews) fitText(`${G.cosNews} 시작 화면 「꾸미기」`, W / 2, y + 454, w - 40, 13, C.good, 'center');
 }
 function drawTitleBack() {   // 화면 전체 너비
   drawBackground();
@@ -1253,6 +1364,8 @@ function drawTitle() {
   }
   musicButton(W - 62, 14);
   button(14, 14, 70, 40, '기록', () => { modal = { kind: 'records' }; }, 'normal');   // 판 기록(조합 포함)
+  button(90, 14, 84, 40, '꾸미기', openCustomize, 'normal');   // 클리어 보상: 날개·오라
+  if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(170, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 새 칸이 열렸으면 빨간 점
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
@@ -1356,6 +1469,87 @@ function drawRecords() {   // 난이도별 최고 기록(그때 조합) + 최근
     text(res(r), x + 24, yy + 38, 13, r.win ? C.good : C.muted);
     drawCompStrip(r.comp, x + 100, yy + 11, w - 124, 34);
     yy += 62;
+  });
+}
+const COS_TABS = [['커먼', ['COMMON']], ['언커먼', ['UNCOMMON']], ['레어', ['RARE']], ['에픽', ['EPIC']], ['전설', ['LEGEND']], ['히든', ['HIDDEN']], ['초불영제', ['LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL']]];
+function openCustomize() {
+  const t = cosmetic.slots[0]?.id ? COS_TABS.findIndex((q) => q[1].includes(E.UNIT[cosmetic.slots[0].id]?.grade)) : 4;
+  modal = { kind: 'cosmetic', slot: 0, tab: Math.max(0, t) };
+  stats.seen = cosOpen(); ls.set(STATS_KEY, JSON.stringify(stats));
+}
+function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 → 날개·오라·색
+  shadeAll();
+  const x = 20, y = 70, w = W - 40, h = Math.min(VH - 100, 860), open = cosOpen(), next = COS_SLOTS.find((n) => n > stats.clears);
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('꾸미기', x + 18, y + 32, 24, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText(`클리어 ${stats.clears}번 · 열린 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸은 ${next}번 클리어` : ''} · 능력치는 그대로`, x + 18, y + 66, w - 36, 14, C.muted);
+  // 칸 8개
+  const sw = (w - 24 - 7 * 6) / 8;
+  COS_SLOTS.forEach((need, i) => {
+    const sx = x + 12 + i * (sw + 6), sy = y + 82, on = i < open, cur = modal.slot === i, c = cosmetic.slots[i];
+    box(sx, sy, sw, 62, on ? (cur ? 'rgba(243,216,158,.16)' : 'rgba(11,30,42,.85)') : 'rgba(11,30,42,.45)', cur ? C.goldEdge : on ? C.edge : '#33434d', 8, cur ? 2.5 : 1.2);
+    if (!on) { drawLockMark(sx + sw / 2, sy + 26); fitText(`${need}번`, sx + sw / 2, sy + 50, sw - 6, 12, '#7d8c94', 'center'); return; }
+    if (c?.id) { drawFit(unitImg(c.id), sx + 5, sy + 4, sw - 10, 40); fitText(c.wing || c.aura ? '꾸밈' : '없음', sx + sw / 2, sy + 52, sw - 6, 11, c.wing || c.aura ? C.goldEdge : C.muted, 'center'); }
+    else { text('+', sx + sw / 2, sy + 26, 24, C.gold, 'center'); fitText('빈 칸', sx + sw / 2, sy + 50, sw - 6, 12, C.muted, 'center'); }
+    hit(sx, sy, sw, 62, () => { modal.slot = i; const id = cosmetic.slots[i]?.id; if (id) modal.tab = Math.max(0, COS_TABS.findIndex((q) => q[1].includes(E.UNIT[id].grade))); });
+  });
+  const slot = modal.slot < open ? modal.slot : -1, cur = slot >= 0 ? cosmetic.slots[slot] : null;
+  const set = (k, v) => { cosmetic.slots[slot] = { ...cur, [k]: v }; cosSave(); };
+  // 미리 보기
+  const px = x + 12, py = y + 156, pw = 196, ph = 214;
+  box(px, py, pw, ph, 'rgba(7,19,28,.85)', C.edge, 10, 1.2);
+  if (cur?.id) {
+    const z = usz(cur.id), k = 1.75 / z, fx = px + pw / 2, fy = py + ph - 46;
+    ctx.save(); ctx.translate(fx, fy); ctx.scale(k, k);
+    cosBack(cur, 0, 0, z, slot); drawUnitShape(cur.id, 0, 0, GRADE_COLOR[E.UNIT[cur.id].grade], 2); cosFront(cur, 0, 0, z, slot);
+    ctx.restore();
+    fitText(E.UNIT[cur.id].name, fx, py + ph - 20, pw - 16, 15, C.text, 'center');
+    button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; cosSave(); }, 'quiet');
+  } else fitText(open ? '아래에서 유닛을 골라요' : '첫 클리어를 하면 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
+  // 날개·오라·색
+  const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id;
+  const row = (label, list, key, yy) => {
+    text(label, ox, yy, 15, en ? C.gold : '#6f7f88');
+    const bw = (ow - 12) / list.length;
+    list.forEach(([v, name], i) => button(ox + i * (bw + 6), yy + 14, bw, 36, name, () => set(key, v), (cur?.[key] ?? '') === v && en ? 'primary' : 'normal', en));
+  };
+  row('날개', COS_WINGS, 'wing', py + 12);
+  row('오라', COS_AURAS, 'aura', py + 80);
+  text('색', ox, py + 148, 15, en ? C.gold : '#6f7f88');
+  const cs = Math.min(30, (ow - 8 * 5) / 9);
+  COS_COLORS.forEach(([v, name], i) => {
+    const cx = ox + i * (cs + 5) + cs / 2, cy = py + 178, lock = v === 'rainbow' && !rainbowOpen(), on = en && (cur.color ?? '#ffd66b') === v;
+    ctx.beginPath(); ctx.arc(cx, cy, cs / 2, 0, Math.PI * 2);
+    if (v === 'rainbow') { const g = ctx.createConicGradient ? ctx.createConicGradient(0, cx, cy) : null; if (g) { ['#ff5a5a', '#ffd66b', '#6fe08a', '#6fe8ff', '#5aa8ff', '#b07bff', '#ff5a5a'].forEach((q, k) => g.addColorStop(k / 6, q)); ctx.fillStyle = g; } else ctx.fillStyle = '#ff8fc7'; }
+    else ctx.fillStyle = v;
+    ctx.globalAlpha = en && !lock ? 1 : 0.35; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = on ? 3 : 1.2; ctx.strokeStyle = on ? '#ffffff' : 'rgba(0,0,0,.5)'; ctx.stroke();
+    if (lock) drawLockMark(cx, cy + 2);
+    if (en) hit(cx - cs / 2 - 2, cy - cs / 2 - 4, cs + 4, cs + 8, () => { if (lock) say('무지개 색은 장인 난이도를 한 번 클리어하면 열려요.'); else set('color', v); });
+  });
+  fitText(en ? `${COS_COLORS.find((q) => q[0] === (cur.color ?? '#ffd66b'))?.[1] ?? ''}${rainbowOpen() ? '' : ' · 무지개는 장인 클리어로 열림'}` : '', ox, py + 204, ow, 12, C.muted);
+  // 유닛 고르기: 등급 칸 → 그림
+  const tw = (w - 24 - 6 * 6) / 7, ty = py + ph + 14;
+  COS_TABS.forEach(([name, grades], i) => {
+    const on = modal.tab === i;
+    box(x + 12 + i * (tw + 6), ty, tw, 36, on ? 'rgba(243,216,158,.14)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : GRADE_COLOR[grades[0]], 8, on ? 2.5 : 1.2);
+    fitText(name, x + 12 + i * (tw + 6) + tw / 2, ty + 18, tw - 6, 14, GRADE_COLOR[grades[0]], 'center');
+    hit(x + 12 + i * (tw + 6), ty, tw, 36, () => { modal.tab = i; });
+  });
+  const ids = E.UNITS.filter((u) => COS_TABS[modal.tab][1].includes(u.grade) && u.role !== E.SPECIAL_ROLE).map((u) => u.id);
+  const cw = tw, ch = 60, gy = ty + 46;
+  ids.forEach((id, i) => {
+    const cx = x + 12 + (i % 7) * (cw + 6), cy = gy + Math.floor(i / 7) * (ch + 6), mine = cur?.id === id;
+    const other = cosmetic.slots.findIndex((c, k) => k !== slot && k < open && c?.id === id);
+    box(cx, cy, cw, ch, mine ? 'rgba(243,216,158,.2)' : 'rgba(11,30,42,.85)', mine ? C.goldEdge : GRADE_COLOR[E.UNIT[id].grade], 8, mine ? 2.5 : 1.2);
+    drawFit(unitImg(id), cx + 4, cy + 3, cw - 8, ch - 6, slot >= 0 && other < 0 ? 1 : 0.45);
+    if (other >= 0) { box(cx + cw - 26, cy + 3, 23, 16, 'rgba(7,19,28,.92)', null, 4); text(`${other + 1}칸`, cx + cw - 14.5, cy + 11.5, 10, C.goldEdge, 'center'); }
+    hit(cx, cy, cw, ch, () => {
+      if (slot < 0) { say(open ? '위에서 열린 칸을 먼저 골라요.' : '첫 클리어를 하면 꾸미기 칸이 열려요.'); return; }
+      if (other >= 0) { say(`${E.UNIT[id].name}은(는) ${other + 1}번째 칸에서 꾸미고 있어요.`); return; }
+      cosmetic.slots[slot] = { wing: 'feather', aura: '', color: '#ffd66b', ...(cur ?? {}), id }; cosSave();
+    });
   });
 }
 function drawModes() {
@@ -2070,7 +2264,7 @@ function frame(now) {
     drawTitleBack();
     const tx = (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
-    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); } else drawLobby();
+    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'cosmetic') drawCustomize(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
   } else {
     drawBackground();
@@ -2111,4 +2305,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, get G() { return G; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
