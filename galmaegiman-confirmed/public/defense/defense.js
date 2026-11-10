@@ -389,10 +389,13 @@ const clearCount = () => Object.keys(CLEAR_PTS).reduce((a, d) => a + (stats.byDi
 const clearPts = () => Object.entries(CLEAR_PTS).reduce((a, [d, k]) => a + k * (stats.byDiff[d] ?? 0), 0);   // 칸 열기에 쓰는 수
 const cosOpen = () => COS_SLOTS.filter((n) => clearPts() >= n).length;
 const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0;
+const COS_MIN_TIER = 4;   // 전설·히든·초불영제만 꾸밀 수 있음
+const cosAllowed = (id) => !!E.UNIT[id] && E.tierOf(id) >= COS_MIN_TIER && E.UNIT[id].role !== E.SPECIAL_ROLE;
+cosmetic.slots = cosmetic.slots.map((c) => (c?.id && !cosAllowed(c.id) ? null : c));   // 예전에 고른 낮은 등급 칸은 비움
 let cosById = {};
 function cosRebuild() {   // 열린 칸의 꾸밈만 유닛별로(칸이 닫혀 있거나 비어 있으면 그리지 않음)
   cosById = {};
-  cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && E.UNIT[c.id] && (c.wing || c.aura)) cosById[c.id] = c; });
+  cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && cosAllowed(c.id) && (c.wing || c.aura)) cosById[c.id] = c; });
 }
 cosRebuild();
 function cosSave() { ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); }
@@ -601,9 +604,11 @@ function wrapGlow(id, col) {
   const pad = 34, w = 128, h = Math.round(128 * i.naturalHeight / i.naturalWidth);
   const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2;
   const x = c.getContext('2d');
+  // 그 색으로 칠한 꽉 찬 몸 모양 + 번진 빛(갈매미 뒤에 그리므로 몸 부분은 그림에 가려지고 둘레만 보임 — 위로 늘려도 구멍이 안 비침)
+  const m = document.createElement('canvas'); m.width = w; m.height = h;
+  const mx = m.getContext('2d'); mx.drawImage(i, 0, 0, w, h); mx.globalCompositeOperation = 'source-in'; mx.fillStyle = `rgb(${col})`; mx.fillRect(0, 0, w, h);
   x.shadowColor = `rgb(${col})`; x.shadowBlur = 18;
-  for (let k = 0; k < 5; k++) x.drawImage(i, pad, pad, w, h);
-  x.shadowBlur = 0; x.globalCompositeOperation = 'destination-out'; x.drawImage(i, pad, pad, w, h);   // 그림 자체는 빼고 둘레 빛만
+  for (let k = 0; k < 4; k++) x.drawImage(m, pad, pad);
   return (wraps[key] = { c, pad, w });
 }
 function drawWrap(id, c, x, y, z, seed, p) {
@@ -613,13 +618,20 @@ function drawWrap(id, c, x, y, z, seed, p) {
   const layers = [];   // [그림, 진하기]
   if (c.color === 'rainbow') { const hh = rainbowHue(seed) / 30, k = Math.floor(hh) % 12, f = hh - Math.floor(hh); layers.push([wrapGlow(id, hueRGB(k * 30).join(',')), 1 - f], [wrapGlow(id, hueRGB(((k + 1) % 12) * 30).join(',')), f]); }
   else layers.push([wrapGlow(id, cosRGB(c).join(',')), 1]);
+  const t = performance.now() / 1000, by = dy + dh;   // 발밑 기준으로 위로 늘여 타오르게
+  // [가로 배율, 세로 배율, 가로 흔들림, 위로 뜸, 진하기]: 몸에 붙은 진한 빛 둘 + 위로 일렁이며 올라가는 겉불 셋(효과 줄이기면 겉불 없음)
+  const parts = [[1, 1, 0, 0, 1], [1, 1, 0, 0, 0.35 + 0.45 * p]];
+  if (!fxLite) for (let k = 0; k < 3; k++) {
+    const w = Math.sin(t * (7 + k * 1.7) + k * 2.1 + seed), v = Math.sin(t * (11 + k * 2.3) + k * 1.3 + seed * 0.7);
+    parts.push([1.06 + 0.05 * k + 0.02 * w, 1.1 + 0.1 * k + 0.06 * v, w * (1.2 + k * 0.6) * z, (2 + 3 * k + 2 * v) * z, (0.5 - 0.12 * k) * (0.8 + 0.2 * v)]);
+  }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const [g, a] of layers) {
     if (!g || a <= 0) continue;
-    const f = dw / g.w;
-    for (const [s, al] of [[1.16 + 0.05 * p, 0.45], [1, 1], [1, 0.4 + 0.5 * p]]) {   // 바깥 옅은 빛 + 몸에 붙은 진한 빛(두 번, 숨 쉬듯)
-      const W2 = g.c.width * f * s, H2 = g.c.height * f * s, X = cx + (dx - g.pad * f - cx) * s, Y = cy + (dy - g.pad * f - cy) * s;
-      ctx.globalAlpha = al * a; ctx.drawImage(g.c, X, Y, W2, H2);
+    const f = dw / g.w, gw = g.c.width * f, gh = g.c.height * f, gx = dx - g.pad * f, gy = dy - g.pad * f;
+    for (const [sx, sy, ox, up, al] of parts) {
+      const X = cx + (gx - cx) * sx + ox, Y = by + (gy - by) * sy - up;
+      ctx.globalAlpha = Math.max(0, al) * a; ctx.drawImage(g.c, X, Y, gw * sx, gh * sy);
     }
   }
   ctx.restore();
@@ -1515,9 +1527,9 @@ function drawRecords() {   // 난이도별 최고 기록(그때 조합) + 최근
     yy += 62;
   });
 }
-const COS_TABS = [['커먼', ['COMMON']], ['언커먼', ['UNCOMMON']], ['레어', ['RARE']], ['에픽', ['EPIC']], ['전설', ['LEGEND']], ['히든', ['HIDDEN']], ['초불영제', ['LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL']]];
+const COS_TABS = [['전설', ['LEGEND']], ['히든', ['HIDDEN']], ['초불영제', ['LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL']]];   // 꾸미기는 전설·히든·초불영제만(2026-11-10 사용자 요청)
 function openCustomize() {
-  const t = cosmetic.slots[0]?.id ? COS_TABS.findIndex((q) => q[1].includes(E.UNIT[cosmetic.slots[0].id]?.grade)) : 4;
+  const t = cosmetic.slots[0]?.id ? COS_TABS.findIndex((q) => q[1].includes(E.UNIT[cosmetic.slots[0].id]?.grade)) : 0;
   modal = { kind: 'cosmetic', slot: 0, tab: Math.max(0, t) };
   stats.seen = cosOpen(); ls.set(STATS_KEY, JSON.stringify(stats));
 }
@@ -1550,7 +1562,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     ctx.restore();
     fitText(E.UNIT[cur.id].name, fx, py + ph - 20, pw - 16, 15, C.text, 'center');
     button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; cosSave(); }, 'quiet');
-  } else fitText(open ? '아래에서 유닛을 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
+  } else fitText(open ? '아래에서 전설·히든·초불영제를 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
   // 날개·오라·색
   const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id;
   const row = (label, list, key, yy) => {
@@ -1574,7 +1586,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   });
   fitText(en ? `${COS_COLORS.find((q) => q[0] === (cur.color ?? '#ffd66b'))?.[1] ?? ''}${rainbowOpen() ? '' : ' · 무지개는 장인 클리어로 열림'}` : '', ox, py + 204, ow, 12, C.muted);
   // 유닛 고르기: 등급 칸 → 그림
-  const tw = (w - 24 - 6 * 6) / 7, ty = py + ph + 14;
+  const tw = (w - 24 - 2 * 6) / 3, ty = py + ph + 14;
   COS_TABS.forEach(([name, grades], i) => {
     const on = modal.tab === i;
     box(x + 12 + i * (tw + 6), ty, tw, 36, on ? 'rgba(243,216,158,.14)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : GRADE_COLOR[grades[0]], 8, on ? 2.5 : 1.2);
@@ -1582,7 +1594,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     hit(x + 12 + i * (tw + 6), ty, tw, 36, () => { modal.tab = i; });
   });
   const ids = E.UNITS.filter((u) => COS_TABS[modal.tab][1].includes(u.grade) && u.role !== E.SPECIAL_ROLE).map((u) => u.id);
-  const cw = tw, ch = 60, gy = ty + 46;
+  const cw = (w - 24 - 6 * 6) / 7, ch = 60, gy = ty + 46;
   ids.forEach((id, i) => {
     const cx = x + 12 + (i % 7) * (cw + 6), cy = gy + Math.floor(i / 7) * (ch + 6), mine = cur?.id === id;
     const other = cosmetic.slots.findIndex((c, k) => k !== slot && k < open && c?.id === id);
