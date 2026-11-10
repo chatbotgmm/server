@@ -367,8 +367,8 @@ function saveBest() {   // 모드마다 따로
 const STATS_KEY = 'gmm-defense-stats', COS_KEY = 'gmm-defense-cosmetic';
 const COS_SLOTS = [1, 3, 5, 10, 15, 20, 30, 50];   // 칸이 열리는 보상 클리어 수(달인 1 · 장인 2)
 const CLEAR_PTS = { master: 1, artisan: 2 };   // 이 밖의 난이도(입문~상급) 클리어는 세지 않음
-const COS_WINGS = [['', '없음'], ['feather', '깃털'], ['fairy', '요정']];
-const COS_AURAS = [['', '없음'], ['glow', '빛'], ['flame', '불꽃']];
+const COS_WINGS = [['', '없음'], ['feather', '깃털']];   // 요정 날개는 어울리지 않아 뺌(2026-11-10 사용자 의견) → 「두름」 오라로
+const COS_AURAS = [['', '없음'], ['glow', '빛'], ['flame', '불꽃'], ['wrap', '두름']];   // 두름: 몸 테두리를 따라 빛이 감쌈
 const COS_COLORS = [['#ffd66b', '금빛'], ['#ff5a5a', '빨강'], ['#ff8fc7', '분홍'], ['#b07bff', '보라'], ['#5aa8ff', '파랑'], ['#6fe8ff', '하늘'], ['#6fe08a', '초록'], ['#ffffff', '흰색'], ['rainbow', '무지개']];
 const RAINBOW_DIFF = 'artisan';   // 무지개 색은 장인 클리어로 열림
 let stats = readJson(STATS_KEY, null);
@@ -384,6 +384,7 @@ if (!stats || typeof stats.byDiff !== 'object' || !stats.byDiff) {   // 처음: 
 }
 let cosmetic = readJson(COS_KEY, {});
 if (!Array.isArray(cosmetic.slots)) cosmetic = { slots: [] };
+for (const c of cosmetic.slots) if (c?.wing === 'fairy') { c.wing = ''; if (!c.aura) c.aura = 'wrap'; }   // 예전 요정 날개 → 두름 오라
 const clearCount = () => Object.keys(CLEAR_PTS).reduce((a, d) => a + (stats.byDiff[d] ?? 0), 0);   // 화면에 보이는 클리어 횟수
 const clearPts = () => Object.entries(CLEAR_PTS).reduce((a, [d, k]) => a + k * (stats.byDiff[d] ?? 0), 0);   // 칸 열기에 쓰는 수
 const cosOpen = () => COS_SLOTS.filter((n) => clearPts() >= n).length;
@@ -584,24 +585,51 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
+const rainbowHue = (seed) => (performance.now() / 14 + seed * 37) % 360;
+function hueRGB(deg) { const hue = deg / 60, f = (n) => { const k = (n + hue) % 6; return Math.round(255 * (1 - 0.62 * Math.max(0, Math.min(k, 4 - k, 1)))); }; return [f(5), f(3), f(1)]; }
 function cosRGB(c, seed = 0) {   // [r,g,b] — 무지개는 시간에 따라 색이 돎
   if (c.color !== 'rainbow') { const h = parseInt((c.color ?? '#ffd66b').slice(1), 16); return [(h >> 16) & 255, (h >> 8) & 255, h & 255]; }
-  const hue = ((performance.now() / 14 + seed * 37) % 360) / 60, f = (n) => { const k = (n + hue) % 6; return Math.round(255 * (1 - 0.62 * Math.max(0, Math.min(k, 4 - k, 1)))); };
-  return [f(5), f(3), f(1)];
+  return hueRGB(rainbowHue(seed));
+}
+// 두름 오라: 갈매미 그림 둘레 빛(그 색으로 한 번만 만들어 둠, 무지개는 12가지 색을 만들어 섞어 그림)
+const wraps = {};
+function wrapGlow(id, col) {
+  const key = `${id}|${col}`;
+  if (wraps[key]) return wraps[key];
+  const i = unitImg(id);
+  if (!i || !i.naturalWidth) return null;
+  const pad = 34, w = 128, h = Math.round(128 * i.naturalHeight / i.naturalWidth);
+  const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2;
+  const x = c.getContext('2d');
+  x.shadowColor = `rgb(${col})`; x.shadowBlur = 18;
+  for (let k = 0; k < 5; k++) x.drawImage(i, pad, pad, w, h);
+  x.shadowBlur = 0; x.globalCompositeOperation = 'destination-out'; x.drawImage(i, pad, pad, w, h);   // 그림 자체는 빼고 둘레 빛만
+  return (wraps[key] = { c, pad, w });
+}
+function drawWrap(id, c, x, y, z, seed, p) {
+  const im = unitImg(id); if (!im || !im.naturalWidth) return;
+  const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+  const dx = x - dw / 2, dy = y - dh, cx = x, cy = dy + dh / 2;
+  const layers = [];   // [그림, 진하기]
+  if (c.color === 'rainbow') { const hh = rainbowHue(seed) / 30, k = Math.floor(hh) % 12, f = hh - Math.floor(hh); layers.push([wrapGlow(id, hueRGB(k * 30).join(',')), 1 - f], [wrapGlow(id, hueRGB(((k + 1) % 12) * 30).join(',')), f]); }
+  else layers.push([wrapGlow(id, cosRGB(c).join(',')), 1]);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const [g, a] of layers) {
+    if (!g || a <= 0) continue;
+    const f = dw / g.w;
+    for (const [s, al] of [[1.16 + 0.05 * p, 0.45], [1, 1], [1, 0.4 + 0.5 * p]]) {   // 바깥 옅은 빛 + 몸에 붙은 진한 빛(두 번, 숨 쉬듯)
+      const W2 = g.c.width * f * s, H2 = g.c.height * f * s, X = cx + (dx - g.pad * f - cx) * s, Y = cy + (dy - g.pad * f - cy) * s;
+      ctx.globalAlpha = al * a; ctx.drawImage(g.c, X, Y, W2, H2);
+    }
+  }
+  ctx.restore();
 }
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const light = (c, k) => c.map((v) => Math.round(v + (255 - v) * k));
 function cosWing(style, col, cx, cy, s, side, flap) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(side * s, s); ctx.rotate(-flap);
   const lt = light(col, 0.55);
-  if (style === 'fairy') {   // 요정: 비치는 두 잎(위 큰 잎 + 아래 작은 잎)
-    const g = ctx.createLinearGradient(0, 0, 40, -30); g.addColorStop(0, rgba(lt, 0.85)); g.addColorStop(1, rgba(col, 0.32));
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(8, -34, 42, -46, 44, -24); ctx.bezierCurveTo(46, -10, 22, -4, 0, 0);
-    ctx.moveTo(0, 2); ctx.bezierCurveTo(14, 6, 32, 14, 26, 26); ctx.bezierCurveTo(20, 34, 4, 18, 0, 2);
-    ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 1.6 / s; ctx.strokeStyle = rgba(lt, 0.9); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(2, -2); ctx.quadraticCurveTo(20, -20, 36, -26); ctx.moveTo(2, 3); ctx.quadraticCurveTo(14, 12, 20, 22);
-    ctx.lineWidth = 1 / s; ctx.strokeStyle = rgba([255, 255, 255], 0.55); ctx.stroke();
-  } else {   // 깃털: 위로 휜 날개, 아래 가장자리는 깃털 끝 물결
+  {   // 깃털: 위로 휜 날개, 아래 가장자리는 깃털 끝 물결
     const g = ctx.createLinearGradient(0, 0, 46, -30); g.addColorStop(0, rgba(lt, 0.97)); g.addColorStop(1, rgba(col, 0.6));
     const tip = [[48, -34], [45, -21], [39, -11], [31, -3], [21, 3], [10, 5], [0, 2]];
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(6, -24, 26, -40, 48, -34);
@@ -617,10 +645,11 @@ function cosBack(c, x, y, z, seed = 0) {
   if (c.aura) {   // 발밑 빛 웅덩이(숨 쉬듯 커졌다 작아짐)
     const p = still ? 0.5 : 0.5 + 0.5 * Math.sin(t * 2.4 + seed);
     const r = (26 + 6 * p) * z, g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, rgba(col, c.aura === 'flame' ? 0.6 : 0.5)); g.addColorStop(1, rgba(col, 0));
+    g.addColorStop(0, rgba(col, c.aura === 'flame' ? 0.6 : c.aura === 'wrap' ? 0.4 : 0.5)); g.addColorStop(1, rgba(col, 0));
     ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.38); ctx.translate(-x, -y);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); ctx.restore();
-    if (c.aura === 'glow') {   // 몸을 감싸는 옅은 빛 기둥
+    if (c.aura === 'wrap') drawWrap(c.id, c, x, y, z, seed, p);
+    else if (c.aura === 'glow') {   // 몸을 감싸는 옅은 빛 기둥
       const g2 = ctx.createLinearGradient(0, y, 0, y - 62 * z); g2.addColorStop(0, rgba(col, 0.28 + 0.12 * p)); g2.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y - 28 * z, 24 * z, 36 * z, 0, 0, Math.PI * 2); ctx.fill();
     } else {   // 불꽃: 몸 뒤로 너울거리는 혀 셋
@@ -633,7 +662,7 @@ function cosBack(c, x, y, z, seed = 0) {
     }
   }
   if (c.wing) {   // 등 뒤 날개 한 쌍(천천히 퍼덕임)
-    const flap = still ? 0.05 : 0.12 * Math.sin(t * (c.wing === 'fairy' ? 7 : 3.6) + seed), s = 0.62 * z, cy = y - 34 * z;
+    const flap = still ? 0.05 : 0.12 * Math.sin(t * 3.6 + seed), s = 0.62 * z, cy = y - 34 * z;
     cosWing(c.wing, col, x - 7 * z, cy, s, -1, flap); cosWing(c.wing, col, x + 7 * z, cy, s, 1, flap);
   }
 }
@@ -645,6 +674,14 @@ function cosFront(c, x, y, z, seed = 0) {
     const r = (1.8 + 1.2 * Math.sin(t * 5 + k)) * z;
     ctx.beginPath(); ctx.moveTo(sx, sy - r * 2.4); ctx.lineTo(sx + r * 0.7, sy - r * 0.7); ctx.lineTo(sx + r * 2.4, sy); ctx.lineTo(sx + r * 0.7, sy + r * 0.7); ctx.lineTo(sx, sy + r * 2.4); ctx.lineTo(sx - r * 0.7, sy + r * 0.7); ctx.lineTo(sx - r * 2.4, sy); ctx.lineTo(sx - r * 0.7, sy - r * 0.7); ctx.closePath();
     ctx.fillStyle = rgba(light(col, 0.6), 0.95); ctx.fill();
+  } else if (c.aura === 'wrap') {   // 두름: 몸 둘레를 타고 오르는 빛 알갱이
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < 6; k++) {
+      const ph = (t * 0.6 + k / 6 + seed * 0.07) % 1, side = k % 2 ? 1 : -1, sx = x + side * (12 + 9 * Math.sin(ph * Math.PI)) * z, sy = y - 4 * z - ph * 54 * z, a = Math.sin(ph * Math.PI);
+      const r = 5 * z, g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, rgba(light(col, 0.7), 0.95 * a)); g.addColorStop(0.35, rgba(col, 0.6 * a)); g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   } else for (let k = 0; k < 4; k++) {   // 불꽃: 위로 날리는 불티
     const ph = (t * 0.9 + k * 0.25 + seed * 0.13) % 1, sx = x + (((k * 37 + Math.floor(t * 0.9 + k * 0.25)) % 5) - 2) * 7 * z, sy = y - 8 * z - ph * 56 * z;
     ctx.beginPath(); ctx.arc(sx, sy, (2.4 - ph * 1.4) * z, 0, Math.PI * 2); ctx.fillStyle = rgba(light(col, 0.5), 0.9 * (1 - ph)); ctx.fill();
@@ -1518,7 +1555,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id;
   const row = (label, list, key, yy) => {
     text(label, ox, yy, 15, en ? C.gold : '#6f7f88');
-    const bw = (ow - 12) / list.length;
+    const bw = (ow - 6 * (list.length - 1)) / list.length;
     list.forEach(([v, name], i) => button(ox + i * (bw + 6), yy + 14, bw, 36, name, () => set(key, v), (cur?.[key] ?? '') === v && en ? 'primary' : 'normal', en));
   };
   row('날개', COS_WINGS, 'wing', py + 12);
