@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=f6c4c5378a44';
+import * as E from './engine.js?v=7e9ce7cccc01';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1487,7 +1487,7 @@ function drawInfo() {
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
     if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
     if (pickable) pickBtn(x + 26 + bw, bw);
-    button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); info = null; } }, 'primary', ready);
+    button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); if (info.stack.length) { const back = info.stack[info.stack.length - 1]; info = { id: back, stack: info.stack.slice(0, -1) }; } } }, 'primary', ready);   // 창을 닫지 않음: 재료에서 들어왔으면 위 목표로 돌아감
   }
 }
 // 피해 순위표(사용자 요청 2026-11-08): 갈매미마다 이번 판·이번 웨이브에 준 피해(외부탐사 대장 포함)

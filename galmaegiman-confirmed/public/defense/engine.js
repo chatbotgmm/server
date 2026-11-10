@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=a050e8a4d640';
+import { UNITS, RECIPES } from './data.js?v=4a4032957955';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -167,7 +167,7 @@ export function kit(id) {
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
-// 물딜은 방깍, 마딜은 마방깍·마딜증폭만(다른 쪽 것은 안 받음), 이감·스턴·범위 스턴은 둘 다. 재료 값의 INHERIT배와 자기 값 중 큰 것
+// 물딜은 방깍, 마딜은 마방깍·마딜증폭만(다른 쪽 것은 안 받음) — 재료 값의 INHERIT배. 이감·스턴·범위 스턴은 둘 다, 재료 값 그대로(사용자 요청). 자기 값과 큰 것
 export const INHERIT = 1.3;
 const INHERIT_CAP = { slow: 0.6, stun: 0.3, astun: 0.2 };
 function inheritUtil(id, k) {
@@ -178,7 +178,7 @@ function inheritUtil(id, k) {
     let best = 0;
     for (const ing of r.in) { const v = kit(ing)[key] ?? 0; if (v > best) best = v; }
     if (!best) continue;
-    let v = best * INHERIT;
+    let v = INHERIT_CAP[key] ? best : best * INHERIT;   // 이감·스턴은 그대로, 깎기·증폭만 더 세게
     if (INHERIT_CAP[key]) v = Math.min(INHERIT_CAP[key], v);
     if (key === 'shred' || key === 'mshred') v = Math.round(v);
     if (v > (k[key] ?? 0)) { k[key] = v; k.inherited.push(key); }
@@ -284,7 +284,7 @@ export const DIFFS = {
   mid: { name: '중급', line: 0.6, boss: 0.5, armor: 0.7, mr: 0.65, legend40: true },
   high: { name: '상급', line: 0.8, boss: 0.75, armor: 0.9, mr: 0.85, legend40: true },
   master: { name: '달인', line: 1, boss: 1, armor: 1, mr: 1, legend40: true },
-  artisan: { name: '장인', line: 1.2, boss: 1.35, armor: 1.15, mr: 1.25, legend40: false },
+  artisan: { name: '장인', line: 1.35, boss: 1.55, armor: 1.25, mr: 1.35, legend40: false },   // 2026-11-10: 사용자가 예전 장인을 쉽게 깸 → 계획형 봇 기준 달인보다 한 단계 어렵게
 };
 export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
 export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
