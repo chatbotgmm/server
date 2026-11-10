@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=42144a2522d6';
+import * as E from './engine.js?v=ddcf125aef26';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -45,8 +45,19 @@ let PBOT = H;                // 아래 메뉴 판의 바닥(세로 화면에서 
 let OY = 0;                  // 지금 그리는 곳의 세로 위치(첫 화면을 가운데로 내릴 때)
 let OX = 0;                  // 지금 그리는 곳의 가로 위치(오른쪽 창을 그릴 때 누르기 영역에 더함)
 let OS = 1;                  // 지금 그리는 곳의 배율(가로 배치 왼쪽 판은 LS)
+// 자동 화질(2026-11-10 사용자 의견: 렉): 게임 중 프레임이 계속 느리면(중앙값 22ms 넘음) 캔버스 배율을 3 → 2 → 1.5로 한 단계씩 낮춤(올리지는 않음)
+let dprCap = 3;
+const perf = { t: [], at: 0 };
+function perfTick(ms) {
+  if (!(scene === 'play' && running()) || ms > 250) return;   // 멈춤·창 전환 뒤 첫 프레임은 빼고
+  perf.t.push(ms);
+  if (perf.t.length < 120) return;
+  const med = [...perf.t].sort((a, b) => a - b)[60]; perf.t = [];
+  const cur = Math.min(window.devicePixelRatio || 1, dprCap);
+  if (med > 22 && cur > 1.5) { dprCap = cur > 2 ? 2 : 1.5; fit(); }
+}
 function fit() {
-  dpr = Math.min(window.devicePixelRatio || 1, 3);
+  dpr = Math.min(window.devicePixelRatio || 1, dprCap);
   landscape = window.innerWidth / window.innerHeight > 0.9;
   VW = landscape ? SIDE_X + W : W;
   // 세로 화면(사용자 요청 2026-11-08: 휴대폰 위아래 빈 곳 없이): 화면이 더 길면 그만큼 세로를 늘려(최대 +300) 아래 메뉴를 크게
@@ -569,6 +580,10 @@ function drawLanes() {
   text('▶', L.x0 + 2, L.y0, 16, C.goldEdge, 'center');
   // 나타나는 곳
   ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
+  // 커먼이 나오는 6곳(오른쪽 길 안쪽): 발밑에 옅은 고리
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(154,165,173,.35)'; ctx.setLineDash([3, 4]);
+  for (const sp of E.COMMON_SPOTS) { ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 22, 8, 0, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.setLineDash([]);
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
 function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1) {   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
@@ -601,14 +616,15 @@ function wrapGlow(id, col) {
   if (wraps[key]) return wraps[key];
   const i = unitImg(id);
   if (!i || !i.naturalWidth) return null;
-  const pad = 34, w = 128, h = Math.round(128 * i.naturalHeight / i.naturalWidth);
+  // 크기를 줄여 둠(빛은 원래 번져 있어 작아도 티가 안 남 — 2026-11-10 렉 줄이기: 128 → 88)
+  const pad = 24, w = 88, h = Math.round(88 * i.naturalHeight / i.naturalWidth);
   const c = document.createElement('canvas'); c.width = w + pad * 2; c.height = h + pad * 2;
   const x = c.getContext('2d');
   // 그 색으로 칠한 꽉 찬 몸 모양 + 번진 빛(갈매미 뒤에 그리므로 몸 부분은 그림에 가려지고 둘레만 보임 — 위로 늘려도 구멍이 안 비침)
   const m = document.createElement('canvas'); m.width = w; m.height = h;
   const mx = m.getContext('2d'); mx.drawImage(i, 0, 0, w, h); mx.globalCompositeOperation = 'source-in'; mx.fillStyle = `rgb(${col})`; mx.fillRect(0, 0, w, h);
-  x.shadowColor = `rgb(${col})`; x.shadowBlur = 18;
-  for (let k = 0; k < 4; k++) x.drawImage(m, pad, pad);
+  x.shadowColor = `rgb(${col})`; x.shadowBlur = 12;
+  for (let k = 0; k < 5; k++) x.drawImage(m, pad, pad);   // 겹쳐 그려 진하게(몸에 붙은 빛을 한 장으로 — 매 프레임 두 번 그리던 것을 한 번으로)
   return (wraps[key] = { c, pad, w });
 }
 function drawWrap(id, c, x, y, z, seed, p) {
@@ -616,12 +632,12 @@ function drawWrap(id, c, x, y, z, seed, p) {
   const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
   const dx = x - dw / 2, dy = y - dh, cx = x, cy = dy + dh / 2;
   const layers = [];   // [그림, 진하기]
-  if (c.color === 'rainbow') { const hh = rainbowHue(seed) / 30, k = Math.floor(hh) % 12, f = hh - Math.floor(hh); layers.push([wrapGlow(id, hueRGB(k * 30).join(',')), 1 - f], [wrapGlow(id, hueRGB(((k + 1) % 12) * 30).join(',')), f]); }
+  if (c.color === 'rainbow') layers.push([wrapGlow(id, hueRGB(Math.floor(rainbowHue(seed) / 22.5) % 16 * 22.5).join(',')), 1]);   // 무지개: 16가지 색 중 가까운 것(섞어 그리면 두 배로 무거움)
   else layers.push([wrapGlow(id, cosRGB(c).join(',')), 1]);
   const t = performance.now() / 1000, by = dy + dh;   // 발밑 기준으로 위로 늘여 타오르게
   // [가로 배율, 세로 배율, 가로 흔들림, 위로 뜸, 진하기]: 몸에 붙은 진한 빛 둘 + 위로 일렁이며 올라가는 겉불 셋(효과 줄이기면 겉불 없음)
-  const parts = [[1, 1, 0, 0, 1], [1, 1, 0, 0, 0.35 + 0.45 * p]];
-  if (!fxLite) for (let k = 0; k < 3; k++) {
+  const parts = [[1, 1, 0, 0, 0.7 + 0.3 * p]];
+  if (!fxLite) for (let k = 0; k < 2; k++) {   // 겉불 둘(셋 → 둘)
     const w = Math.sin(t * (7 + k * 1.7) + k * 2.1 + seed), v = Math.sin(t * (11 + k * 2.3) + k * 1.3 + seed * 0.7);
     parts.push([1.06 + 0.05 * k + 0.02 * w, 1.1 + 0.1 * k + 0.06 * v, w * (1.2 + k * 0.6) * z, (2 + 3 * k + 2 * v) * z, (0.5 - 0.12 * k) * (0.8 + 0.2 * v)]);
   }
@@ -690,8 +706,9 @@ function cosFront(c, x, y, z, seed = 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 6; k++) {
       const ph = (t * 0.6 + k / 6 + seed * 0.07) % 1, side = k % 2 ? 1 : -1, sx = x + side * (12 + 9 * Math.sin(ph * Math.PI)) * z, sy = y - 4 * z - ph * 54 * z, a = Math.sin(ph * Math.PI);
-      const r = 5 * z, g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, rgba(light(col, 0.7), 0.95 * a)); g.addColorStop(0.35, rgba(col, 0.6 * a)); g.addColorStop(1, rgba(col, 0));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+      // 그러데이션을 매번 만들지 않고 동그라미 둘(옅은 바깥 + 밝은 속)
+      ctx.fillStyle = rgba(col, 0.25 * a); ctx.beginPath(); ctx.arc(sx, sy, 4.5 * z, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(light(col, 0.7), 0.9 * a); ctx.beginPath(); ctx.arc(sx, sy, 1.8 * z, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   } else for (let k = 0; k < 4; k++) {   // 불꽃: 위로 날리는 불티
@@ -749,17 +766,7 @@ function drawFieldInner() {
     if (sh) drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz);
     if (sh && !fxLite && ha < 0.08) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 * (1 - ha / 0.08); drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz); ctx.restore(); }   // 하얗게 번쩍
     if (!fxLite && G.t < (e.poisonUntil ?? 0)) for (let b = 0; b < 2; b++) { const ph = ((G.t * 1.6 + b * 0.5 + e.id * 0.13) % 1); ctx.beginPath(); ctx.arc(e.x - 8 + b * 14, e.y - sz * 0.3 - ph * 22, 2.5 + b, 0, Math.PI * 2); ctx.fillStyle = `rgba(120,220,110,${0.7 * (1 - ph)})`; ctx.fill(); }
-    if (!fxLite) {   // 방깍(주황)·마방깍(파랑)이 걸려 있으면 체력 칸 옆에 ▼
-      const on = (m) => m && Object.values(m).some((q) => G.t < q.until);
-      const mx = e.x + (e.boss ? 38 : 19), my = e.y - sz * 0.75 - 4;
-      if (on(e.shreds)) text('▼', mx, my, 9, C.phys, 'left');
-      if (on(e.mshreds)) text('▼', mx + 9, my, 9, C.mag, 'left');
-    }
-    if (G.t < e.stunUntil) text('★', e.x, e.y - sz * 0.75 - 14, 12, '#ffe14a', 'center');
     if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
-    const bw = e.boss ? 70 : 32, bx = e.x - bw / 2, by = e.y - sz * 0.75 - 6;
-    box(bx, by, bw, 5, 'rgba(0,0,0,.6)', null, 2);
-    box(bx, by, bw * Math.max(0, e.hp / e.max), 5, e.boss ? '#ff6b6b' : '#6fd08a', null, 2);
   }
   // 갈매미(아래쪽부터 그려 겹침이 자연스럽게)
   const gc = goalColors(), selSet = new Set(selected);
@@ -781,6 +788,22 @@ function drawFieldInner() {
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  // 적 체력 칸·▼·★: 갈매미보다 위에 그림(2026-11-10 사용자 지적: 윗줄 적 체력 칸이 가려짐). 판 위쪽 밖으로 나가면 발밑 쪽에
+  for (const e of G.enemies) {
+    const sz = e.boss ? 84 : 44, bw = e.boss ? 70 : 32, bx = e.x - bw / 2;
+    let by = e.y - sz * 0.75 - 6;
+    const below = by < FIELD.y + 6;
+    if (below) by = e.y + 10;
+    box(bx, by, bw, 5, 'rgba(0,0,0,.6)', null, 2);
+    box(bx, by, bw * Math.max(0, e.hp / e.max), 5, e.boss ? '#ff6b6b' : '#6fd08a', null, 2);
+    if (!fxLite) {   // 방깍(주황)·마방깍(파랑)이 걸려 있으면 체력 칸 옆에 ▼
+      const on = (m) => m && Object.values(m).some((q) => G.t < q.until);
+      const mx = e.x + bw / 2 + 3, my = by + 2;
+      if (on(e.shreds)) text('▼', mx, my, 9, C.phys, 'left');
+      if (on(e.mshreds)) text('▼', mx + 9, my, 9, C.mag, 'left');
+    }
+    if (G.t < e.stunUntil) text('★', e.x, below ? by + 14 : by - 8, 12, '#ffe14a', 'center');
   }
   // 겹친 갈매미 수(같은 자리 14px 안)
   const stacks = [];
@@ -1382,11 +1405,47 @@ function drawTitleBack() {   // 화면 전체 너비
   const vil = img(`${ART}/village/identity-coast-panorama.webp`);
   if (vil) { const s = Math.max(W * 1.6, VW) / vil.naturalWidth; ctx.globalAlpha = 0.9; ctx.drawImage(vil, (VW - vil.naturalWidth * s) / 2, 120, vil.naturalWidth * s, vil.naturalHeight * s); ctx.globalAlpha = 1; }
   ctx.fillStyle = 'rgba(7,19,28,.35)'; ctx.fillRect(0, 0, VW, VH);
+  // 떠오르는 빛 알갱이(2026-11-10 사용자 의견: 첫 화면이 허전함). 효과 줄이기면 움직이지 않음
+  const t = fxLite ? 0 : performance.now() / 1000;
+  for (let k = 0; k < 28; k++) {
+    const a = (k * 0.618034) % 1, sp = 14 + (k % 5) * 6, x = a * VW + Math.sin(t * 0.4 + k * 1.7) * 18, y = VH + 20 - ((t * sp + k * 97) % (VH + 40));
+    const r = 1.4 + (k % 3) * 0.8, al = 0.25 + 0.25 * Math.sin(t * 1.3 + k);
+    ctx.fillStyle = `rgba(255,236,190,${(al * 0.35).toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(255,236,190,${(al + 0.3).toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+// 첫 화면 갈매미 줄: 꾸민 갈매미가 있으면 먼저(날개·오라 그대로), 나머지는 기본. 가운데가 가장 크고 숨 쉬듯 살짝 움직임
+function drawTitleParade() {
+  const ids = [...Object.keys(cosById)];
+  for (const d of ['u59', 'u38', 'u45', 'u33', 'u40']) if (ids.length < 5 && !ids.includes(d)) ids.push(d);
+  const order = ids.slice(0, 5).sort((a, b) => E.tierOf(b) - E.tierOf(a));   // 가장 높은 등급이 가운데
+  const place = [order[3], order[1], order[0], order[2], order[4]];
+  const t = fxLite ? 0 : performance.now() / 1000;
+  place.forEach((id, k) => {
+    if (!id) return;
+    const mid = k === 2, sc = (mid ? 1.55 : 1.15) / usz(id), x = 70 + k * 100, y = 470 + (mid ? 6 : 0) + Math.sin(t * 1.8 + k * 1.3) * 2.5, z = usz(id);
+    ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
+    const c = cosById[id];
+    if (c) cosBack(c, 0, 0, z, k);
+    drawUnitShape(id, 0, 0, 'rgba(243,216,158,.45)', 1.5);
+    if (c) cosFront(c, 0, 0, z, k);
+    ctx.restore();
+  });
+}
+function titleText(s, x, y, size, top, bottom) {   // 금빛 그러데이션 + 은은한 빛
+  ctx.save(); ctx.font = `${size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2); g.addColorStop(0, top); g.addColorStop(1, bottom);
+  ctx.shadowColor = 'rgba(243,216,158,.55)'; ctx.shadowBlur = 18; ctx.fillStyle = g; ctx.fillText(s, x, y);
+  ctx.shadowBlur = 0; ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(80,52,20,.55)'; ctx.strokeText(s, x, y);
+  ctx.restore();
 }
 function drawTitle() {
-  text('갈매미맨', W / 2, 86, 30, C.gold, 'center');
-  text('랜덤 디펜스', W / 2, 134, 46, C.goldEdge, 'center');
-  ['u01', 'u38', 'u60', 'u33', 'u05'].forEach((id, k) => drawFit(unitImg(id), 40 + k * 94, 360, 90, 110));
+  titleText('갈매미맨', W / 2, 86, 30, '#f7e3b0', '#c9a463');
+  titleText('랜덤 디펜스', W / 2, 136, 50, '#fff6d8', '#e0b866');
+  // 제목 아래 장식 줄(가운데 마름모)
+  ctx.strokeStyle = 'rgba(243,216,158,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - 150, 172); ctx.lineTo(W / 2 - 12, 172); ctx.moveTo(W / 2 + 12, 172); ctx.lineTo(W / 2 + 150, 172); ctx.stroke();
+  ctx.save(); ctx.translate(W / 2, 172); ctx.rotate(Math.PI / 4); ctx.fillStyle = C.goldEdge; ctx.fillRect(-4.5, -4.5, 9, 9); ctx.restore();
+  drawTitleParade();
   // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
   box(28, 196, W - 56, 156, 'rgba(11,30,42,.9)', C.edge, 12);
   text('난이도', 44, 222, 17, C.gold);
@@ -2300,6 +2359,7 @@ function drawPeerModal() {
 let last = performance.now(), acc = 0;
 let seenModal = null;
 function frame(now) {
+  perfTick(now - last);
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (running()) {
@@ -2361,4 +2421,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, get G() { return G; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };

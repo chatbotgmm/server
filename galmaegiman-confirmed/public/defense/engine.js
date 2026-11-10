@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=f107b91ffd93';
+import { UNITS, RECIPES } from './data.js?v=eadea0f81743';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -20,6 +20,16 @@ export const W = 540, H = 960;
 export const FIELD = { x: 14, y: 100, w: 512, h: 564 };     // 갈매미를 둘 수 있는 곳
 export const LOOP = { x0: 46, y0: 134, x1: 494, y1: 630 };  // 적이 도는 길(중심선)
 export const SPAWN = { x: 270, y: 382 };                    // 새로 부른 갈매미가 나타나는 곳
+// 커먼 소환 자리(2026-11-10 사용자 요청: 가운데가 아니라 오른쪽 길 안쪽 정해진 6곳). 갈매미가 가장 적은 곳에 나옴(발밑 좌표)
+export const COMMON_SPOTS = [205, 271, 337, 403, 469, 535].map((y) => ({ x: 445, y }));
+function commonSpot(g) {
+  let best = COMMON_SPOTS[0], bn = Infinity;
+  for (const s of COMMON_SPOTS) {
+    const n = g.units.filter((u) => !u.away && Math.abs(u.x - s.x) < 20 && Math.abs(u.y - s.y) < 20).length;
+    if (n < bn) { bn = n; best = s; }
+  }
+  return best;
+}
 const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 
 // ── 규칙 수치(시험 봇으로 맞춤) ──
@@ -30,7 +40,7 @@ export const RULES = {
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
-  bossEvery: 5, startWisps: 6, wispPerWave: 2,   // 처음 커먼 위습 6개, 웨이브마다 2개(사용자 요청 2026-11-08)
+  bossEvery: 5, startWisps: 6, wispPerWave: 4, wispPerWaveUp: { UNCOMMON: 1 },   // 처음 커먼 위습 6개, 웨이브마다 커먼 4개 + 언커먼 1개(2026-11-10 조합 비용을 올린 만큼 공급도 늘림: 예전 커먼 2개)
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
   // 2026-11-09 사용자 요청: 마방깍 없이 마법 딜러만으로는 보스를 못 잡게. 웨이브별 기준 마법 조합이 보스에게 40초 동안 주는 피해를 재서
@@ -47,7 +57,7 @@ export const RULES = {
   lineBossMul: 0.6, singleBossMul: 1.35, singleMul: 1.8,   // 라인 정리형 보스 피해 ×0.6, 단일 공격형 ×1.35   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
   topCap: 0,   // 상위(제한~영원) 최대 마릿수(0 = 제한 없음, 사용자 요청 2026-11-08: 따로 막을 필요 없음)
   // 2026-11-10 사용자 요청: 제한·초월·불멸·영원은 「초불영제」로 같은 등급 취급 → 기본 공격력·유틸·판매가 같음(강화 칸만 따로)
-  dmg: [20, 90, 380, 1500, 5500, 7500, 24000, 24000, 24000, 24000],   // 상위는 전설의 약 2.7~6.5배(전엔 3~73배): 상위 한두 마리 + 전설·히든 중심   // 등급마다 약 4배: 조합하면 확실히 세지게
+  dmg: [20, 90, 380, 2000, 8500, 11000, 30000, 30000, 30000, 30000],   // 2026-11-10 조합 비용 재조정(에픽·전설·히든이 비싸짐)에 맞춰 에픽 이상을 올림(예전 1500·5500·7500·24000)   // 상위는 전설의 약 2.7~6.5배(전엔 3~73배): 상위 한두 마리 + 전설·히든 중심   // 등급마다 약 4배: 조합하면 확실히 세지게
   sell: [5, 15, 40, 90, 200, 250, 1600, 1600, 1600, 1600],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
   // 처치 새우 = killGold + killGoldGrow×웨이브 + killGoldSq×웨이브² (후반일수록 많이: 후반 강화 비용에 맞춤)
@@ -63,7 +73,7 @@ export const RULES = {
   bossReward: { 10: { RARE: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
-  startPick: {}, bossPickEach: { COMMON: 2 }, bossPick: {},
+  startPick: {}, bossPickEach: { COMMON: 4 }, bossPick: {},   // 2026-11-10: 보스마다 커먼 선택 위습 2 → 4(조합 비용 재조정)
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
   guardHp: [20000, 150000, 400000, 600000, 3000000, 2500000, 6000000, 8000000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
@@ -103,6 +113,9 @@ export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3 
 export const UTIL_EXTRA = {
   u34: { slow: 0.7 }, u37: { stun: 0.6 }, u39: { stun: 0.6 }, u40: { slow: 0.6 }, u43: { astun: 0.6 }, u44: { slow: 0.7 },
   u16: { mshred: 0.6 }, u18: { mshred: 0.6 }, u26: { mshred: 0.6 }, u32: { mshred: 0.6 }, u38: { mshred: 0.6 }, u46: { mshred: 0.6 }, u49: { mshred: 0.6 }, u54: { mshred: 0.6 },
+  // 2026-11-10: 최상위였던 20종(u61~u80)을 전설·히든으로 — 유틸이 없던 것에 이감·스턴·범위 스턴·방깍을 나눔
+  u61: { stun: 0.6 }, u64: { slow: 0.6 }, u65: { stun: 0.6 }, u67: { astun: 0.6 }, u68: { shred: 0.6 }, u69: { slow: 0.7 }, u70: { stun: 0.6 },
+  u71: { shred: 0.6 }, u74: { slow: 0.7 }, u75: { astun: 0.6 }, u77: { stun: 0.6 }, u79: { slow: 0.6 }, u80: { stun: 0.6 },
 };
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
@@ -119,8 +132,18 @@ const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 
 // 범위 스턴(전설 이상 보조): 공격마다 확률로 맞은 적 둘레 70 안 모두 스턴. 초월 이상은 20%(사용자 요청: 라인이 안 밀리게)
 const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
-// 갈매미 한 마리의 공격 방식
+// 갈매미 한 마리의 공격 방식. 같은 규칙이면 결과가 같으므로 한 번 계산해 둠(2026-11-10 렉 줄이기: 매 프레임·매 틱 유닛마다 다시 계산했음).
+// 규칙 값(RULES.dmg 등)이 바뀌면 다시 계산. 돌려준 객체는 고치지 않는다
+const kitCache = new Map(); let kitKey = [];
+const kitKeyNow = () => [RULES.dmg, RULES.sell, RULES.atkSpeed, RULES.mshredAll, RULES.singleMul, RULES.lineBossMul, RULES.singleBossMul];
 export function kit(id) {
+  const key = kitKeyNow();
+  if (key.some((v, i) => v !== kitKey[i])) { kitCache.clear(); kitKey = key; }
+  let k = kitCache.get(id);
+  if (!k) { k = kitRaw(id); kitCache.set(id, k); }
+  return k;
+}
+function kitRaw(id) {
   // 초월 갈매미맨(2026-11-10 사용자 요청): 데미지 0, 외부탐사 6장 보상, 초월 등급 조합에 재료로 쓰이면 사라짐
   if (UNIT[id]?.role === SPECIAL_ROLE) return { job: '재료', type: 'phys', elem: 'NORMAL', tier: tierOf(id), dmg: 0, gap: 99, range: 0, mul: 0, sell: 0, wisp: null, explore: 0, special: true };
   const u = UNIT[id], tt = tierOf(id), t = tt >= TOP_TIER ? TOP_POWER_TIER : tt, role = u.role,   // t: 능력치 계산용(초불영제는 모두 같은 값), tt: 실제 등급(강화 칸·물려받기)
@@ -152,6 +175,7 @@ export function kit(id) {
     if (ux.stun) k.stun = Math.max(k.stun ?? 0, STUN(t) * ux.stun);
     if (ux.astun) k.astun = Math.max(k.astun ?? 0, Math.max(ASTUN(t), 0.12) * ux.astun);
     if (ux.mshred) k.mshred = Math.max(k.mshred ?? 0, Math.round(SHRED(t) * ux.mshred));
+    if (ux.shred) k.shred = Math.max(k.shred ?? 0, Math.round(SHRED(t) * ux.shred));
   }
   // 2026-11-09 사용자 요청: 전설·히든은 모두, 마법 딜러(술사 주력)는 등급 상관없이 모두 마방깍(적더라도). 위 표에 없으면 그 등급 마방깍의 35%
   if (!k.mshred && (t === 4 || t === 5 || (mage && k.job === '주력'))) k.mshred = Math.max(1, Math.round(SHRED(t) * (RULES.mshredAll ?? 0.35)));
@@ -386,8 +410,8 @@ export function summon(g, grade = 'COMMON') {
   if (!(g.wisps[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 위습이 없어요.` };
   g.wisps[grade]--;
   const pool = BY_GRADE[grade], id = pool[Math.floor(g.rand() * pool.length)];
-  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
-  const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g) : null;
+  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
@@ -398,8 +422,8 @@ export function summonPick(g, id) {
   if (g.over || !grade) return { ok: false, why: '' };
   if (!(g.picks[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 선택 위습이 없어요.` };
   g.picks[grade]--;
-  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34;
-  const u = addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g) : null;
+  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
@@ -634,7 +658,7 @@ function startWave(g) {
   if (g.wave >= RULES.waves) return;
   const left = RULES.storyDeadline - g.wave;   // 이번에 시작하는 웨이브부터 마감까지 남은 웨이브(이번 포함)
   if (storyLeft(g) && (left === 10 || left === 5)) news(g, `스토리 ${REGIONS.length}장 마감까지 ${left}웨이브! (${RULES.storyDeadline}웨이브까지 못 깨면 패배)`);
-  if (g.wave > 0) addWisps(g, { COMMON: RULES.wispPerWave });
+  if (g.wave > 0) { addWisps(g, { COMMON: RULES.wispPerWave }); if (RULES.wispPerWaveUp) addWisps(g, RULES.wispPerWaveUp); }
   g.wave++; g.waveT = 0; g.dmgWave = {};
   if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
   const wi = waveInfo(g.wave);

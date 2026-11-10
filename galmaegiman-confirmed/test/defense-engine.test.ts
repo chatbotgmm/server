@@ -156,14 +156,36 @@ describe('랜덤 디펜스 엔진', () => {
       if (mx('stun')) expect(k.stun).toBeGreaterThanOrEqual(mx('stun') - 1e-9);
     }
   });
-  it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 4 + 에픽 2(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
+  it('조합 비용(2026-11-10 기준, 커먼 1·언커먼 2 환산): 레어 3~5 · 에픽 ≈ 레어×3 · 전설·히든 ≈ 에픽×3 · 초불영제 = 전설·히든×2~3', () => {
+    const val = (id: string): number => { const t = E.tierOf(id); if (id === E.TRANSCEND_KEY) return 0; if (t === 0) return 1; if (t === 1) return 2; return E.recipeFor(id).in.reduce((a: number, i: string) => a + val(i), 0); };
+    const ids = (lo: number, hi: number) => E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= lo && E.tierOf(u.id) <= hi && u.role !== E.SPECIAL_ROLE).map((u: { id: string }) => u.id);
+    const avg = (l: string[]) => l.reduce((a, i) => a + val(i), 0) / l.length;
+    for (const id of ids(2, 2)) { expect(val(id), id).toBeGreaterThanOrEqual(3); expect(val(id), id).toBeLessThanOrEqual(5); }
+    const ep = avg(ids(3, 3)) / avg(ids(2, 2)), lh = avg(ids(4, 5)) / avg(ids(3, 3));
+    expect(ep).toBeGreaterThan(2.8); expect(ep).toBeLessThan(3.2);
+    expect(lh).toBeGreaterThan(2.8); expect(lh).toBeLessThan(3.2);
+    for (const id of ids(6, 9)) { const k = val(id) / avg(ids(4, 5)); expect(k, id).toBeGreaterThanOrEqual(2); expect(k, id).toBeLessThanOrEqual(3.01); }
+    for (let n = 61; n <= 80; n++) expect(['LEGEND', 'HIDDEN'], `u${n}`).toContain(E.UNIT[`u${n}`].grade);   // 새 20종은 전설·히든
+  });
+  it('커먼은 오른쪽 안쪽 정해진 6곳 중 빈 곳에 나옴(다른 등급은 가운데)', () => {
+    const g = E.newGame(3); g.units = []; g.wisps.COMMON = 7; g.wisps.UNCOMMON = 1;
+    const at = [];
+    for (let i = 0; i < 7; i++) { const r = E.summon(g, 'COMMON'); at.push(`${r.unit.x},${r.unit.y}`); }
+    const spots = E.COMMON_SPOTS.map((p: { x: number; y: number }) => `${p.x},${p.y}`);
+    expect(at.slice(0, 6).sort()).toEqual([...spots].sort());   // 6곳에 하나씩
+    expect(spots).toContain(at[6]);                              // 일곱째는 다시 그중 한 곳
+    const u = E.summon(g, 'UNCOMMON').unit;
+    expect(Math.hypot(u.x - E.SPAWN.x, u.y - E.SPAWN.y)).toBeLessThan(45);
+  });
+  it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 2~3 + 에픽(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
     const tops = E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE);
     const dm = new Set(tops.map((u: { id: string }) => E.RULES.dmg[Math.min(E.tierOf(u.id), 9)]));
     expect(new Set([6, 7, 8, 9].map((t) => E.RULES.dmg[t])).size).toBe(1); expect(dm.size).toBe(1);
     for (const u of tops) {
       const r = E.recipeFor(u.id), gr = (i: string) => E.UNIT[i].grade;
-      expect(r.in.filter((i: string) => ['LEGEND', 'HIDDEN'].includes(gr(i))).length, u.name).toBe(4);
-      expect(r.in.filter((i: string) => gr(i) === 'EPIC').length, u.name).toBe(2);
+      const lh = r.in.filter((i: string) => ['LEGEND', 'HIDDEN'].includes(gr(i))).length;
+      expect(lh, u.name).toBeGreaterThanOrEqual(2); expect(lh, u.name).toBeLessThanOrEqual(3);
+      expect(r.in.filter((i: string) => !['LEGEND', 'HIDDEN', 'EPIC'].includes(gr(i)) && i !== E.TRANSCEND_KEY).length, u.name).toBe(0);
       expect(r.in.includes(E.TRANSCEND_KEY), u.name).toBe(u.grade === 'TRANSCEND');
       expect(r.in.filter((i: string) => E.tierOf(i) >= 6 && i !== E.TRANSCEND_KEY).length, u.name).toBe(0);
     }
@@ -241,7 +263,7 @@ describe('랜덤 디펜스 엔진', () => {
     expect(nostory.over).toBeFalsy();
   });
 
-  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습 2개(모집권은 10웨이브 보스만)', () => {
+  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습 4개(2026-11-10 2 → 4)(모집권은 10웨이브 보스만)', () => {
     expect([1, 4, 5, 9, 10, 15, 60].map((w) => E.waveInfo(w).boss)).toEqual([false, false, true, false, true, true, true]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const killBoss = (g: any, w: number) => {
@@ -251,9 +273,9 @@ describe('랜덤 디펜스 엔진', () => {
     };
     const g = E.newGame(3); const p0 = g.picks.COMMON, t0 = g.tickets ?? 0;
     killBoss(g, 5);
-    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + 2); expect(g.tickets ?? 0).toBe(t0);
+    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + 4); expect(g.tickets ?? 0).toBe(t0);
     killBoss(g, 10);
-    expect(g.picks.COMMON).toBe(p0 + 4); expect(g.tickets).toBe(t0 + 1);
+    expect(g.picks.COMMON).toBe(p0 + 8); expect(g.tickets).toBe(t0 + 1);
   });
   it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {
     expect(E.defAt(40)).toBeLessThanOrEqual(45);
