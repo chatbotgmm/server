@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=3b6ab879e4d3';
+import * as E from './engine.js?v=f6c4c5378a44';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1387,6 +1387,19 @@ function drawCheck(cx, cy, r, fill, mark) {   // 동그란 작은 표시: ✓ ·
   else if (mark === '+') { ctx.moveTo(cx - r * 0.5, cy); ctx.lineTo(cx + r * 0.5, cy); ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.5); ctx.stroke(); }
   else { ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.15); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy + r * 0.48, 1.4, 0, Math.PI * 2); ctx.fillStyle = '#07131c'; ctx.fill(); }
 }
+// 재료 나무 이름: 칸이 좁으면 9px까지 줄이고, 그래도 길면 띄어쓰기에서 두 줄, 띄어쓰기가 없으면 「…」(긴 이름끼리 겹치지 않게)
+function treeLabel(name, cx, y, maxW, size, color) {
+  const fits = (t, sz) => { ctx.font = `${sz}px ${FONT}`; return ctx.measureText(t).width <= maxW; };
+  for (let sz = size; sz >= 9; sz--) if (fits(name, sz)) { text(name, cx, y, sz, color, 'center'); return; }
+  const sp = name.indexOf(' ') >= 0 ? [...name].map((c, i) => (c === ' ' ? i : -1)).filter((i) => i > 0).sort((a, b) => Math.abs(a - name.length / 2) - Math.abs(b - name.length / 2))[0] : -1;
+  if (sp > 0) {
+    const a = name.slice(0, sp), b = name.slice(sp + 1);
+    let sz = size; while (sz > 9 && !(fits(a, sz) && fits(b, sz))) sz--;
+    text(a, cx, y - sz * 0.15, sz, color, 'center'); text(b, cx, y + sz * 1.05, sz, color, 'center'); return;
+  }
+  let t = name; while (t.length > 1 && !fits(t + '…', 9)) t = t.slice(0, -1);
+  text(t + '…', cx, y, 9, color, 'center');
+}
 function drawTree(root, x0, y0, w, h) {
   const depth = treeLayout(root, w);
   const rowH = Math.min(118, h / (depth + 1)), R = [30, 25, 21, 19];
@@ -1413,7 +1426,7 @@ function drawTree(root, x0, y0, w, h) {
     if (n.have) drawCheck(bx, by, br, '#6fd08a', 'v');
     else if (n.more) drawCheck(bx, by, br, C.goldEdge, '+');
     else if (!n.top && !n.kids.length) drawCheck(bx, by, br, '#ff9a8a', '!');
-    fitText(u.name, n.cx, n.cy + r + 10, Math.max(40, n.span - 4), n.d === 0 ? 14 : 12, n.have ? C.good : n.top ? C.goldEdge : C.text, 'center');
+    treeLabel(u.name, n.cx, n.cy + r + 10, n.d === 0 ? Math.max(60, n.span - 4) : n.span - 4, n.d === 0 ? 14 : 12, n.have ? C.good : n.top ? C.goldEdge : C.text);
     if (!n.top) hit(n.cx - n.span / 2, n.cy - r, n.span, r * 2 + 18, () => showInfo(n.id, true));
     n.show.forEach(nodes);
   };
