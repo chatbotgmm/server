@@ -145,15 +145,21 @@ describe('랜덤 디펜스 엔진', () => {
     // 마법 딜러(술사 주력)는 에픽 이상이면 모두 마방깍
     for (const u of E.UNITS) { const k = E.kit(u.id); if (E.tierOf(u.id) >= 3 && k.type === 'mag' && k.job === '주력') expect(k.mshred, u.name).toBeGreaterThan(0); }
   });
-  it('스턴: 맞힐 때 확률로 1~2초(에픽 1·전설 1.25·히든 1.5·초불영제 2), 보스는 1/4', () => {
-    expect([3, 4, 5, 6, 9].map((t) => E.STUN_TIME(t))).toEqual([1, 1.25, 1.5, 2, 2]);
-    for (const u of E.UNITS) { const k = E.kit(u.id); if (k.stun || k.astun) { expect(k.stunTime).toBeGreaterThanOrEqual(1); expect(k.stunTime).toBeLessThanOrEqual(2); } }
+  it('스턴: 맞힐 때 확률로 0.75~2초 — 스턴이 본업인 고체력 보조는 2초, 다른 성능이 많을수록 짧게, 보스는 1/4', () => {
+    const times = new Set<number>();
+    for (const u of E.UNITS) {
+      const k = E.kit(u.id); if (!(k.stun || k.astun)) continue;
+      expect(k.stunTime, u.name).toBeGreaterThanOrEqual(0.75); expect(k.stunTime, u.name).toBeLessThanOrEqual(2); times.add(k.stunTime);
+      if (u.role.startsWith('고체력') && E.stunPerks(k, Math.min(E.tierOf(u.id), 6)).length <= 1) expect(k.stunTime, u.name).toBe(2);
+    }
+    expect(times.has(0.75) && times.has(2) && times.size >= 4).toBe(true);   // 다양하게
+    expect(E.kit('u57').stunTime).toBeLessThan(E.kit('u33').stunTime);      // 여명(이감·스플래시·보스 피해·위습 찾기) < 거장(스턴 보조)
     const g = E.newGame(2); g.units = []; g.rand = Object.assign(() => 0, { s: 0 });   // 확률 굴림이 늘 성공
     const k = E.kit('u33');   // 거장(전설, 스턴)
     const mk = (boss: boolean) => ({ id: 1, hp: 1e9, max: 1e9, s: 0, speed: 50, boss, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 200, y: 134, by: 0 });
     const e = mk(false), b = mk(true); g.enemies = [e, b];
     E.debuffForTest(g, e, k, 1); E.debuffForTest(g, b, k, 1);
-    expect(e.stunUntil - g.t).toBeCloseTo(1.25); expect(b.stunUntil - g.t).toBeCloseTo(1.25 * E.BOSS_STUN);
+    expect(e.stunUntil - g.t).toBeCloseTo(2); expect(b.stunUntil - g.t).toBeCloseTo(2 * E.BOSS_STUN);
   });
   it('40웨이브부터 일반 적 체력·이동속도가 더 오름(보스는 그대로)', () => {
     const r = E.RULES, base = (w: number) => { const s = { ...r }; r.lateFrom = 999; const v = E.waveInfo(w); Object.assign(r, s); return v; };

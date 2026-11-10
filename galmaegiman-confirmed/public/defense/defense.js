@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=a86cc96e7945';
+import * as E from './engine.js?v=4049a61996a8';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1170,7 +1170,7 @@ function drawUnitPanel(y0, u) {
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
   if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
   else fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
-  clipText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);   // 길면 9px까지 줄이고 「…」
+  tipLines(E.kitTips(k), 94, y0, W - 210, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
@@ -1216,10 +1216,21 @@ function sendSelected(list) {
   if (n) { say(`${n}마리를 외부탐사 「${E.REGIONS[G.missionDone].name}」에 보냈어요.`); selected = []; }
 }
 // 조합법 한 줄
-function clipText(t, x, y, maxW, size, color) {   // 왼쪽 정렬: 9px까지 줄이고 그래도 길면 「…」
-  for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, x, y, sz, color); return; } }
-  let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
-  text(s + '…', x, y, 9, color);
+// 특기 줄(2026-11-10 검토: 한 줄에 다 넣으려고 9px까지 줄어 휴대폰에서 읽기 어려웠음): 15px 한 줄에 들어가면 한 줄,
+// 아니면 두 줄로 고르게 나눠(특기 단위로 끊음) 두 줄 모두 같은 크기 13~11px. 그래도 넘치면 11px에서 「…」(전체는 그림을 눌러 보는 정보 창에)
+function tipLines(tips, x, y0, maxW, color) {
+  const all = tips.join(' · ') || '기본 공격';
+  ctx.font = `15px ${FONT}`; if (ctx.measureText(all).width <= maxW || tips.length < 2) { clipText(all, x, y0 + 72, maxW, 15, color); return; }
+  ctx.font = `13px ${FONT}`; const wd = (l) => ctx.measureText(l.join(' · ')).width;
+  let cut = 1; for (let i = 1; i < tips.length; i++) if (Math.max(wd(tips.slice(0, i)), wd(tips.slice(i))) < Math.max(wd(tips.slice(0, cut)), wd(tips.slice(cut)))) cut = i;
+  const l1 = tips.slice(0, cut).join(' · '), l2 = tips.slice(cut).join(' · ');
+  let sz = 13; for (; sz > 11; sz--) { ctx.font = `${sz}px ${FONT}`; if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxW) break; }
+  clipText(l1, x, y0 + 66, maxW, sz, color, 11); clipText(l2, x, y0 + 84, maxW, sz, color, 11);
+}
+function clipText(t, x, y, maxW, size, color, min = 9) {   // 왼쪽 정렬: min px(기본 9)까지 줄이고 그래도 길면 「…」
+  for (let sz = size; sz >= min; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, x, y, sz, color); return; } }
+  let s = t; ctx.font = `${min}px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  text(s + '…', x, y, min, color);
 }
 function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px까지 줄이고, 그래도 길면 「…」(옆 칸과 겹치지 않게)
   for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, cx, cy, sz, color, 'center'); return; } }

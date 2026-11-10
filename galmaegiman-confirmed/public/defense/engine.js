@@ -136,7 +136,17 @@ export const slowMul = (total) => 1 - SLOW_EFFECT * Math.min(SLOW_MAX, total);
 const SLOW = (t) => (t < 3 ? [0.06, 0.08, 0.12][t] : Math.min(0.5, 0.25 + 0.04 * (t - 3)));  // 이속감소
 const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 * (t - 3))); // 스턴 확률
 // 범위 스턴(전설 이상 보조): 공격마다 확률로 맞은 적 둘레 70 안 모두 스턴. 초월 이상은 20%(사용자 요청: 라인이 안 밀리게)
-export const STUN_TIME = (t) => (t >= 6 ? 2 : [1, 1, 1, 1, 1.25, 1.5][t] ?? 1);
+// 스턴 시간(2026-11-10 사용자 요청: 0.75~2초로 다양하게 — 다른 성능이 좋으면 짧게, 스턴 위주 유닛은 2초).
+// 시작값: 보조(고체력 등, 스턴이 본업) 2.25초 · 주력(딜러, 공격이 본업) 1.75초. 스턴 말고 가진 큰 성능 하나마다 −0.25초, 0.75~2초로 자름.
+// 큰 성능: 방깍 · 마방깍(그 등급 60% 이상, 전설·히든 모두에게 주는 작은 마방깍은 안 셈) · 마딜증폭 · 이감 · 범위 공격 · 스플래시 30% 이상 · 번개 연쇄 · 독 · 보스 추가 피해 · 위습 찾기
+// (탐사 특기는 판 수비와 상관없는 외부탐사 전용이라 안 셈 → 고체력 스턴 보조는 모두 2초)
+export const STUN_MIN = 0.75, STUN_MAX = 2;
+export function stunPerks(k, t) {
+  const big = Math.round(SHRED(t) * 0.6);
+  return [k.shred && 'shred', (k.mshred ?? 0) >= big && 'mshred', k.amp && 'amp', k.slow && 'slow', k.area && 'area', (k.splash ?? 0) >= 0.3 && 'splash',
+    k.chain && 'chain', k.poison && 'poison', k.holy && 'holy', k.wisp && 'wisp'].filter(Boolean);
+}
+export const stunTimeOf = (k, t) => Math.min(STUN_MAX, Math.max(STUN_MIN, (k.job === '보조' ? 2.25 : 1.75) - 0.25 * stunPerks(k, t).length));
 export const BOSS_STUN = 0.25;   // 보스는 스턴 시간의 1/4
 const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
@@ -208,8 +218,8 @@ function kitRaw(id) {
   }
   // 2026-11-10 사용자 요청: 방깍과 마방깍은 둘 다 갖지 못함 → 물딜은 방깍, 마딜은 마방깍만 남김
   if (out.shred && out.mshred) { if (out.type === 'phys') delete out.mshred; else delete out.shred; }
-  // 스턴(2026-11-10 사용자 요청): 맞힐 때 스턴 확률로 그 적이 1~2초 멈춤(에픽 1 · 전설 1.25 · 히든 1.5 · 초불영제 2초). 보스는 그 1/4
-  if (out.stun || out.astun) out.stunTime = STUN_TIME(tt);
+  // 스턴: 맞힐 때 스턴 확률로 그 적이 stunTimeOf초 멈춤(0.75~2초, 위 설명). 보스는 그 1/4
+  if (out.stun || out.astun) out.stunTime = stunTimeOf(out, t);
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
