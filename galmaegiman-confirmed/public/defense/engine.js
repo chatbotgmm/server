@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=4a4032957955';
+import { UNITS, RECIPES } from './data.js?v=5d2184b5c1ef';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -46,8 +46,9 @@ export const RULES = {
   atkSpeed: 2,
   lineBossMul: 0.6, singleBossMul: 1.35, singleMul: 1.8,   // 라인 정리형 보스 피해 ×0.6, 단일 공격형 ×1.35   // 모든 갈매미 공격 속도 2배·한 번 피해 ½(초당 피해 같음)
   topCap: 0,   // 상위(제한~영원) 최대 마릿수(0 = 제한 없음, 사용자 요청 2026-11-08: 따로 막을 필요 없음)
-  dmg: [20, 90, 380, 1500, 5500, 7500, 15000, 21000, 28000, 36000],   // 상위는 전설의 약 2.7~6.5배(전엔 3~73배): 상위 한두 마리 + 전설·히든 중심   // 등급마다 약 4배: 조합하면 확실히 세지게
-  sell: [5, 15, 40, 90, 200, 250, 400, 800, 1600, 3200],
+  // 2026-11-10 사용자 요청: 제한·초월·불멸·영원은 「초불영제」로 같은 등급 취급 → 기본 공격력·유틸·판매가 같음(강화 칸만 따로)
+  dmg: [20, 90, 380, 1500, 5500, 7500, 24000, 24000, 24000, 24000],   // 상위는 전설의 약 2.7~6.5배(전엔 3~73배): 상위 한두 마리 + 전설·히든 중심   // 등급마다 약 4배: 조합하면 확실히 세지게
+  sell: [5, 15, 40, 90, 200, 250, 1600, 1600, 1600, 1600],
   // 처치 새우: 웨이브가 갈수록 많이(사용자 요청). 1마리당 killGold + killGoldGrow×웨이브(반올림)
   // 처치 새우 = killGold + killGoldGrow×웨이브 + killGoldSq×웨이브² (후반일수록 많이: 후반 강화 비용에 맞춤)
   killGold: 1, killGoldGrow: 0.6, killGoldSq: 0.02,
@@ -78,7 +79,7 @@ export const REGIONS = [
   { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 3 }, ticket: 1, gold: 800 },
   { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 1500 },
   { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 3000 },
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000 },
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 5000, unit: 'u81' },
   { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 9000 },
   { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 3 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
@@ -120,7 +121,10 @@ const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
 // 갈매미 한 마리의 공격 방식
 export function kit(id) {
-  const u = UNIT[id], t = tierOf(id), role = u.role, elem = ELEM[role.split(' ')[0]] ?? 'NORMAL';
+  // 초월 갈매미맨(2026-11-10 사용자 요청): 데미지 0, 외부탐사 6장 보상, 초월 등급 조합에 재료로 쓰이면 사라짐
+  if (UNIT[id]?.role === SPECIAL_ROLE) return { job: '재료', type: 'phys', elem: 'NORMAL', tier: tierOf(id), dmg: 0, gap: 99, range: 0, mul: 0, sell: 0, wisp: null, explore: 0, special: true };
+  const u = UNIT[id], tt = tierOf(id), t = tt >= TOP_TIER ? TOP_POWER_TIER : tt, role = u.role,   // t: 능력치 계산용(초불영제는 모두 같은 값), tt: 실제 등급(강화 칸·물려받기)
+    elem = ELEM[role.split(' ')[0]] ?? 'NORMAL';
   const tank = role.startsWith('고체력'), ambush = role.includes('기습'), mage = role.endsWith('술사');
   const type = mage ? 'mag' : 'phys';
   let k;
@@ -162,8 +166,8 @@ export function kit(id) {
   if (k.stun) k.stun /= AS;
   if (k.astun) k.astun /= AS;
   if (k.poison) k.poison *= AS;
-  const out = { ...k, gap: k.gap / AS, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
-  if (t >= 6) inheritUtil(id, out);
+  const out = { ...k, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  if (tt >= TOP_TIER) inheritUtil(id, out);
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
@@ -187,6 +191,7 @@ function inheritUtil(id, k) {
 // 화면용 짧은 설명
 export function kitTips(k) {
   const out = [];
+  if (k.special) return ['공격하지 않음', '초월 등급 조합 재료(쓰면 사라짐)', '외부탐사 6장 보상'];
   if (k.shred) out.push(`방깍 ${Math.round(k.shred)}`);
   if (k.mshred) out.push(`주변 마방깍 ${Math.round(k.mshred)}`);
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
@@ -402,6 +407,7 @@ export function summonPick(g, id) {
 export function sell(g, uid) {
   const k = g.units.findIndex((u) => u.uid === uid);
   if (k < 0 || g.over) return false;
+  if (UNIT[g.units[k].id].role === SPECIAL_ROLE) return false;   // 초월 갈매미맨은 팔 수 없음
   const grade = UNIT[g.units[k].id].grade;
   g.gold += kit(g.units[k].id).sell; g.units.splice(k, 1);
   // 판매 보너스(사용자 요청 2026-11-08): 언커먼 30% 확률로 모집권 1 · 레어 모집권 1 · 에픽 모집권 1 + 커먼 위습 2
@@ -477,7 +483,8 @@ export function recipeUnits(g, r, keepUid = 0) {
   return out;
 }
 // 상위(제한·초월·불멸·영원)는 판·창고·탐사를 합쳐 RULES.topCap마리까지(사용자 요청 2026-11-08: 상위는 한두 개, 조합의 중심은 전설·히든)
-export const TOP_TIER = 6;
+export const TOP_TIER = 6, TOP_POWER_TIER = 7;
+export const SPECIAL_ROLE = '초월 재료', TRANSCEND_KEY = 'u81';   // 초월 갈매미맨   // 초불영제(제한~영원): 능력치는 모두 7단계 값으로
 export const topCount = (g) => g.units.filter((u) => tierOf(u.id) >= TOP_TIER).length;
 export const topBlocked = (g, r) => RULES.topCap > 0 && tierOf(r.out) >= TOP_TIER && topCount(g) >= RULES.topCap;
 export function combine(g, r, keepUid = 0) {
@@ -527,7 +534,7 @@ export const missionShare = (g) => { const k = g.missionDone; return { mine: g.m
 export function sendAway(g, uids) {
   if (!ensureMission(g)) return 0;
   let n = 0;
-  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away && !u.stored) { u.away = true; u.cd = 0.3; n++; } }
+  for (const uid of uids) { const u = unitById(g, uid); if (u && !u.away && !u.stored && UNIT[u.id].role !== SPECIAL_ROLE) { u.away = true; u.cd = 0.3; n++; } }
   return n;
 }
 export function recall(g, uids = null) {
@@ -678,6 +685,7 @@ export function step(g, dt) {
     }
     u.cd -= dt;
     if (u.cd > 0) continue;
+    if (UNIT[u.id]?.role === SPECIAL_ROLE) { u.cd = 5; continue; }   // 초월 갈매미맨은 공격하지 않음
     const k = kit(u.id);
     if (u.away) {
       if (!ms) { u.cd = 0.2; continue; }
@@ -706,7 +714,8 @@ export function step(g, dt) {
     if (r.gold) g.gold += r.gold;
     if (r.ticket) g.tickets = (g.tickets ?? 0) + r.ticket;
     if (r.pick) for (const [k, v] of Object.entries(r.pick)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
+    if (r.unit) { const nu = addUnit(g, r.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }   // 6장: 초월 갈매미맨
+    news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${r.unit ? ` · ${UNIT[r.unit].name}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
     recall(g);
     g.missionDone++; g.mission = null;
   }

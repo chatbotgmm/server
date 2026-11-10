@@ -146,7 +146,7 @@ describe('랜덤 디펜스 엔진', () => {
     E.RULES.simNoMshred = false;
   });
   it('최상위는 재료 유틸을 물려받음: 물딜은 방깍(마방깍 없음), 마딜은 마방깍·증폭(방깍 없음), 이감·스턴은 둘 다', () => {
-    for (const u of E.UNITS.filter((x: { id: string }) => E.tierOf(x.id) >= 6)) {
+    for (const u of E.UNITS.filter((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE)) {
       const k = E.kit(u.id), r = E.recipeFor(u.id);
       const ing = r.in.map((i: string) => E.kit(i));
       const mx = (key: string) => Math.max(0, ...ing.map((q: Record<string, number>) => q[key] ?? 0));
@@ -155,6 +155,35 @@ describe('랜덤 디펜스 엔진', () => {
       if (mx('slow')) expect(k.slow).toBeGreaterThanOrEqual(mx('slow') - 1e-9);   // 이감·스턴은 재료 값 그대로
       if (mx('stun')) expect(k.stun).toBeGreaterThanOrEqual(mx('stun') - 1e-9);
     }
+  });
+  it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 3 + 에픽 1(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
+    const tops = E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE);
+    const dm = new Set(tops.map((u: { id: string }) => E.RULES.dmg[Math.min(E.tierOf(u.id), 9)]));
+    expect(new Set([6, 7, 8, 9].map((t) => E.RULES.dmg[t])).size).toBe(1); expect(dm.size).toBe(1);
+    for (const u of tops) {
+      const r = E.recipeFor(u.id), gr = (i: string) => E.UNIT[i].grade;
+      expect(r.in.filter((i: string) => ['LEGEND', 'HIDDEN'].includes(gr(i))).length, u.name).toBe(3);
+      expect(r.in.filter((i: string) => gr(i) === 'EPIC').length, u.name).toBe(1);
+      expect(r.in.includes(E.TRANSCEND_KEY), u.name).toBe(u.grade === 'TRANSCEND');
+      expect(r.in.filter((i: string) => E.tierOf(i) >= 6 && i !== E.TRANSCEND_KEY).length, u.name).toBe(0);
+    }
+  });
+  it('초월 갈매미맨: 공격하지 않고 팔 수 없음, 외부탐사 6장 보상, 초월을 조합하면 사라짐', () => {
+    expect(E.kit(E.TRANSCEND_KEY).dmg).toBe(0);
+    expect(E.REGIONS[5].unit).toBe(E.TRANSCEND_KEY);
+    const g = E.newGame(2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const add = (id: string, i: number): any => { const u = { uid: 700 + i, id, x: 200, y: 300, tx: 200, ty: 300, cd: 0, born: 0 }; g.units.push(u); return u; };
+    g.units = []; const key = add(E.TRANSCEND_KEY, 0);
+    g.enemies = [{ id: 1, hp: 1e9, max: 1e9, s: 0, speed: 0, boss: false, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 205, y: 300, by: 0 }];
+    for (let i = 0; i < 20; i++) E.step(g, 0.05);
+    expect(g.enemies[0].hp).toBe(1e9);                     // 공격하지 않음
+    expect(E.sell(g, key.uid)).toBe(false);                 // 팔 수 없음
+    const r = E.recipeFor('u49');                           // 가루다(초월)
+    r.in.filter((i: string) => i !== E.TRANSCEND_KEY).forEach((id: string, i: number) => add(id, i + 1));
+    expect(E.combine(g, r)).toBeTruthy();
+    expect(g.units.some((u: { id: string }) => u.id === E.TRANSCEND_KEY)).toBe(false);   // 재료로 사라짐
+    expect(E.recipeUnits(g, r)).toBeFalsy();
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');

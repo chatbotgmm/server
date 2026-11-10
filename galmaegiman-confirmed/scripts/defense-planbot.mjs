@@ -8,6 +8,7 @@ const N = +(process.argv[3] ?? 20);
 Object.assign(E.RULES, JSON.parse(process.argv[4] ?? '{}'));
 const DIFF = process.argv[5] ?? 'master';
 const STYLE = process.argv[6] ?? 'mix';
+const NOTOP = process.env.NOTOP_BEFORE_CH6 === '1';   // 6장(초월 갈매미맨) 전에는 초불영제를 만들지 않음(버티기 확인용)
 const DIFFX = JSON.parse(process.argv[7] ?? '{}'); for (const [k, v] of Object.entries(DIFFX)) Object.assign(E.DIFFS[k], v);   // 난이도 배수 시험용
 const WISH = {
   // 에픽 → 전설·히든(스턴·이감·깎기 포함) → 최상위
@@ -28,7 +29,9 @@ function expand(goal, have, allowed, leaves, top = true) {
 function bot(g, st) {
   const have = ownedMap(g);
   // 지금 목표: 목록에서 아직 없는 것 2개
-  const goals = st.wish.filter((id) => !(have[id] > 0)).slice(0, 2);
+  const keyOk = (id) => !(recipeOf.get(id)?.in.includes(E.TRANSCEND_KEY)) || (have[E.TRANSCEND_KEY] ?? 0) > 0;   // 초월은 초월 갈매미맨이 있어야
+  const topOk = (id) => !(NOTOP && E.tierOf(id) >= 6 && g.missionDone < 6);
+  const goals = st.wish.filter((id) => !(have[id] > 0) && keyOk(id) && topOk(id)).slice(0, 2);
   const allowed = new Set(), leaves = {}, h2 = { ...have };
   for (const gl of goals) expand(gl, h2, allowed, leaves);
   // 선택 위습: 목표에 모자란 바닥 재료로
@@ -73,15 +76,16 @@ function bot(g, st) {
   }
   if (E.awayUnits(g).length && g.enemies.length > 50) E.recall(g);
 }
-const res = [], reasons = {}; let tops = 0;
+const res = [], reasons = {}, ch6s = []; let tops = 0;
 for (let s = 1; s <= N; s++) {
-  const g = E.newGame(s, 'normal', DIFF), style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
+  const g = E.newGame(s, 'normal', DIFF); let ch6 = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
   const st = { n: 0, wish: WISH[style].filter((id) => E.UNIT[id]) }; let acc = 0;
-  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } }
+  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; }
+  ch6s.push(ch6);
   res.push(g.over === 'win' ? 61 : g.wave);
   const key = g.over + ':' + g.reason.slice(0, 10); reasons[key] = (reasons[key] ?? 0) + 1;
   tops += g.units.filter((u) => E.tierOf(u.id) >= 6).length;
 }
 const hist = {}; res.forEach((w) => (hist[w] = (hist[w] ?? 0) + 1));
 const wins = res.filter((w) => w === 61).length;
-console.log(`${DIFF} ${STYLE}: 깬 판 ${wins}/${N} | 끝난 웨이브 ${JSON.stringify(hist)} | 최상위 평균 ${(tops / N).toFixed(1)} | ${JSON.stringify(reasons)}`);
+const c6 = ch6s.filter(Boolean); console.log(`${DIFF} ${STYLE}${NOTOP ? ' [6장 전 초불영제 없음]' : ''}: 6장 깬 웨이브 ${c6.length ? Math.round(c6.reduce((a, b) => a + b, 0) / c6.length) : '-'}(${c6.length}/${N}판) | 깬 판 ${wins}/${N} | 끝난 웨이브 ${JSON.stringify(hist)} | 최상위 평균 ${(tops / N).toFixed(1)} | ${JSON.stringify(reasons)}`);

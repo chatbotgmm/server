@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=7e9ce7cccc01';
+import * as E from './engine.js?v=9670b43ba97e';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -25,7 +25,7 @@ function setFxLite(on) { fxLite = on; try { localStorage.setItem(FX_KEY, on ? '1
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
 // 등급별 크기(사용자 요청 2026-11-08: 상위일수록 크게 — 보상 느낌). 커먼·언커먼·레어·에픽·전설·히든·제한·초월·불멸·영원
-const GRADE_SIZE = [1, 1.06, 1.13, 1.22, 1.34, 1.4, 1.5, 1.6, 1.7, 1.82];
+const GRADE_SIZE = [1, 1.06, 1.13, 1.22, 1.34, 1.4, 1.65, 1.65, 1.65, 1.65];   // 초불영제는 같은 크기
 const usz = (id) => GRADE_SIZE[E.tierOf(id)] ?? 1;
 const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: 더 빠르게). 시간이 통째로 빨라져 난이도는 같음
 
@@ -847,9 +847,10 @@ function drawUnitPanel(y0, u) {
   ctx.font = `21px ${FONT}`;
   let cx = 94 + Math.min(150, ctx.measureText(info.name).width) + 8;
   cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
-  chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.type === 'phys' ? C.phys : C.mag);
+  chip(k.special ? '조합 재료' : `${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
-  fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
+  if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
+  else fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
@@ -865,7 +866,8 @@ function drawUnitPanel(y0, u) {
   button(bx(2), byOf(2), b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
   button(bx(3), byOf(3), b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
   button(bx(4), byOf(4), b6, BH, '탐사', () => sendSelected([u]), 'normal', E.missionOpen(G));
-  button(bx(5), byOf(5), b6, BH, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
+  if (k.special) button(bx(5), byOf(5), b6, BH, '판매 불가', () => {}, 'normal', false);   // 초월 갈매미맨
+  else button(bx(5), byOf(5), b6, BH, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
 }
 function drawGroupPanel(y0, sel) {
   let p = 0, m = 0;
@@ -895,6 +897,11 @@ function sendSelected(list) {
   if (n) { say(`${n}마리를 외부탐사 「${E.REGIONS[G.missionDone].name}」에 보냈어요.`); selected = []; }
 }
 // 조합법 한 줄
+function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px까지 줄이고, 그래도 길면 「…」(옆 칸과 겹치지 않게)
+  for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, cx, cy, sz, color, 'center'); return; } }
+  let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  text(s + '…', cx, cy, 9, color, 'center');
+}
 function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const out = E.UNIT[r.out], gi = G.goals.indexOf(r.out);
   hit(x, y, w, h, () => showInfo(r.out));   // 조합 버튼 말고 줄을 누르면 간단 설명(사용자 요청 2026-11-08)
@@ -916,7 +923,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
     // 재료 칸: 테두리·글자 = 그 재료의 등급 색(사용자 요청 2026-11-08), 가진 것은 초록 바탕 + 왼쪽 위 초록 점
     const gc = GRADE_COLOR[E.UNIT[id].grade];
     box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.22)' : 'rgba(0,0,0,.35)', gc, 6, hasIt ? 2 : 1.3);
-    fitText(t, cx + tw / 2, y + h / 2, tw - 8, 14, gc, 'center');
+    chipLabel(t, cx + tw / 2, y + h / 2, tw - 6, 14, gc);
     if (gn[id]) goalDots(gn[id], cx + tw - 4, y + h / 2 - 11, 4.5);   // 목표 재료면 그 목표 색 동그라미
     cx += tw + 4;
   }
@@ -1047,8 +1054,8 @@ function drawMission() {
     const my = yy + (lh - 6) / 2;
     fitText(`${r.ch}장 ${r.name}`, x + 24, my, 220, cmp ? 14 : 15, done ? C.muted : C.text);
     fitText(done ? '완료 ✓' : open ? '진행 가능' : '잠김', x + 250, my, 80, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
-    const rw = Object.entries(r.reward).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') + (r.pick ? ' + 선택 ' + Object.entries(r.pick).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') : '') + (r.ticket ? ` + 모집권${r.ticket}` : '');
-    fitText(rw, x + w - 24, my, 160, 13, C.gold, 'right');
+    const rw = Object.entries(r.reward).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') + (r.pick ? ' + 선택 ' + Object.entries(r.pick).map(([g, n]) => `${E.GRADE_NAME[g]}${n}`).join('·') : '') + (r.ticket ? ` + 모집권${r.ticket}` : '') + (r.unit ? ' + 초월★' : '');   // 초월★ = 초월 갈매미맨(아래 칸에 전체 이름)
+    { const mw = (x + w - 24) - (x + 250 + 80 + 6); let sz = 13; ctx.font = `${sz}px ${FONT}`; while (sz > 9 && ctx.measureText(rw).width > mw) { sz--; ctx.font = `${sz}px ${FONT}`; } text(rw, x + w - 24, my, sz, C.gold, 'right'); }   // 「진행 가능」과 겹치지 않게
   });
   // 지금 지역
   const cy = ly + shown.length * lh + (cmp ? 4 : 10), PB = cmp ? 180 : 230, q = (v) => Math.round(v * PB / 230);   // 지금 지역 칸(낮은 창이면 줄임)
@@ -1059,7 +1066,7 @@ function drawMission() {
   if (place) { ctx.save(); rr(x + 12, cy, w - 24, PB, 10); ctx.clip(); drawFit(place, x + 12, cy - 30, w - 24, PB, 0.28); ctx.restore(); }
   box(x + 18, cy + 6, 230, 26, 'rgba(7,19,28,.85)', null, 6);
   fitText(`${r.ch}장 · ${r.place}`, x + 26, cy + 19, 216, 15, C.goldEdge);
-  const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.ticket ? `모집권 ${r.ticket}` : '', r.gold ? `새우 ${r.gold}` : ''].filter(Boolean).join(' · ');
+  const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.ticket ? `모집권 ${r.ticket}` : '', r.gold ? `새우 ${r.gold}` : '', r.unit ? E.UNIT[r.unit].name : ''].filter(Boolean).join(' · ');
   box(x + 18, cy + q(40), w - 36, 24, 'rgba(7,19,28,.85)', null, 6);
   fitText(`보상: ${rwAll}`, x + 26, cy + q(40) + 12, w - 52, 13, C.gold);
   const t = E.missionTarget(G), sh = enemyImg(r.look);
@@ -1425,6 +1432,7 @@ function drawTree(root, x0, y0, w, h) {
     const br = Math.max(6.5, r * 0.36), bx = n.cx + r * 0.72, by = n.cy - r * 0.72;
     if (n.have) drawCheck(bx, by, br, '#6fd08a', 'v');
     else if (n.more) drawCheck(bx, by, br, C.goldEdge, '+');
+    else if (E.UNIT[n.id].role === E.SPECIAL_ROLE) { ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fillStyle = GRADE_COLOR.TRANSCEND; ctx.fill(); text('6', bx, by + 0.5, Math.round(br * 1.5), '#07131c', 'center'); }   // 외부탐사 6장 보상
     else if (!n.top && !n.kids.length) drawCheck(bx, by, br, '#ff9a8a', '!');
     treeLabel(u.name, n.cx, n.cy + r + 10, n.d === 0 ? Math.max(60, n.span - 4) : n.span - 4, n.d === 0 ? 14 : 12, n.have ? C.good : n.top ? C.goldEdge : C.text);
     if (!n.top) hit(n.cx - n.span / 2, n.cy - r, n.span, r * 2 + 18, () => showInfo(n.id, true));
@@ -1444,17 +1452,19 @@ function drawInfo() {
   fitText(u.name, x + 106, y + 28, w - 220, 24, C.text);
   let cx = x + 106;
   cx += chip(E.GRADE_NAME[u.grade], cx, y + 50, col) + 6;
-  chip(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y + 50, k.type === 'phys' ? C.phys : C.mag);
-  fitText(`공격 ${Math.round(k.dmg * E.upgMul(G, k.tier)).toLocaleString()} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${k.gap}초) · 사거리 ${k.range}`, x + 106, y + 92, w - 120, 14, C.muted);
+  chip(k.special ? '조합 재료' : `${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y + 50, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);
+  if (k.special) fitText('공격하지 않아요 · 판에 두거나 창고에 넣어도 조합 재료로 쓰여요', x + 106, y + 92, w - 120, 14, C.muted);
+  else fitText(`공격 ${Math.round(k.dmg * E.upgMul(G, k.tier)).toLocaleString()} · ${k.gap * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : k.gap * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${k.gap}초) · 사거리 ${k.range}`, x + 106, y + 92, w - 120, 14, C.muted);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { info = null; }, 'quiet');
   if (info.stack.length) { const back = info.stack[info.stack.length - 1]; button(x + w - 96, y + 56, 82, 36, '← 뒤로', () => { info = { id: back, stack: info.stack.slice(0, -1) }; }, 'normal'); }
   // 유틸
   text('유틸·특수', x + 16, y + 124, 15, C.gold);
   const tips = E.kitTips(k);
-  if (tips.length) chipRow(tips.map((t) => [t, k.type === 'phys' ? C.phys : C.mag]), x + 16, y + 138, x + w - 12, 14);
+  let tipEnd = y + 170;
+  if (tips.length) tipEnd = chipRow(tips.map((t) => [t, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag]), x + 16, y + 138, x + w - 12, tips.length > 6 ? 12 : 14);
   else text('기본 공격만 해요', x + 16, y + 150, 14, C.muted);
-  // 재료 피라미드
-  const py = y + 200;
+  // 재료 피라미드(특성 칩이 여러 줄이면 그만큼 아래에서 시작)
+  const py = Math.max(y + 200, tipEnd + 26);
   ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(x + 12, py - 14, w - 24, 1);
   // 선택 위습으로 바로 소환(사용자 요청 2026-11-09): 그 등급 선택 위습으로 고를 수 있는 갈매미면 버튼
   const pickable = E.PICK_GRADES.includes(u.grade) && E.unitsOfGrade(u.grade).includes(id), pn = G.picks[u.grade] ?? 0;
@@ -1463,7 +1473,7 @@ function drawInfo() {
     if (res.ok) { selected = [res.unit.uid]; say(`${u.name} 소환! (${E.GRADE_NAME[u.grade]} 선택 위습 ${G.picks[u.grade]}개 남음)`); } else if (res.why) say(res.why);
   }, 'primary', pn > 0, `${E.GRADE_NAME[u.grade]} ${pn}개`);
   if (!r) {
-    fitText(`조합법이 없어요 · ${E.GRADE_NAME[u.grade]} 위습으로 소환해요`, W / 2, py + 30, w - 40, 15, C.muted, 'center');
+    fitText(u.role === E.SPECIAL_ROLE ? '외부탐사 6장 보상으로 받아요 · 초월 등급 조합에 재료로 쓰면 사라져요' : `조합법이 없어요 · ${E.GRADE_NAME[u.grade]} 위습으로 소환해요`, W / 2, py + 30, w - 40, 15, C.muted, 'center');
     if (pickable) pickBtn(x + 14, w - 28);
   } else {
     text('재료 나무', x + 16, py + 6, 15, C.gold);
