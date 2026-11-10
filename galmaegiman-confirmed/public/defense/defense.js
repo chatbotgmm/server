@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=9670b43ba97e';
+import * as E from './engine.js?v=42144a2522d6';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -851,7 +851,7 @@ function drawUnitPanel(y0, u) {
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
   if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
   else fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
-  fitText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.type === 'phys' ? C.phys : C.mag);
+  clipText(E.kitTips(k).join(' · ') || '기본 공격', 94, y0 + 72, W - 210, 15, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);   // 길면 9px까지 줄이고 「…」
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
@@ -897,6 +897,11 @@ function sendSelected(list) {
   if (n) { say(`${n}마리를 외부탐사 「${E.REGIONS[G.missionDone].name}」에 보냈어요.`); selected = []; }
 }
 // 조합법 한 줄
+function clipText(t, x, y, maxW, size, color) {   // 왼쪽 정렬: 9px까지 줄이고 그래도 길면 「…」
+  for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, x, y, sz, color); return; } }
+  let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  text(s + '…', x, y, 9, color);
+}
 function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px까지 줄이고, 그래도 길면 「…」(옆 칸과 겹치지 않게)
   for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, cx, cy, sz, color, 'center'); return; } }
   let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
@@ -912,21 +917,25 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, y + 15, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
   text(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 34, 12, C.muted);
   const left = { ...cnt };
-  let cx = x + 150;
-  const chipMax = (x + w - 112 - cx) / r.in.length - 4;
-  for (const id of r.in) {
+  // 재료가 5개 이상(초불영제)이면 두 줄로 나눠 칸을 넓게(2026-11-10: 재료 6~7개라 이름이 너무 잘림)
+  const x0 = x + 150, lines = r.in.length > 4 ? 2 : 1, perLine = Math.ceil(r.in.length / lines), ch = lines === 2 ? 19 : 24, fs = lines === 2 ? 12 : 14;
+  const chipMax = (x + w - 112 - x0) / perLine - 4;
+  r.in.forEach((id, idx) => {
+    const ln = Math.floor(idx / perLine), cy0 = lines === 2 ? y + h / 2 - ch - 1 + ln * (ch + 2) : y + h / 2 - ch / 2;
+    if (idx % perLine === 0) recipeRow.cx = x0;
+    const cx = recipeRow.cx;
     const hasIt = (left[id] ?? 0) > 0;
     if (hasIt) left[id]--;
-    ctx.font = `14px ${FONT}`;
+    ctx.font = `${fs}px ${FONT}`;
     const t = E.UNIT[id].name, tw = Math.min(chipMax, ctx.measureText(t).width + 12);
-    hit(cx, y + h / 2 - 12, tw, 24, () => showInfo(id));
-    // 재료 칸: 테두리·글자 = 그 재료의 등급 색(사용자 요청 2026-11-08), 가진 것은 초록 바탕 + 왼쪽 위 초록 점
+    hit(cx, cy0, tw, ch, () => showInfo(id));
+    // 재료 칸: 테두리·글자 = 그 재료의 등급 색(사용자 요청 2026-11-08), 가진 것은 초록 바탕
     const gc = GRADE_COLOR[E.UNIT[id].grade];
-    box(cx, y + h / 2 - 12, tw, 24, hasIt ? 'rgba(111,208,138,.22)' : 'rgba(0,0,0,.35)', gc, 6, hasIt ? 2 : 1.3);
-    chipLabel(t, cx + tw / 2, y + h / 2, tw - 6, 14, gc);
-    if (gn[id]) goalDots(gn[id], cx + tw - 4, y + h / 2 - 11, 4.5);   // 목표 재료면 그 목표 색 동그라미
-    cx += tw + 4;
-  }
+    box(cx, cy0, tw, ch, hasIt ? 'rgba(111,208,138,.22)' : 'rgba(0,0,0,.35)', gc, 6, hasIt ? 2 : 1.3);
+    chipLabel(t, cx + tw / 2, cy0 + ch / 2, tw - 6, fs, gc);
+    if (gn[id]) goalDots(gn[id], cx + tw - 4, cy0 + 1, lines === 2 ? 3.5 : 4.5);   // 목표 재료면 그 목표 색 동그라미
+    recipeRow.cx = cx + tw + 4;
+  });
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);

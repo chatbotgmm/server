@@ -156,14 +156,14 @@ describe('랜덤 디펜스 엔진', () => {
       if (mx('stun')) expect(k.stun).toBeGreaterThanOrEqual(mx('stun') - 1e-9);
     }
   });
-  it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 3 + 에픽 1(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
+  it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 4 + 에픽 2(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
     const tops = E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE);
     const dm = new Set(tops.map((u: { id: string }) => E.RULES.dmg[Math.min(E.tierOf(u.id), 9)]));
     expect(new Set([6, 7, 8, 9].map((t) => E.RULES.dmg[t])).size).toBe(1); expect(dm.size).toBe(1);
     for (const u of tops) {
       const r = E.recipeFor(u.id), gr = (i: string) => E.UNIT[i].grade;
-      expect(r.in.filter((i: string) => ['LEGEND', 'HIDDEN'].includes(gr(i))).length, u.name).toBe(3);
-      expect(r.in.filter((i: string) => gr(i) === 'EPIC').length, u.name).toBe(1);
+      expect(r.in.filter((i: string) => ['LEGEND', 'HIDDEN'].includes(gr(i))).length, u.name).toBe(4);
+      expect(r.in.filter((i: string) => gr(i) === 'EPIC').length, u.name).toBe(2);
       expect(r.in.includes(E.TRANSCEND_KEY), u.name).toBe(u.grade === 'TRANSCEND');
       expect(r.in.filter((i: string) => E.tierOf(i) >= 6 && i !== E.TRANSCEND_KEY).length, u.name).toBe(0);
     }
