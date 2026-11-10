@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=4dea650fb477';
+import * as E from './engine.js?v=32276663c01c';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -18,9 +18,11 @@ const MUSIC_KEY = 'gmm-defense-music';
 const VOLUME_KEY = 'gmm-defense-volume';
 const SFX_KEY = 'gmm-defense-sfx';
 const FX_KEY = 'gmm-defense-fxlite';   // 공격 효과 줄이기(느린 휴대폰용)
-let fxLite = false;
-try { fxLite = localStorage.getItem(FX_KEY) === '1'; } catch { /* 진행 */ }
-function setFxLite(on) { fxLite = on; try { localStorage.setItem(FX_KEY, on ? '1' : '0'); } catch { /* 진행 */ } }
+// 「화려한 효과」 끔(2026-11-10 사용자 요청: 성능이 낮은 기기에서도): 공격 효과·꾸밈·빛 테두리·움직이는 장식을 줄이고,
+// 캔버스 배율도 1.5까지만(프레임은 그대로 60 — 2026-11-10 사용자: 30프레임은 끊겨 보임)
+let fxLite = false, fxChosen = false;
+try { const v = localStorage.getItem(FX_KEY); fxLite = v === '1'; fxChosen = v !== null; } catch { /* 진행 */ }
+function setFxLite(on) { fxLite = on; fxChosen = true; try { localStorage.setItem(FX_KEY, on ? '1' : '0'); } catch { /* 진행 */ } fit(); }
 // 배경음악(사용자 제공 곡을 mp3로 바꿈). 주소의 ?v=는 scripts/web/stamp-defense.py가 붙인다
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
@@ -55,9 +57,10 @@ function perfTick(ms) {
   const med = [...perf.t].sort((a, b) => a - b)[60]; perf.t = [];
   const cur = Math.min(window.devicePixelRatio || 1, dprCap);
   if (med > 22 && cur > 1.5) { dprCap = cur > 2 ? 2 : 1.5; fit(); }
+  else if (med > 24 && !fxLite && !fxChosen) { fxLite = true; fxChosen = true; try { localStorage.setItem(FX_KEY, '1'); } catch { /* 진행 */ } fit(); say('화면이 느려서 화려한 효과를 껐어요. ♪ 설정에서 다시 켤 수 있어요.'); }
 }
 function fit() {
-  dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+  dpr = Math.min(window.devicePixelRatio || 1, dprCap, fxLite ? 1.5 : 3);
   landscape = window.innerWidth / window.innerHeight > 0.9;
   VW = landscape ? SIDE_X + W : W;
   // 세로 화면(사용자 요청 2026-11-08: 휴대폰 위아래 빈 곳 없이): 화면이 더 길면 그만큼 세로를 늘려(최대 +300) 아래 메뉴를 크게
@@ -108,12 +111,31 @@ function shade(id) {
   shades[id] = c;
   return c;
 }
+// 줄인 그림 저장(2026-11-10 렉 줄이기): 380px쯤 되는 원본을 매 프레임 50~80px로 고품질 축소하던 것을, 실제 화면 픽셀 크기로 한 번 줄여 두고 다시 씀.
+// 크기는 8px 단위로 묶어 저장(조금 커지거나 작아지는 움직임에도 새로 만들지 않게), 너무 많아지면 오래된 것부터 버림
+const sprites = new Map();
+function sprite(im, dw, dh) {
+  const tr = ctx.getTransform(), sc = Math.hypot(tr.a, tr.b);
+  const pw = Math.ceil(dw * sc / 8) * 8, ph = Math.max(1, Math.round(pw * dh / dw));
+  const iw = im.naturalWidth || im.width;
+  if (!iw || pw >= iw * 0.8) return im;   // 거의 원본 크기면 그대로
+  const key = `${im.src ?? ''}|${pw}`;
+  let c = sprites.get(key);
+  if (!c) {
+    c = document.createElement('canvas'); c.width = pw; c.height = ph;
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, pw, ph);
+    sprites.set(key, c);
+    if (sprites.size > 400) sprites.delete(sprites.keys().next().value);
+  }
+  return c;
+}
 function drawFit(im, x, y, w, h, alpha = 1) {
   if (!im) return;
   const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
+  if (!iw) return;
   const s = Math.min(w / iw, h / ih), dw = iw * s, dh = ih * s;
   ctx.globalAlpha = alpha;
-  ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
+  ctx.drawImage(im.src ? sprite(im, dw, dh) : im, x + (w - dw) / 2, y + h - dh, dw, dh);
   ctx.globalAlpha = 1;
 }
 
@@ -591,7 +613,7 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   ctx.beginPath(); ctx.ellipse(x0, y0, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
   ctx.lineWidth = lw; ctx.strokeStyle = ring; ctx.stroke();
   const x = x0 + ox, y = y0 + oy; z *= zm;
-  const im = unitImg(id), gl = E.tierOf(id) >= 4 ? glow(id) : null;
+  const im = unitImg(id), gl = E.tierOf(id) >= 4 && !fxLite ? glow(id) : null;   // 화려한 효과 끔이면 빛 테두리 없음
   if (im && gl) {   // 전설 이상: 그림 둘레가 등급 색으로 빛남(천천히 밝아졌다 어두워짐)
     const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
     const dx = x - bw / 2 + (bw - dw) / 2, dy = y - bh + bh - dh, f = dw / gl.w;
@@ -782,19 +804,20 @@ function drawFieldInner() {
       const m = f.near ? Math.min(14, d * 0.25) : -3;
       ox = dx / d * m * w; oy = dy / d * m * w; zm = 1 + 0.07 * w;
     }
-    const cos = cosById[u.id];
+    const cos = fxLite ? null : cosById[u.id];   // 화려한 효과 끔이면 꾸밈도 숨김(가볍게)
     if (cos) cosBack(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
-  // 적 체력 칸·▼·★: 갈매미보다 위에 그림(2026-11-10 사용자 지적: 윗줄 적 체력 칸이 가려짐). 판 위쪽 밖으로 나가면 발밑 쪽에
+  // 적 체력 칸·▼·★: 갈매미보다 위에 그림(2026-11-10 사용자 지적: 윗줄 적 체력 칸이 가려짐). 늘 적 위쪽에 두고(사용자: 아래로 가면 헷갈림),
+  // 위쪽 정보 줄에 가릴 만큼 올라가면 판 맨 위에 붙임
   for (const e of G.enemies) {
     const sz = e.boss ? 84 : 44, bw = e.boss ? 70 : 32, bx = e.x - bw / 2;
     let by = e.y - sz * 0.75 - 6;
-    const below = by < FIELD.y + 6;
-    if (below) by = e.y + 10;
+    const below = by < FIELD.y - 2;
+    if (below) by = FIELD.y - 2;
     box(bx, by, bw, 5, 'rgba(0,0,0,.6)', null, 2);
     box(bx, by, bw * Math.max(0, e.hp / e.max), 5, e.boss ? '#ff6b6b' : '#6fd08a', null, 2);
     if (!fxLite) {   // 방깍(주황)·마방깍(파랑)이 걸려 있으면 체력 칸 옆에 ▼
@@ -1686,7 +1709,7 @@ function drawModes() {
 }
 function drawSound() {
   shadeAll();
-  const x = 50, y = 270, w = W - 100, h = 410;
+  const x = 50, y = 250, w = W - 100, h = 460;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -1702,8 +1725,10 @@ function drawSound() {
   hit(bx - 14, by - 10, bw + 28, 56, (p) => setVolume((p.x - bx) / bw), true);   // 누르거나 끌어서
   // 효과음 음량
   const sy = by + 80;
-  text('공격 효과', x + 24, sy + 82, 18, C.text);
-  button(x + w - 24 - 150, sy + 60, 150, 44, fxLite ? '줄임(가볍게)' : '화려하게', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
+  text('화려한 효과', x + 24, sy + 82, 18, C.text);
+  button(x + w - 24 - 120, sy + 60, 120, 44, fxLite ? '끔' : '켬', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
+  fitText('끄면 공격 효과·꾸밈·빛 테두리·움직이는 장식을 줄이고', x + 24, sy + 128, w - 48, 13, C.muted);
+  fitText('화면 해상도를 조금 낮춰 가볍게 그려요(렉이 있는 기기용). 게임 규칙은 같아요.', x + 24, sy + 150, w - 48, 13, C.muted);
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');

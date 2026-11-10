@@ -167,15 +167,22 @@ describe('랜덤 디펜스 엔진', () => {
     for (const id of ids(6, 9)) { const k = val(id) / avg(ids(4, 5)); expect(k, id).toBeGreaterThanOrEqual(2); expect(k, id).toBeLessThanOrEqual(3.01); }
     for (let n = 61; n <= 80; n++) expect(['LEGEND', 'HIDDEN'], `u${n}`).toContain(E.UNIT[`u${n}`].grade);   // 새 20종은 전설·히든
   });
-  it('커먼은 오른쪽 안쪽 정해진 6곳 중 빈 곳에 나옴(다른 등급은 가운데)', () => {
-    const g = E.newGame(3); g.units = []; g.wisps.COMMON = 7; g.wisps.UNCOMMON = 1;
-    const at = [];
-    for (let i = 0; i < 7; i++) { const r = E.summon(g, 'COMMON'); at.push(`${r.unit.x},${r.unit.y}`); }
-    const spots = E.COMMON_SPOTS.map((p: { x: number; y: number }) => `${p.x},${p.y}`);
-    expect(at.slice(0, 6).sort()).toEqual([...spots].sort());   // 6곳에 하나씩
-    expect(spots).toContain(at[6]);                              // 일곱째는 다시 그중 한 곳
-    const u = E.summon(g, 'UNCOMMON').unit;
-    expect(Math.hypot(u.x - E.SPAWN.x, u.y - E.SPAWN.y)).toBeLessThan(45);
+  it('커먼은 오른쪽 안쪽 8곳에 종류마다 제자리, 커먼을 창고에 넣으면 언커먼이 그 자리로(다른 등급은 가운데)', () => {
+    const g = E.newGame(3); g.units = [];
+    const commons = E.UNITS.filter((u: { grade: string }) => u.grade === 'COMMON').map((u: { id: string }) => u.id);
+    const uncommons = E.UNITS.filter((u: { grade: string }) => u.grade === 'UNCOMMON').map((u: { id: string }) => u.id);
+    expect(E.COMMON_SPOTS.length).toBe(8); expect(commons.length).toBe(8); expect(uncommons.length).toBe(8);
+    g.picks.COMMON = 8;
+    commons.forEach((id: string, i: number) => { const u = E.summonPick(g, id).unit; expect([u.x, u.y], id).toEqual([E.COMMON_SPOTS[i].x, E.COMMON_SPOTS[i].y]); });
+    g.wisps.COMMON = 20;
+    for (let i = 0; i < 20; i++) { const u = E.summon(g, 'COMMON').unit, s = E.COMMON_SPOTS[commons.indexOf(u.id)]; expect([u.x, u.y]).toEqual([s.x, s.y]); }   // 같은 종류는 같은 자리
+    g.wisps.UNCOMMON = 30; const un = []; for (let i = 0; i < 30; i++) un.push(E.summon(g, 'UNCOMMON').unit);
+    expect(un.every((u: { x: number; y: number }) => Math.hypot(u.x - E.SPAWN.x, u.y - E.SPAWN.y) < 45)).toBe(true);   // 언커먼은 가운데에 나옴
+    un[0].lock = true; const lx = un[0].x;
+    E.storeGroup(g, 'COMMON');
+    expect(E.fieldUnits(g).some((u: { id: string }) => commons.includes(u.id))).toBe(false);
+    for (const u of un.slice(1)) { const s = E.COMMON_SPOTS[uncommons.indexOf(u.id)]; expect([u.x, u.y]).toEqual([s.x, s.y]); }
+    expect(un[0].x).toBe(lx);   // 위치 고정한 것은 그대로
   });
   it('초불영제는 같은 등급: 기본 공격력·판매가·크기 같음, 조합법은 전설·히든 2~3 + 에픽(초월은 + 초월 갈매미맨), 최상위 재료 없음', () => {
     const tops = E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE);

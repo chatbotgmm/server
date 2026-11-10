@@ -20,15 +20,15 @@ export const W = 540, H = 960;
 export const FIELD = { x: 14, y: 100, w: 512, h: 564 };     // 갈매미를 둘 수 있는 곳
 export const LOOP = { x0: 46, y0: 134, x1: 494, y1: 630 };  // 적이 도는 길(중심선)
 export const SPAWN = { x: 270, y: 382 };                    // 새로 부른 갈매미가 나타나는 곳
-// 커먼 소환 자리(2026-11-10 사용자 요청: 가운데가 아니라 오른쪽 길 안쪽 정해진 6곳). 갈매미가 가장 적은 곳에 나옴(발밑 좌표)
-export const COMMON_SPOTS = [205, 271, 337, 403, 469, 535].map((y) => ({ x: 445, y }));
-function commonSpot(g) {
-  let best = COMMON_SPOTS[0], bn = Infinity;
-  for (const s of COMMON_SPOTS) {
-    const n = g.units.filter((u) => !u.away && Math.abs(u.x - s.x) < 20 && Math.abs(u.y - s.y) < 20).length;
-    if (n < bn) { bn = n; best = s; }
-  }
-  return best;
+// 커먼 소환 자리(2026-11-10 사용자 요청: 가운데가 아니라 오른쪽 길 안쪽 정해진 8곳 — 커먼 8종이 종류마다 제자리). 발밑 좌표
+// 커먼을 창고에 넣으면(자동 창고를 켜도) 판의 언커먼이 같은 8곳에 종류별로 모임
+export const COMMON_SPOTS = [186, 242, 298, 354, 410, 466, 522, 578].map((y) => ({ x: 445, y }));
+const spotOf = (id) => { const g = UNIT[id]?.grade, i = (BY_GRADE[g] ?? []).indexOf(id); return COMMON_SPOTS[(i < 0 ? 0 : i) % COMMON_SPOTS.length]; };
+const commonSpot = (g, id) => spotOf(id);
+export function arrangeUncommon(g) {   // 판의 언커먼(고정한 것 빼고)을 종류별 자리로
+  let n = 0;
+  for (const u of fieldUnits(g)) if (UNIT[u.id].grade === 'UNCOMMON' && !u.lock) { const s = spotOf(u.id); if (moveUnit(g, u.uid, s.x, s.y, true)) n++; }
+  return n;
 }
 const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 
@@ -379,7 +379,7 @@ export const STORE_GROUPS = [
 const groupOf = (grade) => STORE_GROUPS.find((q) => q.grades.includes(grade));
 // 그 묶음의 판 갈매미를 한 번에 창고로(위치 고정한 것은 그대로 둠)
 export const storeGroupUnits = (g, key) => fieldUnits(g).filter((u) => !u.lock && groupOf(UNIT[u.id].grade)?.key === key);
-export function storeGroup(g, key) { return store(g, storeGroupUnits(g, key).map((u) => u.uid)); }
+export function storeGroup(g, key) { const n = store(g, storeGroupUnits(g, key).map((u) => u.uid)); if (key === 'COMMON') arrangeUncommon(g); return n; }
 export function setAutoGrade(g, key, on) {
   (g.autoGrades ??= {})[key] = !!on;
   if (key === 'COMMON') g.autoStore = !!on;
@@ -410,7 +410,7 @@ export function summon(g, grade = 'COMMON') {
   if (!(g.wisps[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 위습이 없어요.` };
   g.wisps[grade]--;
   const pool = BY_GRADE[grade], id = pool[Math.floor(g.rand() * pool.length)];
-  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g) : null;
+  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g, id) : null;
   const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
@@ -422,7 +422,7 @@ export function summonPick(g, id) {
   if (g.over || !grade) return { ok: false, why: '' };
   if (!(g.picks[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 선택 위습이 없어요.` };
   g.picks[grade]--;
-  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g) : null;
+  const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g, id) : null;
   const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
