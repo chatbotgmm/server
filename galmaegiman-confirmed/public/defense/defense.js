@@ -924,8 +924,8 @@ function drawHud() {
   // 방어(방어력=마법방어력)와 내 판의 방깍·마방깍 합계(사용자 요청 2026-11-08: 후반엔 깎는 조합이 있어야 깸)
   const armorNow = E.armorAt(G, Math.max(1, G.wave)), mrNow = E.mrAt(G, Math.max(1, G.wave));
   const cw = chip(`${wi.boss ? '보스 ' : ''}방어 ${armorNow}${mrNow !== armorNow ? `·마${mrNow}` : ''}`, 150, 17, wi.boss ? '#ff8a7a' : C.muted, 13);
-  let shSum = 0, mshSum = 0;
-  for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; }
+  let shSum = 0, mshSum = 0, slSum = 0, stSum = 0;
+  for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; slSum += k.slow ?? 0; stSum += (k.stun ?? 0) + (k.astun ?? 0); }
   const okCol = (v, a = armorNow) => (v >= a * 0.7 ? C.good : v >= a * 0.35 ? C.goldEdge : C.bad);
   ctx.font = `12px ${FONT}`;
   const sx = 150 + cw + 8, maxW = W - 224 - sx;
@@ -955,6 +955,12 @@ function drawHud() {
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, 340, 64, 22, 22);
   text(`${G.gold}`, 366, 76, 16, C.goldEdge);
+  // 판의 이감·스턴 합계(2026-11-10 사용자 요청). 이감은 겹쳐 최대 100%, 스턴은 정보 창의 스턴%·범위 스턴%를 더한 값
+  { ctx.font = `16px ${FONT}`; const gx = 366 + ctx.measureText(`${G.gold}`).width + 12, sl = Math.round(Math.min(E.SLOW_MAX, slSum) * 100), st = Math.round(stSum * 100);
+    const t1 = `이감 ${sl}%`, t2 = ` · 스턴 ${st}%`, mw = W - 16 - gx;
+    if (mw > 50) { ctx.font = `12px ${FONT}`; const fs = Math.max(9, Math.floor(12 * Math.min(1, mw / ctx.measureText(t1 + t2).width)));
+      text(t1, gx, 77, fs, sl >= 60 ? C.good : sl >= 30 ? C.goldEdge : C.muted); ctx.font = `${fs}px ${FONT}`;
+      text(t2, gx + ctx.measureText(t1).width, 77, fs, st >= 30 ? C.good : st > 0 ? C.goldEdge : C.muted); } }
   button(W - 216, 12, 46, 40, '피해', () => { modal = modal?.kind === 'meter' ? null : { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal');
   musicButton(W - 164, 12);
   button(W - 112, 12, 46, 40, 'Ⅱ', () => setPause(true), 'normal');
