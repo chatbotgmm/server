@@ -145,6 +145,17 @@ describe('랜덤 디펜스 엔진', () => {
     for (const w of [20, 30, 40, 50, 60]) expect(E.RULES.bossMul[w]).toBeGreaterThanOrEqual(3.7);
     E.RULES.simNoMshred = false;
   });
+  it('최상위는 재료 유틸을 물려받음: 물딜은 방깍(마방깍 없음), 마딜은 마방깍·증폭(방깍 없음), 이감·스턴은 둘 다', () => {
+    for (const u of E.UNITS.filter((x: { id: string }) => E.tierOf(x.id) >= 6)) {
+      const k = E.kit(u.id), r = E.recipeFor(u.id);
+      const ing = r.in.map((i: string) => E.kit(i));
+      const mx = (key: string) => Math.max(0, ...ing.map((q: Record<string, number>) => q[key] ?? 0));
+      if (k.type === 'phys') { expect(k.inherited ?? []).not.toContain('mshred'); expect(k.inherited ?? []).not.toContain('amp'); if (mx('shred')) expect(k.shred).toBeGreaterThanOrEqual(Math.round(mx('shred') * E.INHERIT) - 1); }
+      else { expect(k.inherited ?? []).not.toContain('shred'); if (mx('mshred')) expect(k.mshred).toBeGreaterThanOrEqual(Math.round(mx('mshred') * E.INHERIT) - 1); }
+      if (mx('slow')) expect(k.slow).toBeGreaterThanOrEqual(Math.min(0.6, mx('slow') * E.INHERIT) - 1e-9);
+      if (mx('stun')) expect(k.stun).toBeGreaterThanOrEqual(Math.min(0.3, mx('stun') * E.INHERIT) - 1e-9);
+    }
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

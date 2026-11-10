@@ -162,7 +162,27 @@ export function kit(id) {
   if (k.stun) k.stun /= AS;
   if (k.astun) k.astun /= AS;
   if (k.poison) k.poison *= AS;
-  return { ...k, gap: k.gap / AS, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  const out = { ...k, gap: k.gap / AS, type, elem, tier: t, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  if (t >= 6) inheritUtil(id, out);
+  return out;
+}
+// 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
+// 물딜은 방깍, 마딜은 마방깍·마딜증폭만(다른 쪽 것은 안 받음), 이감·스턴·범위 스턴은 둘 다. 재료 값의 INHERIT배와 자기 값 중 큰 것
+export const INHERIT = 1.3;
+const INHERIT_CAP = { slow: 0.6, stun: 0.3, astun: 0.2 };
+function inheritUtil(id, k) {
+  const r = RECIPES.find((q) => q.out === id); if (!r) return;
+  const keys = ['slow', 'stun', 'astun', ...(k.type === 'phys' ? ['shred'] : ['mshred', 'amp'])];
+  k.inherited = [];
+  for (const key of keys) {
+    let best = 0;
+    for (const ing of r.in) { const v = kit(ing)[key] ?? 0; if (v > best) best = v; }
+    if (!best) continue;
+    let v = best * INHERIT;
+    if (INHERIT_CAP[key]) v = Math.min(INHERIT_CAP[key], v);
+    if (key === 'shred' || key === 'mshred') v = Math.round(v);
+    if (v > (k[key] ?? 0)) { k[key] = v; k.inherited.push(key); }
+  }
 }
 // 화면용 짧은 설명
 export function kitTips(k) {
@@ -181,6 +201,7 @@ export function kitTips(k) {
   if (k.poison) out.push('독');
   if (k.holy) out.push('보스 추가 피해');
   if (k.wisp) out.push('위습 찾기');
+  if (k.inherited?.length) out.push('재료 유틸 물려받음');
   return out;
 }
 
