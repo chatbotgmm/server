@@ -259,7 +259,9 @@ describe('랜덤 디펜스 엔진', () => {
       const m = Math.max(0, ...E.recipeFor(u.id).in.map((i: string) => E.EXPLORE[i] ?? 0));
       expect(E.kit(u.id).explore || 0, u.name).toBe(m > 1 ? 1 + (m - 1) * E.EXPLORE_INHERIT : 0);
     }
-    expect(E.kitTips(E.kit('u45')).some((t: string) => t.includes('물려받음') && t.includes('탐사'))).toBe(true);
+    const heir = E.UNITS.find((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE && E.kit(x.id).exploreFrom);   // 물려받은 초불영제 하나
+    expect(heir).toBeTruthy();
+    expect(E.kitTips(E.kit(heir.id)).some((t: string) => t.includes('물려받음') && t.includes('탐사'))).toBe(true);
   });
   it('전설·히든은 모두 적어도 한 초불영제의 재료(만들어도 위로 안 이어지는 것 없음, 2026-11-10)', () => {
     const tops = E.RECIPES.filter((r: { out: string }) => E.tierOf(r.out) >= 6);
