@@ -320,8 +320,38 @@ function musicButton(x, y) {
   button(x, y, 46, 40, '♪', () => { modal = { kind: 'sound' }; musicPlay(); }, 'normal');
   if (!music.on) { ctx.strokeStyle = C.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 12, y + 30); ctx.lineTo(x + 34, y + 10); ctx.stroke(); }
 }
+function drawCompStrip(comp, x, y, w, sz = 34) {   // 조합 유닛 그림 줄(등급 색 고리 + ×마리 수), 넘치면 +N
+  if (!comp?.length) { text('기록된 갈매미가 없어요', x, y + sz / 2, 13, C.muted); return; }
+  const step = sz + 4, fit = Math.max(1, Math.floor(w / step));
+  const shown = comp.length > fit ? comp.slice(0, fit - 1) : comp;
+  shown.forEach(([id, n], i) => {
+    const cx = x + i * step + sz / 2, cy = y + sz / 2, u = E.UNIT[id]; if (!u) return;
+    ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(11,30,42,.9)'; ctx.fill();
+    ctx.lineWidth = E.tierOf(id) >= 6 ? 2.5 : 1.6; ctx.strokeStyle = GRADE_COLOR[u.grade]; ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, sz / 2 - 1.5, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(id), cx - sz / 2, cy - sz / 2, sz, sz); ctx.restore();
+    if (n > 1) { box(cx + sz / 2 - 16, cy + sz / 2 - 12, 18, 13, 'rgba(7,19,28,.92)', null, 4); text(`×${n}`, cx + sz / 2 - 7, cy + sz / 2 - 5.5, 10, C.goldEdge, 'center'); }
+  });
+  if (comp.length > shown.length) text(`+${comp.length - shown.length}`, x + shown.length * step + sz / 2, y + sz / 2, 13, C.muted, 'center');
+}
+// ── 판 기록(2026-11-10 사용자 요청: 최고 기록뿐 아니라 그때 쓴 조합 유닛도) ──
+const HIST_KEY = 'gmm-defense-history', BESTCOMP_KEY = 'gmm-defense-bestcomp';
+const readJson = (k, d) => { try { const v = JSON.parse(ls.get(k) ?? 'null'); return v ?? d; } catch { return d; } };
+let hist = readJson(HIST_KEY, []), bestComp = readJson(BESTCOMP_KEY, {});
+function compOf(g) {   // 판의 갈매미(창고·탐사 포함) 종류별 마리 수, 높은 등급부터 16종
+  const c = {};
+  for (const u of g.units) { if (E.UNIT[u.id]?.role === E.SPECIAL_ROLE) continue; c[u.id] = (c[u.id] ?? 0) + 1; }
+  return Object.entries(c).sort((a, b) => (E.tierOf(b[0]) - E.tierOf(a[0])) || (b[1] - a[1])).slice(0, 16);
+}
+function recordRun(w) {
+  const rec = { at: Date.now(), diff: G.diff, mode: G.mode, wave: w, win: G.over === 'win', coop: coop(), upg: [...G.upg], comp: compOf(G) };
+  hist = [rec, ...hist].slice(0, 30); ls.set(HIST_KEY, JSON.stringify(hist));
+  const k = recKey(G.mode, G.diff), old = bestComp[k];
+  if (!old || w > old.wave) { bestComp[k] = rec; ls.set(BESTCOMP_KEY, JSON.stringify(bestComp)); }
+  G.lastRec = rec;
+}
 function saveBest() {   // 모드마다 따로
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
+  recordRun(w);
   if (w > bestOf(G.mode, G.diff)) ls.set(bestKey(G.mode, G.diff), String(w));
   best = bestOf('normal', selDiff);
   const solo = !coop() && !inRoom();
@@ -1151,15 +1181,17 @@ function drawPause() {
 function drawOver() {
   shadeAll(0.75);
   if (coop()) return drawOverCoop();
-  const x = 40, y = 250, w = W - 80, h = 420, win = G.over === 'win';
+  const x = 40, y = 240, w = W - 80, h = 446, win = G.over === 'win';
   box(x, y, w, h, C.panel, win ? C.goldEdge : '#b4482a', 14, 2);
   text(win ? '방어 성공!' : '방어 실패', W / 2, y + 48, 28, win ? C.goldEdge : C.bad, 'center');
   ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 70, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 78, w - 60, 15, C.text); ctx.restore();
   text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 160, 22, C.text, 'center');
   fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
   text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
-  button(x + 30, y + 266, w - 60, 58, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
-  button(x + 30, y + 336, w - 60, 48, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
+  text('이번 조합', x + 24, y + 256, 13, C.muted);
+  drawCompStrip(G.lastRec?.comp ?? compOf(G), x + 24, y + 268, w - 48, 34);
+  button(x + 30, y + 318, w - 60, 54, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
+  button(x + 30, y + 382, w - 60, 44, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
 }
 function drawOverCoop() {
   const x = 40, y = 230, w = W - 80, h = 470, win = G.over === 'win';
@@ -1220,6 +1252,7 @@ function drawTitle() {
     hit(20, 912, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
   }
   musicButton(W - 62, 14);
+  button(14, 14, 70, 40, '기록', () => { modal = { kind: 'records' }; }, 'normal');   // 판 기록(조합 포함)
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
@@ -1296,6 +1329,35 @@ function drawStorage() {
   button(x + 18, y + h - 52, w - 36, 42, '모두 꺼내기', () => { const n = E.unstore(G, list.map((u) => u.uid)); say(`${n}마리를 꺼냈어요.`); }, 'normal', list.length > 0);
 }
 // 도전 모드 고르기(첫 화면)
+function drawRecords() {   // 난이도별 최고 기록(그때 조합) + 최근 판
+  shadeAll();
+  const x = 20, y = 70, w = W - 40, h = Math.min(VH - 100, 860);
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('기록', x + 18, y + 32, 24, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  const day = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const res = (r) => (r.win ? '클리어' : `${r.wave}웨이브`);
+  let yy = y + 66;
+  text('난이도별 최고 기록 · 그때 조합', x + 18, yy, 15, C.gold); yy += 14;
+  for (const d of E.DIFF_ORDER) {
+    const r = bestComp[recKey('normal', d)];
+    box(x + 12, yy, w - 24, 62, 'rgba(11,30,42,.8)', 'rgba(145,122,76,.35)', 8, 1);
+    text(diffName(d), x + 24, yy + 18, 15, C.text);
+    clipText(r ? `${res(r)} · ${day(r.at)}` : '아직 없음', x + 24, yy + 42, 72, 12, r ? C.goldEdge : C.muted);
+    if (r) drawCompStrip(r.comp, x + 100, yy + 13, w - 124, 36);
+    yy += 68;
+  }
+  yy += 10; text('최근 판', x + 18, yy, 15, C.gold); yy += 14;
+  const room = Math.max(0, Math.floor((y + h - 12 - yy) / 62));
+  if (!hist.length) text('끝난 판이 아직 없어요', x + 24, yy + 24, 14, C.muted);
+  hist.slice(0, room).forEach((r) => {
+    box(x + 12, yy, w - 24, 56, 'rgba(11,30,42,.6)', 'rgba(145,122,76,.25)', 8, 1);
+    clipText(`${day(r.at)} ${diffName(r.diff)}${r.mode !== 'normal' ? `·${E.MODES[r.mode]?.name ?? ''}` : ''}${r.coop ? '·같이' : ''}`, x + 24, yy + 18, 72, 12, C.text);
+    text(res(r), x + 24, yy + 38, 13, r.win ? C.good : C.muted);
+    drawCompStrip(r.comp, x + 100, yy + 11, w - 124, 34);
+    yy += 62;
+  });
+}
 function drawModes() {
   shadeAll();
   const x = 28, y = 170, w = W - 56, keys = Object.keys(E.MODES), h = 120 + keys.length * 104;
@@ -2008,7 +2070,7 @@ function frame(now) {
     drawTitleBack();
     const tx = (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
-    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); } else drawLobby();
+    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
   } else {
     drawBackground();
