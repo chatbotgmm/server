@@ -2,7 +2,8 @@
 # 랜덤 디펜스를 최신 판으로 한 번에 올리기. root로 실행: sudo bash defense-update.sh
 # - 지금 서버 파일 지문으로 단계(10차~15차 등)를 알아내고, 아는 단계면 바로 최신 판(deploy/defense-latest)으로 바꾼다.
 #   이미 최신이면 아무것도 안 한다. 모르는 상태면 아무것도 바꾸지 않고 멈춘다.
-# - 실행 폴더를 복사하지 않는다(디스크 거의 안 씀). 바꾸는 파일만 백업하고, 서버 코드(site.js)가 바뀔 때만 재시작한다.
+# - 실행 폴더를 복사하지 않는다(디스크 거의 안 씀). 바꾸는 파일만 백업하고, 서버 코드(dist/ 아래 파일)가 바뀔 때만 재시작한다.
+#   (2026-11-10: 디펜스 계정 저장으로 dist/src/my.js·defense-save.js도 바뀜 → site.js만 보던 것을 dist/ 전체로)
 # - 확인에 실패하면 바로 되돌린다. DB·설정은 건드리지 않는다.
 set -Eeuo pipefail
 umask 077
@@ -29,6 +30,7 @@ check(){ local i miss v e; for i in $(seq 1 10); do miss=''
   curl -fsS --max-time 10 http://127.0.0.1:3000/game60 2>/dev/null | grep -q '/game60/game.js' || miss+=' 웹게임'
   curl -sS --max-time 10 -X POST -H 'x-gmm: 1' -H 'content-type: application/json' -d '{"ticket":"x","secret":"y"}' http://127.0.0.1:3000/my/api/app/kakao-poll 2>/dev/null | grep -q '로그인 요청을 찾지 못했어요' || miss+=' 게임카카오로그인'
   curl -sS --max-time 10 -X POST -H 'content-type: application/json' -d '{"code":"x"}' http://127.0.0.1:3000/defense/room/join 2>/dev/null | grep -q '6자리' || miss+=' 같이하기방'
+  if [ -f "$CUR/dist/src/defense-save.js" ]; then [ "$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' -H 'x-gmm: 1' http://127.0.0.1:3000/my/api/defense 2>/dev/null)" = 401 ] || miss+=' 디펜스계정저장'; fi
   [ -z "$miss" ] && return 0; sleep 2; done
   echo "확인 실패 항목:$miss"; return 1; }
 
@@ -62,7 +64,7 @@ site_changed=no
 : > "$BK/new-files.txt"
 for f in $LIST; do
   if [ -f "$CUR/$f" ]; then install -d -m 700 "$BK/files/$(dirname "$f")"; cp -a "$CUR/$f" "$BK/files/$f"; else echo "$f" >> "$BK/new-files.txt"; fi
-  [ "$f" = dist/src/site.js ] && ! cmp -s "$TMP/x/$f" "$CUR/$f" && site_changed=yes
+  case "$f" in dist/*) cmp -s "$TMP/x/$f" "$CUR/$f" 2>/dev/null || site_changed=yes;; esac   # 새 파일(비교 대상 없음)도 바뀐 것으로
 done
 echo "$site_changed" > "$BK/site-changed.txt"
 restore(){ local f; for f in $LIST; do if [ -f "$BK/files/$f" ]; then cp -a "$BK/files/$f" "$CUR/$f.restore" && mv -f "$CUR/$f.restore" "$CUR/$f"; fi; done
