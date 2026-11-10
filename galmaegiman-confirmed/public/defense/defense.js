@@ -362,25 +362,31 @@ function saveBest() {   // 모드마다 따로
 }
 
 // ── 꾸미기(2026-11-10 사용자 요청: 클리어 횟수를 채우면 원하는 유닛에 날개·오라를 달고 색을 고름) ──
-// 클리어(60웨이브까지 버팀)는 난이도·모드·같이하기 모두 1번으로 센다. 능력치는 그대로, 판 위 그림만 바뀐다. 이 기기에만 저장
+// 클리어 횟수는 달인·장인만 센다(2026-11-10 사용자 요청). 장인도 횟수는 1번이지만 칸 열기(보상)에는 2번으로 친다. 모드·같이하기 포함.
+// 능력치는 그대로, 판 위 그림만 바뀐다. 이 기기에만 저장
 const STATS_KEY = 'gmm-defense-stats', COS_KEY = 'gmm-defense-cosmetic';
-const COS_SLOTS = [1, 3, 5, 10, 15, 20, 30, 50];   // 칸이 열리는 누적 클리어 수
+const COS_SLOTS = [1, 3, 5, 10, 15, 20, 30, 50];   // 칸이 열리는 보상 클리어 수(달인 1 · 장인 2)
+const CLEAR_PTS = { master: 1, artisan: 2 };   // 이 밖의 난이도(입문~상급) 클리어는 세지 않음
 const COS_WINGS = [['', '없음'], ['feather', '깃털'], ['fairy', '요정']];
 const COS_AURAS = [['', '없음'], ['glow', '빛'], ['flame', '불꽃']];
 const COS_COLORS = [['#ffd66b', '금빛'], ['#ff5a5a', '빨강'], ['#ff8fc7', '분홍'], ['#b07bff', '보라'], ['#5aa8ff', '파랑'], ['#6fe8ff', '하늘'], ['#6fe08a', '초록'], ['#ffffff', '흰색'], ['rainbow', '무지개']];
 const RAINBOW_DIFF = 'artisan';   // 무지개 색은 장인 클리어로 열림
 let stats = readJson(STATS_KEY, null);
-if (!stats || typeof stats.clears !== 'number') {   // 처음: 지금까지 남은 기록(최근 판·클리어한 최고 기록)으로 시작
+if (!stats || typeof stats.byDiff !== 'object' || !stats.byDiff) {   // 처음: 지금까지 남은 기록(최근 판·클리어한 최고 기록)으로 시작
   const wins = hist.filter((r) => r.win), byDiff = {};
   for (const r of wins) byDiff[r.diff] = (byDiff[r.diff] ?? 0) + 1;
-  let cleared = 0;
-  for (const m of Object.keys(E.MODES)) for (const d of E.DIFF_ORDER) if (bestOf(m, d) > E.RULES.waves) { cleared++; byDiff[d] = Math.max(byDiff[d] ?? 0, 1); }
-  stats = { clears: Math.max(wins.length, cleared), byDiff, seen: 0 };
+  for (const d of E.DIFF_ORDER) {   // 최고 기록이 클리어인 모드 수만큼은 깼다고 봄(최근 판 기록은 30판까지만 남음)
+    const modes = Object.keys(E.MODES).filter((m) => bestOf(m, d) > E.RULES.waves).length;
+    if (modes > (byDiff[d] ?? 0)) byDiff[d] = modes;
+  }
+  stats = { byDiff, seen: 0 };
   ls.set(STATS_KEY, JSON.stringify(stats));
 }
 let cosmetic = readJson(COS_KEY, {});
 if (!Array.isArray(cosmetic.slots)) cosmetic = { slots: [] };
-const cosOpen = () => COS_SLOTS.filter((n) => stats.clears >= n).length;
+const clearCount = () => Object.keys(CLEAR_PTS).reduce((a, d) => a + (stats.byDiff[d] ?? 0), 0);   // 화면에 보이는 클리어 횟수
+const clearPts = () => Object.entries(CLEAR_PTS).reduce((a, [d, k]) => a + k * (stats.byDiff[d] ?? 0), 0);   // 칸 열기에 쓰는 수
+const cosOpen = () => COS_SLOTS.filter((n) => clearPts() >= n).length;
 const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0;
 let cosById = {};
 function cosRebuild() {   // 열린 칸의 꾸밈만 유닛별로(칸이 닫혀 있거나 비어 있으면 그리지 않음)
@@ -391,11 +397,12 @@ cosRebuild();
 function cosSave() { ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); }
 function addClear(diff) {
   const before = cosOpen(), rb = rainbowOpen();
-  stats.clears++; stats.byDiff = { ...stats.byDiff, [diff]: (stats.byDiff?.[diff] ?? 0) + 1 };
+  stats.byDiff = { ...stats.byDiff, [diff]: (stats.byDiff?.[diff] ?? 0) + 1 };
   ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild();
   // 판 끝 창 안에 한 줄로(알림 띠는 창의 버튼을 가림 — 검토에서 찾음)
-  if (cosOpen() > before) G.cosNews = `꾸미기 칸 ${cosOpen()}번째 열림!`;
-  else if (!rb && rainbowOpen()) G.cosNews = '꾸미기 무지개 색 열림!';
+  if (!CLEAR_PTS[diff]) G.cosNews = '꾸미기 클리어 횟수는 달인부터 세요';
+  else if (cosOpen() > before) G.cosNews = `꾸미기 칸 ${cosOpen()}번째 열림! 시작 화면 「꾸미기」`;
+  else if (!rb && rainbowOpen()) G.cosNews = '꾸미기 무지개 색 열림! 시작 화면 「꾸미기」';
 }
 
 // ── 입력 ──
@@ -1298,7 +1305,7 @@ function drawOver() {
   fitText(`처치 ${G.kills} · 외부탐사 ${G.missionDone}곳 · 강화 ${G.upg.join('/')}`, W / 2, y + 196, w - 40, 15, C.muted, 'center');
   text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
   text('이번 조합', x + 24, y + 256, 13, C.muted);
-  if (G.cosNews) fitText(`${G.cosNews} 시작 화면 「꾸미기」`, x + w - 24, y + 256, w - 130, 13, C.good, 'right');
+  if (G.cosNews) fitText(G.cosNews, x + w - 24, y + 256, w - 130, 13, C.good, 'right');
   drawCompStrip(G.lastRec?.comp ?? compOf(G), x + 24, y + 268, w - 48, 34);
   button(x + 30, y + 318, w - 60, 54, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
   button(x + 30, y + 382, w - 60, 44, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
@@ -1319,7 +1326,7 @@ function drawOverCoop() {
   } else fitText('방장이 「같이 다시 하기」를 누르면 함께 시작해요', W / 2, y + 307, w - 40, 15, C.muted, 'center');
   button(x + 30, y + 352, w - 60, 48, '방 나가기', () => leaveRoom(), 'quiet');
   text(`최고 기록 ${bestText(best)}`, W / 2, y + 432, 15, C.gold, 'center');
-  if (G.cosNews) fitText(`${G.cosNews} 시작 화면 「꾸미기」`, W / 2, y + 454, w - 40, 13, C.good, 'center');
+  if (G.cosNews) fitText(G.cosNews, W / 2, y + 454, w - 40, 13, C.good, 'center');
 }
 function drawTitleBack() {   // 화면 전체 너비
   drawBackground();
@@ -1479,11 +1486,11 @@ function openCustomize() {
 }
 function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 → 날개·오라·색
   shadeAll();
-  const x = 20, y = 70, w = W - 40, h = Math.min(VH - 100, 860), open = cosOpen(), next = COS_SLOTS.find((n) => n > stats.clears);
+  const x = 20, y = 70, w = W - 40, h = Math.min(VH - 100, 860), open = cosOpen(), pts = clearPts(), next = COS_SLOTS.find((n) => n > pts);
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('꾸미기', x + 18, y + 32, 24, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`클리어 ${stats.clears}번 · 열린 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸은 ${next}번 클리어` : ''} · 능력치는 그대로`, x + 18, y + 66, w - 36, 14, C.muted);
+  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''}`, x + 18, y + 66, w - 36, 14, C.muted);
   // 칸 8개
   const sw = (w - 24 - 7 * 6) / 8;
   COS_SLOTS.forEach((need, i) => {
@@ -1506,7 +1513,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     ctx.restore();
     fitText(E.UNIT[cur.id].name, fx, py + ph - 20, pw - 16, 15, C.text, 'center');
     button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; cosSave(); }, 'quiet');
-  } else fitText(open ? '아래에서 유닛을 골라요' : '첫 클리어를 하면 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
+  } else fitText(open ? '아래에서 유닛을 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
   // 날개·오라·색
   const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id;
   const row = (label, list, key, yy) => {
@@ -1546,7 +1553,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     drawFit(unitImg(id), cx + 4, cy + 3, cw - 8, ch - 6, slot >= 0 && other < 0 ? 1 : 0.45);
     if (other >= 0) { box(cx + cw - 26, cy + 3, 23, 16, 'rgba(7,19,28,.92)', null, 4); text(`${other + 1}칸`, cx + cw - 14.5, cy + 11.5, 10, C.goldEdge, 'center'); }
     hit(cx, cy, cw, ch, () => {
-      if (slot < 0) { say(open ? '위에서 열린 칸을 먼저 골라요.' : '첫 클리어를 하면 꾸미기 칸이 열려요.'); return; }
+      if (slot < 0) { say(open ? '위에서 열린 칸을 먼저 골라요.' : '달인 이상을 처음 클리어하면 꾸미기 칸이 열려요.'); return; }
       if (other >= 0) { say(`${E.UNIT[id].name}은(는) ${other + 1}번째 칸에서 꾸미고 있어요.`); return; }
       cosmetic.slots[slot] = { wing: 'feather', aura: '', color: '#ffd66b', ...(cur ?? {}), id }; cosSave();
     });
