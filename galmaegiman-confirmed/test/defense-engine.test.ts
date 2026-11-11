@@ -278,7 +278,7 @@ describe('랜덤 디펜스 엔진', () => {
     }
     expect(new Set(E.RECIPES.map((r: { out: string }) => r.out)).size).toBe(E.RECIPES.length);                       // 한 유닛 한 조합법
     expect(new Set(E.RECIPES.map((r: { in: string[] }) => [...r.in].sort().join('+'))).size).toBe(E.RECIPES.length);   // 같은 재료 조합 없음
-    for (const r of E.RECIPES) expect(new Set(r.in).size, E.UNIT[r.out].name).toBe(r.in.length);   // 한 조합법에 같은 재료 두 번 없음(2026-11-11)
+    for (const r of E.RECIPES) if (E.tierOf(r.out) >= 2) expect(new Set(r.in).size, E.UNIT[r.out].name).toBe(r.in.length);   // 레어부터는 한 조합법에 같은 재료 두 번 없음(2026-11-11, 언커먼까지는 괜찮음)
     for (let n = 82; n <= 93; n++) expect(E.tierOf(`u${n}`), `u${n}`).toBeGreaterThanOrEqual(6);                        // 새 초불영제 12종
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
@@ -337,7 +337,7 @@ describe('랜덤 디펜스 엔진', () => {
     expect(nostory.over).toBeFalsy();
   });
 
-  it('보스는 5웨이브마다, 잡으면 커먼 선택 위습(RULES.bossPickEach)(모집권은 10웨이브 보스만)', () => {
+  it('보스는 5웨이브마다, 잡으면 선택 위습 1(5~15 커먼 · 20~35 언커먼 · 40~55 레어, 모집권은 10웨이브 보스만)', () => {
     expect([1, 4, 5, 9, 10, 15, 60].map((w) => E.waveInfo(w).boss)).toEqual([false, false, true, false, true, true, true]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const killBoss = (g: any, w: number) => {
@@ -347,10 +347,18 @@ describe('랜덤 디펜스 엔진', () => {
     };
     const g = E.newGame(3); const p0 = g.picks.COMMON, t0 = g.tickets ?? 0;
     killBoss(g, 5);
-    const pe = E.RULES.bossPickEach.COMMON;
-    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + pe); expect(g.tickets ?? 0).toBe(t0);
+    expect(g.bossDone).toBe(5); expect(g.picks.COMMON).toBe(p0 + 1); expect(g.tickets ?? 0).toBe(t0);
     killBoss(g, 10);
-    expect(g.picks.COMMON).toBe(p0 + 2 * pe); expect(g.tickets).toBe(t0 + 1);
+    expect(g.picks.COMMON).toBe(p0 + 2); expect(g.tickets).toBe(t0 + 1);
+    const u0 = g.picks.UNCOMMON ?? 0, e0 = g.wisps.EPIC ?? 0; killBoss(g, 20); expect(g.picks.UNCOMMON).toBe(u0 + 1); expect(g.wisps.EPIC).toBe(e0 + 1);   // 20웨이브: 에픽 위습(10웨이브보다 적지 않게)
+    const r0 = g.picks.RARE ?? 0; killBoss(g, 45); expect(g.picks.RARE).toBe(r0 + 1);
+    const pickTier = (w: number) => Math.max(...Object.keys(E.RULES.bossPick[w]).map((k) => E.GRADES.indexOf(k)));
+    for (let w = 10; w <= 55; w += 5) expect(pickTier(w), `${w}`).toBeGreaterThanOrEqual(pickTier(w - 5));   // 뒤로 갈수록 같거나 높게
+  });
+  it('스토리 보상: 선택 위습 등급은 장이 갈수록 같거나 높게(1~3 커먼 · 4~6 언커먼 · 7·8 레어), 대장 체력은 장마다 같거나 높게(2026-11-11)', () => {
+    const tier = (r: { pick: Record<string, number> }) => Math.max(...Object.keys(r.pick).map((k) => E.GRADES.indexOf(k)));
+    expect(E.REGIONS.map(tier)).toEqual([0, 0, 0, 1, 1, 1, 2, 2]);
+    for (let k = 1; k < E.REGIONS.length; k++) expect(E.RULES.guardHp[k], `${k + 1}장`).toBeGreaterThanOrEqual(E.RULES.guardHp[k - 1]);
   });
   it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {
     expect(E.defAt(40)).toBeLessThanOrEqual(45);

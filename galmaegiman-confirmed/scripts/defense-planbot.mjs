@@ -35,9 +35,11 @@ function bot(g, st) {
   const goals = st.wish.filter((id) => !(have[id] > 0) && keyOk(id) && topOk(id)).slice(0, 2);
   const allowed = new Set(), leaves = {}, h2 = { ...have };
   for (const gl of goals) expand(gl, h2, allowed, leaves);
-  // 선택 위습: 목표에 모자란 바닥 재료로
+  // 선택 위습: 목표에 모자란 바닥 재료로. 언커먼·레어 선택 위습은 목표 나무에서 아직 없는 그 등급 중간 재료로(2026-11-11: 예전엔 그 등급 첫 유닛을 뽑아 버림)
   for (const gr of E.PICK_GRADES) while (g.picks[gr] > 0) {
-    const id = Object.keys(leaves).find((x) => E.UNIT[x].grade === gr && leaves[x] > 0) ?? E.unitsOfGrade(gr)[0];
+    const mid = [...allowed].find((x) => E.UNIT[x].grade === gr && !(have[x] > 0) && E.unitsOfGrade(gr).includes(x));
+    const id = mid ?? Object.keys(leaves).find((x) => E.UNIT[x].grade === gr && leaves[x] > 0) ?? E.unitsOfGrade(gr)[0];
+    if (mid) { allowed.delete(mid); have[mid] = 1; }
     const r = E.summonPick(g, id); if (!r.ok) break; if (leaves[id]) leaves[id]--;
     const s = SPOTS[st.n++ % SPOTS.length]; E.moveUnit(g, r.unit.uid, s[0], s[1], true);
   }

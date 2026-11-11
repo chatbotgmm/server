@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=e253a9cdd027';
+import { UNITS, RECIPES } from './data.js?v=1eae69d0865a';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -72,30 +72,31 @@ export const RULES = {
   // 칸: 커먼·언커먼 · 레어 · 에픽 · 전설·히든(묶음) · 제한 · 초월 · 불멸 · 영원 (8칸)
   // 강화(2026-11-09 사용자 요청: 공격 속도도 오르게): 단계마다 공격력 +10% · 공격 속도 +3%. 10단계면 공격력 ×2 · 공속 ×1.3(예전 공격력 +15%×10 = ×2.5와 초당 피해가 비슷)
   upgPct: 0.10, upgSpd: 0.03, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
-  bossReward: { 10: { EPIC: 1 }, 20: { RARE: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-10 사용자 요청: 10웨이브 보스는 레어 → 에픽. 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
+  bossReward: { 10: { EPIC: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-11 보상 검토: 20웨이브가 10웨이브(에픽)보다 적던 것(레어)을 에픽으로   // 2026-11-10 사용자 요청: 10웨이브 보스는 레어 → 에픽. 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
-  startPick: {}, bossPickEach: { COMMON: 1 }, bossPick: {},   // 보스마다 커먼 선택 위습 1(2026-11-10: 4였다가 사용자 「선택위습을 너무 많이 줌」으로 줄임)
+  // 2026-11-11 보상 검토: 보스마다 선택 위습 1개, 등급은 웨이브에 맞춰 5~15 커먼 · 20~35 언커먼 · 40~55 레어(후반 커먼 선택 위습은 쓸 데가 없었음)
+  startPick: {}, bossPickEach: {}, bossPick: { 5: { COMMON: 1 }, 10: { COMMON: 1 }, 15: { COMMON: 1 }, 20: { UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { RARE: 1 }, 45: { RARE: 1 }, 50: { RARE: 1 }, 55: { RARE: 1 } },
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
-  guardHp: [20000, 150000, 400000, 600000, 3000000, 2500000, 6000000, 8000000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
+  guardHp: [20000, 150000, 400000, 600000, 2500000, 3000000, 6000000, 8000000],   // 2026-11-11 보상 검토: 5장이 6장보다 높던 것(300만·250만)을 맞바꿈   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
 // 외부탐사: 갈매미맨 메인 스토리 7장 지역. 처음부터 1장을 보낼 수 있고, 앞 장을 끝내면 다음 장이 열린다(사용자 요청 2026-11-08).
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
-  // 스토리 선택 위습: 장마다 커먼 선택 위습 1개(2026-11-10 사용자 「선택위습이 너무 많음」으로 3 → 1)
+  // 스토리 선택 위습: 장마다 1개(2026-11-10 사용자 「선택위습이 너무 많음」으로 3 → 1). 2026-11-11 보상 검토: 등급은 1~3장 커먼 · 4~6장 언커먼 · 7·8장 레어
   { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 150 },
   { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 400 },
   { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 800 },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 1500 },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 3000 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 3000 },
   // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
     choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
