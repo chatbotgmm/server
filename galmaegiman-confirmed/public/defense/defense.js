@@ -222,8 +222,8 @@ let best = bestOf('normal', selDiff);
 let resumeMeta = null;   // 이어할 판 {wave, mode}
 try { resumeMeta = JSON.parse(ls.get(SAVE_META_KEY) ?? 'null'); } catch { resumeMeta = null; }
 // ── 배경음악: 누르기(시작하기·♪) 뒤에만 재생(브라우저 자동 재생 막힘), 일시정지·다른 앱이면 멈춤 ──
-const music = { on: true, vol: 0.45, el: null };
-try { music.on = localStorage.getItem(MUSIC_KEY) !== 'off'; const v = Number(localStorage.getItem(VOLUME_KEY)); if (localStorage.getItem(VOLUME_KEY) !== null && v >= 0 && v <= 1) music.vol = v; } catch { /* 기본값 */ }
+const music = { on: false, vol: 0.45, el: null };   // 2026-11-11 유저 피드백(시작하자마자 음악이 나옴): 기본 꺼짐, 한 번 켜면 그 설정을 기억
+try { music.on = localStorage.getItem(MUSIC_KEY) === 'on'; const v = Number(localStorage.getItem(VOLUME_KEY)); if (localStorage.getItem(VOLUME_KEY) !== null && v >= 0 && v <= 1) music.vol = v; } catch { /* 기본값 */ }
 function musicEl() {
   if (!music.el) { music.el = new Audio(BGM_URL); music.el.loop = true; music.el.volume = music.vol; music.el.preload = 'auto'; }
   return music.el;
@@ -521,7 +521,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -1165,7 +1165,7 @@ function drawHud() {
     if (mw > 50) { ctx.font = `12px ${FONT}`; const fs = Math.max(9, Math.floor(12 * Math.min(1, mw / ctx.measureText(t1 + t2).width)));
       text(t1, gx, 77, fs, sl >= 60 ? C.good : sl >= 30 ? C.goldEdge : C.muted); ctx.font = `${fs}px ${FONT}`;
       text(t2, gx + ctx.measureText(t1).width, 77, fs, st >= 30 ? C.good : st > 0 ? C.goldEdge : C.muted); } }
-  button(W - 216, 12, 46, 40, '피해', () => { modal = modal?.kind === 'meter' ? null : { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal');
+  // 「피해」 버튼은 아래 「더보기」로 옮김(2026-11-11 버튼 줄이기). 단축키 D는 그대로
   musicButton(W - 164, 12);
   button(W - 112, 12, 46, 40, 'Ⅱ', () => setPause(true), 'normal');
   button(W - 60, 12, 46, 40, `×${speed}`, () => setSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1), 'normal');
@@ -1262,23 +1262,39 @@ function drawMainPanel(y0) {
     ctx.fillStyle = lg; ctx.fillRect(40, dy - 0.75, W - 80, 1.5);
     ctx.save(); ctx.translate(cx, dy); ctx.rotate(Math.PI / 4); box(-5, -5, 10, 10, C.gold, null, 2); ctx.restore();
   }
-  // 아래 버튼 6개(3개씩 두 줄): 선택위습 · 용병모집 · 강화 / 외부탐사 · 창고 · 조합법
-  const b3 = (W - 44 - 12) / 3, BH = PL.bh, bx = (i) => 22 + (i % 3) * (b3 + 6), byy = (i) => (i < 3 ? PL.by : PL.by2);
-  const btn = (i, label, fn, style, sub, subCol) => menuButton(bx(i), byy(i), b3, BH, MENU_ICON[i], label, fn, style, sub, subCol);
-  const picks = E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
-  btn(0, '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', picks ? `${picks}개 있음` : '없음');
-  const tk = G.tickets ?? 0;
-  btn(1, '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`);
+  // 아래 버튼 4개(2026-11-11 유저 피드백 「버튼이 너무 많음」: 6개 → 4개, 두 개씩 두 줄): 조합법 · 강화 / 외부탐사 · 더보기(선택위습·용병모집·창고·피해)
+  const b2 = (W - 44 - 6) / 2, BH = PL.bh, bx = (i) => 22 + (i % 2) * (b2 + 6), byy = (i) => (i < 2 ? PL.by : PL.by2);
+  const btn = (i, icon, label, fn, style, sub, subCol) => menuButton(bx(i), byy(i), b2, BH, icon, label, fn, style, sub, subCol);
+  const rc = readyCount();
+  btn(0, 'menu/icon-combine', '조합법', () => openBook(), rc ? 'primary' : 'normal', rc ? `조합 가능 ${rc}` : `${E.RECIPES.length}개`, rc ? '#1f5a3c' : null);
+  if (rc) badge(bx(0) + b2 - 6, PL.by + 6, rc);
   const canUp = G.upg.some((_, gi) => !E.upgMaxed(G, gi) && G.gold >= E.upgradeCost(G, gi));
-  btn(2, '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
+  btn(1, 'ui/icon-goldenstrike', '강화', () => { modal = { kind: 'upgrade' }; }, 'normal', canUp ? '강화 가능' : `새우 ${G.gold}`, canUp ? C.good : null);
   const away = E.awayUnits(G).length, nextR = E.REGIONS[G.missionDone];
   const msub = E.modeOf(G).noMission ? '금지 모드' : G.missionDone >= E.REGIONS.length ? '모두 완료' : away ? `${away}마리 탐사 중` : `${nextR.ch}장 가능`;
-  btn(3, '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', msub);
-  const st = E.storedUnits(G).length;
-  btn(4, '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`);
-  const rc = readyCount();
-  btn(5, '조합법', () => openBook(), rc ? 'primary' : 'normal', rc ? `조합 가능 ${rc}` : `${E.RECIPES.length}개`, rc ? '#1f5a3c' : null);
-  if (rc) { const bx2 = bx(5) + b3 - 6, by2 = PL.by2 + 6; ctx.beginPath(); ctx.arc(bx2, by2, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(rc), bx2, by2 + 0.5, 13, '#fff', 'center'); }
+  btn(2, 'menu/icon-explore', '외부탐사', () => { modal = { kind: 'mission' }; }, 'normal', msub);
+  const mc = moreCount();
+  btn(3, 'menu/icon-draw', '더보기', () => { modal = { kind: 'more' }; }, mc ? 'primary' : 'normal', moreSub(), mc ? '#3d2f1a' : null);
+  if (mc) badge(bx(3) + b2 - 6, PL.by2 + 6, mc);
+}
+function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
+const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
+const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
+const moreSub = () => [pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
+function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창고 · 피해 순위
+  const { x, y, w, h } = modalRect();
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('더보기', x + 18, y + 30, 20, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  const picks = pickCount(), tk = G.tickets ?? 0, st = E.storedUnits(G).length;
+  const items = [
+    ['menu/icon-draw', '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', picks ? `${picks}개 있음` : '없음'],
+    ['menu/icon-team', '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`],
+    ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
+    ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
+  ];
+  const gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12) / 2);
+  items.forEach(([icon, nm, fn, style, sub], i) => menuButton(x + 12 + (i % 2) * (gw + 12), y + 64 + Math.floor(i / 2) * (gh + 12), gw, gh, icon, nm, fn, style, sub));
 }
 // 지금 조합할 수 있는 조합법 수(0.5초마다 다시 셈)
 let readyCache = { t: 0, n: 0, g: null };
@@ -1705,7 +1721,7 @@ function drawTitleParade() {
   const t = fxLite ? 0 : performance.now() / 1000;
   place.forEach((id, k) => {
     if (!id) return;
-    const mid = k === 2, sc = (mid ? 1.55 : 1.15) / usz(id), x = 70 + k * 100, y = 470 + (mid ? 6 : 0) + Math.sin(t * 1.8 + k * 1.3) * 2.5, z = usz(id);
+    const mid = k === 2, sc = (mid ? 1.95 : 1.4) / usz(id), x = 70 + k * 100, y = 668 + (mid ? 10 : 0) + Math.sin(t * 1.8 + k * 1.3) * 2.5, z = usz(id);   // 2026-11-11: 규칙 상자를 뺀 자리에 크게(시작 버튼 바로 위)
     ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
     const c = cosById[id];
     if (c) cosBack(c, 0, 0, z, k);
@@ -1754,36 +1770,21 @@ function drawTitle() {
   E.DIFF_ORDER.forEach((d, i) => button(40 + i * (dw + 6), 238, dw, 52, E.DIFFS[d].name, () => { selDiff = d; best = bestOf('normal', d); try { localStorage.setItem(DIFF_KEY, d); } catch { /* 진행 */ } }, d === selDiff ? 'primary' : 'normal'));
   fitText(`라인 체력 ×${dd.line} · 보스 체력 ×${dd.boss} · 방어 ×${dd.armor} · 마법방어 ×${dd.mr}`, W / 2, 312, W - 80, 15, C.text, 'center');
   fitText(dd.legend40 ? '40웨이브에 전설 위습 1개' : '40웨이브 전설 위습 보상 없음', W / 2, 336, W - 80, 14, dd.legend40 ? C.goldEdge : C.muted, 'center');
-  box(28, 492, W - 56, 234, C.panel, C.edge, 12);
-  [
-    '· 위습을 누르면 갈매미가 나와요.',
-    '· 갈매미는 끌어서 옮기고, 누르면 정보·버튼이 나와요.',
-    '· 조합법대로 모아 「조합」하면 더 센 갈매미!',
-    '· ☆목표를 찍으면 필요한 재료에 색 테두리가 생겨요.',
-    `· 길 위의 적이 ${E.RULES.limit}마리를 넘지 않게 막으세요.`,
-    '· 보스는 그 웨이브 안에! 후반엔 방깍·마방깍·이감·스턴이 꼭 필요해요.',
-  ].forEach((l, k) => fitText(l, 44, 520 + k * 36, W - 88, 16, C.text));
-  box(28, 734, W - 56, 44, 'rgba(243,216,158,.12)', C.gold, 10, 1.5);
-  fitText(`♪ 게임 속 배경음악이 나와요. 오른쪽 위 ♪에서 음량을 조절하세요${music.on ? '' : ' (지금 꺼짐)'}`, W / 2, 756, W - 80, 14, C.goldEdge, 'center');
-  const half = (W - 92) / 2;
-  button(40, 786, half, 40, '도전 모드', () => { modal = { kind: 'modes' }; }, 'normal');
-  if (resumeMeta) button(52 + half, 786, half, 40, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'primary');
-  else button(52 + half, 786, half, 40, '이어할 판 없음', () => {}, 'normal', false);
-  button(40, 834, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
-  button(52 + (W - 92) / 2, 834, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
-  if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 930, W - 40, 14, C.good, 'center');
-  else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
+  // 2026-11-11 유저 피드백(버튼이 너무 많음): 규칙 6줄·음악 안내 띠는 빼고(메뉴 「게임 방법」으로), 도전 모드는 메뉴로, 이어하기는 이어할 판이 있을 때만
+  if (resumeMeta) button(40, 708, W - 80, 44, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'normal');
+  button(40, 764, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
+  button(52 + (W - 92) / 2, 764, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
+  if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 864, W - 40, 14, C.good, 'center');
+  else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 864, W - 40, 14, C.muted, 'center');
   else {
-    fitText(`최고 기록 ${bestText(best)} · 로그인하면 다른 기기에서도 이어할 수 있어요 ›`, W / 2, 930, W - 40, 14, C.goldEdge, 'center');
-    hit(20, 912, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
+    fitText(`최고 기록 ${bestText(best)} · 로그인하면 다른 기기에서도 이어할 수 있어요 ›`, W / 2, 864, W - 40, 14, C.goldEdge, 'center');
+    hit(20, 846, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
   }
   musicButton(W - 62, 14);
-  button(14, 14, 70, 40, '기록', () => { modal = { kind: 'records' }; }, 'normal');   // 판 기록(조합 포함)
-  button(90, 14, 84, 40, '꾸미기', openCustomize, 'normal');   // 클리어 보상: 날개·오라
+  button(14, 14, 92, 40, '≡ 메뉴', () => { modal = { kind: 'tmenu' }; }, 'normal');   // 기록·꾸미기·도전 모드·조합식·게임 방법(2026-11-11 버튼 줄이기)
   const lg = cloud.can && !cloud.on;
-  if (lg) button(180, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');
-  button(lg ? 270 : 180, 14, 92, 40, '조합식 ↗', openRecipePage, 'normal');   // 상위 조합식 웹페이지(2026-11-11 사용자 요청: 게임 안에서도 연결)   // 계정 저장 기능이 있는 서버에서만(2026-11-10 사용자 지적: 로그인 버튼이 없음)
-  if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(170, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 새 칸이 열렸으면 빨간 점
+  if (lg) button(112, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');
+  if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(100, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 꾸미기 새 칸이 열렸으면 메뉴에 빨간 점
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
@@ -2027,6 +2028,37 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     });
   });
 }
+const TITLE_RULES = () => [
+  '· 위습을 누르면 갈매미가 나와요.',
+  '· 갈매미는 끌어서 옮기고, 누르면 정보·버튼이 나와요.',
+  '· 조합법대로 모아 「조합」하면 더 센 갈매미!',
+  '· ☆목표를 찍으면 필요한 재료에 색 테두리가 생겨요.',
+  `· 길 위의 적이 ${E.RULES.limit}마리를 넘지 않게 막으세요.`,
+  '· 보스는 그 웨이브 안에! 후반엔 방깍·마방깍·이감·스턴이 꼭 필요해요.',
+  '· 배경음악은 처음엔 꺼져 있어요. 오른쪽 위 ♪에서 켜요.',
+];
+function drawTitleMenu() {   // 첫 화면 「≡ 메뉴」
+  shadeAll();
+  const x = 40, w = W - 80, items = [['기록', '지난 판 기록·조합', () => { modal = { kind: 'records' }; }], ['꾸미기', '클리어 보상: 날개·오라·효과', openCustomize, cosOpen() > (stats.seen ?? 0)],
+    ['도전 모드', `규칙을 바꿔 도전(난이도 ${diffName(selDiff)})`, () => { modal = { kind: 'modes' }; }], ['조합식 ↗', '상위 조합식 웹페이지(새 탭)', openRecipePage], ['게임 방법', '처음 하는 분을 위한 안내', () => { modal = { kind: 'rules' }; }]];
+  const h = 92 + items.length * 70, y = Math.max(70, (VH0() - h) / 2);
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('메뉴', x + 20, y + 32, 22, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  items.forEach(([nm, sub, fn, dot], i) => {
+    button(x + 16, y + 70 + i * 70, w - 32, 60, nm, fn, 'normal', true, sub);
+    if (dot) { ctx.beginPath(); ctx.arc(x + w - 26, y + 80 + i * 70, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }
+  });
+}
+function drawRules() {
+  shadeAll();
+  const lines = TITLE_RULES(), x = 28, w = W - 56, h = 100 + lines.length * 40, y = Math.max(70, (VH0() - h) / 2);
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('게임 방법', x + 20, y + 32, 22, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = { kind: 'tmenu' }; }, 'quiet');
+  lines.forEach((l, k) => fitText(l, x + 18, y + 84 + k * 40, w - 36, 16, C.text));
+}
+const VH0 = () => 960;   // 첫 화면 기준 높이
 function drawModes() {
   shadeAll();
   const x = 28, y = 170, w = W - 56, keys = Object.keys(E.MODES), h = 120 + keys.length * 104;
@@ -2290,7 +2322,7 @@ function drawTutorial() {
   const steps = [
     { msg: '① 커먼 위습을 눌러 갈매미를 불러 보세요', tx: 22 + b5 / 2, ty: PL.wy, by: 560 },
     { msg: '② 갈매미를 끌어서 길(적이 지나가는 곳) 옆으로 옮겨 보세요', tx: newest?.x ?? W / 2, ty: (newest?.y ?? 400) - 56, by: (newest?.y ?? 400) > 400 ? 150 : 470 },
-    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + 2 * ((W - 44 - 12) / 3 + 6) + (W - 44 - 12) / 6, ty: PL.by2, by: 640 },
+    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + (W - 44 - 6) / 4, ty: PL.by, by: 640 },   // 2026-11-11: 조합법은 아래 메뉴 첫 줄 왼쪽
     { msg: '④ 조합법 줄을 누르면 설명과 재료 나무가 나와요. 이제 직접 해 보세요!', tx: null, ty: null, by: H - 96 },
   ];
   const st = steps[tut.step], bw = W - 60, bh = 74, bx = 30;
@@ -2352,6 +2384,7 @@ function drawModal() {
   else if (modal?.kind === 'upgrade') drawUpgrade();
   else if (modal?.kind === 'sound') drawSound();
   else if (modal?.kind === 'pick') drawPick();
+  else if (modal?.kind === 'more') drawMore();
   else if (modal?.kind === 'storage') drawStorage();
   else if (modal?.kind === 'pause') drawPause();
   else if (modal?.kind === 'over') drawOver();
@@ -2799,7 +2832,7 @@ function frame(now) {
     drawTitleBack();
     const tx = (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
-    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'cosmetic') drawCustomize(); } else drawLobby();
+    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'cosmetic') drawCustomize(); else if (modal?.kind === 'tmenu') drawTitleMenu(); else if (modal?.kind === 'rules') drawRules(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
     if (scene === 'title') drawOnline();   // 지금 이용자 수(화면 오른쪽 아래, 아주 작게)
   } else {
