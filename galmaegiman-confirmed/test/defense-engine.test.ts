@@ -278,6 +278,7 @@ describe('랜덤 디펜스 엔진', () => {
     }
     expect(new Set(E.RECIPES.map((r: { out: string }) => r.out)).size).toBe(E.RECIPES.length);                       // 한 유닛 한 조합법
     expect(new Set(E.RECIPES.map((r: { in: string[] }) => [...r.in].sort().join('+'))).size).toBe(E.RECIPES.length);   // 같은 재료 조합 없음
+    for (const r of E.RECIPES) expect(new Set(r.in).size, E.UNIT[r.out].name).toBe(r.in.length);   // 한 조합법에 같은 재료 두 번 없음(2026-11-11)
     for (let n = 82; n <= 93; n++) expect(E.tierOf(`u${n}`), `u${n}`).toBeGreaterThanOrEqual(6);                        // 새 초불영제 12종
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
