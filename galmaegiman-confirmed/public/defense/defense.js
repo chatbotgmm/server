@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=865f9a820bfb';
+import * as E from './engine.js?v=8ebf3a7d7d06';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1015,7 +1015,8 @@ function drawHud() {
     const nx = E.waveInfo(G.wave + 1); nx.armor = E.armorAt(G, G.wave + 1);
     ctx.font = `15px ${FONT}`;
     const lx = 20 + ctx.measureText(line2).width + 10;
-    fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : nx.armor > armorNow ? C.goldEdge : C.muted);
+    const rf = nx.boss ? 0 : E.riftAt(G.wave + 1);   // 균열 저항(41웨이브부터 라인 적이 전설·히든 이하 피해를 덜 받음)
+    fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}${rf ? ` · 균열 저항 ${Math.round(rf * 100)}%` : ''}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : rf ? '#c9a3ff' : nx.armor > armorNow ? C.goldEdge : C.muted);
   }
   // 적 수·경고
   const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
@@ -1188,7 +1189,7 @@ function drawUnitPanel(y0, u) {
   button(bx(2), byOf(2), b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
   button(bx(3), byOf(3), b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
   button(bx(4), byOf(4), b6, BH, '탐사', () => sendSelected([u]), 'normal', E.missionOpen(G));
-  if (k.special) button(bx(5), byOf(5), b6, BH, '판매 불가', () => {}, 'normal', false);   // 초월 갈매미맨
+  if (k.special || k.tier >= E.TOP_TIER) button(bx(5), byOf(5), b6, BH, '판매 불가', () => {}, 'normal', false);   // 초월 갈매미맨·초불영제(2026-11-11 사용자 요청: 상위 판매 버튼 제거)
   else button(bx(5), byOf(5), b6, BH, `판매+${k.sell}`, () => { E.sell(G, u.uid); selected = []; }, 'danger');
 }
 function drawGroupPanel(y0, sel) {
@@ -1683,11 +1684,13 @@ function drawStorage() {
     box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(11,30,42,.85)', GRADE_COLOR[u.grade], 8, 1.5);
     drawFit(unitImg(gr.id), x + 16, yy + 6, 46, rowH - 12);
     fitText(`${u.name} ×${gr.uids.length}`, x + 68, yy + 22, 150, 16, C.text);
-    text(`${E.GRADE_NAME[u.grade]} · 판매 ${k.sell}`, x + 68, yy + 43, 12, C.muted);
+    const noSell = k.special || k.tier >= E.TOP_TIER;   // 초월 갈매미맨·초불영제는 팔 수 없음
+    text(`${E.GRADE_NAME[u.grade]} · ${noSell ? '판매 불가' : `판매 ${k.sell}`}`, x + 68, yy + 43, 12, C.muted);
     const bx = x + w - 12 - 4 - 3 * 82;
     button(bx, yy + 9, 76, rowH - 18, '1 꺼내기', () => { E.unstore(G, [gr.uids[0]]); }, 'normal');
     button(bx + 82, yy + 9, 76, rowH - 18, '모두', () => { E.unstore(G, gr.uids); say(`${u.name} ${gr.uids.length}마리를 꺼냈어요.`); }, 'normal');
-    button(bx + 164, yy + 9, 76, rowH - 18, `1 팔기`, () => { E.sell(G, gr.uids[0]); }, 'danger');
+    if (noSell) button(bx + 164, yy + 9, 76, rowH - 18, '판매 불가', () => {}, 'normal', false);
+    else button(bx + 164, yy + 9, 76, rowH - 18, `1 팔기`, () => { E.sell(G, gr.uids[0]); }, 'danger');
   });
   ctx.restore();
   hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));

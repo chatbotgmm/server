@@ -35,12 +35,15 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
   // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
-  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10,   // 10웨이브 보스 처치마다 모집권 1(소량). 보스가 5웨이브마다로 바뀐 뒤에도 모집권 양은 그대로
+  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10, bossTicketLateFrom: 40,   // 10웨이브 보스 처치마다 모집권 1(소량). 2026-11-11 사용자 요청: 40웨이브부터는 5웨이브 보스마다
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
+  // 균열 저항(2026-11-11 사용자 요청: 40웨이브 뒤에 초불영제 없이 전설 2마리로 라인이 버텨지면 안 됨): 41웨이브부터 라인 적은
+  // 전설·히든 이하 갈매미의 피해를 riftPer×(웨이브−40)만큼 덜 받음(최대 riftMax). 초불영제 피해·보스는 그대로
+  riftFrom: 40, riftPer: 0.1, riftMax: 0.7,   // 41 −10% · 43 −30% · 45 −50% · 47웨이브부터 −70%
   lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.015,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +1.5%(60웨이브 체력 ×1.8·속도 ×1.3)
   finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
@@ -472,7 +475,7 @@ export function summonPick(g, id) {
 export function sell(g, uid) {
   const k = g.units.findIndex((u) => u.uid === uid);
   if (k < 0 || g.over) return false;
-  if (UNIT[g.units[k].id].role === SPECIAL_ROLE) return false;   // 초월 갈매미맨은 팔 수 없음
+  if (UNIT[g.units[k].id].role === SPECIAL_ROLE || tierOf(g.units[k].id) >= TOP_TIER) return false;   // 초월 갈매미맨·초불영제는 팔 수 없음(2026-11-11 사용자 요청: 상위 판매 버튼 제거)
   const grade = UNIT[g.units[k].id].grade;
   g.gold += kit(g.units[k].id).sell; g.units.splice(k, 1);
   // 판매 보너스(사용자 요청 2026-11-08): 언커먼 30% 확률로 모집권 1 · 레어 모집권 1 · 에픽 모집권 1 + 커먼 위습 2
@@ -641,6 +644,7 @@ function hurt(g, e, raw, k, uid) {
   if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now)) * upgMul(g, k.tier);
   else m = defMul(e.mr - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now))) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
+  if (e.rift && k.tier < TOP_TIER) m *= 1 - e.rift;   // 균열 저항: 전설·히든 이하 피해만 줄어듦
   const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
   if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
@@ -660,6 +664,7 @@ function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍�
   if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
 }
+export const hurtForTest = (g, e, raw, k) => hurt(g, e, raw, k, 0);
 export const debuffForTest = (g, e, k, uid) => debuff(g, e, k, uid);   // 시험용
 // 이감·마방깍(2026-11-09 사용자 요청): 때린 적만이 아니라 그 갈매미 사거리 안의 적 모두에게 걸림. 갈매미마다 따로 더해지고, 벗어나면 곧 풀림
 const AURA_HOLD = 0.3;
@@ -716,13 +721,16 @@ function startWave(g) {
   if (g.wave > 0) { addWisps(g, { COMMON: RULES.wispPerWave }); if (RULES.wispPerWaveUp) addWisps(g, RULES.wispPerWaveUp); }
   g.wave++; g.waveT = 0; g.dmgWave = {};
   if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
+  if (g.wave === (RULES.riftFrom ?? 999) + 1) news(g, `균열 저항 시작! 이제 적이 전설·히든 이하 공격을 웨이브마다 ${Math.round((RULES.riftPer ?? 0) * 100)}%씩 덜 받아요(최대 ${Math.round((RULES.riftMax ?? 0) * 100)}%). 초불영제 공격은 그대로`);
   const wi = waveInfo(g.wave);
   g.spawnLeft = wi.boss ? 1 : RULES.perWave; g.spawnT = 0;
 }
+export const riftAt = (w) => (w > (RULES.riftFrom ?? 999) ? Math.min(RULES.riftMax ?? 0, (RULES.riftPer ?? 0) * (w - RULES.riftFrom)) : 0);   // 그 웨이브 라인 적의 균열 저항
 function spawn(g) {
   const wi = waveInfo(g.wave);
   const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line);
-  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr),
+  const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
+  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr), rift,
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
 }
 function rollWisp(g, skill) {
@@ -815,7 +823,7 @@ export function step(g, dt) {
     const rp = { ...(RULES.bossPickEach ?? {}) };
     for (const [k, v] of Object.entries(RULES.bossPick[g.wave] ?? {})) rp[k] = (rp[k] ?? 0) + v;
     for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    const tk = RULES.bossTicket && g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 ? RULES.bossTicket : 0;
+    const tk = RULES.bossTicket && (g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 || g.wave >= (RULES.bossTicketLateFrom ?? 999)) ? RULES.bossTicket : 0;
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
     news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;

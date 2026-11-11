@@ -285,6 +285,20 @@ describe('랜덤 디펜스 엔진', () => {
     for (const r of E.RECIPES) if (E.tierOf(r.out) >= 2) expect(new Set(r.in).size, E.UNIT[r.out].name).toBe(r.in.length);   // 레어부터는 한 조합법에 같은 재료 두 번 없음(2026-11-11, 언커먼까지는 괜찮음)
     for (let n = 82; n <= 93; n++) expect(E.tierOf(`u${n}`), `u${n}`).toBeGreaterThanOrEqual(6);                        // 새 초불영제 12종
   });
+  it('초불영제는 팔 수 없음(2026-11-11 판매 버튼 제거)', () => {
+    const g = E.newGame(2); g.units = [{ uid: 1, id: 'u49', x: 200, y: 300, tx: 200, ty: 300, cd: 0, born: 0 }, { uid: 2, id: 'u33', x: 220, y: 300, tx: 220, ty: 300, cd: 0, born: 0 }];
+    expect(E.sell(g, 1)).toBe(false); expect(g.units.length).toBe(2);
+    expect(E.sell(g, 2)).toBeTruthy(); expect(g.units.length).toBe(1);   // 전설은 팔 수 있음
+  });
+  it('균열 저항: 41웨이브부터 라인 적은 전설·히든 이하 피해를 웨이브마다 10%씩 덜 받음(최대 70%), 초불영제·보스는 그대로', () => {
+    expect([40, 41, 45, 47, 60].map((w) => +E.riftAt(w).toFixed(2))).toEqual([0, 0.1, 0.5, 0.7, 0.7]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hit = (wave: number, id: string, boss = false): number => { const g = E.newGame(4); g.units = []; g.wave = wave;
+      const e: any = { id: 1, hp: 1e12, max: 1e12, s: 0, speed: 0, boss, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: 200, y: 300, by: 0, rift: boss ? 0 : E.riftAt(wave) };
+      return E.hurtForTest(g, e, 1000, E.kit(id)); };
+    expect(hit(45, 'u33') / hit(39, 'u33')).toBeCloseTo(0.5);   // 거장(전설) 피해 절반
+    expect(hit(45, 'u49')).toBeCloseTo(hit(39, 'u49'));        // 가루다(초불영제)는 그대로
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);
@@ -355,7 +369,8 @@ describe('랜덤 디펜스 엔진', () => {
     killBoss(g, 10);
     expect(g.picks.COMMON).toBe(p0 + 2); expect(g.tickets).toBe(t0 + 1);
     const u0 = g.picks.UNCOMMON ?? 0, e0 = g.wisps.EPIC ?? 0; killBoss(g, 20); expect(g.picks.UNCOMMON).toBe(u0 + 1); expect(g.wisps.EPIC).toBe(e0 + 1);   // 20웨이브: 에픽 위습(10웨이브보다 적지 않게)
-    const r0 = g.picks.RARE ?? 0; killBoss(g, 45); expect(g.picks.RARE).toBe(r0 + 1);
+    const t1 = g.tickets; killBoss(g, 35); expect(g.tickets).toBe(t1);                       // 40웨이브 전 홀수 보스는 모집권 없음
+    const r0 = g.picks.RARE ?? 0; killBoss(g, 45); expect(g.picks.RARE).toBe(r0 + 1); expect(g.tickets).toBe(t1 + 1);   // 40웨이브부터는 5웨이브 보스마다 모집권(2026-11-11)
     const pickTier = (w: number) => Math.max(...Object.keys(E.RULES.bossPick[w]).map((k) => E.GRADES.indexOf(k)));
     for (let w = 10; w <= 55; w += 5) expect(pickTier(w), `${w}`).toBeGreaterThanOrEqual(pickTier(w - 5));   // 뒤로 갈수록 같거나 높게
   });
