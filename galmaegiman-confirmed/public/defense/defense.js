@@ -1721,6 +1721,24 @@ function titleText(s, x, y, size, top, bottom) {   // 금빛 그러데이션 + �
   ctx.shadowBlur = 0; ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(80,52,20,.55)'; ctx.strokeText(s, x, y);
   ctx.restore();
 }
+// 지금 이용자 수(2026-11-11 사용자 요청: 첫 화면 오른쪽 아래에 아주 작게). 이 탭의 무작위 번호로 30초마다 신호(화면이 보일 때만). 서버가 없거나 실패하면 안 보임
+let onlineN = 0;
+const ONLINE_ID = (() => { try { let v = sessionStorage.getItem('gmm-defense-online'); if (!v || !/^[0-9a-f]{24}$/.test(v)) { v = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, '0')).join(''); sessionStorage.setItem('gmm-defense-online', v); } return v; } catch { return [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, '0')).join(''); } })();
+async function onlinePing() {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const r = await fetch('/defense/online', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: ONLINE_ID }) });
+    const j = r.ok ? await r.json() : null; onlineN = Number.isFinite(j?.online) ? j.online : 0;
+  } catch { onlineN = 0; }
+}
+onlinePing(); setInterval(onlinePing, 30_000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onlinePing(); });
+function drawOnline() {
+  if (onlineN <= 0) return;
+  ctx.font = `11px ${FONT}`; const t = `지금 ${onlineN.toLocaleString('ko-KR')}명`, tw = ctx.measureText(t).width;
+  const x = VW - 12, y = VH - 12;   // 화면 전체의 오른쪽 아래 구석(가로 화면이면 가운데 메뉴 칸 밖)
+  ctx.beginPath(); ctx.arc(x - tw - 8, y, 3, 0, Math.PI * 2); ctx.fillStyle = '#6fd08a'; ctx.fill();
+  text(t, x, y, 11, '#8a9ba3', 'right');
+}
 function drawTitle() {
   titleText('갈매미맨', W / 2, 86, 30, '#f7e3b0', '#c9a463');
   titleText('랜덤 디펜스', W / 2, 136, 50, '#fff6d8', '#e0b866');
@@ -2783,6 +2801,7 @@ function frame(now) {
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
     if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'cosmetic') drawCustomize(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
+    if (scene === 'title') drawOnline();   // 지금 이용자 수(화면 오른쪽 아래, 아주 작게)
   } else {
     drawBackground();
     if (landscape) {

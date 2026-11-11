@@ -322,6 +322,30 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
   app.post<RoomBody>('/defense/room/join',roomLimit(30,'droom-join'),async(req,reply)=>roomReply(reply,rooms.join(req.body?.code)));
   app.post<RoomBody>('/defense/room/sync',roomLimit(900,'droom-sync'),async(req,reply)=>roomReply(reply,rooms.sync(req.body?.code,req.body?.token,req.body?.snap,req.body?.ctl)));
   app.post<RoomBody>('/defense/room/leave',roomLimit(60,'droom-leave'),async(req,reply)=>{rooms.leave(req.body?.code,req.body?.token);return reply.header('Cache-Control','no-store').send({ok:true});});
+  // 지금 이용자 수(2026-11-11 사용자 요청: 첫 화면 오른쪽 아래에 아주 작게). 화면이 30초마다 무작위 번호로 신호, 서버는 최근 75초 번호 수만 메모리에 셈
+  const presence=defensePresence();
+  app.post<{Body:{id?:unknown}|undefined}>('/defense/online',roomLimit(20,'donline'),async(req,reply)=>{
+    const n=presence.ping(req.body?.id);
+    if(n===null)return reply.code(400).header('Cache-Control','no-store').send({error:'bad'});
+    return reply.header('Cache-Control','no-store').send({online:n});
+  });
+}
+
+// ── 랜덤 디펜스 지금 이용자 수: 화면마다 무작위 번호(16~32자리 16진수)로 신호. 이름·계정·IP는 저장하지 않음, 서버를 다시 켜면 0부터 ──
+export const DEFENSE_ONLINE={window:75_000,max:20_000,sweepEvery:5_000};
+export function defensePresence(clock:()=>number=Date.now){
+  const seen=new Map<string,number>();let swept=0;
+  const sweep=(force=false)=>{const t=clock();if(!force&&t-swept<DEFENSE_ONLINE.sweepEvery)return;swept=t;for(const [id,at] of seen)if(t-at>DEFENSE_ONLINE.window)seen.delete(id);};
+  return{
+    ping(id:unknown):number|null{
+      if(typeof id!=='string'||!/^[0-9a-f]{16,32}$/.test(id))return null;
+      sweep();
+      if(!seen.has(id)&&seen.size>=DEFENSE_ONLINE.max)sweep(true);
+      if(seen.has(id)||seen.size<DEFENSE_ONLINE.max)seen.set(id,clock());
+      return seen.size;
+    },
+    count(){sweep(true);return seen.size;},
+  };
 }
 
 // ── 랜덤 디펜스 「친구랑 같이하기」 방(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──

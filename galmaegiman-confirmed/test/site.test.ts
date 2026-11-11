@@ -2,7 +2,7 @@ import {describe,it,expect,beforeAll,afterAll} from 'vitest';
 import Fastify,{type FastifyInstance} from 'fastify';
 import {readFileSync} from 'node:fs';
 import {loadContent} from '../src/content.js';
-import {registerSite,safeFrom,safeNext,R60_PUBLIC,stampFor,defenseRooms,DEFENSE_ROOM} from '../src/site.js';
+import {registerSite,safeFrom,safeNext,R60_PUBLIC,stampFor,defenseRooms,DEFENSE_ROOM,defensePresence,DEFENSE_ONLINE} from '../src/site.js';
 
 // 공개 홈페이지: 로그인 없이 읽기, 스포일러(히든·최상위) 가림, 로그인 뒤 갈 곳·돌아갈 곳은 허용 경로만, 확인 안 된 다운로드·공지는 만들지 않음
 describe('공개 홈페이지(src/site.ts)',()=>{
@@ -89,6 +89,24 @@ describe('공개 홈페이지(src/site.ts)',()=>{
   });
 });
 
+// 랜덤 디펜스 지금 이용자 수(2026-11-11): 무작위 번호마다 한 명, 75초 동안 신호가 없으면 빠짐, 잘못된 번호는 거절
+describe('랜덤 디펜스 지금 이용자 수(defensePresence)',()=>{
+  it('번호마다 한 명, 같은 번호는 한 번만, 75초가 지나면 빠짐',()=>{
+    let t=1_000_000;const p=defensePresence(()=>t);
+    expect(p.ping('a'.repeat(24))).toBe(1);expect(p.ping('a'.repeat(24))).toBe(1);expect(p.ping('b'.repeat(24))).toBe(2);
+    expect(p.ping('xyz')).toBeNull();expect(p.ping(123)).toBeNull();expect(p.ping('a'.repeat(40))).toBeNull();
+    t+=DEFENSE_ONLINE.window/2;p.ping('a'.repeat(24));
+    t+=DEFENSE_ONLINE.window/2+DEFENSE_ONLINE.sweepEvery+1;expect(p.count()).toBe(1);   // b는 빠지고 a만
+  });
+  it('주소: /defense/online 은 저장하지 않는 응답(no-store)으로 수를 돌려줌',async()=>{
+    const app=Fastify();await app.register((await import('@fastify/rate-limit')).default,{global:false});registerSite(app,loadContent(),{root:process.cwd(),version:'test',kakao:true});await app.ready();
+    try{
+      const ok=await app.inject({method:'POST',url:'/defense/online',payload:{id:'c'.repeat(24)}});
+      expect(ok.statusCode).toBe(200);expect(ok.headers['cache-control']).toBe('no-store');expect(ok.json().online).toBe(1);
+      expect((await app.inject({method:'POST',url:'/defense/online',payload:{id:'nope'}})).statusCode).toBe(400);
+    }finally{await app.close();}
+  });
+});
 // 랜덤 디펜스 「친구랑 같이하기」 방: 6자리 코드, 2명까지, 시작은 방장만(친구 접속 중일 때), 속도·멈춤은 둘이 함께, 시간이 지나면 방이 사라짐
 describe('랜덤 디펜스 같이하기 방(defenseRooms)',()=>{
   it('만들기·들어가기·상태 주고받기·함께 바뀌는 설정',()=>{
