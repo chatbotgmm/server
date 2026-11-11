@@ -873,6 +873,7 @@ export function step(g, dt) {
     if (e.hp > 0) return true;
     g.gold += e.gold; g.kills++;
     if (e.boss) bossDown = true;
+    if (e.by) g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, t: g.t });   // 화면: 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
     const killer = byUid.get(e.by), sk = killer ? WISP_SKILL[killer.id] : null;
     if (sk) { const w = rollWisp(g, sk); if (w) { addWisps(g, { [w]: 1 }); news(g, `${UNIT[killer.id].name}이(가) ${GRADE_NAME[w]} 위습을 찾았어요!`); g.fx.push({ kind: 'wisp', x: e.x, y: e.y, grade: w, t: g.t }); } }
     return false;

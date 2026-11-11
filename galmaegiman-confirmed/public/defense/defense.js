@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=ad20fffb10cb';
+import * as E from './engine.js?v=19a66565b37b';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -412,6 +412,13 @@ const COS_WINGS = [['', '없음'], ['feather', '깃털']];   // 요정 날개는
 const COS_AURAS = [['', '없음'], ['glow', '빛'], ['flame', '불꽃'], ['wrap', '두름']];   // 두름: 몸 테두리를 따라 빛이 감쌈
 const COS_COLORS = [['#ffd66b', '금빛'], ['#ff5a5a', '빨강'], ['#ff8fc7', '분홍'], ['#b07bff', '보라'], ['#5aa8ff', '파랑'], ['#6fe8ff', '하늘'], ['#6fe08a', '초록'], ['#ffffff', '흰색'], ['rainbow', '무지개']];
 const RAINBOW_DIFF = 'artisan';   // 무지개 색은 장인 클리어로 열림
+// 꾸미기 늘리기(2026-11-11 사용자 요청): 공격 연출·처치 효과·발밑(칸마다), 판 테마·저장 칸(전체). 값 뒤 숫자는 여는 포인트(없으면 바로)
+const COS_SHOTS = [['', '기본'], ['star', '별'], ['heart', '하트'], ['feather', '깃털'], ['orb', '구슬']];
+const COS_KILLS = [['', '없음'], ['sparkle', '별가루'], ['feather', '깃털'], ['bubble', '물방울'], ['petal', '꽃잎']];
+const COS_BASES = [['', '없음'], ['circle', '마법진'], ['flower', '꽃'], ['wave', '파도']];
+const COS_THEMES = [['', '기본'], ['night', '밤'], ['snow', '눈'], ['sunset', '노을']];
+const COS_ITEM_COST = { 'shot:feather': 2, 'shot:orb': 2, 'kill:feather': 2, 'kill:bubble': 2, 'kill:petal': 2, 'base:flower': 2, 'base:wave': 2, 'theme:night': 2, 'theme:snow': 3, 'theme:sunset': 3 };
+const COS_PRESETS = 3;   // 저장 칸 수
 let stats = readJson(STATS_KEY, null);
 if (!stats || typeof stats.byDiff !== 'object' || !stats.byDiff) {   // 처음: 지금까지 남은 기록(최근 판·클리어한 최고 기록)으로 시작
   const wins = hist.filter((r) => r.win), byDiff = {};
@@ -444,15 +451,30 @@ function buyCos(kind) {
   stats.at = Date.now(); ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild(); cloudSaveExtra();
   say(kind === 'slot' ? `포인트 ${cost}점으로 꾸미기 칸을 열었어요.` : `포인트 ${cost}점으로 무지개 색을 열었어요.`);
 }
+// 항목 열림: 값이 없는 것은 바로, 밤 테마는 달인 이상 1번 클리어로도 열림, 나머지는 포인트(stats.bought에 기록, 기기끼리 합칠 때 합집합)
+const itemOpen = (key) => !COS_ITEM_COST[key] || !!stats.bought?.[key] || (key === 'theme:night' && clearCount() >= 1);
+function buyItem(key, name) {
+  const cost = COS_ITEM_COST[key] ?? 0;
+  if (itemOpen(key)) return true;
+  if (pointsLeft() < cost) { say(`「${name}」은(는) 포인트 ${cost}점으로 열려요(지금 ${pointsLeft()}점). 남은 적 0마리로 클리어하면 받아요.${key === 'theme:night' ? ' 달인 이상을 한 번 클리어해도 열려요.' : ''}`); return false; }
+  stats.spent = (stats.spent ?? 0) + cost; stats.bought = { ...(stats.bought ?? {}), [key]: true };
+  stats.at = Date.now(); ls.set(STATS_KEY, JSON.stringify(stats)); cloudSaveExtra(); say(`포인트 ${cost}점으로 「${name}」을(를) 열었어요.`);
+  return true;
+}
 const COS_MIN_TIER = 4;   // 전설·히든·초불영제만 꾸밀 수 있음
 const cosAllowed = (id) => !!E.UNIT[id] && E.tierOf(id) >= COS_MIN_TIER && E.UNIT[id].role !== E.SPECIAL_ROLE;
 cosmetic.slots = cosmetic.slots.map((c) => (c?.id && !cosAllowed(c.id) ? null : c));   // 예전에 고른 낮은 등급 칸은 비움
 let cosById = {};
 function cosRebuild() {   // 열린 칸의 꾸밈만 유닛별로(칸이 닫혀 있거나 비어 있으면 그리지 않음)
   cosById = {};
-  cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && cosAllowed(c.id) && (c.wing || c.aura)) cosById[c.id] = c; });
+  cosmetic.slots.slice(0, cosOpen()).forEach((c) => { if (c?.id && cosAllowed(c.id) && (c.wing || c.aura || c.base || c.shot || c.kill)) cosById[c.id] = c; });
 }
 cosRebuild();
+function presetSave(i) { (cosmetic.presets ??= [])[i] = { slots: JSON.parse(JSON.stringify(cosmetic.slots)), theme: cosmetic.theme ?? '', at: Date.now() }; cosSave(); say(`꾸미기를 ${i + 1}번 저장 칸에 저장했어요.`); }
+function presetLoad(i) {
+  const p = cosmetic.presets?.[i]; if (!p) return say(`${i + 1}번 저장 칸이 비어 있어요.`);
+  cosmetic.slots = (p.slots ?? []).map((c) => (c?.id && cosAllowed(c.id) ? { ...c } : null)); cosmetic.theme = p.theme ?? ''; cosSave(); say(`${i + 1}번 저장 칸의 꾸미기를 불러왔어요.`);
+}
 function cosSave() { cosmetic.at = Date.now(); ls.set(COS_KEY, JSON.stringify(cosmetic)); cosRebuild(); cloudSaveExtra(); }
 // ── 꾸미기·기록·클리어 수·포인트도 계정에(2026-11-10 사용자 요청). 한 덩어리(extra)로 올리고, 받을 때 이 기기 것과 합침 ──
 function extraBlob() { return { v: 1, stats, cosmetic, hist, bestComp }; }
@@ -469,8 +491,8 @@ function mergeExtra(x) {   // 계정에 있던 것(x)과 이 기기 것을 합�
   const xs = x.stats ?? {}, bd = { ...(stats.byDiff ?? {}) };
   for (const [d, n] of Object.entries(xs.byDiff ?? {})) if (Number(n) > (bd[d] ?? 0)) bd[d] = Number(n);
   const mx = (k) => Math.max(Number(stats[k]) || 0, Number(xs[k]) || 0);
-  stats = { ...stats, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow) };
-  if (x.cosmetic && Array.isArray(x.cosmetic.slots) && (Number(x.cosmetic.at) || 0) > (Number(cosmetic.at) || 0)) cosmetic = { at: x.cosmetic.at, slots: x.cosmetic.slots.map((c) => (c?.id && cosAllowed(c.id) ? c : null)) };
+  stats = { ...stats, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow), bought: { ...(xs.bought ?? {}), ...(stats.bought ?? {}) } };
+  if (x.cosmetic && Array.isArray(x.cosmetic.slots) && (Number(x.cosmetic.at) || 0) > (Number(cosmetic.at) || 0)) cosmetic = { at: x.cosmetic.at, slots: x.cosmetic.slots.map((c) => (c?.id && cosAllowed(c.id) ? c : null)), theme: x.cosmetic.theme ?? '', presets: Array.isArray(x.cosmetic.presets) ? x.cosmetic.presets : [] };
   if (Array.isArray(x.hist)) { const seen = new Set(hist.map((r) => r.at)); hist = [...hist, ...x.hist.filter((r) => r && !seen.has(r.at))].sort((a, b) => b.at - a.at).slice(0, 30); }
   for (const [k, r] of Object.entries(x.bestComp ?? {})) if (r && (!bestComp[k] || r.wave > bestComp[k].wave)) bestComp[k] = r;
   ls.set(STATS_KEY, JSON.stringify(stats)); ls.set(COS_KEY, JSON.stringify(cosmetic)); ls.set(HIST_KEY, JSON.stringify(hist)); ls.set(BESTCOMP_KEY, JSON.stringify(bestComp)); cosRebuild();
@@ -652,13 +674,28 @@ function cachedLayer(key, x, y, w, h, draw) {
   }
   ctx.drawImage(c, x, y, w, h);
 }
-function drawLanes() { cachedLayer('lanes:', FIELD.x - 2, FIELD.y - 2, FIELD.w + 4, FIELD.h + 4, drawLanesRaw); }
+// 판 테마(꾸미기 2026-11-11): 바닥·길 색만 바꿈(글자·적·갈매미 색은 그대로라 읽기 쉬움). 눈·밤은 가벼운 날씨
+const THEMES = { '': { bg: '#0c1c27', lane: C.lane, edge: C.laneEdge }, night: { bg: '#080f1f', lane: 'rgba(130,150,230,.2)', edge: 'rgba(175,195,255,.38)' },
+  snow: { bg: '#15232e', lane: 'rgba(230,242,255,.26)', edge: 'rgba(245,250,255,.5)' }, sunset: { bg: '#24141d', lane: 'rgba(255,170,120,.22)', edge: 'rgba(255,205,150,.42)' } };
+const themeOf = () => THEMES[cosmetic.theme] ?? THEMES[''];
+function drawLanes() { cachedLayer('lanes:' + (cosmetic.theme ?? ''), FIELD.x - 2, FIELD.y - 2, FIELD.w + 4, FIELD.h + 4, drawLanesRaw); }
+function drawWeather() {   // 판 위 날씨(효과 끔이면 없음)
+  const th = cosmetic.theme; if (fxLite || (th !== 'snow' && th !== 'night')) return;
+  const t = performance.now() / 1000;
+  ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
+  for (let k = 0; k < 26; k++) {
+    const sx = FIELD.x + ((k * 97) % FIELD.w);
+    if (th === 'snow') { const y = FIELD.y + ((t * (18 + (k % 5) * 6) + k * 53) % FIELD.h), x = sx + Math.sin(t * 0.8 + k) * 8; ctx.beginPath(); ctx.arc(x, y, 1.2 + (k % 3) * 0.6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fill(); }
+    else { const y = FIELD.y + ((k * 61) % FIELD.h), al = 0.25 + 0.35 * Math.max(0, Math.sin(t * 1.4 + k * 1.7)); ctx.beginPath(); ctx.arc(sx, y, 1.1, 0, Math.PI * 2); ctx.fillStyle = `rgba(220,230,255,${al.toFixed(2)})`; ctx.fill(); }
+  }
+  ctx.restore();
+}
 function drawLanesRaw() {
-  const L = E.LOOP, lane = 40;
-  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, '#0c1c27', C.edge, 12, 1.5);
-  ctx.lineWidth = lane; ctx.strokeStyle = C.lane; ctx.lineJoin = 'round';
+  const L = E.LOOP, lane = 40, th = themeOf();
+  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, th.bg, C.edge, 12, 1.5);
+  ctx.lineWidth = lane; ctx.strokeStyle = th.lane; ctx.lineJoin = 'round';
   ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
-  ctx.lineWidth = 1.5; ctx.strokeStyle = C.laneEdge;
+  ctx.lineWidth = 1.5; ctx.strokeStyle = th.edge;
   ctx.strokeRect(L.x0 - lane / 2, L.y0 - lane / 2, L.x1 - L.x0 + lane, L.y1 - L.y0 + lane);
   ctx.strokeRect(L.x0 + lane / 2, L.y0 + lane / 2, L.x1 - L.x0 - lane, L.y1 - L.y0 - lane);
   text('▶', L.x0 + 2, L.y0, 16, C.goldEdge, 'center');
@@ -752,8 +789,23 @@ function cosWing(style, col, cx, cy, s, side, flap) {
   }
   ctx.restore();
 }
+function cosBase(c, col, x, y, z, t) {   // 발밑 무늬(꾸미기 2026-11-11): 마법진·꽃·파도
+  ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.38); ctx.lineWidth = 2 / 0.6;
+  if (c.base === 'circle') {
+    const R = 30 * z, a = t * 0.8; ctx.strokeStyle = rgba(col, 0.75);
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); for (let k = 0; k < 6; k++) { const an = a + k * Math.PI / 3, b = a + (k + 2) * Math.PI / 3; ctx.moveTo(Math.cos(an) * R * 0.72, Math.sin(an) * R * 0.72); ctx.lineTo(Math.cos(b) * R * 0.72, Math.sin(b) * R * 0.72); } ctx.stroke();
+  } else if (c.base === 'flower') {
+    const R = 26 * z; ctx.fillStyle = rgba(light(col, 0.3), 0.45); ctx.strokeStyle = rgba(col, 0.8);
+    for (let k = 0; k < 6; k++) { const an = t * 0.4 + k * Math.PI / 3; ctx.beginPath(); ctx.ellipse(Math.cos(an) * R * 0.62, Math.sin(an) * R * 0.62, R * 0.42, R * 0.2, an, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  } else if (c.base === 'wave') {
+    for (let k = 0; k < 3; k++) { const q = (t * 0.6 + k / 3) % 1; ctx.beginPath(); ctx.arc(0, 0, (14 + 26 * q) * z, 0, Math.PI * 2); ctx.strokeStyle = rgba(col, 0.8 * (1 - q)); ctx.stroke(); }
+  }
+  ctx.restore();
+}
 function cosBack(c, x, y, z, seed = 0) {
   const t = performance.now() / 1000, col = cosRGB(c, seed), still = fxLite;
+  if (c.base) cosBase(c, col, x, y, z, still ? 0 : t);
   if (c.aura) {   // 발밑 빛 웅덩이(숨 쉬듯 커졌다 작아짐)
     const p = still ? 0.5 : 0.5 + 0.5 * Math.sin(t * 2.4 + seed);
     const r = (26 + 6 * p) * z, g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -832,7 +884,7 @@ function drawField() {
   if (sh) ctx.restore();
 }
 function drawFieldInner() {
-  drawLanes();
+  drawLanes(); drawWeather();
   // 고른 갈매미 사거리(한 마리일 때)
   const sel = selUnits();
   if (sel.length === 1) {
@@ -920,7 +972,8 @@ function drawFieldInner() {
     ctx.fillStyle = `rgba(${col},${0.16 * a})`; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${col},${0.6 * a})`; ctx.stroke();
   }
   // 효과
-  sigLabels = [];
+  sigLabels = []; cosUid = new Map();
+  if (!fxLite) for (const u of G.units) { const c = cosById[u.id]; if (c && (c.shot || c.kill)) cosUid.set(u.uid, c); }
   for (const f of G.fx) {
     const age = G.t - f.t;
     if (f.kind === 'shot') {
@@ -941,6 +994,8 @@ function drawFieldInner() {
       ctx.beginPath(); ctx.arc(f.x, f.y - 10, rr2, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
+    } else if (f.kind === 'kill' && age < 0.6) {   // 꾸민 갈매미가 쓰러뜨림: 처치 효과
+      const cc = cosUid.get(f.uid); if (cc?.kill) drawKillFx(cc, f, age);
     } else if (f.kind === 'sig' && age < 0.75) {
       drawSig(f, age);
     } else if (f.kind === 'zap' && age < 0.2) {
@@ -959,6 +1014,18 @@ function drawFieldInner() {
 // ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
 // 속성마다 다른 투사체가 날아가고(근접은 베기), 닿으면 불꽃 파편. 전설 이상은 크게, 제한 이상은 보스를 칠 때 화면이 살짝 흔들림
 // 초불영제 고유 기술 연출(2026-11-11): 기술 틀마다 모양이 다름. 나간 갈매미 머리 위에 기술 이름
+function drawKillFx(cc, f, age) {   // 별가루·깃털·물방울·꽃잎(0.6초)
+  const col = cosRGB(cc, f.uid), q = age / 0.6, a = 1 - q, x = f.x, y = f.y - 16;
+  ctx.save(); ctx.globalAlpha = a;
+  for (let k = 0; k < 6; k++) {
+    const an = k * Math.PI / 3 + (f.uid % 7) * 0.3, d = 6 + 30 * q;
+    if (cc.kill === 'sparkle') cosShot('star', col, x + Math.cos(an) * d, y + Math.sin(an) * d, 0, 3.4 * (1 - q * 0.5), age * 8);
+    else if (cc.kill === 'feather') { if (k < 4) cosShot('feather', light(col, 0.4), x + Math.cos(an) * d * 0.7 + Math.sin(age * 9 + k) * 5, y - 8 + 26 * q, an, 3.6, 0); }
+    else if (cc.kill === 'bubble') { if (k < 5) { ctx.beginPath(); ctx.arc(x + (k - 2) * 7 + Math.sin(age * 10 + k) * 3, y - 34 * q * (0.6 + k * 0.1), 2.5 + k % 3, 0, Math.PI * 2); ctx.strokeStyle = rgba(light(col, 0.5), 0.95); ctx.lineWidth = 1.5; ctx.stroke(); } }
+    else { ctx.save(); ctx.translate(x + Math.cos(an) * d, y + Math.sin(an) * d + 10 * q); ctx.rotate(an + age * 6); ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.2, 0, 0, Math.PI * 2); ctx.fillStyle = rgba(light(col, 0.35), 0.95); ctx.fill(); ctx.restore(); }
+  }
+  ctx.restore();
+}
 let sigLabels = [];   // 이번 화면에 쓴 기술 이름 자리(겹침 확인)
 function drawSig(f, age) {
   const col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255'), a = Math.max(0, 1 - age / 0.45);
@@ -992,8 +1059,27 @@ function drawSig(f, age) {
   ctx.restore(); ctx.globalAlpha = 1;
 }
 const ELEM_COL = { FIRE: '255,140,70', WATER: '90,170,255', ICE: '190,240,255', LIGHTNING: '255,225,74', NATURE: '120,220,110', HOLY: '255,240,190', DARK: '186,120,255', NORMAL: '255,200,140' };
+let cosUid = new Map();   // 이번 화면: 갈매미 번호 → 꾸밈(공격 연출·처치 효과용)
+function cosShot(st, col, x, y, ang, r, spin) {   // 꾸민 투사체 모양
+  ctx.save(); ctx.translate(x, y); ctx.fillStyle = rgba(col, 0.95); ctx.strokeStyle = rgba(light(col, 0.7), 0.95); ctx.lineWidth = 1.2;
+  if (st === 'star') { ctx.rotate(spin); ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, q = i % 2 ? r * 0.45 : r; ctx.lineTo(Math.cos(a) * q, Math.sin(a) * q); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  else if (st === 'heart') { ctx.rotate(ang + Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, r * 0.8); ctx.bezierCurveTo(-r * 1.4, -r * 0.2, -r * 0.5, -r * 1.2, 0, -r * 0.4); ctx.bezierCurveTo(r * 0.5, -r * 1.2, r * 1.4, -r * 0.2, 0, r * 0.8); ctx.fill(); ctx.stroke(); }
+  else if (st === 'feather') { ctx.rotate(ang); ctx.beginPath(); ctx.ellipse(0, 0, r * 1.4, r * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.moveTo(-r * 1.6, 0); ctx.lineTo(r * 1.4, 0); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.fillStyle = rgba(col, 0.25); ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = rgba(light(col, 0.5), 0.98); ctx.fill(); }
+  ctx.restore();
+}
 function drawShot(f, age) {
   const sx = f.x0, sy = f.y0 - 24, tx = f.x1, ty = f.y1 - 10, dx = tx - sx, dy = ty - sy, dist = Math.hypot(dx, dy) || 1;
+  const cc = cosUid.get(f.uid);
+  if (cc?.shot) {   // 꾸민 공격 연출: 원래 투사체 대신(근접은 대상 앞에서 터짐)
+    const T = f.near ? 0.12 : Math.max(0.1, Math.min(0.24, dist / 900)), col = cosRGB(cc, f.uid);
+    if (age < T) {
+      const p = f.near ? 1 : age / T, r = (f.tier >= 6 ? 6.5 : 5.2);
+      for (let i = 2; i >= 1; i--) { const q = Math.max(0, p - i * 0.14); if (!f.near) { ctx.globalAlpha = 0.35; cosShot(cc.shot, col, sx + dx * q, sy + dy * q, Math.atan2(dy, dx), r * 0.7, age * 14); } }
+      ctx.globalAlpha = f.near ? 1 - age / T : 1; cosShot(cc.shot, col, sx + dx * p, sy + dy * p, Math.atan2(dy, dx), r * (f.near ? 1.4 : 1), age * 14); ctx.globalAlpha = 1;
+    }
+    return;
+  }
   const big = f.tier >= 4, sc = (f.job === '보조' ? 0.75 : 1) * (big ? 1.4 : 1), col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
   const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
   const ang = Math.atan2(dy, dx), seed = (f.t * 1000 + f.x0) % 97;
@@ -1824,28 +1910,54 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     fitText(E.UNIT[cur.id].name, fx, py + ph - 20, pw - 16, 15, C.text, 'center');
     button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; cosSave(); }, 'quiet');
   } else fitText(open ? '아래에서 전설·히든·초불영제를 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
-  // 날개·오라·색
-  const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id;
-  const row = (label, list, key, yy) => {
-    text(label, ox, yy, 15, en ? C.gold : '#6f7f88');
+  // 오른쪽: 탭(모양 · 효과 · 판·저장) — 2026-11-11 꾸미기 늘리기
+  const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id, et = modal.etab ?? 'look';
+  const ETABS = [['look', '모양'], ['fx', '효과'], ['board', '판·저장']], tbw = (ow - 12) / 3;
+  ETABS.forEach(([k, nm], i) => button(ox + i * (tbw + 6), py, tbw, 30, nm, () => { modal.etab = k; }, et === k ? 'primary' : 'quiet'));
+  const row = (label, list, key, yy, pre, on = en, cur2 = cur, setter = set) => {   // pre: 포인트 잠금 이름(shot·kill·base·theme)
+    // 검토(2026-11-11): 버튼에 「구슬 2점」을 넣으면 휴대폰에서 글자가 아주 작아짐 → 버튼은 이름 + 자물쇠, 값은 항목 이름 옆에
+    const locked = pre ? list.filter(([v]) => !itemOpen(`${pre}:${v}`)) : [];
+    const costs = [...new Set(locked.map(([v]) => COS_ITEM_COST[`${pre}:${v}`]))];
+    text(label, ox, yy, 15, on ? C.gold : '#6f7f88');
+    if (locked.length) { ctx.font = `15px ${FONT}`; fitText(costs.length === 1 ? `🔒 ${locked.map((q) => q[1]).join('·')} ${costs[0]}점` : `🔒 ${locked.map(([v, n]) => `${n} ${COS_ITEM_COST[`${pre}:${v}`]}점`).join(' · ')}`, ox + ctx.measureText(label).width + 10, yy, ow - ctx.measureText(label).width - 10, 12, '#9aa9b0'); }
     const bw = (ow - 6 * (list.length - 1)) / list.length;
-    list.forEach(([v, name], i) => button(ox + i * (bw + 6), yy + 14, bw, 36, name, () => set(key, v), (cur?.[key] ?? '') === v && en ? 'primary' : 'normal', en));
+    list.forEach(([v, name], i) => {
+      const k = pre ? `${pre}:${v}` : '', lock = k && !itemOpen(k), bx = ox + i * (bw + 6);
+      button(bx, yy + 12, bw, 32, name, () => { if (lock && !buyItem(k, name)) return; setter(key, v); }, (cur2?.[key] ?? '') === v && on && !lock ? 'primary' : lock ? 'quiet' : 'normal', on);
+      if (lock && on) drawLockMark(bx + bw - 3, yy + 11);   // 오른쪽 위 모서리(글자를 가리지 않게)
+    });
   };
-  row('날개', COS_WINGS, 'wing', py + 12);
-  row('오라', COS_AURAS, 'aura', py + 80);
-  text('색', ox, py + 148, 15, en ? C.gold : '#6f7f88');
-  const cs = Math.min(30, (ow - 8 * 5) / 9);
-  COS_COLORS.forEach(([v, name], i) => {
-    const cx = ox + i * (cs + 5) + cs / 2, cy = py + 178, lock = v === 'rainbow' && !rainbowOpen(), on = en && (cur.color ?? '#ffd66b') === v;
-    ctx.beginPath(); ctx.arc(cx, cy, cs / 2, 0, Math.PI * 2);
-    if (v === 'rainbow') { const g = ctx.createConicGradient ? ctx.createConicGradient(0, cx, cy) : null; if (g) { ['#ff5a5a', '#ffd66b', '#6fe08a', '#6fe8ff', '#5aa8ff', '#b07bff', '#ff5a5a'].forEach((q, k) => g.addColorStop(k / 6, q)); ctx.fillStyle = g; } else ctx.fillStyle = '#ff8fc7'; }
-    else ctx.fillStyle = v;
-    ctx.globalAlpha = en && !lock ? 1 : 0.35; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.lineWidth = on ? 3 : 1.2; ctx.strokeStyle = on ? '#ffffff' : 'rgba(0,0,0,.5)'; ctx.stroke();
-    if (lock) drawLockMark(cx, cy + 2);
-    if (en) hit(cx - cs / 2 - 2, cy - cs / 2 - 4, cs + 4, cs + 8, () => { if (lock) { if (pointsLeft() >= COS_COST.rainbow) buyCos('rainbow'); else say(`무지개 색은 장인을 한 번 클리어하거나 포인트 ${COS_COST.rainbow}점으로 열려요(지금 ${pointsLeft()}점).`); } else set('color', v); });
-  });
-  fitText(en ? `${COS_COLORS.find((q) => q[0] === (cur.color ?? '#ffd66b'))?.[1] ?? ''}${rainbowOpen() ? '' : ' · 무지개는 장인 클리어로 열림'}` : '', ox, py + 204, ow, 12, C.muted);
+  if (et === 'look') {
+    row('날개', COS_WINGS, 'wing', py + 44);
+    row('오라', COS_AURAS, 'aura', py + 98);
+    text('색', ox, py + 154, 15, en ? C.gold : '#6f7f88');
+    const cs = Math.min(30, (ow - 8 * 5) / 9);
+    COS_COLORS.forEach(([v, name], i) => {
+      const cx = ox + i * (cs + 5) + cs / 2, cy = py + 182, lock = v === 'rainbow' && !rainbowOpen(), on = en && (cur.color ?? '#ffd66b') === v;
+      ctx.beginPath(); ctx.arc(cx, cy, cs / 2, 0, Math.PI * 2);
+      if (v === 'rainbow') { const g = ctx.createConicGradient ? ctx.createConicGradient(0, cx, cy) : null; if (g) { ['#ff5a5a', '#ffd66b', '#6fe08a', '#6fe8ff', '#5aa8ff', '#b07bff', '#ff5a5a'].forEach((q, k) => g.addColorStop(k / 6, q)); ctx.fillStyle = g; } else ctx.fillStyle = '#ff8fc7'; }
+      else ctx.fillStyle = v;
+      ctx.globalAlpha = en && !lock ? 1 : 0.35; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.lineWidth = on ? 3 : 1.2; ctx.strokeStyle = on ? '#ffffff' : 'rgba(0,0,0,.5)'; ctx.stroke();
+      if (lock) drawLockMark(cx, cy + 2);
+      if (en) hit(cx - cs / 2 - 2, cy - cs / 2 - 4, cs + 4, cs + 8, () => { if (lock) { if (pointsLeft() >= COS_COST.rainbow) buyCos('rainbow'); else say(`무지개 색은 장인을 한 번 클리어하거나 포인트 ${COS_COST.rainbow}점으로 열려요(지금 ${pointsLeft()}점).`); } else set('color', v); });
+    });
+    fitText(en ? `${COS_COLORS.find((q) => q[0] === (cur.color ?? '#ffd66b'))?.[1] ?? ''}${rainbowOpen() ? '' : ' · 무지개는 장인 클리어로 열림'}` : '', ox, py + 208, ow, 12, C.muted);
+  } else if (et === 'fx') {   // 공격 연출·처치 효과·발밑(색은 모양 탭의 색)
+    row('공격 연출', COS_SHOTS, 'shot', py + 44, 'shot');
+    row('처치 효과', COS_KILLS, 'kill', py + 98, 'kill');
+    row('발밑', COS_BASES, 'base', py + 152, 'base');
+    fitText(en ? '색은 「모양」 탭에서 고른 색을 써요' : '먼저 칸과 갈매미를 골라요', ox, py + 208, ow, 12, C.muted);
+  } else {   // 판 테마·저장 칸(칸과 상관없이 전체)
+    row('판 테마', COS_THEMES, 'theme', py + 44, 'theme', true, cosmetic, (k, v) => { cosmetic.theme = v; cosSave(); });
+    text('저장 칸(꾸민 칸 8개 + 판 테마를 통째로)', ox, py + 104, 14, C.gold);
+    const bw3 = (ow - 12) / 3;
+    for (let i = 0; i < COS_PRESETS; i++) {
+      const bx3 = ox + i * (bw3 + 6), has = !!cosmetic.presets?.[i];
+      button(bx3, py + 118, bw3, 36, `${i + 1} 저장`, () => presetSave(i), 'normal');
+      button(bx3, py + 160, bw3, 36, has ? `${i + 1} 불러오기` : `${i + 1} 비어 있음`, () => presetLoad(i), has ? 'primary' : 'normal', has);
+    }
+  }
   // 유닛 고르기: 등급 칸 → 그림
   const tw = (w - 24 - 2 * 6) / 3, ty = py + ph + 14;
   COS_TABS.forEach(([name, grades], i) => {
@@ -2339,6 +2451,17 @@ function setSpeed(v) { speed = v; if (coop()) sendCtl({ speed: v }); }
 // 같이하기 판 확인(2026-11-11): 두 사람의 게임 파일이 다르면(한쪽만 새로고침) 규칙이 달라 판이 어긋남 → 판 모습에 버전을 실어 비교.
 // 버전 = 이 파일 주소의 지문(?v=…). 규칙(engine·data)이 바뀌면 이 파일의 지문도 바뀜. 예전 화면은 버전을 안 보내므로 「다름」으로 봄
 const GAME_VER = (() => { try { return new URL(import.meta.url).searchParams.get('v') || 'dev'; } catch { return 'dev'; } })();
+function cosForPeer(g) {
+  const ids = new Set(E.fieldUnits(g).map((u) => u.id)), out = {};
+  for (const [id, c] of Object.entries(cosById)) if (ids.has(id) && (c.wing || c.aura || c.base)) out[id] = [c.wing || '', c.aura || '', c.color || '', c.base || ''];
+  return out;
+}
+const okOf = (list, v) => (list.some((q) => q[0] === v) ? v : '');
+function peerCos(P, id) {   // 친구가 보낸 꾸밈(받은 값은 목록에 있는 것만 씀)
+  const a = P.cs?.[id]; if (!Array.isArray(a) || fxLite) return null;
+  const c = { id, wing: okOf(COS_WINGS, a[0]), aura: okOf(COS_AURAS, a[1]), color: okOf(COS_COLORS, a[2]) || '#ffd66b', base: okOf(COS_BASES, a[3]) };
+  return c.wing || c.aura || c.base ? c : null;
+}
 function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
@@ -2346,6 +2469,7 @@ function snapOf(g) {
     a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, sg: [net.sigSeq, net.sigKind], mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
+    cs: cosForPeer(g),   // 꾸미기를 친구 화면에도(2026-11-11)
   });
 }
 async function netTick() {
@@ -2489,7 +2613,10 @@ function drawPeerField(P) {
   }
   const units = (Array.isArray(P.u) ? P.u : []).filter((u) => Array.isArray(u) && E.UNIT[u[2]]).sort((a, b) => num(a[1]) - num(b[1]));
   for (const u of units) {
+    const c = peerCos(P, u[2]), z = usz(u[2]);
+    if (c) cosBack(c, num(u[0]), num(u[1]), z, num(u[0]) + num(u[1]));
     drawUnitShape(u[2], num(u[0]), num(u[1]), GRADE_COLOR[E.UNIT[u[2]].grade], 2);
+    if (c) cosFront(c, num(u[0]), num(u[1]), z, num(u[0]) + num(u[1]));
   }
   if (P.ov) {
     const win = P.ov === 'win', cy = FIELD.y + FIELD.h / 2;
