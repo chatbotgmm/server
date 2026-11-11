@@ -1178,9 +1178,12 @@ function drawUnitPanel(y0, u) {
   // 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 휴대폰에서 작음), 조합법 줄은 남는 높이만큼
   const ex = Math.max(0, PBOT - H), BH = Math.min(70, 44 + ex * 0.15), b6 = (W - 44 - 12) / 3;
   const by2 = PBOT - 16 - BH, by1 = by2 - 6 - BH, rowsN = Math.max(1, Math.min(4, Math.floor((by1 - 6 - (y0 + 112)) / 50)));
-  list.slice(0, rowsN).forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid));
+  // 2026-11-11 사용자 지적(태초가 들어가는 마딜이 없다고 보임 — 칸이 한 줄뿐이라 둘째 조합법이 「조합법 +1」 뒤에 숨음):
+  // 줄 수보다 조합법이 많으면 작은 카드(그림·이름·물딜/마딜)로 나란히 보여 줌. 누르면 그 조합법 자리로 조합법 창을 엶
+  const shown = list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
+    : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);
   const bx = (i) => 22 + (i % 3) * (b6 + 6), byOf = (i) => (i < 3 ? by1 : by2);
-  button(bx(0), byOf(0), b6, BH, list.length > rowsN ? `조합법 +${list.length - rowsN}` : '조합법', () => openBook(null, u.id), 'normal');
+  button(bx(0), byOf(0), b6, BH, list.length > shown ? `조합법 +${list.length - shown}` : '조합법', () => openBook(null, u.id), 'normal');
   button(bx(1), byOf(1), b6, BH, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요(고정한 것은 그 자리).`); }, 'normal');
   button(bx(2), byOf(2), b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
   button(bx(3), byOf(3), b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
@@ -1236,6 +1239,27 @@ function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px�
   for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, cx, cy, sz, color, 'center'); return; } }
   let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
   text(s + '…', cx, cy, 9, color, 'center');
+}
+function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카드: 줄마다 왼쪽부터 채우고, 들어간 개수를 돌려줌
+  let n = 0;
+  for (let row = 0; row < rows && n < list.length; row++) {
+    let cx = x; const cy = y + row * (h + 4);
+    while (n < list.length) {
+      const { r, ok } = list[n], out = E.UNIT[r.out], k = E.kit(r.out);
+      const sub = `${k.type === 'phys' ? '물딜' : '마딜'} · ${ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
+      ctx.font = `14px ${FONT}`; const nw = ctx.measureText(out.name).width; ctx.font = `12px ${FONT}`;
+      const cw = Math.min(190, Math.max(96, h + 12 + Math.max(nw, ctx.measureText(sub).width)));
+      if (cx + cw > x + w + 0.5 && cx > x) break;
+      const ww = Math.min(cw, x + w - cx);
+      box(cx, cy, ww, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', ok ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok ? 2 : 1.5);
+      drawFit(unitImg(r.out), cx + 3, cy + 3, h - 6, h - 6);
+      fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
+      fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
+      hit(cx, cy, ww, h, () => openBook(r.out, using));
+      cx += ww + 6; n++;
+    }
+  }
+  return n;
 }
 function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const out = E.UNIT[r.out], gi = G.goals.indexOf(r.out);
