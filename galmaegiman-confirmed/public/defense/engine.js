@@ -136,6 +136,32 @@ export const UTIL_EXTRA = {
   u61: { stun: 0.6 }, u64: { slow: 0.6 }, u65: { stun: 0.6 }, u67: { astun: 0.6 }, u68: { shred: 0.6 }, u69: { slow: 0.7 }, u70: { stun: 0.6 },
   u71: { shred: 0.6 }, u74: { slow: 0.7 }, u75: { astun: 0.6 }, u77: { stun: 0.6 }, u79: { slow: 0.6 }, u80: { stun: 0.6 },
 };
+// 주변 유닛 버프·패널티(2026-11-11 사용자 요청): 공격속도+(haste)·공격력+(might)를 나눠 주고, 딜이 지나치게 잘 나오는 유닛은 주변 공격력−(weaken).
+// 자기 자신은 빼고 반경 안 판 위 다른 갈매미에게만. 겹치면 더함(버프 최대 +40%, 패널티 최대 −30%). 초불영제가 재료에게 물려받지는 않음
+export const BUFF_R = 130, WEAKEN_R = 110, BUFF_MAX = 0.4, WEAKEN_MAX = 0.3;
+const BUFF = (t) => (t < 3 ? 0 : t === 3 ? 0.08 : t === 4 ? 0.12 : t === 5 ? 0.15 : 0.2);   // 에픽 8% · 전설 12% · 히든 15% · 초불영제 20%
+export const UTIL_BUFF = {
+  u30: 'haste', u25: 'might',                       // 에픽: 그리핀(번개) · 룬장인(성)
+  u67: 'haste', u33: 'might', u66: 'might',         // 전설: 금율 · 거장 · 만상
+  u75: 'haste', u72: 'haste', u77: 'might', u76: 'might',   // 히든: 귀성 · 잔영 · 황금향 · 불퇴
+  u86: 'haste', u88: 'haste', u54: 'might', u45: 'might',   // 초불영제: 갈쫄쫄이 · 갈발 · 등불정령 · 타이탄
+};
+export const UTIL_WEAKEN = ['u39', 'u71', 'u82', 'u52', 'u92', 'u50'];   // 무명·순금(히든 단일 최고 딜) · 원금(강타)·망령·갈압스타킹(처형)·레비아탄(유틸 많음)
+// 이번 걸음의 판 위 버프(갈매미 번호 → [공격력 배수, 공격속도 배수]). 버프 갈매미가 없으면 비어 있음
+export function buffsOf(g) {
+  const f = fieldUnits(g), src = f.filter((u) => { const k = kit(u.id); return k.haste || k.might || k.weaken; }), out = new Map();
+  if (!src.length) return out;
+  for (const u of f) {
+    let mi = 0, ha = 0, wk = 0;
+    for (const b of src) {
+      if (b === u) continue;
+      const k = kit(b.id), d = Math.hypot(b.x - u.x, b.y - u.y);
+      if (k.might && d <= BUFF_R) mi += k.might; if (k.haste && d <= BUFF_R) ha += k.haste; if (k.weaken && d <= WEAKEN_R) wk += k.weaken;
+    }
+    if (mi || ha || wk) out.set(u.uid, [1 + Math.min(BUFF_MAX, mi) - Math.min(WEAKEN_MAX, wk), 1 + Math.min(BUFF_MAX, ha)]);
+  }
+  return out;
+}
 const ELEM = { 불: 'FIRE', 물: 'WATER', 얼음: 'ICE', 번개: 'LIGHTNING', 자연: 'NATURE', 성: 'HOLY', 성술: 'HOLY', 어둠: 'DARK' };
 export const ELEM_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '성', DARK: '어둠', NORMAL: '무' };
 // 유틸 세기: 커먼~레어는 아주 작게, 에픽부터 의미 있게(사용자 요청 2026-11-08)
@@ -157,7 +183,7 @@ export const STUN_MIN = 0.75, STUN_MAX = 2;
 export function stunPerks(k, t) {
   const big = Math.round(SHRED(t) * 0.6);
   return [k.shred && 'shred', (k.mshred ?? 0) >= big && 'mshred', k.amp && 'amp', k.slow && 'slow', k.area && 'area', (k.splash ?? 0) >= 0.3 && 'splash',
-    k.chain && 'chain', k.poison && 'poison', k.holy && 'holy', k.wisp && 'wisp'].filter(Boolean);
+    k.chain && 'chain', k.poison && 'poison', k.holy && 'holy', k.wisp && 'wisp'].filter(Boolean);   // 주변 버프(공속·공격력)는 셈하지 않음: 고체력 스턴 보조가 버프를 받아도 2초 그대로
 }
 export const stunTimeOf = (k, t) => Math.min(STUN_MAX, Math.max(STUN_MIN, (k.job === '보조' ? 2.25 : 1.75) - 0.25 * stunPerks(k, t).length));
 export const BOSS_STUN = 0.25;   // 보스는 스턴 시간의 1/4
@@ -286,6 +312,8 @@ function kitRaw(id) {
     if (ux.mshred) k.mshred = Math.max(k.mshred ?? 0, Math.round(SHRED(t) * ux.mshred));
     if (ux.shred) k.shred = Math.max(k.shred ?? 0, Math.round(SHRED(t) * ux.shred));
   }
+  if (UTIL_BUFF[id]) k[UTIL_BUFF[id]] = BUFF(t);
+  if (UTIL_WEAKEN.includes(id)) k.weaken = t >= 6 ? 0.12 : 0.1;
   // 2026-11-09 사용자 요청: 전설·히든은 모두, 마법 딜러(술사 주력)는 등급 상관없이 모두 마방깍(적더라도). 위 표에 없으면 그 등급 마방깍의 35%
   if (!k.mshred && (t === 4 || t === 5 || (mage && k.job === '주력'))) k.mshred = Math.max(1, Math.round(SHRED(t) * (RULES.mshredAll ?? 0.35)));
   // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
@@ -300,7 +328,7 @@ function kitRaw(id) {
   if (k.astun) k.astun /= AS;
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
-  if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison']) delete k[key];
+  if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison', 'haste', 'might', 'weaken']) delete k[key];
   const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
   if (tt >= TOP_TIER) {
     inheritUtil(id, out);
@@ -350,7 +378,10 @@ export function kitTips(k) {
   if (k.holy) out.push('보스 추가 피해');
   if (k.wisp) out.push('위습 찾기');
   if (k.inherited?.length) out.push('재료 유틸 물려받음');
-  if (k.sig) out.unshift(k.sig);   // 고유 기술은 맨 앞(정보 칸에서 잘리지 않게)
+  // 앞쪽(정보 칸에서 잘리지 않게): 고유 기술 → 패널티 → 주변 버프
+  const head = [k.sig, k.weaken && `패널티: 주변 공격력 −${Math.round(k.weaken * 100)}%(반경 ${WEAKEN_R})`,
+    k.haste && `주변 공격속도 +${Math.round(k.haste * 100)}%(반경 ${BUFF_R})`, k.might && `주변 공격력 +${Math.round(k.might * 100)}%(반경 ${BUFF_R})`].filter(Boolean);
+  out.unshift(...head);
   return out;
 }
 
@@ -846,6 +877,7 @@ export function step(g, dt) {
   const byUid = new Map(g.units.map((u) => [u.uid, u]));
   if (g.peerDmg) ensureMission(g);   // 같이하기: 내가 아무도 안 보냈어도 친구 피해로 깰 수 있게
   const ms = g.mission && missionOpen(g) && g.mission.k === g.missionDone ? g.mission : null;
+  const buffs = buffsOf(g);   // 주변 버프·패널티(이번 걸음)
   for (const u of g.units) {
     if (u.stored) continue;   // 창고: 싸우지 않음
     if (!u.away && (u.x !== u.tx || u.y !== u.ty)) {
@@ -863,7 +895,8 @@ export function step(g, dt) {
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
       u.cd = Math.max(-0.05, u.cd) + gapOf(g, k); continue;
     }
-    u.cd = attack(g, u, k) ? Math.max(-0.05, u.cd) + gapOf(g, k) : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
+    const bf = buffs.get(u.uid), kk = bf && bf[0] !== 1 ? { ...k, dmg: k.dmg * bf[0] } : k;   // 주변 버프·패널티
+    u.cd = attack(g, u, kk) ? Math.max(-0.05, u.cd) + gapOf(g, k) / (bf ? bf[1] : 1) : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
   }
   tickZones(g);
   if (ms) ms.hp = ms.max - (g.missionDmg[ms.k] ?? 0) - (g.peerDmg?.[ms.k] ?? 0);

@@ -324,6 +324,22 @@ describe('랜덤 디펜스 엔진', () => {
     for (const n of ['잔영', '순금', '심해', '앙갈', '재생화', '상춘', '만상', '불퇴', '원금', '귀해', '귀성', '별지기']) expect(E.UNITS.some((u: { name: string }) => u.name === n), n).toBe(true);
     for (const u of E.UNITS) expect(u.name.length, u.name).toBeLessThanOrEqual(7);
   });
+  it('주변 버프·패널티(2026-11-11): 반경 안 다른 갈매미만 공격력·공격속도+, 딜 과한 유닛은 주변 공격력−, 겹치면 더하되 상한', () => {
+    expect(E.kit('u25').might).toBeCloseTo(0.08); expect(E.kit('u67').haste).toBeCloseTo(0.12); expect(E.kit('u77').might).toBeCloseTo(0.15); expect(E.kit('u86').haste).toBeCloseTo(0.2);
+    for (const id of E.UTIL_WEAKEN) expect(E.kit(id).weaken, id).toBeGreaterThan(0);
+    for (const id of [...Object.keys(E.UTIL_BUFF), ...E.UTIL_WEAKEN]) expect(E.tierOf(id), id).toBeGreaterThanOrEqual(3);   // 에픽 이상만
+    expect(E.kitTips(E.kit('u82')).some((t: string) => t.startsWith('패널티'))).toBe(true);
+    const g = E.newGame(2); const put = (uid: number, id: string, x: number) => ({ uid, id, x, y: 300, tx: x, ty: 300, cd: 0, born: 0 });
+    g.units = [put(1, 'u33', 200), put(2, 'u36', 260), put(3, 'u36', 500), put(4, 'u67', 220)];   // 거장(공격력+12%) · 설랑 둘(하나는 멀리) · 금율(공속+12%)
+    let b = E.buffsOf(g);
+    expect(b.get(2)[0]).toBeCloseTo(1.12); expect(b.get(2)[1]).toBeCloseTo(1.12);   // 가까운 설랑: 둘 다 받음
+    expect(b.has(3)).toBe(false);                                                    // 멀리 있는 설랑: 없음
+    expect(b.get(1)[0]).toBeCloseTo(1); expect(b.get(1)[1]).toBeCloseTo(1.12);       // 거장은 자기 공격력 버프를 안 받음(금율 공속만)
+    g.units.push(put(5, 'u82', 270)); b = E.buffsOf(g);                              // 원금(패널티 −12%)
+    expect(b.get(2)[0]).toBeCloseTo(1.12 - 0.12);
+    g.units = [put(1, 'u36', 300), ...[0, 1, 2, 3].map((i) => put(10 + i, 'u77', 280 + i * 10))]; b = E.buffsOf(g);   // 황금향 넷(+15%×4 = 60%) → 상한 40%
+    expect(b.get(1)[0]).toBeCloseTo(1 + E.BUFF_MAX);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=19a66565b37b';
+import * as E from './engine.js?v=d0693f2e5a97';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -894,13 +894,16 @@ function drawFieldInner() {
   }
   // 이감·마방깍 갈매미 범위(범위 안 적 모두에게 걸림, 옅게)
   if (!fxLite) {   // 갈매미가 움직일 때만 새로 그림(점선 원 수십 개를 매 프레임 그리던 것)
-    const au = E.fieldUnits(G).filter((u) => { const k = E.kit(u.id); return k.slow || k.mshred; });
+    const au = E.fieldUnits(G).filter((u) => { const k = E.kit(u.id); return k.slow || k.mshred || k.haste || k.might || k.weaken; });
     if (au.length) cachedLayer('aura:' + au.map((u) => `${u.id}@${Math.round(u.x)},${Math.round(u.y)}`).join(';'), FIELD.x, FIELD.y, FIELD.w, FIELD.h, () => {
       ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
       for (const u of au) {
         const k = E.kit(u.id);
-        ctx.beginPath(); ctx.arc(u.x, u.y - 8, k.range, 0, Math.PI * 2);
-        ctx.setLineDash([4, 7]); ctx.lineWidth = 1.2; ctx.strokeStyle = k.slow ? 'rgba(159,232,255,.16)' : 'rgba(143,200,255,.13)'; ctx.stroke(); ctx.setLineDash([]);
+        if (k.slow || k.mshred) { ctx.beginPath(); ctx.arc(u.x, u.y - 8, k.range, 0, Math.PI * 2);
+          ctx.setLineDash([4, 7]); ctx.lineWidth = 1.2; ctx.strokeStyle = k.slow ? 'rgba(159,232,255,.16)' : 'rgba(143,200,255,.13)'; ctx.stroke(); ctx.setLineDash([]); }
+        // 주변 버프(초록: 공격력·공격속도+)·패널티(빨강: 공격력−) 범위(2026-11-11)
+        if (k.haste || k.might) { ctx.beginPath(); ctx.arc(u.x, u.y - 8, E.BUFF_R, 0, Math.PI * 2); ctx.fillStyle = 'rgba(111,224,138,.05)'; ctx.fill(); ctx.setLineDash([3, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(111,224,138,.5)'; ctx.stroke(); ctx.setLineDash([]); }
+        if (k.weaken) { ctx.beginPath(); ctx.arc(u.x, u.y - 8, E.WEAKEN_R, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,110,96,.05)'; ctx.fill(); ctx.setLineDash([3, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,110,96,.55)'; ctx.stroke(); ctx.setLineDash([]); }
       }
       ctx.restore();
     });
@@ -1354,7 +1357,7 @@ function tipLines(tips, x, y0, maxW, color) {
   const all = tips.join(' · ') || '기본 공격';
   ctx.font = `15px ${FONT}`; if (ctx.measureText(all).width <= maxW || tips.length < 2) { clipText(all, x, y0 + 72, maxW, 15, color); return; }
   ctx.font = `13px ${FONT}`; const wd = (l) => ctx.measureText(l.join(' · ')).width;
-  let cut = 1; for (let i = 1; i < tips.length; i++) if (Math.max(wd(tips.slice(0, i)), wd(tips.slice(i))) < Math.max(wd(tips.slice(0, cut)), wd(tips.slice(cut)))) cut = i;
+  let cut = 1; if (!tips[0].startsWith('고유 기술')) for (let i = 1; i < tips.length; i++) if (Math.max(wd(tips.slice(0, i)), wd(tips.slice(i))) < Math.max(wd(tips.slice(0, cut)), wd(tips.slice(cut)))) cut = i;   // 고유 기술은 첫 줄에 따로(뒤 패널티가 잘리지 않게)
   const l1 = tips.slice(0, cut).join(' · '), l2 = tips.slice(cut).join(' · ');
   let sz = 13; for (; sz > 11; sz--) { ctx.font = `${sz}px ${FONT}`; if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxW) break; }
   clipText(l1, x, y0 + 66, maxW, sz, color, 11); clipText(l2, x, y0 + 84, maxW, sz, color, 11);
@@ -1901,19 +1904,42 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   const set = (k, v) => { cosmetic.slots[slot] = { ...cur, [k]: v }; cosSave(); };
   // 미리 보기
   const px = x + 12, py = y + 156, pw = 196, ph = 214;
-  box(px, py, pw, ph, 'rgba(7,19,28,.85)', C.edge, 10, 1.2);
+  // 잠긴 항목 미리 보기(2026-11-11 사용자 요청): 누르면 여기 입혀 보이고 「열기」 버튼
+  const pv = modal.prev, pvCost = pv ? COS_ITEM_COST[`${pv.pre}:${pv.v}`] : 0;
+  if (pv && itemOpen(`${pv.pre}:${pv.v}`)) modal.prev = null;
+  const thPrev = pv?.pre === 'theme' ? THEMES[pv.v] : null;
+  box(px, py, pw, ph, thPrev ? thPrev.bg : 'rgba(7,19,28,.85)', C.edge, 10, 1.2);
+  if (thPrev) {   // 판 테마 미리 보기: 길 한 토막
+    ctx.save(); ctx.beginPath(); ctx.rect(px + 2, py + 2, pw - 4, ph - 4); ctx.clip();
+    ctx.lineWidth = 40; ctx.strokeStyle = thPrev.lane; ctx.strokeRect(px + 30, py + 40, pw - 60, ph - 80); ctx.lineWidth = 1.5; ctx.strokeStyle = thPrev.edge;
+    ctx.strokeRect(px + 10, py + 20, pw - 20, ph - 40); ctx.strokeRect(px + 50, py + 60, pw - 100, ph - 120); ctx.restore();
+  }
+  const shown = cur?.id && pv && pv.pre !== 'theme' ? { ...cur, [pv.field]: pv.v } : cur;
   if (cur?.id) {
-    const z = usz(cur.id), k = 1.75 / z, fx = px + pw / 2, fy = py + ph - 46;
+    const z = usz(cur.id), k = 1.75 / z, fx = px + pw / 2 - (shown.shot || shown.kill ? 26 : 0), fy = py + ph - 46;
     ctx.save(); ctx.translate(fx, fy); ctx.scale(k, k);
-    cosBack(cur, 0, 0, z, slot); drawUnitShape(cur.id, 0, 0, GRADE_COLOR[E.UNIT[cur.id].grade], 2); cosFront(cur, 0, 0, z, slot);
+    cosBack(shown, 0, 0, z, slot); drawUnitShape(cur.id, 0, 0, GRADE_COLOR[E.UNIT[cur.id].grade], 2); cosFront(shown, 0, 0, z, slot);
     ctx.restore();
+    if (shown.shot || shown.kill) {   // 공격 연출·처치 효과: 오른쪽 과녁을 1.3초마다 쏨
+      const tx = px + pw - 30, ty = fy - 54, ph2 = (performance.now() / 1300) % 1, col = cosRGB(shown, slot);
+      ctx.beginPath(); ctx.arc(tx, ty, 12, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,120,100,.6)'; ctx.fill();
+      const sx = fx + 10, sy = fy - 70;
+      if (ph2 < 0.45 && shown.shot) { const q = ph2 / 0.45; cosShot(shown.shot, col, sx + (tx - sx) * q, sy + (ty - sy) * q, Math.atan2(ty - sy, tx - sx), 6, q * 8); }
+      else if (ph2 >= 0.45 && shown.kill) drawKillFx(shown, { x: tx, y: ty + 16, uid: slot + 1 }, (ph2 - 0.45) * 1.1);
+    }
     fitText(E.UNIT[cur.id].name, fx, py + ph - 20, pw - 16, 15, C.text, 'center');
-    button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; cosSave(); }, 'quiet');
-  } else fitText(open ? '아래에서 전설·히든·초불영제를 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
+    button(px + pw - 66, py + 6, 60, 30, '비우기', () => { cosmetic.slots[slot] = null; modal.prev = null; cosSave(); }, 'quiet');
+  } else if (!thPrev) fitText(open ? '아래에서 전설·히든·초불영제를 골라요' : '달인 이상 첫 클리어에 칸이 열려요', px + pw / 2, py + ph / 2, pw - 16, 14, C.muted, 'center');
+  if (pv) {
+    const can = pointsLeft() >= pvCost;
+    button(px + 6, py + 6, 104, 30, `열기 ${pvCost}점`, () => { if (!buyItem(`${pv.pre}:${pv.v}`, pv.name)) return; if (pv.pre === 'theme') cosmetic.theme = pv.v; else if (cur?.id) cosmetic.slots[slot] = { ...cur, [pv.field]: pv.v }; modal.prev = null; cosSave(); }, can ? 'primary' : 'normal');
+    fitText(`「${pv.name}」 미리 보기${can ? '' : ` · 포인트 ${pointsLeft()}점`}`, px + 10, py + 48, pw - 20, 12, can ? C.goldEdge : '#9aa9b0');
+  }
   // 오른쪽: 탭(모양 · 효과 · 판·저장) — 2026-11-11 꾸미기 늘리기
   const ox = px + pw + 12, ow = x + w - 12 - ox, en = !!cur?.id, et = modal.etab ?? 'look';
   const ETABS = [['look', '모양'], ['fx', '효과'], ['board', '판·저장']], tbw = (ow - 12) / 3;
-  ETABS.forEach(([k, nm], i) => button(ox + i * (tbw + 6), py, tbw, 30, nm, () => { modal.etab = k; }, et === k ? 'primary' : 'quiet'));
+  ETABS.forEach(([k, nm], i) => button(ox + i * (tbw + 6), py, tbw, 30, nm, () => { modal.etab = k; modal.prev = null; }, et === k ? 'primary' : 'quiet'));
   const row = (label, list, key, yy, pre, on = en, cur2 = cur, setter = set) => {   // pre: 포인트 잠금 이름(shot·kill·base·theme)
     // 검토(2026-11-11): 버튼에 「구슬 2점」을 넣으면 휴대폰에서 글자가 아주 작아짐 → 버튼은 이름 + 자물쇠, 값은 항목 이름 옆에
     const locked = pre ? list.filter(([v]) => !itemOpen(`${pre}:${v}`)) : [];
@@ -1923,7 +1949,8 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     const bw = (ow - 6 * (list.length - 1)) / list.length;
     list.forEach(([v, name], i) => {
       const k = pre ? `${pre}:${v}` : '', lock = k && !itemOpen(k), bx = ox + i * (bw + 6);
-      button(bx, yy + 12, bw, 32, name, () => { if (lock && !buyItem(k, name)) return; setter(key, v); }, (cur2?.[key] ?? '') === v && on && !lock ? 'primary' : lock ? 'quiet' : 'normal', on);
+      const pvOn = lock && modal.prev?.pre === pre && modal.prev?.v === v;
+      button(bx, yy + 12, bw, 32, name, () => { if (lock) { modal.prev = pvOn ? null : { pre, field: key, v, name }; return; } modal.prev = null; setter(key, v); }, ((cur2?.[key] ?? '') === v && on && !lock) || pvOn ? 'primary' : lock ? 'quiet' : 'normal', on);
       if (lock && on) drawLockMark(bx + bw - 3, yy + 11);   // 오른쪽 위 모서리(글자를 가리지 않게)
     });
   };
@@ -1947,7 +1974,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
     row('공격 연출', COS_SHOTS, 'shot', py + 44, 'shot');
     row('처치 효과', COS_KILLS, 'kill', py + 98, 'kill');
     row('발밑', COS_BASES, 'base', py + 152, 'base');
-    fitText(en ? '색은 「모양」 탭에서 고른 색을 써요' : '먼저 칸과 갈매미를 골라요', ox, py + 208, ow, 12, C.muted);
+    fitText(en ? '🔒 잠긴 것도 눌러서 미리 볼 수 있어요 · 색은 「모양」 탭의 색' : '먼저 칸과 갈매미를 골라요', ox, py + 208, ow, 12, C.muted);
   } else {   // 판 테마·저장 칸(칸과 상관없이 전체)
     row('판 테마', COS_THEMES, 'theme', py + 44, 'theme', true, cosmetic, (k, v) => { cosmetic.theme = v; cosSave(); });
     text('저장 칸(꾸민 칸 8개 + 판 테마를 통째로)', ox, py + 104, 14, C.gold);
@@ -1957,6 +1984,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
       button(bx3, py + 118, bw3, 36, `${i + 1} 저장`, () => presetSave(i), 'normal');
       button(bx3, py + 160, bw3, 36, has ? `${i + 1} 불러오기` : `${i + 1} 비어 있음`, () => presetLoad(i), has ? 'primary' : 'normal', has);
     }
+    fitText('🔒 잠긴 테마도 눌러서 미리 볼 수 있어요', ox, py + 208, ow, 12, C.muted);
   }
   // 유닛 고르기: 등급 칸 → 그림
   const tw = (w - 24 - 2 * 6) / 3, ty = py + ph + 14;
