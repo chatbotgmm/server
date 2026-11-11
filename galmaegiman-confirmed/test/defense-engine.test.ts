@@ -370,7 +370,7 @@ describe('랜덤 디펜스 엔진', () => {
     expect(g.picks.COMMON).toBe(p0 + 2); expect(g.tickets).toBe(t0 + 1);
     const u0 = g.picks.UNCOMMON ?? 0, e0 = g.wisps.EPIC ?? 0; killBoss(g, 20); expect(g.picks.UNCOMMON).toBe(u0 + 1); expect(g.wisps.EPIC).toBe(e0 + 1);   // 20웨이브: 에픽 위습(10웨이브보다 적지 않게)
     const t1 = g.tickets; killBoss(g, 35); expect(g.tickets).toBe(t1);                       // 40웨이브 전 홀수 보스는 모집권 없음
-    const r0 = g.picks.RARE ?? 0; killBoss(g, 45); expect(g.picks.RARE).toBe(r0 + 1); expect(g.tickets).toBe(t1 + 1);   // 40웨이브부터는 5웨이브 보스마다 모집권(2026-11-11)
+    const r0 = g.picks.RARE ?? 0; killBoss(g, 45); expect(g.picks.RARE).toBe(r0 + 1); expect(g.tickets).toBe(t1 + 2);   // 40웨이브부터는 5웨이브 보스마다 모집권 2개(2026-11-11)
     const pickTier = (w: number) => Math.max(...Object.keys(E.RULES.bossPick[w]).map((k) => E.GRADES.indexOf(k)));
     for (let w = 10; w <= 55; w += 5) expect(pickTier(w), `${w}`).toBeGreaterThanOrEqual(pickTier(w - 5));   // 뒤로 갈수록 같거나 높게
   });

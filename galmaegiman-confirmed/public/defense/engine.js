@@ -35,7 +35,7 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
   // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
-  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10, bossTicketLateFrom: 40,   // 10웨이브 보스 처치마다 모집권 1(소량). 2026-11-11 사용자 요청: 40웨이브부터는 5웨이브 보스마다
+  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10, bossTicketLateFrom: 40, bossTicketLate: 2,   // 10웨이브 보스 처치마다 모집권 1(소량). 2026-11-11 사용자 요청: 40웨이브부터는 5웨이브 보스마다 2개씩
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
@@ -823,7 +823,7 @@ export function step(g, dt) {
     const rp = { ...(RULES.bossPickEach ?? {}) };
     for (const [k, v] of Object.entries(RULES.bossPick[g.wave] ?? {})) rp[k] = (rp[k] ?? 0) + v;
     for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
-    const tk = RULES.bossTicket && (g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 || g.wave >= (RULES.bossTicketLateFrom ?? 999)) ? RULES.bossTicket : 0;
+    const tk = g.wave >= (RULES.bossTicketLateFrom ?? 999) ? (RULES.bossTicketLate ?? RULES.bossTicket) : RULES.bossTicket && g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 ? RULES.bossTicket : 0;
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
     news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
