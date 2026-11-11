@@ -1288,8 +1288,8 @@ function drawMainPanel(y0) {
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
-const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
-const moreSub = () => [pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
+const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0) + (G.choice ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
+const moreSub = () => [G.choice && '보상 고르기', pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
 function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창고 · 피해 순위
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
@@ -1302,8 +1302,10 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
   ];
-  const gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12) / 2);
-  items.forEach(([icon, nm, fn, style, sub], i) => menuButton(x + 12 + (i % 2) * (gw + 12), y + 64 + Math.floor(i / 2) * (gh + 12), gw, gh, icon, nm, fn, style, sub));
+  const cy0 = G.choice ? 76 : 0;   // 미뤄 둔 보상 고르기(맨 위)
+  if (G.choice) button(x + 12, y + 64, w - 24, 64, `${E.REGIONS[G.choice.k].ch}장 보상 고르기`, () => { modal = { kind: 'choice' }; }, 'primary', true, '초월 갈매미맨 · 전설 위습 1 · 에픽 선택 위습 2 중 하나');
+  const gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12 - cy0) / 2);
+  items.forEach(([icon, nm, fn, style, sub], i) => menuButton(x + 12 + (i % 2) * (gw + 12), y + 64 + cy0 + Math.floor(i / 2) * (gh + 12), gw, gh, icon, nm, fn, style, sub));
 }
 // 지금 조합할 수 있는 조합법 수(0.5초마다 다시 셈)
 let readyCache = { t: 0, n: 0, g: null };
@@ -2423,15 +2425,17 @@ function drawModal() {
   else if (modal?.kind === 'signal') drawSignalPicker();
   else if (modal?.kind === 'choice') drawChoice();
 }
-// 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 고를 때까지 닫히지 않음(게임은 계속 흐름)
+// 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 게임은 계속 흐름.
+// 2026-11-11 사용자 요청: 선택을 미룰 수 있게 — 「나중에」를 누르면 닫히고, 아래 「더보기」에서 언제든 다시 열어 받음
 function drawChoice() {
   if (!G?.choice) { modal = null; return; }
   shadeAll(0.45);
   const { x, y, w, h } = modalRect(), r = E.REGIONS[G.choice.k], top = E.UNITS.filter((u) => u.grade === 'TRANSCEND' && u.role !== E.SPECIAL_ROLE).map((u) => u.name).join('·');
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text(`${r.ch}장 보상 고르기`, x + 18, y + 30, 22, C.text);
-  fitText('하나만 받을 수 있어요. 고르는 동안에도 게임은 계속돼요.', x + 18, y + 60, w - 36, 14, C.muted);
-  const desc = (c) => (c.unit ? [`초월 등급(${top}) 조합 재료`, '공격하지 않고 팔 수 없음, 조합하면 사라짐']
+  fitText('하나만 받을 수 있어요. 미뤄 두고 「더보기」에서 나중에 받아도 돼요.', x + 18, y + 60, w - 36, 14, C.muted);
+  button(x + w - 110, y + 10, 96, 40, '나중에', () => { G.choiceLater = true; modal = null; say('보상은 아래 「더보기」에서 언제든 받을 수 있어요.'); }, 'quiet');
+  const desc = (c) => (c.unit ? [`초월 등급 ${top.split('·').length}종의 조합 재료`, '공격하지 않고 팔 수 없음, 조합하면 사라짐']
     : c.wisps ? ['누르면 전설 갈매미 1마리(무작위)', '바로 전력이 필요할 때'] : ['원하는 에픽 2마리를 골라 소환', '조합 재료를 맞출 때']);
   const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
   r.choice.forEach((c, i) => {
@@ -2441,7 +2445,7 @@ function drawChoice() {
     else { const g = c.wisps ? 'LEGEND' : 'EPIC', n = Object.values(c.wisps ?? c.picks)[0]; ctx.beginPath(); ctx.arc(x + 72, cy + ch / 2, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = GRADE_COLOR[g]; ctx.stroke(); text(c.wisps ? '위습' : '선택', x + 72, cy + ch / 2 - 8, 15, GRADE_COLOR[g], 'center'); text(`×${n}`, x + 72, cy + ch / 2 + 14, 17, C.text, 'center'); }
     fitText(E.choiceText(c), x + 136, cy + 30, w - 136 - 24 - 110, 18, col);
     desc(c).forEach((l, k) => fitText(l, x + 136, cy + 60 + k * 22, w - 136 - 24 - 110, 13, C.muted));
-    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '받기', () => { if (E.chooseReward(G, i)) { modal = null; say(`${E.choiceText(c)}을(를) 받았어요.`); } }, 'primary');
+    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '받기', () => { if (E.chooseReward(G, i)) { G.choiceLater = false; modal = null; say(`${E.choiceText(c)}을(를) 받았어요.`); } }, 'primary');
   });
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
@@ -2847,7 +2851,7 @@ function frame(now) {
   }
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
-  else if (scene === 'play' && G?.choice && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
+  else if (scene === 'play' && G?.choice && !G.choiceLater && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
   // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
