@@ -15,6 +15,11 @@ const WISH = {
   mag: ['u29', 'u26', 'u32', 'u35', 'u40', 'u34', 'u38', 'u41', 'u43', 'u44', 'u42', 'u62', 'u63', 'u69', 'u73', 'u74', 'u80', 'u46', 'u59', 'u58', 'u57', 'u54', 'u60', 'u55', 'u53', 'u48', 'u49'],
   phys: ['u25', 'u31', 'u28', 'u27', 'u36', 'u33', 'u37', 'u39', 'u61', 'u66', 'u70', 'u71', 'u72', 'u78', 'u77', 'u45', 'u52', 'u50', 'u47', 'u56', 'u51'],
 };
+// BOTWISH=tops(2026-11-11 패배 원인 조사): 에픽 3개 뒤 곧바로 초불영제(그 재료 나무 전체)를 노림 — 예전 목록은 전설·히든 14~15종을 먼저 만들어 초불영제까지 못 감
+if (process.env.BOTWISH === 'tops') for (const style of ['mag', 'phys']) {
+  const tops = E.UNITS.filter((u) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE && (style === 'mag') === u.role.endsWith('술사')).map((u) => u.id);
+  WISH[style] = [...WISH[style].slice(0, 3), ...tops];
+}
 const SPOTS = [[110, 200], [430, 200], [430, 565], [110, 565], [270, 200], [270, 565], [110, 382], [430, 382]];
 const recipeOf = new Map(E.RECIPES.map((r) => [r.out, r]));
 const ownedMap = (g) => { const m = {}; for (const u of g.units) if (!u.away) m[u.id] = (m[u.id] ?? 0) + 1; return m; };
@@ -92,7 +97,14 @@ for (let s = 1; s <= N; s++) {
   ch6s.push(ch6); ends.push(end);
   res.push(g.over === 'win' ? 61 : g.wave);
   const key = g.over + ':' + g.reason.slice(0, 10); reasons[key] = (reasons[key] ?? 0) + 1;
-  tops += g.units.filter((u) => E.tierOf(u.id) >= 6).length;
+  if (process.env.DIAG === '1' && g.over === 'lose') {   // 진 순간의 판 상태(2026-11-11 패배 원인 조사)
+    const f = E.fieldUnits(g), by = {}; for (const u of f) { const t = E.UNIT[u.id].role === E.SPECIAL_ROLE ? 'key' : E.tierOf(u.id); by[t] = (by[t] ?? 0) + 1; }
+    let sh = 0, msh = 0, dps = 0, slow = 0; for (const u of f) { const k = E.kit(u.id); sh += k.shred ?? 0; msh += k.mshred ?? 0; slow += k.slow ?? 0; dps += k.dmg / k.gap * E.upgMul(g, k.tier); }
+    const boss = g.enemies.find((e) => e.boss);
+    console.log('DIAG ' + JSON.stringify({ seed: s, style, wave: g.wave, why: g.reason.slice(0, 14), bossLeft: boss ? +(boss.hp / boss.max).toFixed(2) : null, field: by, away: E.awayUnits(g).length, stored: E.storedUnits(g).length,
+      wisps: g.wisps, picks: g.picks, gold: g.gold, tickets: g.tickets, upg: g.upg, shred: Math.round(sh), mshred: Math.round(msh), armor: E.armorAt(g, g.wave), mr: E.mrAt(g, g.wave), slow: +slow.toFixed(2), dps: Math.round(dps), story: g.missionDone, enemies: g.enemies.length, warn: g.warn, goals: st.wish.filter((id) => !f.some((u) => u.id === id)).slice(0, 2) }));
+  }
+  tops += g.units.filter((u) => E.tierOf(u.id) >= 6 && E.UNIT[u.id].role !== E.SPECIAL_ROLE).length;   // 2026-11-11: 초월 갈매미맨(재료)은 빼고 셈(예전엔 섞여 있었음)
 }
 const hist = {}; res.forEach((w) => (hist[w] = (hist[w] ?? 0) + 1));
 const wins = res.filter((w) => w === 61).length;

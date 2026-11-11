@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=1eae69d0865a';
+import { UNITS, RECIPES } from './data.js?v=47b73634cac1';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -162,6 +162,84 @@ export const stunTimeOf = (k, t) => Math.min(STUN_MAX, Math.max(STUN_MIN, (k.job
 export const BOSS_STUN = 0.25;   // 보스는 스턴 시간의 1/4
 const ASTUN = (t) => (t < 4 ? 0 : t >= 7 ? 0.2 : [0.12, 0.14, 0.16][t - 4]);
 
+// 초불영제 고유 기술(2026-11-11 사용자 요청: 상위 유닛은 각자 개성을 살린 공격). 공격 every번마다 한 번 나감(초불영제 피해라 균열 저항 안 받음)
+// 기술 틀: smash 강타(대상 ×mul) · execute 처형(보스 아닌 적 체력 30% 이하면 쓰러뜨리고, 아니면 ×mul) · pierce 관통(대상 쪽 직선 위 모두 ×mul)
+//          bounce 튕김(대상 + 가까운 적 n마리 ×mul) · nova 폭발(대상 둘레 r 안 모두 ×mul) · storm 낙뢰(사거리+60 안 적 n마리 ×mul)
+//          bind 묶기(대상 둘레 r 안 모두 ×mul + sec초 스턴, 보스는 1/4) · field 장판(대상 자리에 sec초 동안 r 범위, 0.5초마다 ×mul + 이감 slow)
+export const SIGNATURE = {
+  u45: { name: '대지 짓누르기', kind: 'bind', every: 6, mul: 1, r: 80, sec: 1.25 },
+  u46: { name: '가시덤불', kind: 'field', every: 5, mul: 0.3, r: 80, sec: 3, slow: 0.25 },
+  u47: { name: '화염 폭발', kind: 'nova', every: 5, mul: 1.1, r: 110 },
+  u48: { name: '빙결', kind: 'bind', every: 6, mul: 1, r: 90, sec: 1.5 },
+  u49: { name: '천둥 날개', kind: 'storm', every: 5, mul: 0.9, n: 4 },
+  u50: { name: '해일 돌진', kind: 'pierce', every: 5, mul: 1.3, len: 280 },
+  u51: { name: '뿌리 감옥', kind: 'field', every: 6, mul: 0.3, r: 85, sec: 3, slow: 0.35 },
+  u52: { name: '영혼 수확', kind: 'execute', every: 5, mul: 1.6 },
+  u53: { name: '불사의 불길', kind: 'field', every: 5, mul: 0.35, r: 75, sec: 3, slow: 0.1 },
+  u54: { name: '등불 튕기기', kind: 'bounce', every: 5, mul: 0.7, n: 5 },
+  u55: { name: '똬리 휘감기', kind: 'nova', every: 5, mul: 1.1, r: 115 },
+  u56: { name: '죽음의 손길', kind: 'execute', every: 6, mul: 1.6 },
+  u57: { name: '새벽 광선', kind: 'pierce', every: 5, mul: 1.2, len: 320 },
+  u58: { name: '눈보라', kind: 'field', every: 5, mul: 0.25, r: 95, sec: 3, slow: 0.35 },
+  u59: { name: '그림자 비', kind: 'storm', every: 5, mul: 0.9, n: 5 },
+  u60: { name: '물줄기 숨결', kind: 'pierce', every: 5, mul: 1.2, len: 300 },
+  u82: { name: '황금 강타', kind: 'smash', every: 5, mul: 2 },
+  u83: { name: '어깨 밀치기', kind: 'bind', every: 6, mul: 1, r: 75, sec: 1.25 },
+  u84: { name: '리본 휘감기', kind: 'bounce', every: 5, mul: 0.7, n: 4 },
+  u85: { name: '깁스 고정', kind: 'bind', every: 5, mul: 1.2, r: 55, sec: 1.75 },
+  u86: { name: '쫄쫄이 튕기기', kind: 'bounce', every: 5, mul: 0.75, n: 5 },
+  u87: { name: '밀물', kind: 'nova', every: 5, mul: 1, r: 125 },
+  u88: { name: '발도장', kind: 'smash', every: 4, mul: 1.8 },
+  u89: { name: '후끈 내복', kind: 'field', every: 5, mul: 0.35, r: 80, sec: 3, slow: 0.1 },
+  u90: { name: '다섯 번째 목소리', kind: 'storm', every: 5, mul: 1, n: 5 },
+  u91: { name: '고무줄 사격', kind: 'pierce', every: 5, mul: 1.2, len: 280 },
+  u92: { name: '조이기', kind: 'execute', every: 5, mul: 1.5 },
+  u93: { name: '슬리퍼 던지기', kind: 'bounce', every: 4, mul: 0.75, n: 4 },
+};
+const SIG_DESC = {
+  smash: (s) => `대상에게 ×${s.mul} 강타`, execute: (s) => `체력 30% 이하 적은 바로 쓰러뜨림(보스 제외), 아니면 ×${s.mul}`,
+  pierce: (s) => `대상 쪽 직선 위 적 모두 ×${s.mul}`, bounce: (s) => `가까운 적 ${s.n}마리에게 튕기며 ×${s.mul}`,
+  nova: (s) => `대상 둘레 적 모두 ×${s.mul}`, storm: (s) => `적 ${s.n}마리에게 낙뢰 ×${s.mul}`,
+  bind: (s) => `둘레 적 모두 ×${s.mul} + ${s.sec}초 묶기`, field: (s) => `${s.sec}초 장판(0.5초마다 ×${s.mul}${s.slow ? `·이감 ${Math.round(s.slow * 100)}%` : ''})`,
+};
+export const sigText = (id) => { const s = SIGNATURE[id]; return s ? `고유 기술 「${s.name}」: 공격 ${s.every}번마다 ${SIG_DESC[s.kind](s)}` : ''; };
+function signature(g, u, k, best, s) {
+  const near = (x, y, r) => g.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - x, e.y - y) <= r);
+  const fx = { kind: 'sig', sk: s.kind, uid: u.uid, name: s.name, x0: u.x, y0: u.y, x1: best.x, y1: best.y, elem: k.elem, type: k.type, t: g.t };
+  if (s.kind === 'smash') hurt(g, best, k.dmg * s.mul, k, u.uid);
+  else if (s.kind === 'execute') { if (!best.boss && best.hp <= best.max * 0.3) { best.by = u.uid; best.hp = 0; } else hurt(g, best, k.dmg * s.mul, k, u.uid); }
+  else if (s.kind === 'pierce') {
+    const dx = best.x - u.x, dy = best.y - u.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    fx.x1 = u.x + ux * s.len; fx.y1 = u.y + uy * s.len;
+    for (const e of g.enemies) { if (e.hp <= 0) continue; const px = e.x - u.x, py = e.y - u.y, along = px * ux + py * uy; if (along < 0 || along > s.len) continue; if (Math.abs(px * uy - py * ux) <= 26) hurt(g, e, k.dmg * s.mul, k, u.uid); }
+  } else if (s.kind === 'bounce') {
+    const pts = [[best.x, best.y]], done = new Set([best]); let cur = best; hurt(g, best, k.dmg * s.mul, k, u.uid);
+    for (let i = 0; i < s.n; i++) { const nx = near(cur.x, cur.y, 130).filter((e) => !done.has(e)).sort((a, b) => Math.hypot(a.x - cur.x, a.y - cur.y) - Math.hypot(b.x - cur.x, b.y - cur.y))[0]; if (!nx) break; done.add(nx); hurt(g, nx, k.dmg * s.mul, k, u.uid); pts.push([nx.x, nx.y]); cur = nx; }
+    fx.pts = pts;
+  } else if (s.kind === 'nova') { for (const e of near(best.x, best.y, s.r)) hurt(g, e, k.dmg * s.mul, k, u.uid); fx.r = s.r; }
+  else if (s.kind === 'storm') {
+    const pool = near(u.x, u.y, k.range + 60), pts = [];
+    for (let i = 0; i < s.n && pool.length; i++) { const e = pool.splice(Math.floor(g.rand() * pool.length), 1)[0]; hurt(g, e, k.dmg * s.mul, k, u.uid); pts.push([e.x, e.y]); }
+    fx.pts = pts;
+  } else if (s.kind === 'bind') {
+    for (const e of near(best.x, best.y, s.r)) { hurt(g, e, k.dmg * s.mul, k, u.uid); if (e.speed) e.stunUntil = Math.max(e.stunUntil, g.t + s.sec * (e.boss ? BOSS_STUN : 1)); }
+    fx.r = s.r;
+  } else if (s.kind === 'field') { (g.zones ??= []).push({ x: best.x, y: best.y, r: s.r, id: u.id, uid: u.uid, mul: s.mul, slow: s.slow ?? 0, next: g.t, until: g.t + s.sec, elem: k.elem }); fx.r = s.r; }
+  g.fx.push(fx);
+}
+function tickZones(g) {   // 장판: 0.5초마다 범위 안 적에게 피해·이감
+  if (!g.zones?.length) return;
+  for (const z of g.zones) {
+    if (g.t < z.next) continue;
+    z.next += 0.5; const k = kit(z.id);
+    for (const e of g.enemies) {
+      if (e.hp <= 0 || Math.hypot(e.x - z.x, e.y - z.y) > z.r) continue;
+      hurt(g, e, k.dmg * z.mul, k, z.uid);
+      if (z.slow && e.speed) { (e.slows ??= {})['z' + z.uid] = { v: z.slow, until: g.t + 0.6 }; e.slowUntil = Math.max(e.slowUntil ?? 0, g.t + 0.6); }
+    }
+  }
+  g.zones = g.zones.filter((z) => g.t < z.until);
+}
 // 갈매미 한 마리의 공격 방식. 같은 규칙이면 결과가 같으므로 한 번 계산해 둠(2026-11-10 렉 줄이기: 매 프레임·매 틱 유닛마다 다시 계산했음).
 // 규칙 값(RULES.dmg 등)이 바뀌면 다시 계산. 돌려준 객체는 고치지 않는다
 const kitCache = new Map(); let kitKey = [];
@@ -222,7 +300,7 @@ function kitRaw(id) {
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
   if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison']) delete k[key];
-  const out = { ...k, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
   if (tt >= TOP_TIER) {
     inheritUtil(id, out);
     const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
@@ -271,6 +349,7 @@ export function kitTips(k) {
   if (k.holy) out.push('보스 추가 피해');
   if (k.wisp) out.push('위습 찾기');
   if (k.inherited?.length) out.push('재료 유틸 물려받음');
+  if (k.sig) out.unshift(k.sig);   // 고유 기술은 맨 앞(정보 칸에서 잘리지 않게)
   return out;
 }
 
@@ -370,7 +449,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal',
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
-    over: null, reason: '', fx: [], news: [],
+    over: null, reason: '', fx: [], news: [], zones: [],
   };
 }
 // 이어하기(사용자 요청 2026-11-08): 판 전체를 글로 저장하고 되살린다. 규칙 판이 바뀌면(SAVE_VER) 예전 저장은 버림
@@ -384,7 +463,7 @@ export function loadGame(text) {
     const g = o.g, s = g.rand >>> 0;
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master';
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= [];
     return g;
   } catch { return null; }
 }
@@ -708,6 +787,8 @@ function attack(g, u, k) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
   }
+  const sg = SIGNATURE[u.id];
+  if (sg) { u.sigN = (u.sigN ?? 0) + 1; if (u.sigN >= sg.every) { u.sigN = 0; signature(g, u, k, best, sg); } }
   // shot: 화면이 갈매미 동작(근접은 돌진·원거리는 반동)과 속성별 투사체를 그림. near = 근접(사거리 150 이하·범위 공격)
   g.fx.push({ kind: 'shot', x0: u.x, y0: u.y, x1: best.x, y1: best.y, type: k.type, job: k.job, elem: k.elem, uid: u.uid, tier: k.tier, near: k.range <= 150 || !!k.area, boss: !!best.boss, t: g.t });
   return true;
@@ -783,6 +864,7 @@ export function step(g, dt) {
     }
     u.cd = attack(g, u, k) ? Math.max(-0.05, u.cd) + gapOf(g, k) : 0.1;   // 남은 시간을 이어 써서 0.05초 단위 반올림으로 느려지지 않게
   }
+  tickZones(g);
   if (ms) ms.hp = ms.max - (g.missionDmg[ms.k] ?? 0) - (g.peerDmg?.[ms.k] ?? 0);
   // 처치
   let bossDown = false;

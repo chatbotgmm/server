@@ -299,6 +299,31 @@ describe('랜덤 디펜스 엔진', () => {
     expect(hit(45, 'u33') / hit(39, 'u33')).toBeCloseTo(0.5);   // 거장(전설) 피해 절반
     expect(hit(45, 'u49')).toBeCloseTo(hit(39, 'u49'));        // 가루다(초불영제)는 그대로
   });
+  it('초불영제 고유 기술(2026-11-11): 28종 모두 이름이 다른 기술, 공격 every번마다 나감, 장판·처형·묶기 동작', () => {
+    const tops = E.UNITS.filter((u: { id: string; role: string }) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE).map((u: { id: string }) => u.id);
+    for (const id of tops) { expect(E.SIGNATURE[id], id).toBeTruthy(); expect(E.kitTips(E.kit(id)).some((t: string) => t.startsWith('고유 기술')), id).toBe(true); }
+    expect(new Set(tops.map((id: string) => E.SIGNATURE[id].name)).size).toBe(tops.length);
+    for (const id of Object.keys(E.SIGNATURE)) expect(E.tierOf(id), id).toBeGreaterThanOrEqual(6);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const setup = (id: string, enemies: any[]) => { const g = E.newGame(5); g.wave = 3; g.waveT = 1; g.spawnLeft = 0; g.missionDone = E.REGIONS.length; g.units = [{ uid: 1, id, x: 80, y: 170, tx: 80, ty: 170, cd: 0, born: 0 }]; g.enemies = enemies; return g; };   // 적은 길 처음(46,134) 자리에 있음
+    const en = (id: number, x: number, hp = 1e12, boss = false) => ({ id, hp, max: 1e12, s: 0, speed: 0, boss, look: 'e:v1', gold: 0, armor: 0, mr: 0, amp: 0, ampUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x, y: 300, by: 0 });
+    // 장판(베히모스 가시덤불): 기술이 나간 뒤 장판이 생기고, 범위 안 적이 계속 피해
+    const g1 = setup('u46', [en(1, 230), en(2, 260)]);
+    for (let i = 0; i < 120 && !g1.zones.length; i++) E.step(g1, 0.05);
+    expect(g1.zones.length).toBe(1); expect(g1.fx.some((f: { kind: string; name: string }) => f.kind === 'sig' && f.name === '가시덤불')).toBe(true);
+    // 처형(망령): 체력 30% 이하 일반 적은 기술에 바로 쓰러짐, 보스는 아님
+    const g2 = setup('u52', [en(1, 230, 0.2e12)]);
+    for (let i = 0; i < 200 && g2.enemies.length; i++) E.step(g2, 0.05);
+    expect(g2.enemies.length).toBe(0);
+    // 묶기(갈깁스 깁스 고정): 둘레 적이 묶임(스턴)
+    const g3 = setup('u85', [en(1, 230), en(2, 250)]); g3.enemies.forEach((e: { speed: number }) => (e.speed = 50));
+    for (let i = 0; i < 200 && !g3.fx.some((f: { kind: string }) => f.kind === 'sig'); i++) E.step(g3, 0.05);
+    expect(g3.enemies.every((e: { stunUntil: number }) => e.stunUntil > g3.t)).toBe(true);
+  });
+  it('긴 이름 줄이기(2026-11-11): 바꾼 이름 12개, 모든 갈매미 이름 7자 이하', () => {
+    for (const n of ['잔영', '순금', '심해', '앙갈', '재생화', '상춘', '만상', '불퇴', '원금', '귀해', '귀성', '별지기']) expect(E.UNITS.some((u: { name: string }) => u.name === n), n).toBe(true);
+    for (const u of E.UNITS) expect(u.name.length, u.name).toBeLessThanOrEqual(7);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

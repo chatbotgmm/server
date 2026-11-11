@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=b600cc736803';
+import * as E from './engine.js?v=64789a89a14f';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -913,7 +913,14 @@ function drawFieldInner() {
       box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(243,216,158,.08)', C.goldEdge, 2, 1.5);
     }
   }
+  // 장판(초불영제 고유 기술): 남은 시간 동안 바닥에 깔림
+  for (const z of G.zones ?? []) {
+    const left = z.until - G.t, a = Math.min(1, left / 0.4), col = ELEM_COL[z.elem] ?? '200,220,255', pulse = fxLite ? 0 : Math.sin(G.t * 6) * 3;
+    ctx.beginPath(); ctx.ellipse(z.x, z.y - 6, z.r + pulse, (z.r + pulse) * 0.62, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${col},${0.16 * a})`; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${col},${0.6 * a})`; ctx.stroke();
+  }
   // 효과
+  sigLabels = [];
   for (const f of G.fx) {
     const age = G.t - f.t;
     if (f.kind === 'shot') {
@@ -934,6 +941,8 @@ function drawFieldInner() {
       ctx.beginPath(); ctx.arc(f.x, f.y - 10, rr2, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
+    } else if (f.kind === 'sig' && age < 0.75) {
+      drawSig(f, age);
     } else if (f.kind === 'zap' && age < 0.2) {
       ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
     } else if (f.kind === 'combine' || f.kind === 'move') {
@@ -949,6 +958,39 @@ function drawFieldInner() {
 
 // ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
 // 속성마다 다른 투사체가 날아가고(근접은 베기), 닿으면 불꽃 파편. 전설 이상은 크게, 제한 이상은 보스를 칠 때 화면이 살짝 흔들림
+// 초불영제 고유 기술 연출(2026-11-11): 기술 틀마다 모양이 다름. 나간 갈매미 머리 위에 기술 이름
+let sigLabels = [];   // 이번 화면에 쓴 기술 이름 자리(겹침 확인)
+function drawSig(f, age) {
+  const col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255'), a = Math.max(0, 1 - age / 0.45);
+  ctx.save(); ctx.lineCap = 'round';
+  if (a > 0) {
+    ctx.strokeStyle = `rgba(${col},${0.95 * a})`; ctx.fillStyle = `rgba(${col},${0.22 * a})`;
+    if (f.sk === 'pierce') { ctx.lineWidth = 12 * a + 3; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
+    else if (f.sk === 'bounce' || f.sk === 'storm') {
+      for (const [x, y] of f.pts ?? []) { if (f.sk === 'storm') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 6, y - 120); ctx.lineTo(x + 6, y - 60); ctx.lineTo(x - 4, y - 50); ctx.lineTo(x, y - 8); ctx.stroke(); } ctx.beginPath(); ctx.arc(x, y - 10, 14 * (1.4 - a), 0, Math.PI * 2); ctx.fill(); }
+      if (f.sk === 'bounce' && f.pts?.length > 1) { ctx.lineWidth = 3; ctx.beginPath(); f.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 12) : ctx.moveTo(x, y - 12))); ctx.stroke(); }
+    } else if (f.sk === 'nova' || f.sk === 'bind' || f.sk === 'field') {
+      const rr = (f.r ?? 80) * (0.5 + 0.5 * (1 - a));
+      ctx.lineWidth = f.sk === 'bind' ? 5 : 3; ctx.beginPath(); ctx.arc(f.x1, f.y1 - 10, rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (f.sk === 'bind') for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + age * 3; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(an) * rr, f.y1 - 10 + Math.sin(an) * rr); ctx.lineTo(f.x1 + Math.cos(an) * rr * 0.35, f.y1 - 10 + Math.sin(an) * rr * 0.35); ctx.stroke(); }
+    } else {   // smash·execute: 대상에 큰 별·베기
+      const R = 26 + 18 * (1 - a); ctx.lineWidth = 5;
+      if (f.sk === 'execute') { ctx.beginPath(); ctx.moveTo(f.x1 - R, f.y1 - 10 - R); ctx.lineTo(f.x1 + R, f.y1 - 10 + R); ctx.moveTo(f.x1 + R, f.y1 - 10 - R); ctx.lineTo(f.x1 - R, f.y1 - 10 + R); ctx.stroke(); }
+      else { ctx.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4, rr = i % 2 ? R * 0.45 : R; ctx.lineTo(f.x1 + Math.cos(an) * rr, f.y1 - 10 + Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    }
+  }
+  if (!fxLite) {   // 기술 이름(0.75초). 검토(2026-11-11): 옆 갈매미 이름과 겹쳐 → 겹치면 위로 비켜 쓰고, 그래도 겹치면 건너뜀
+    ctx.font = `14px ${FONT}`; const tw = ctx.measureText(f.name).width + 8, base = f.y0 - 76 - age * 16;
+    for (let k = 0; k < 3; k++) {
+      const ty = base - k * 18, r = { x: f.x0 - tw / 2, y: ty - 9, w: tw, h: 18 };
+      if (sigLabels.some((q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h)) continue;
+      sigLabels.push(r); ctx.globalAlpha = Math.min(1, (0.75 - age) / 0.25);
+      text(f.name, f.x0 + 1.5, ty + 1.5, 14, 'rgba(7,19,28,.95)', 'center'); text(f.name, f.x0, ty, 14, '#ffe9a8', 'center');
+      break;
+    }
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
 const ELEM_COL = { FIRE: '255,140,70', WATER: '90,170,255', ICE: '190,240,255', LIGHTNING: '255,225,74', NATURE: '120,220,110', HOLY: '255,240,190', DARK: '186,120,255', NORMAL: '255,200,140' };
 function drawShot(f, age) {
   const sx = f.x0, sy = f.y0 - 24, tx = f.x1, ty = f.y1 - 10, dx = tx - sx, dy = ty - sy, dist = Math.hypot(dx, dy) || 1;
@@ -1236,6 +1278,13 @@ function clipText(t, x, y, maxW, size, color, min = 9) {   // 왼쪽 정렬: min
   let s = t; ctx.font = `${min}px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
   text(s + '…', x, y, min, color);
 }
+function wrapItems(head, items, cx, y, maxW, size, color, maxLines = 3) {   // 가운데 정렬로 「머리 + 항목 · 항목 …」을 항목 단위로 줄 나눔, 마지막 줄만 넘치면 줄임
+  ctx.font = `${size}px ${FONT}`; const lines = []; let cur = head;
+  for (const it of items) { const t = cur === head ? cur + it : `${cur} · ${it}`; if (ctx.measureText(t).width > maxW && cur !== head) { lines.push(cur); cur = it; } else cur = t; }
+  lines.push(cur);
+  const shown = lines.slice(0, maxLines); if (lines.length > maxLines) shown[maxLines - 1] = lines.slice(maxLines - 1).join(' · ');
+  shown.forEach((l, i) => chipLabel(l, cx, y + i * (size + 5), maxW, size, color));
+}
 function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px까지 줄이고, 그래도 길면 「…」(옆 칸과 겹치지 않게)
   for (let sz = size; sz >= 9; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, cx, cy, sz, color, 'center'); return; } }
   let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
@@ -1340,6 +1389,8 @@ function shadeAll(a = 0.72) {
   const y0 = topModal() && !landscape ? 96 : 0, hh = topModal() ? MENU_Y : landscape ? H : PBOT;
   ctx.fillStyle = `rgba(3,9,14,${a})`; ctx.fillRect(0, y0, W, hh - y0); hit(0, y0, W, hh - y0, () => {});
 }
+// 상위 조합식 웹페이지를 새 탭으로(팝업이 막히면 이 탭에서 이동 — 판은 이어하기로 저장됨)
+function openRecipePage() { const w = window.open('/defense/recipes', '_blank'); if (w) w.opener = null; else { saveNow(); location.href = '/defense/recipes'; } }   // 'noopener'를 주면 늘 null이 돌아와 쓰지 않음
 function drawBook() {
   shadeAll(0.35);   // 게임은 계속 흐름(위 정보 줄이 보이게)
   const { x, y, w, h } = modalRect();
@@ -1349,7 +1400,8 @@ function drawBook() {
   bookSearchRect = { x: OX + x + 144, y: y + 12, w: w - 144 - 108, h: 36 };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
   box(x + 144, y + 12, w - 144 - 108, 36, '#0b1e2a', C.edge, 8, 1.5);
   // 보기 옵션 2개
-  const tw2 = (w - 24 - 6) / 2;
+  const tw2 = (w - 24 - 12) / 3;
+  button(x + 12 + 2 * (tw2 + 6), y + 90, tw2, 28, '조합식 전체 보기 ↗', openRecipePage, 'quiet');   // 웹페이지(새 탭)
   [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순']].forEach(([key, nm], i) => {
     const on = bookOpt[key], bx = x + 12 + i * (tw2 + 6);
     box(bx, y + 90, tw2, 28, on ? 'rgba(111,208,138,.16)' : 'rgba(11,30,42,.8)', on ? '#6fd08a' : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
@@ -1455,7 +1507,10 @@ function drawMission() {
   // 판에 있는 탐사 특기 갈매미 안내(보내면 좋은 것)
   // 탐사 특기: 정해진 것 + 그 재료로 만든 초불영제(물려받음). 길면 줄이고 「…」(2026-11-10 특기가 늘어남)
   const sp = E.fieldUnits(G).filter((u) => E.kit(u.id).explore);
-  if (!away.length) chipLabel(sp.length ? `판에 탐사 특기 ${sp.length}마리: ${[...new Set(sp.map((u) => `${E.UNIT[u.id].name}(×${E.kit(u.id).explore})`))].join(' · ')}` : `탐사 특기 ${Object.keys(E.EXPLORE).length}종: ${Object.entries(E.EXPLORE).map(([id, m]) => `${E.UNIT[id].name}×${m}`).join(' · ')} · 이들로 만든 초불영제도`, W / 2, ay + 18, w - 30, 13, sp.length ? C.goldEdge : C.muted);
+  // 2026-11-11 검토: 한 줄에 다 넣으려다 뒤가 「…」로 잘림 → 특기 단위로 줄을 나눔(최대 3줄)
+  if (!away.length) wrapItems(sp.length ? `판에 탐사 특기 ${sp.length}마리: ` : `탐사 특기 ${Object.keys(E.EXPLORE).length}종: `,
+    sp.length ? [...new Set(sp.map((u) => `${E.UNIT[u.id].name}(×${E.kit(u.id).explore})`))] : [...Object.entries(E.EXPLORE).map(([id, m]) => `${E.UNIT[id].name}×${m}`), '이들로 만든 초불영제도'],
+    W / 2, ay + 18, w - 30, 13, sp.length ? C.goldEdge : C.muted, 3);
   const by = y + h - 64, sel = selUnits();
   button(x + 14, by, (w - 40) / 2, 50, sel.length ? `고른 ${sel.length}마리 보내기` : '판에서 먼저 고르기', () => { if (sel.length) { sendSelected(sel); } else modal = null; }, sel.length ? 'primary' : 'normal');
   button(x + 26 + (w - 40) / 2, by, (w - 40) / 2, 50, '모두 불러오기', () => { const n = E.recall(G); say(`${n}마리가 돌아왔어요.`); }, 'normal', away.length > 0);
@@ -1618,7 +1673,9 @@ function drawTitle() {
   musicButton(W - 62, 14);
   button(14, 14, 70, 40, '기록', () => { modal = { kind: 'records' }; }, 'normal');   // 판 기록(조합 포함)
   button(90, 14, 84, 40, '꾸미기', openCustomize, 'normal');   // 클리어 보상: 날개·오라
-  if (cloud.can && !cloud.on) button(180, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');   // 계정 저장 기능이 있는 서버에서만(2026-11-10 사용자 지적: 로그인 버튼이 없음)
+  const lg = cloud.can && !cloud.on;
+  if (lg) button(180, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');
+  button(lg ? 270 : 180, 14, 92, 40, '조합식 ↗', openRecipePage, 'normal');   // 상위 조합식 웹페이지(2026-11-11 사용자 요청: 게임 안에서도 연결)   // 계정 저장 기능이 있는 서버에서만(2026-11-10 사용자 지적: 로그인 버튼이 없음)
   if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(170, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 새 칸이 열렸으면 빨간 점
   fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
 }
@@ -2170,7 +2227,7 @@ function drawChoice() {
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
 // 각자 자기 판을 하고, 0.25초마다 자기 판 모습(짧은 상태 글)을 서버(/defense/room)에 보내며 친구 판 모습을 받아 그린다.
 // 시작(방장)·속도·일시정지는 둘이 함께 바뀐다. 서버는 전달만 하고 게임 판정은 각자 화면에서 한다.
-const net = { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, busy: false, err: '', last: 0 };
+const net = { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, verBad: false, pend: null, busy: false, err: '', last: 0 };
 const lobby = { mode: 'menu', input: '', msg: '', note: '', wait: false };
 const inRoom = () => !!net.token;
 const coop = () => inRoom() && net.round > 0;
@@ -2183,7 +2240,7 @@ async function roomApi(path, body) {
   return j;
 }
 function resetNet() {
-  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, pend: null, err: '', giftSent: 0, giftRecv: 0, sigSeq: 0, sigKind: 0, sigSeen: 0 });
+  Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, verBad: false, pend: null, err: '', giftSent: 0, giftRecv: 0, sigSeq: 0, sigKind: 0, sigSeen: 0 });
 }
 async function makeRoom() {
   if (lobby.wait) return;
@@ -2255,7 +2312,13 @@ function drawSignalPicker() {
   const bw = (w - 36) / 2, bh = (hh - 90) / 2;
   SIGNALS.forEach(([ic, msg], i) => button(x + 12 + (i % 2) * (bw + 12), yy + 62 + Math.floor(i / 2) * (bh + 10), bw, bh, `${ic}  ${msg}`, () => { sendSignal(i); modal = null; }, i === 0 ? 'danger' : 'normal'));
 }
+function drawVerWarn() {   // 같이하기 중 친구와 게임 판이 다름(판 위쪽)
+  if (!coop() || !net.verBad || !net.peerOn) return;
+  box(FIELD.x + 10, FIELD.y + 8, FIELD.w - 20, 34, 'rgba(110,30,24,.95)', '#ff9a85', 8, 2);
+  fitText('친구와 게임 판이 달라요 · 둘 다 새로고침해 주세요', FIELD.x + FIELD.w / 2, FIELD.y + 25, FIELD.w - 40, 15, '#fff3cf', 'center');
+}
 function drawSignalBanner() {   // 받은 신호(판 위쪽 가운데)
+  drawVerWarn();
   if (!sigShow || performance.now() > sigShow.until) return;
   const a = Math.min(1, (sigShow.until - performance.now()) / 400);
   ctx.globalAlpha = a;
@@ -2273,10 +2336,13 @@ function setPause(on) {
 }
 function setSpeed(v) { speed = v; if (coop()) sendCtl({ speed: v }); }
 // 내 판 모습: 적(번호·자리·체력%·보스·모습), 판 위 갈매미(자리·종류), 숫자 몇 개
+// 같이하기 판 확인(2026-11-11): 두 사람의 게임 파일이 다르면(한쪽만 새로고침) 규칙이 달라 판이 어긋남 → 판 모습에 버전을 실어 비교.
+// 버전 = 이 파일 주소의 지문(?v=…). 규칙(engine·data)이 바뀌면 이 파일의 지문도 바뀜. 예전 화면은 버전을 안 보내므로 「다름」으로 봄
+const GAME_VER = (() => { try { return new URL(import.meta.url).searchParams.get('v') || 'dev'; } catch { return 'dev'; } })();
 function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
-    r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
+    v: GAME_VER, r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
     a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, sg: [net.sigSeq, net.sigKind], mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
@@ -2288,6 +2354,7 @@ async function netTick() {
   const tok = net.token, body = { code: net.code, token: tok };
   if (net.pend) { body.ctl = net.pend; net.pend = null; }
   if (scene === 'play' && G && coop()) body.snap = snapOf(G);
+  else body.snap = JSON.stringify({ v: GAME_VER, r: -1 });   // 대기실: 버전만
   try {
     const j = await roomApi('/sync', body);
     if (net.token === tok) { net.err = ''; onSync(j); }
@@ -2309,6 +2376,7 @@ function onSync(j) {
     net.peerRaw = p.snap;
     let s = null;
     try { s = JSON.parse(p.snap); } catch { s = null; }
+    if (s && typeof s === 'object') net.verBad = s.v !== GAME_VER;
     if (s && typeof s === 'object' && s.r === net.round) {   // 지난 판 모습은 버림
       net.prev = net.peer; net.prevAt = net.peerAt; net.peer = s; net.peerAt = performance.now();
       net.prevMap = new Map((Array.isArray(net.prev?.e) ? net.prev.e : []).filter(Array.isArray).map((e) => [e[0], e]));
@@ -2389,10 +2457,11 @@ function drawLobby() {
     text(host ? '내 방 코드' : '들어간 방', W / 2, y + 4, 17, C.gold, 'center');
     codeBoxes(net.code, y + 24);
     const st = net.peerOn ? (host ? '친구가 들어왔어요!' : '방장과 연결됐어요. 방장이 시작하면 바로 시작해요.') : (host ? '친구를 기다리는 중… 코드나 링크를 보내 주세요.' : '방장을 기다리는 중…');
-    fitText(st, W / 2, y + 126, W - 60, 17, net.peerOn ? C.good : C.muted, 'center');
+    const bad = net.peerOn && net.verBad;
+    fitText(bad ? '친구와 게임 판이 달라요. 둘 다 새로고침해 주세요' : st, W / 2, y + 126, W - 60, 17, bad ? C.bad : net.peerOn ? C.good : C.muted, 'center');
     if (host) {
       button(60, y + 152, W - 120, 56, '링크 보내기', shareLink, 'normal', true, '열면 바로 이 방에 들어와요');
-      button(60, y + 224, W - 120, 76, '시작하기', () => sendCtl({ start: true }), 'primary', net.peerOn, net.peerOn ? '둘이 함께 시작해요' : '친구가 들어오면 누를 수 있어요');
+      button(60, y + 224, W - 120, 76, '시작하기', () => sendCtl({ start: true }), 'primary', net.peerOn && !bad, bad ? '판이 같아야 시작할 수 있어요' : net.peerOn ? '둘이 함께 시작해요' : '친구가 들어오면 누를 수 있어요');
     }
     button(60, y + 316, W - 120, 52, '방 나가기', () => leaveRoom(), 'quiet');
   }
@@ -2604,4 +2673,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
