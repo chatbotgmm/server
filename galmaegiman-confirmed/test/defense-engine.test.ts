@@ -34,6 +34,10 @@ describe('랜덤 디펜스 엔진', () => {
     expect(snap(b)).toBe(snap(a));
     expect(E.loadGame(JSON.stringify({ v: -1, g: {} }))).toBeNull();
     expect(E.loadGame('not json')).toBeNull();
+    // 예전(1판, 외부탐사 8장) 저장: 8장을 다 깬 판은 13장까지 다 깬 것으로, 덜 깬 판은 그대로 이어감
+    const old = (done: number) => { const g = E.newGame(3); g.missionDone = done; return JSON.stringify({ v: 1, g: { ...g, rand: g.rand.s, fx: [] } }); };
+    expect(E.loadGame(old(8)).missionDone).toBe(E.REGIONS.length); expect(E.storyLeft(E.loadGame(old(8)))).toBe(false);
+    expect(E.loadGame(old(5)).missionDone).toBe(5);
   });
 
   it('위습 소환: 그 등급 갈매미, 위습이 없으면 실패', () => {
@@ -355,9 +359,11 @@ describe('랜덤 디펜스 엔진', () => {
     const pickTier = (w: number) => Math.max(...Object.keys(E.RULES.bossPick[w]).map((k) => E.GRADES.indexOf(k)));
     for (let w = 10; w <= 55; w += 5) expect(pickTier(w), `${w}`).toBeGreaterThanOrEqual(pickTier(w - 5));   // 뒤로 갈수록 같거나 높게
   });
-  it('스토리 보상: 선택 위습 등급은 장이 갈수록 같거나 높게(1~3 커먼 · 4~6 언커먼 · 7·8 레어), 대장 체력은 장마다 같거나 높게(2026-11-11)', () => {
-    const tier = (r: { pick: Record<string, number> }) => Math.max(...Object.keys(r.pick).map((k) => E.GRADES.indexOf(k)));
-    expect(E.REGIONS.map(tier)).toEqual([0, 0, 0, 1, 1, 1, 2, 2]);
+  it('스토리 13장(2026-11-11): 선택 위습은 1~3 커먼 · 4~6 언커먼 · 7·8 레어, 9~13장은 에픽 위습 1 + 모집권·새우 위주(선택 위습 없음), 대장 체력은 장마다 같거나 높게', () => {
+    expect(E.REGIONS.length).toBe(13); expect(E.RULES.guardHp.length).toBe(13); expect(E.RULES.storyDeadline).toBe(50);
+    const tier = (r: { pick?: Record<string, number> }) => (r.pick ? Math.max(...Object.keys(r.pick).map((k) => E.GRADES.indexOf(k))) : -1);
+    expect(E.REGIONS.map(tier)).toEqual([0, 0, 0, 1, 1, 1, 2, 2, -1, -1, -1, -1, -1]);
+    for (const r of E.REGIONS.slice(8)) { expect(r.reward).toEqual({ EPIC: 1 }); expect(r.ticket).toBeGreaterThanOrEqual(2); expect(r.gold).toBeGreaterThan(E.REGIONS[7].gold); }
     for (let k = 1; k < E.REGIONS.length; k++) expect(E.RULES.guardHp[k], `${k + 1}장`).toBeGreaterThanOrEqual(E.RULES.guardHp[k - 1]);
   });
   it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {

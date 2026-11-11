@@ -84,16 +84,16 @@ function bot(g, st) {
   }
   if (E.awayUnits(g).length && g.enemies.length > 50) E.recall(g);
 }
-const res = [], reasons = {}, ch6s = []; let tops = 0;
+const res = [], reasons = {}, ch6s = [], ends = []; let tops = 0;
 for (let s = 1; s <= N; s++) {
-  const g = E.newGame(s, 'normal', DIFF); let ch6 = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
+  const g = E.newGame(s, 'normal', DIFF); let ch6 = 0, end = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
   const st = { n: 0, wish: WISH[style].filter((id) => E.UNIT[id]) }; let acc = 0;
-  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; }
-  ch6s.push(ch6);
+  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; }
+  ch6s.push(ch6); ends.push(end);
   res.push(g.over === 'win' ? 61 : g.wave);
   const key = g.over + ':' + g.reason.slice(0, 10); reasons[key] = (reasons[key] ?? 0) + 1;
   tops += g.units.filter((u) => E.tierOf(u.id) >= 6).length;
 }
 const hist = {}; res.forEach((w) => (hist[w] = (hist[w] ?? 0) + 1));
 const wins = res.filter((w) => w === 61).length;
-const c6 = ch6s.filter(Boolean); console.log(`${DIFF} ${STYLE}${NOTOP ? ' [6장 전 초불영제 없음]' : ''}: 6장 깬 웨이브 ${c6.length ? Math.round(c6.reduce((a, b) => a + b, 0) / c6.length) : '-'}(${c6.length}/${N}판) | 깬 판 ${wins}/${N} | 끝난 웨이브 ${JSON.stringify(hist)} | 최상위 평균 ${(tops / N).toFixed(1)} | ${JSON.stringify(reasons)}`);
+const c6 = ch6s.filter(Boolean), ce = ends.filter(Boolean); console.log(`${DIFF} ${STYLE}${NOTOP ? ' [6장 전 초불영제 없음]' : ''}: 6장 깬 웨이브 ${c6.length ? Math.round(c6.reduce((a, b) => a + b, 0) / c6.length) : '-'}(${c6.length}/${N}판) | 마지막 ${E.REGIONS.length}장 깬 웨이브 ${ce.length ? Math.round(ce.reduce((a, b) => a + b, 0) / ce.length) : '-'}(${ce.length}/${N}판, 늦게 ${ce.length ? Math.max(...ce) : '-'}) | 깬 판 ${wins}/${N} | 끝난 웨이브 ${JSON.stringify(hist)} | 최상위 평균 ${(tops / N).toFixed(1)} | ${JSON.stringify(reasons)}`);

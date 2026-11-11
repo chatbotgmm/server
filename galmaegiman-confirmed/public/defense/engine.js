@@ -36,7 +36,7 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 export const RULES = {
   // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
   recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10,   // 10웨이브 보스 처치마다 모집권 1(소량). 보스가 5웨이브마다로 바뀐 뒤에도 모집권 양은 그대로
-  storyDeadline: 50,   // 스토리 8장은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
+  storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
@@ -79,7 +79,9 @@ export const RULES = {
   startPick: {}, bossPickEach: {}, bossPick: { 5: { COMMON: 1 }, 10: { COMMON: 1 }, 15: { COMMON: 1 }, 20: { UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { RARE: 1 }, 45: { RARE: 1 }, 50: { RARE: 1 }, 55: { RARE: 1 } },
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
-  guardHp: [20000, 150000, 400000, 600000, 2500000, 3000000, 6000000, 8000000],   // 2026-11-11 보상 검토: 5장이 6장보다 높던 것(300만·250만)을 맞바꿈   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
+  // 2026-11-11 보상 검토: 5장이 6장보다 높던 것(300만·250만)을 맞바꿈.
+  // 2026-11-11 사용자 요청: 외부탐사 13장(마감은 그대로 50웨이브) → 7장부터 대장을 약하게 쪼개 촘촘히(예전 7·8장 600만·800만)
+  guardHp: [20000, 150000, 400000, 600000, 2500000, 3000000, 3200000, 3600000, 4000000, 4500000, 5000000, 5600000, 6500000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
@@ -95,8 +97,14 @@ export const REGIONS = [
   // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
   { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
     choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 32, reward: { EPIC: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 36, reward: { EPIC: 1, LEGEND: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 30, reward: { EPIC: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 31, reward: { EPIC: 1, LEGEND: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  // 9~13장(2026-11-11 사용자 요청: 외부탐사 13장까지, 새 외전 이름, 보상은 새우·모집권 위주 — 위습은 에픽 1개씩만, 선택 위습 없음)
+  { ch: 9, name: '안개 속 항로(외전)', place: '먼 바다', img: 'identity-ship', look: 'e:v19', level: 32, reward: { EPIC: 1 }, ticket: 2, gold: 16000 },
+  { ch: 10, name: '그림자 상인(외전)', place: '항구 시장', img: 'identity-market', look: 'e:v20', level: 34, reward: { EPIC: 1 }, ticket: 2, gold: 18000 },
+  { ch: 11, name: '사라진 주민들(외전)', place: '마을 골목', img: 'identity-residents', look: 'e:v16', level: 35, reward: { EPIC: 1 }, ticket: 2, gold: 20000 },
+  { ch: 12, name: '해안의 잔불(외전)', place: '해안 절벽', img: 'identity-coast-panorama', look: 'e:v14', level: 36, reward: { EPIC: 1 }, ticket: 2, gold: 23000 },
+  { ch: 13, name: '균열의 심장(외전)', place: '석상 아래', img: 'identity-statue', look: 'b:u01', level: 37, reward: { EPIC: 1 }, ticket: 3, gold: 26000 },
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -363,13 +371,15 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal',
   };
 }
 // 이어하기(사용자 요청 2026-11-08): 판 전체를 글로 저장하고 되살린다. 규칙 판이 바뀌면(SAVE_VER) 예전 저장은 버림
-export const SAVE_VER = 1;
+// 2: 외부탐사 13장(2026-11-11). 1 저장본은 버리지 않고 옮김 — 예전 8장을 다 깬 판은 13장까지 다 깬 것으로(갑자기 마감에 걸리지 않게)
+export const SAVE_VER = 2, OLD_STORY_LEN = 8;
 export function saveGame(g) { return JSON.stringify({ v: SAVE_VER, g: { ...g, rand: g.rand.s, fx: [] } }); }
 export function loadGame(text) {
   try {
     const o = JSON.parse(text);
-    if (!o || o.v !== SAVE_VER || !o.g || !Array.isArray(o.g.units)) return null;
+    if (!o || (o.v !== SAVE_VER && o.v !== 1) || !o.g || !Array.isArray(o.g.units)) return null;
     const g = o.g, s = g.rand >>> 0;
+    if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
     g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master';
     return g;
@@ -786,7 +796,7 @@ export function step(g, dt) {
     if (r.choice) g.choice = { k: ms.k };   // 고르는 보상: 화면에서 chooseReward로
     else if (r.unit) { const nu = addUnit(g, r.unit, SPAWN.x, SPAWN.y); g.fx.push({ kind: 'combine', x: nu.x, y: nu.y, t: g.t }); }
     news(g, `${g.peerDmg ? '친구와 함께 ' : ''}외부탐사 「${r.name}」 성공! ${wispText(r.reward)}${r.pick ? ` · ${pickText(r.pick)}` : ''}${r.ticket ? ` · 모집권 ${r.ticket}` : ''}${r.gold ? ` · 새우 ${r.gold}` : ''}${r.choice ? ' · 보상 하나를 골라요' : r.unit ? ` · ${UNIT[r.unit].name}` : ''}${ms.k + 1 < REGIONS.length ? ` · ${ms.k + 2}장이 열렸어요` : ''}`);
-    if (ms.k + 1 >= REGIONS.length) recall(g);   // 2026-11-10 사용자 요청: 보낸 갈매미는 다음 장도 계속 탐사, 마지막(8장)을 깨면 자동으로 돌아옴
+    if (ms.k + 1 >= REGIONS.length) recall(g);   // 2026-11-10 사용자 요청: 보낸 갈매미는 다음 장도 계속 탐사, 마지막 장(13장)을 깨면 자동으로 돌아옴
     g.missionDone++; g.mission = null;
   }
   g.fx = g.fx.filter((f) => g.t - f.t < 0.8);
