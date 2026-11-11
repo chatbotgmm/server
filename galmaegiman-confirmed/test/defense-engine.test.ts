@@ -399,11 +399,11 @@ describe('랜덤 디펜스 엔진', () => {
     const pickTier = (w: number) => Math.max(...Object.keys(E.RULES.bossPick[w]).map((k) => E.GRADES.indexOf(k)));
     for (let w = 10; w <= 55; w += 5) expect(pickTier(w), `${w}`).toBeGreaterThanOrEqual(pickTier(w - 5));   // 뒤로 갈수록 같거나 높게
   });
-  it('스토리 13장(2026-11-11): 선택 위습은 1~3 커먼 · 4~6 언커먼 · 7·8 레어, 9~13장은 에픽 위습 1 + 모집권·새우 위주(선택 위습 없음), 대장 체력은 장마다 같거나 높게', () => {
+  it('스토리 13장(2026-11-11): 선택 위습은 1~3 커먼 · 4~6 언커먼 · 7·8 레어, 9~13장은 새우 없이 에픽 위습 1 + 커먼 선택 5·모집권 2 또는 모집권 10, 대장 체력은 장마다 같거나 높게', () => {
     expect(E.REGIONS.length).toBe(13); expect(E.RULES.guardHp.length).toBe(13); expect(E.RULES.storyDeadline).toBe(50);
     const tier = (r: { pick?: Record<string, number> }) => (r.pick ? Math.max(...Object.keys(r.pick).map((k) => E.GRADES.indexOf(k))) : -1);
-    expect(E.REGIONS.map(tier)).toEqual([0, 0, 0, 1, 1, 1, 2, 2, -1, -1, -1, -1, -1]);
-    for (const r of E.REGIONS.slice(8)) { expect(r.reward).toEqual({ EPIC: 1 }); expect(r.ticket).toBeGreaterThanOrEqual(2); expect(r.gold).toBeGreaterThan(E.REGIONS[7].gold); }
+    expect(E.REGIONS.map(tier)).toEqual([0, 0, 0, 1, 1, 1, 2, 2, 0, -1, 0, 0, -1]);
+    for (const r of E.REGIONS.slice(8)) { expect(r.reward).toEqual({ EPIC: 1 }); expect(r.gold ?? 0).toBe(0); expect(r.pick ? r.pick.COMMON === 5 && r.ticket === 2 : r.ticket === 10, `${r.ch}장`).toBe(true); }
     for (let k = 1; k < E.REGIONS.length; k++) expect(E.RULES.guardHp[k], `${k + 1}장`).toBeGreaterThanOrEqual(E.RULES.guardHp[k - 1]);
   });
   it('방어는 40웨이브까지 완만(45 이하), 그 뒤 가파르게', () => {

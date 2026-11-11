@@ -102,12 +102,13 @@ export const REGIONS = [
     choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
   { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 30, reward: { EPIC: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 9000 },
   { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 31, reward: { EPIC: 1, LEGEND: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
-  // 9~13장(2026-11-11 사용자 요청: 외부탐사 13장까지, 새 외전 이름, 보상은 새우·모집권 위주 — 위습은 에픽 1개씩만, 선택 위습 없음)
-  { ch: 9, name: '안개 속 항로(외전)', place: '먼 바다', img: 'identity-ship', look: 'e:v19', level: 32, reward: { EPIC: 1 }, ticket: 2, gold: 16000 },
-  { ch: 10, name: '그림자 상인(외전)', place: '항구 시장', img: 'identity-market', look: 'e:v20', level: 34, reward: { EPIC: 1 }, ticket: 2, gold: 18000 },
-  { ch: 11, name: '사라진 주민들(외전)', place: '마을 골목', img: 'identity-residents', look: 'e:v16', level: 35, reward: { EPIC: 1 }, ticket: 2, gold: 20000 },
-  { ch: 12, name: '해안의 잔불(외전)', place: '해안 절벽', img: 'identity-coast-panorama', look: 'e:v14', level: 36, reward: { EPIC: 1 }, ticket: 2, gold: 23000 },
-  { ch: 13, name: '균열의 심장(외전)', place: '석상 아래', img: 'identity-statue', look: 'b:u01', level: 37, reward: { EPIC: 1 }, ticket: 3, gold: 26000 },
+  // 9~13장(2026-11-11 사용자 요청: 외부탐사 13장까지, 새 외전 이름). 보상: 새우 없음(같은 날 사용자 요청 — 강화 뒤 새우가 남아돎) → 에픽 위습 1 +
+  // 9·11·12장 커먼 선택 위습 5 + 모집권 2 / 10·13장 모집권 10
+  { ch: 9, name: '안개 속 항로(외전)', place: '먼 바다', img: 'identity-ship', look: 'e:v19', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
+  { ch: 10, name: '그림자 상인(외전)', place: '항구 시장', img: 'identity-market', look: 'e:v20', level: 34, reward: { EPIC: 1 }, ticket: 10 },
+  { ch: 11, name: '사라진 주민들(외전)', place: '마을 골목', img: 'identity-residents', look: 'e:v16', level: 35, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
+  { ch: 12, name: '해안의 잔불(외전)', place: '해안 절벽', img: 'identity-coast-panorama', look: 'e:v14', level: 36, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
+  { ch: 13, name: '균열의 심장(외전)', place: '석상 아래', img: 'identity-statue', look: 'b:u01', level: 37, reward: { EPIC: 1 }, ticket: 10 },
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
