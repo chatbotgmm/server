@@ -340,7 +340,7 @@ describe('랜덤 디펜스 엔진', () => {
     g.units = [put(1, 'u36', 300), ...[0, 1, 2, 3].map((i) => put(10 + i, 'u77', 280 + i * 10))]; b = E.buffsOf(g);   // 황금향 넷(+15%×4 = 60%) → 상한 40%
     expect(b.get(1)[0]).toBeCloseTo(1 + E.BUFF_MAX);
   });
-  it('에픽 리롤(2026-11-12): 위습·선택 위습으로 받은 에픽만 리롤권으로 다른 에픽으로, 조합한 에픽은 안 됨, 10웨이브 보스마다 리롤권 1', () => {
+  it('에픽 이상 리롤(2026-11-12): 위습·선택 위습으로 받은 에픽 이상만 리롤권으로 다른 에픽으로, 조합한 에픽은 안 됨, 10웨이브 보스마다 리롤권 1', () => {
     const g = E.newGame(9); g.units = []; g.wisps.EPIC = 1;
     const got = E.summon(g, 'EPIC').unit; expect(got.got).toBe(true);
     expect(E.rerollUnit(g, got.uid)).toBeNull();                       // 리롤권 없음
@@ -351,6 +351,9 @@ describe('랜덤 디펜스 엔진', () => {
     const made = E.combine(g, r); g.rerolls = 1;
     expect(made.got).toBeFalsy(); expect(E.rerollUnit(g, made.uid)).toBeNull(); expect(g.rerolls).toBe(1);   // 조합한 것은 안 됨
     expect(E.RULES.bossRerollEvery).toBe(10);
+    g.wisps.LEGEND = 1; const lg = E.summon(g, 'LEGEND').unit, lw = lg.id;   // 에픽 이상: 전설도 같은 등급의 다른 갈매미로
+    expect(E.rerollUnit(g, lg.uid)).toBeTruthy(); expect(lg.id).not.toBe(lw); expect(E.UNIT[lg.id].grade).toBe(E.UNIT[lw].grade);
+    g.wisps.RARE = 1; g.rerolls = 1; const ra = E.summon(g, 'RARE').unit; expect(E.rerollUnit(g, ra.uid)).toBeNull();   // 레어는 안 됨
   });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
