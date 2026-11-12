@@ -385,15 +385,15 @@ export function kitTips(k) {
   return out;
 }
 
-export function pathPos(s) {
+export function pathPos(s) {   // 2026-11-12 사용자 요청: 반시계 방향(왼쪽 위에서 아래로 → 오른쪽 → 위 → 왼쪽)
   let d = ((s % PERIM) + PERIM) % PERIM;
-  if (d < LW) return { x: LOOP.x0 + d, y: LOOP.y0 };
-  d -= LW;
-  if (d < LH) return { x: LOOP.x1, y: LOOP.y0 + d };
+  if (d < LH) return { x: LOOP.x0, y: LOOP.y0 + d };
   d -= LH;
-  if (d < LW) return { x: LOOP.x1 - d, y: LOOP.y1 };
+  if (d < LW) return { x: LOOP.x0 + d, y: LOOP.y1 };
   d -= LW;
-  return { x: LOOP.x0, y: LOOP.y1 - d };
+  if (d < LH) return { x: LOOP.x1, y: LOOP.y1 - d };
+  d -= LH;
+  return { x: LOOP.x1 - d, y: LOOP.y0 };
 }
 // 배치: 길(적이 도는 사각형) 안쪽에서만 자유롭게(사용자 요청 2026-11-08). 길 폭 40의 안쪽 가장자리에서 그림 여유만큼 들임
 export const INNER = { x0: LOOP.x0 + 20 + 18, x1: LOOP.x1 - 20 - 18, y0: LOOP.y0 + 20 + 30, y1: LOOP.y1 - 20 - 4 };

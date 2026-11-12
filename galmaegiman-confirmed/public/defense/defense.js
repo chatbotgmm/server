@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=d0693f2e5a97';
+import * as E from './engine.js?v=2843813d38ad';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -46,7 +46,9 @@ const PEER_H = 208;          // 세로 화면 같이하기: 아래에 붙는 친
 let stripOn = false;         // 친구 판 줄을 붙였는가(frame이 정함)
 // 넓은 가로 화면(2026-11-11 검토: 긴 휴대폰에서 화면 가운데 61%만 쓰고 글자가 아주 작음): 오른쪽을 「창」 칸과 「메뉴」 칸 둘로 나누고 둘 다 WK배로 키움.
 // 화면 비율이 약 2:1 이상일 때만(그보다 좁으면 예전처럼 한 칸). 같이하기 중에는 친구 판이 있어 예전 배치
+let BOARD_X = 0;             // 넓은 화면에서 판이 시작하는 가로 위치(2026-11-12 사용자 요청: 판을 가운데 — 창 칸 | 판 | 메뉴 칸)
 let wide = false, WK = 1, AX = 772, AY = 0, BX = 772, BYT = 0, coopOn = false;
+let fullTitle = true;        // 첫 화면·대기실은 가로 화면 폭 전체(밝은 배경 양옆에 검은 띠가 안 보이게, frame이 정함)
 let PBOT = H;                // 아래 메뉴 판의 바닥(세로 화면에서 휴대폰이 길면 늘어남)
 let OY = 0;                  // 지금 그리는 곳의 세로 위치(첫 화면을 가운데로 내릴 때)
 let OX = 0;                  // 지금 그리는 곳의 가로 위치(오른쪽 창을 그릴 때 누르기 영역에 더함)
@@ -74,11 +76,13 @@ function fit() {
   const wk = Math.min((Math.min(H * window.innerWidth / window.innerHeight, 2400) - SIDE_X - 16) / (2 * W), H / 664);
   wide = landscape && !coopOn && wk >= 1.05; WK = wide ? wk : 1;
   VW = wide ? Math.round(SIDE_X + 2 * W * WK + 16) : landscape ? SIDE_X + W : W;
+  if (landscape && fullTitle) VW = Math.max(VW, Math.min(2400, Math.round(H * window.innerWidth / window.innerHeight)));
   // 세로 화면(사용자 요청 2026-11-08: 휴대폰 위아래 빈 곳 없이): 화면이 더 길면 그만큼 세로를 늘려(최대 +300) 아래 메뉴를 크게
   const base = stripOn && !landscape ? H + PEER_H : H;
   VH = landscape ? H : Math.round(Math.max(base, Math.min(VW * window.innerHeight / window.innerWidth, base + 300)));
   PBOT = wide ? Math.min(672 + 540, Math.floor(672 + H / WK - 8)) : landscape ? H : VH - (stripOn ? PEER_H : 0);
-  if (wide) { AX = SIDE_X; AY = Math.round((H - 664 * WK) / 2); BX = Math.round(SIDE_X + W * WK + 8); BYT = Math.round((H - (PBOT - 672) * WK) / 2 - 672 * WK); }   // 두 칸 모두 세로 가운데
+  BOARD_X = wide ? Math.round(W * WK + 8) : 0;
+  if (wide) { AX = 0; AY = Math.round((H - 664 * WK) / 2); BX = BOARD_X + SIDE_X; BYT = Math.round((H - (PBOT - 672) * WK) / 2 - 672 * WK); }   // 두 칸 모두 세로 가운데
   // 화질(사용자 지적 2026-11-08): 화면 크기(정수 px)를 먼저 정하고 캔버스 픽셀은 그 × 기기 배율로 맞춘다.
   // 전에는 둘을 따로 내림해 일부 기기에서 화면 전체가 한 번 더 늘어나 흐려질 수 있었음
   const cssW = Math.floor(VW * Math.min(window.innerWidth / VW, window.innerHeight / VH));
@@ -533,12 +537,12 @@ const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.ha
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
-  if (landscape) return p.x >= SIDE_X ? (modal?.scrollable ? modal : null) : null;
+  if (landscape) return (wide ? p.x < BOARD_X : p.x >= SIDE_X) ? (modal?.scrollable ? modal : null) : null;
   return modal?.scrollable ? modal : null;
 }
 // 화면 좌표 → 판 좌표(가로 배치 왼쪽 판은 LS배로 그려짐)
-const toBoard = (p) => (landscape ? { x: p.x / LS, y: p.y / LS } : p);
-const onBoard = (p) => !landscape || p.x < SIDE_X;
+const toBoard = (p) => (landscape ? { x: (p.x - BOARD_X) / LS, y: p.y / LS } : p);
+const onBoard = (p) => !landscape || (p.x >= BOARD_X && p.x < BOARD_X + SIDE_X);
 cv.addEventListener('pointerdown', (ev) => {
   if (!sfxState.ctx) sfxCtx();   // 첫 누르기에서 소리 준비
   const p = toLogical(ev), bp = toBoard(p);
@@ -705,7 +709,7 @@ function drawLanesRaw() {
   ctx.lineWidth = 1.5; ctx.strokeStyle = th.edge;
   ctx.strokeRect(L.x0 - lane / 2, L.y0 - lane / 2, L.x1 - L.x0 + lane, L.y1 - L.y0 + lane);
   ctx.strokeRect(L.x0 + lane / 2, L.y0 + lane / 2, L.x1 - L.x0 - lane, L.y1 - L.y0 - lane);
-  text('▶', L.x0 + 2, L.y0, 16, C.goldEdge, 'center');
+  text('▼', L.x0, L.y0 + 2, 16, C.goldEdge, 'center');   // 반시계 방향: 아래로 출발
   // 나타나는 곳
   ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
   // 커먼이 나오는 6곳(오른쪽 길 안쪽): 발밑에 옅은 고리
@@ -1504,7 +1508,7 @@ function modalRect() {
 function shadeAll(a = 0.72) {
   const y0 = topModal() && !landscape ? 96 : 0, hh = topModal() ? MENU_Y : landscape ? H : PBOT;
   ctx.fillStyle = `rgba(3,9,14,${a})`;
-  if (wide && scene === 'play' && !topModal() && OS === 1 && OX > 0) { ctx.fillRect(SIDE_X - OX, 0, VW - SIDE_X, H); hit(SIDE_X - OX, 0, VW - SIDE_X, H, () => {}); return; }   // 넓은 화면의 일시정지·결과 창: 오른쪽 전체
+  if (wide && scene === 'play' && !topModal() && OS === 1 && OX > 0) { ctx.fillRect(BX - OX, 0, VW - BX, H); hit(BX - OX, 0, VW - BX, H, () => {}); return; }   // 넓은 화면의 일시정지·결과 창: 오른쪽 전체
   ctx.fillRect(0, y0, W, hh - y0); hit(0, y0, W, hh - y0, () => {});
 }
 // 상위 조합식 웹페이지를 새 탭으로(팝업이 막히면 이 탭에서 이동 — 판은 이어하기로 저장됨)
@@ -1730,10 +1734,13 @@ function drawOverCoop() {
   if (G.cosNews) fitText(G.cosNews, W / 2, y + 454, w - 40, 13, C.good, 'center');
 }
 function drawTitleBack() {   // 화면 전체 너비
-  drawBackground();
-  const vil = img(`${ART}/village/identity-coast-panorama.webp`);
-  if (vil) { const s = Math.max(W * 1.6, VW) / vil.naturalWidth; ctx.globalAlpha = 0.9; ctx.drawImage(vil, (VW - vil.naturalWidth * s) / 2, 120, vil.naturalWidth * s, vil.naturalHeight * s); ctx.globalAlpha = 1; }
-  ctx.fillStyle = 'rgba(7,19,28,.35)'; ctx.fillRect(0, 0, VW, VH);
+  // 2026-11-11 사용자 의견(첫 화면이 너무 어둡고 칙칙함): 밝은 하늘·바다(먼 바다 그림) 위에 마을. 같이하기 대기실은 글자가 많아 조금 어둡게
+  const sky = ctx.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, '#6fbdf0'); sky.addColorStop(0.45, '#bfe6fb'); sky.addColorStop(1, '#2f9fd6');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, VH);
+  const sea = img(`${ART}/village/10-distant-bay.webp`);
+  if (sea) { const s = Math.max(VW / sea.naturalWidth, VH / sea.naturalHeight); ctx.drawImage(sea, (VW - sea.naturalWidth * s) / 2, VH - sea.naturalHeight * s, sea.naturalWidth * s, sea.naturalHeight * s); }
+  // 마을 그림은 뺌(2026-11-11 사용자 의견: 바다 위에 떠 있는 것처럼 보여 어색함)
+  if (scene === 'lobby') { ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, VW, VH); }
   // 떠오르는 빛 알갱이(2026-11-10 사용자 의견: 첫 화면이 허전함). 효과 줄이기면 움직이지 않음
   const t = fxLite ? 0 : performance.now() / 1000;
   for (let k = 0; k < 28; k++) {
@@ -1764,8 +1771,9 @@ function drawTitleParade() {
 function titleText(s, x, y, size, top, bottom) {   // 금빛 그러데이션 + 은은한 빛
   ctx.save(); ctx.font = `${size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2); g.addColorStop(0, top); g.addColorStop(1, bottom);
-  ctx.shadowColor = 'rgba(243,216,158,.55)'; ctx.shadowBlur = 18; ctx.fillStyle = g; ctx.fillText(s, x, y);
-  ctx.shadowBlur = 0; ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(80,52,20,.55)'; ctx.strokeText(s, x, y);
+  ctx.lineJoin = 'round'; ctx.shadowColor = 'rgba(8,30,52,.55)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+  ctx.lineWidth = Math.max(5, size * 0.16); ctx.strokeStyle = '#12324d'; ctx.strokeText(s, x, y);   // 짙은 남색 테두리(밝은 하늘 위에서도 읽히게)
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.fillStyle = g; ctx.fillText(s, x, y);
   ctx.restore();
 }
 // 지금 이용자 수(2026-11-11 사용자 요청: 첫 화면 오른쪽 아래에 아주 작게). 이 탭의 무작위 번호로 30초마다 신호(화면이 보일 때만). 서버가 없거나 실패하면 안 보임
@@ -1783,8 +1791,9 @@ function drawOnline() {
   if (onlineN <= 0) return;
   ctx.font = `11px ${FONT}`; const t = `지금 ${onlineN.toLocaleString('ko-KR')}명`, tw = ctx.measureText(t).width;
   const x = VW - 12, y = VH - 12;   // 화면 전체의 오른쪽 아래 구석(가로 화면이면 가운데 메뉴 칸 밖)
+  box(x - tw - 18, y - 9, tw + 24, 18, 'rgba(9,26,40,.7)', null, 9);
   ctx.beginPath(); ctx.arc(x - tw - 8, y, 3, 0, Math.PI * 2); ctx.fillStyle = '#6fd08a'; ctx.fill();
-  text(t, x, y, 11, '#8a9ba3', 'right');
+  text(t, x, y, 11, '#dfe8ec', 'right');
 }
 function drawTitle() {
   titleText('갈매미맨', W / 2, 86, 30, '#f7e3b0', '#c9a463');
@@ -1792,6 +1801,7 @@ function drawTitle() {
   // 제목 아래 장식 줄(가운데 마름모)
   ctx.strokeStyle = 'rgba(243,216,158,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - 150, 172); ctx.lineTo(W / 2 - 12, 172); ctx.moveTo(W / 2 + 12, 172); ctx.lineTo(W / 2 + 150, 172); ctx.stroke();
   ctx.save(); ctx.translate(W / 2, 172); ctx.rotate(Math.PI / 4); ctx.fillStyle = C.goldEdge; ctx.fillRect(-4.5, -4.5, 9, 9); ctx.restore();
+  box(28, 566, W - 56, 126, 'rgba(255,250,235,.82)', '#e9cf8f', 16, 2);   // 갈매미 행렬 받침(밝은 배경에 묻히지 않게)
   drawTitleParade();
   // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
   box(28, 196, W - 56, 156, 'rgba(11,30,42,.9)', C.edge, 12);
@@ -1805,6 +1815,7 @@ function drawTitle() {
   if (resumeMeta) button(40, 708, W - 80, 44, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'normal');
   button(40, 764, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, 764, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
+  box(28, 848, W - 56, 32, 'rgba(9,26,40,.78)', null, 16);   // 밝은 바다 위에서 읽히게
   if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 864, W - 40, 14, C.good, 'center');
   else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 864, W - 40, 14, C.muted, 'center');
   else {
@@ -1816,7 +1827,7 @@ function drawTitle() {
   const lg = cloud.can && !cloud.on;
   if (lg) button(112, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');
   if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(100, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 꾸미기 새 칸이 열렸으면 메뉴에 빨간 점
-  fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 72, 34, 120, 13, C.muted, 'right');
+  box(W - 196, 22, 128, 24, 'rgba(9,26,40,.7)', null, 12); fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 76, 34, 112, 13, '#e6eef2', 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
 // 선택 위습 창: 등급 칸을 고르고, 그 등급 갈매미를 눌러 소환
@@ -2360,7 +2371,7 @@ function drawTutorial() {
   let by = st.by;
   ctx.save();
   if (landscape) {   // 가로 배치: 메뉴·조합법은 오른쪽 열, 갈매미 끌기는 왼쪽 큰 판
-    if (tut.step === 1) { ctx.scale(LS, LS); OS = LS; } else if (wide) { ctx.translate(BX, BYT); ctx.scale(WK, WK); OX = BX; OY = BYT; OS = WK; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+    if (tut.step === 1) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X; } else if (wide) { ctx.translate(BX, BYT); ctx.scale(WK, WK); OX = BX; OY = BYT; OS = WK; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
   }
   box(bx, by, bw, bh, 'rgba(19,44,59,.97)', C.goldEdge, 12, 2);
   ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 6, bw - 120, bh - 12); ctx.clip(); wrap(st.msg, bx + 14, by + 12, bw - 130, 15, C.text, 22); ctx.restore();
@@ -2855,7 +2866,7 @@ function frame(now) {
   // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
-  if (wantStrip !== stripOn || coop() !== coopOn) { stripOn = wantStrip; coopOn = coop(); fit(); }
+  if (wantStrip !== stripOn || coop() !== coopOn || (scene !== 'play') !== fullTitle) { stripOn = wantStrip; coopOn = coop(); fullTitle = scene !== 'play'; fit(); }
   musicSync(); sfxTick(); placeSearch();
   hits = [];
   const tDraw0 = performance.now();
@@ -2872,13 +2883,13 @@ function frame(now) {
     drawBackground();
     if (landscape) {
       // 왼쪽: 위 정보 줄 + 판을 크게
-      ctx.save(); ctx.scale(LS, LS); OS = LS;
+      ctx.save(); ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X;
       drawField(); drawHud(); drawSignalBanner(); drawToast();
-      ctx.restore(); OS = 1;
+      ctx.restore(); OS = 1; OX = 0;
       // 오른쪽: 창이 열리면 창(열 전체), 없으면 위에 피해 미니판(같이하기면 친구 판) + 아래 메뉴
       if (wide) {   // 넓은 화면: 창 칸(A) + 메뉴 칸(B), 일시정지·결과 창은 오른쪽 가운데에 원래 크기로
         if (topModal()) { colA(drawModal); colB(drawBottom); }
-        else if (modal) { const fx = Math.round(SIDE_X + (VW - SIDE_X - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
+        else if (modal) { const fx = Math.round(BX + (VW - BX - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
         else { colA(drawSideTop); colB(drawBottom); }
         if (info) colA(drawInfo);
       } else {
