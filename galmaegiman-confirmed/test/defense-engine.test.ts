@@ -340,6 +340,18 @@ describe('랜덤 디펜스 엔진', () => {
     g.units = [put(1, 'u36', 300), ...[0, 1, 2, 3].map((i) => put(10 + i, 'u77', 280 + i * 10))]; b = E.buffsOf(g);   // 황금향 넷(+15%×4 = 60%) → 상한 40%
     expect(b.get(1)[0]).toBeCloseTo(1 + E.BUFF_MAX);
   });
+  it('에픽 리롤(2026-11-12): 위습·선택 위습으로 받은 에픽만 리롤권으로 다른 에픽으로, 조합한 에픽은 안 됨, 10웨이브 보스마다 리롤권 1', () => {
+    const g = E.newGame(9); g.units = []; g.wisps.EPIC = 1;
+    const got = E.summon(g, 'EPIC').unit; expect(got.got).toBe(true);
+    expect(E.rerollUnit(g, got.uid)).toBeNull();                       // 리롤권 없음
+    g.rerolls = 1; const was = got.id;
+    expect(E.rerollUnit(g, got.uid)).toBeTruthy(); expect(got.id).not.toBe(was); expect(E.UNIT[got.id].grade).toBe('EPIC'); expect(g.rerolls).toBe(0);
+    const r = E.RECIPES.find((q: { out: string }) => E.UNIT[q.out].grade === 'EPIC');
+    r.in.forEach((id: string, i: number) => g.units.push({ uid: 500 + i, id, x: 200, y: 300, tx: 200, ty: 300, cd: 0, born: 0 }));
+    const made = E.combine(g, r); g.rerolls = 1;
+    expect(made.got).toBeFalsy(); expect(E.rerollUnit(g, made.uid)).toBeNull(); expect(g.rerolls).toBe(1);   // 조합한 것은 안 됨
+    expect(E.RULES.bossRerollEvery).toBe(10);
+  });
   it('강화하면 공격력과 공격 속도가 함께 오름', () => {
     const g = E.newGame(1), k = E.kit('u01');
     expect(E.gapOf(g, k)).toBeCloseTo(k.gap);

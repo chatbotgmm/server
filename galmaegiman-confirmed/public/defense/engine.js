@@ -35,7 +35,8 @@ const LW = LOOP.x1 - LOOP.x0, LH = LOOP.y1 - LOOP.y0, PERIM = 2 * (LW + LH);
 // ── 규칙 수치(시험 봇으로 맞춤) ──
 export const RULES = {
   // 용병모집(사용자 요청 2026-11-08): 모집권 4개로 레어 30% · 에픽 40% · 실패 30%
-  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10, bossTicketLateFrom: 40, bossTicketLate: 2,   // 10웨이브 보스 처치마다 모집권 1(소량). 2026-11-11 사용자 요청: 40웨이브부터는 5웨이브 보스마다 2개씩
+  recruitCost: 4, recruitOdds: { RARE: 0.3, EPIC: 0.4 }, bossTicket: 1, bossTicketEvery: 10, bossTicketLateFrom: 40, bossTicketLate: 2, bossRerollEvery: 10,   // 에픽 리롤권: 10웨이브 보스마다 1개(2026-11-12)
+    // 10웨이브 보스 처치마다 모집권 1(소량). 2026-11-11 사용자 요청: 40웨이브부터는 5웨이브 보스마다 2개씩
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
@@ -474,7 +475,7 @@ export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor)
 export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr);            // 마법방어
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal', diff = 'master') {
   return {
-    seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
+    seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, rerolls: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
     warn: 0, warnAcc: 0,
     wisps: { COMMON: RULES.startWisps, UNCOMMON: RULES.startUncommon ?? 0, RARE: 0, EPIC: 0, LEGEND: 0 },
@@ -495,7 +496,7 @@ export function loadGame(text) {
     const g = o.g, s = g.rand >>> 0;
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= [];
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0;
     return g;
   } catch { return null; }
 }
@@ -566,7 +567,7 @@ export function summon(g, grade = 'COMMON') {
   g.wisps[grade]--;
   const pool = BY_GRADE[grade], id = pool[Math.floor(g.rand() * pool.length)];
   const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g, id) : null;
-  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r); u.got = true;   // 위습·선택 위습·용병모집으로 받음(리롤 가능 표시)
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
@@ -578,7 +579,7 @@ export function summonPick(g, id) {
   if (!(g.picks[grade] > 0)) return { ok: false, why: `${GRADE_NAME[grade]} 선택 위습이 없어요.` };
   g.picks[grade]--;
   const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 34, cs = grade === 'COMMON' ? commonSpot(g, id) : null;
-  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r);
+  const u = cs ? addUnit(g, id, cs.x, cs.y) : addUnit(g, id, SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r); u.got = true;   // 위습·선택 위습·용병모집으로 받음(리롤 가능 표시)
   autoStoreNew(g, u);
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   return { ok: true, unit: u };
@@ -608,6 +609,18 @@ export function recruit(g) {
   g.wisps[grade] = (g.wisps[grade] ?? 0) + 1;
   const res = summon(g, grade);
   return { ok: true, unit: res.unit, grade };
+}
+// 에픽 리롤(2026-11-12 사용자 요청): 보상으로 받은 에픽(위습·선택 위습·용병모집, got 표시)만 리롤권 1개로 다른 에픽으로 바꿈. 조합으로 만든 에픽은 안 됨
+export const canReroll = (g, u) => !!u && !!u.got && UNIT[u.id]?.grade === 'EPIC' && !u.away && (g.rerolls ?? 0) > 0 && !g.over;
+export function rerollUnit(g, uid) {
+  const u = unitById(g, uid);
+  if (!canReroll(g, u)) return null;
+  const pool = (BY_GRADE.EPIC ?? []).filter((id) => id !== u.id);
+  if (!pool.length) return null;
+  const was = u.id; u.id = pool[Math.floor(g.rand() * pool.length)]; u.cd = 0.3; u.sigN = 0; g.rerolls--;
+  g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
+  news(g, `리롤: ${UNIT[was].name} → ${UNIT[u.id].name}`);
+  return u;
 }
 // 옮기기: 목표 자리로 걸어간다(걷는 중에도 공격). now=true면 바로 그 자리
 export const WALK = 320;
@@ -942,7 +955,9 @@ export function step(g, dt) {
     for (const [k, v] of Object.entries(rp)) g.picks[k] = (g.picks[k] ?? 0) + v;
     const tk = g.wave >= (RULES.bossTicketLateFrom ?? 999) ? (RULES.bossTicketLate ?? RULES.bossTicket) : RULES.bossTicket && g.wave % (RULES.bossTicketEvery ?? RULES.bossEvery) === 0 ? RULES.bossTicket : 0;
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
-    news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`].filter(Boolean).join(' · ')}`);
+    const rr = RULES.bossRerollEvery && g.wave % RULES.bossRerollEvery === 0 ? 1 : 0;
+    if (rr) g.rerolls = (g.rerolls ?? 0) + rr;
+    news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`, rr && `에픽 리롤권 ${rr}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
     }
   }

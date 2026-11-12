@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=2843813d38ad';
+import * as E from './engine.js?v=a371ace0f74b';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1298,7 +1298,7 @@ function drawMainPanel(y0) {
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
 const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0) + (G.choice ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
-const moreSub = () => [G.choice && '보상 고르기', pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
+const moreSub = () => [G.choice && '보상 고르기', (G.rerolls ?? 0) > 0 && `리롤권 ${G.rerolls}`, pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
 function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창고 · 피해 순위
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
@@ -1340,6 +1340,11 @@ function drawUnitPanel(y0, u) {
   else fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
   tipLines(E.kitTips(k), 94, y0, W - 210, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);
   button(W - 112, y0 + 10, 90, 40, '닫기', () => { selected = []; }, 'quiet');
+  // 에픽 리롤(2026-11-12): 보상으로 받은 에픽만, 리롤권이 있을 때
+  if (info.grade === 'EPIC' && u.got) {
+    const ok = E.canReroll(G, u);
+    button(W - 222, y0 + 10, 104, 40, `리롤 (${G.rerolls ?? 0})`, () => { const was = info.name, nu = E.rerollUnit(G, u.uid); if (nu) say(`리롤: ${was} → ${E.UNIT[nu.id].name}`); else say('에픽 리롤권이 없어요. 10웨이브 보스마다 1개 받아요.'); }, ok ? 'primary' : 'normal');   // 누르면 다른 에픽으로(리롤권 1개)
+  }
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
