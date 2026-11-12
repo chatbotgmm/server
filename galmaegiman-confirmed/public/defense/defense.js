@@ -560,6 +560,13 @@ cv.addEventListener('pointermove', (ev) => {
   if (Math.hypot(bp.x - down.x0, bp.y - down.y0) > 10) down.moved = true;
   down.x = bp.x; down.y = bp.y;
   if (down.dragFn) { down.dragFn(p); return; }
+  // 끌기를 실시간으로(2026-11-12 사용자 요청): 끄는 동안 갈매미(고른 무리면 무리째)가 손가락을 바로 따라옴
+  if (down.field && down.unit && down.moved && playing()) {
+    if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); }
+    const dx = bp.x - down.x0, dy = bp.y - down.y0;
+    for (const [uid, x, y] of down.start) E.moveUnit(G, uid, x + dx, y + dy, true);
+    return;
+  }
   if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.sy0) / (wide ? WK : 1)));
 });
 cv.addEventListener('pointerup', (ev) => {
@@ -570,10 +577,9 @@ cv.addEventListener('pointerup', (ev) => {
   const p = d.field ? toBoard(sp) : sp;
   if (d.field && playing()) {
     if (d.unit && d.moved) {   // 끌어서 옮기기(고른 무리에 있으면 무리째, 고정한 갈매미는 그 자리에)
-      const group = selected.includes(d.unit.uid) && selected.length > 1 ? selUnits() : [d.unit];
       const dx = p.x - d.x0, dy = p.y - d.y0;
       let moved = 0;
-      for (const u of group) if (E.moveUnit(G, u.uid, u.tx + dx, u.ty + dy, true)) moved++;
+      for (const [uid, x, y] of d.start ?? []) if (E.moveUnit(G, uid, x + dx, y + dy, true)) moved++;   // 끄는 동안 이미 따라왔음, 마지막 자리로 맞춤
       if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
       if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
       return;
@@ -973,8 +979,7 @@ function drawFieldInner() {
   // 끌기 표시
   if (down?.moved && down.field) {
     if (down.unit) {
-      const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit];
-      for (const u of group) { if (u.lock) continue; const z = usz(u.id); drawFit(unitImg(u.id), u.x - 24 * z + down.x - down.x0, u.y - 50 * z + down.y - down.y0, 48 * z, 50 * z, 0.6); }
+      // 끌기 실시간(2026-11-12): 갈매미가 직접 따라오므로 반투명 미리 보기는 그리지 않음
     } else {
       box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(243,216,158,.08)', C.goldEdge, 2, 1.5);
     }
