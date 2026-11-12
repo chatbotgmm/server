@@ -1478,7 +1478,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
 
 // ── 모달 ──
 // 역할(사용자 요청 2026-11-08: 등급별 말고 역할별로도). 한 갈매미가 여러 역할일 수 있음
-const ROLES = [['all', '전체'], ['phys', '물리딜러'], ['mag', '마법딜러'], ['shred', '방깍'], ['mshred', '마방깍'], ['slow', '이감'], ['stun', '스턴'], ['etc', '기타']];
+const ROLES = [['all', '전체'], ['phys', '물리딜러'], ['mag', '마법딜러'], ['shred', '방깍'], ['mshred', '마방깍'], ['slow', '이감'], ['stun', '스턴'], ['explore', '탐사'], ['etc', '기타']];
 function rolesOf(id) {
   const k = E.kit(id), r = [];
   if (k.job === '주력') r.push(k.type === 'phys' ? 'phys' : 'mag');
@@ -1486,7 +1486,8 @@ function rolesOf(id) {
   if (k.mshred) r.push('mshred');
   if (k.slow) r.push('slow');
   if (k.stun || k.astun) r.push('stun');
-  if (!r.length || (k.job !== '주력' && !k.shred && !k.mshred && !k.slow && !k.stun && !k.astun)) r.push('etc');
+  if (k.explore) r.push('explore');   // 탐사 특기(물려받은 상위 포함, 2026-11-12 사용자 요청)
+  if (!r.length || (k.job !== '주력' && !k.shred && !k.mshred && !k.slow && !k.stun && !k.astun && !k.explore)) r.push('etc');
   return r;
 }
 let bookRoles = new Set();   // 역할 칩 여러 개(2026-11-10 사용자 요청: 이감+방깍처럼 둘 다 가진 것 찾기). 비어 있으면 전체, 여러 개면 모두 가진 것만
@@ -1531,9 +1532,8 @@ function drawBook() {
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   bookSearchRect = { x: OX + (x + 144) * OS, y: OY + (y + 12) * OS, w: (w - 144 - 108) * OS, h: 36 * OS, k: OS };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
   box(x + 144, y + 12, w - 144 - 108, 36, '#0b1e2a', C.edge, 8, 1.5);
-  // 보기 옵션 2개
-  const tw2 = (w - 24 - 12) / 3;
-  button(x + 12 + 2 * (tw2 + 6), y + 90, tw2, 28, '조합식 전체 보기 ↗', openRecipePage, 'quiet');   // 웹페이지(새 탭)
+  // 보기 옵션 2개(「조합식 전체 보기」는 2026-11-12 사용자 요청으로 뺌)
+  const tw2 = (w - 24 - 6) / 2;
   [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순']].forEach(([key, nm], i) => {
     const on = bookOpt[key], bx = x + 12 + i * (tw2 + 6);
     box(bx, y + 90, tw2, 28, on ? 'rgba(111,208,138,.16)' : 'rgba(11,30,42,.8)', on ? '#6fd08a' : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
@@ -1541,7 +1541,7 @@ function drawBook() {
     hit(bx, y + 90, tw2, 28, () => { bookOpt[key] = !bookOpt[key]; modal.scroll = 0; });
   });
   // 역할 칩: 누르면 켜고 끔(여러 개면 모두 가진 결과만), 「전체」는 모두 끔
-  const cw = (w - 24 - 7 * 4) / 8;
+  const cw = (w - 24 - (ROLES.length - 1) * 4) / ROLES.length;
   ROLES.forEach(([key, nm], i) => {
     const on = key === 'all' ? !bookRoles.size : bookRoles.has(key), bx = x + 12 + i * (cw + 4);
     box(bx, y + 54, cw, 30, on ? 'rgba(243,216,158,.18)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
