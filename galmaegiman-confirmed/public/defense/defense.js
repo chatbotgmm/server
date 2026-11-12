@@ -279,12 +279,43 @@ const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, fx: new WeakSet() };
 function sfxTick() {
   if (scene !== 'play' || !G) return;
   if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone }); return; }
-  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) sfx('boss'); sfxWatch.wave = G.wave; }
+  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } sfxWatch.wave = G.wave; }
   if (G.warn > sfxWatch.warn) sfx('warn');
   sfxWatch.warn = G.warn;
   if (G.missionDone > sfxWatch.md) sfx('story');
   sfxWatch.md = G.missionDone;
   for (const f of G.fx) if (f.kind === 'wisp' && !sfxWatch.fx.has(f)) { sfxWatch.fx.add(f); sfx('wisp'); }
+}
+// 보스 등장(2026-11-12 사용자 요청: 위험하니 보조 창을 내리고 판을 보여 주기 + 빨간 경고)
+// 일시정지·결과·보상 고르기·규칙처럼 사용자가 일부러 연 큰 창은 그대로 두고, 판을 가리는 보조 창만 닫음
+const BOSS_CLOSE = new Set(['book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
+const bossWarn = { at: -1e9, wave: 0 };
+const BOSS_WARN_MS = 2600;
+function bossAlarm() {
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave;
+  info = null;
+  if (modal && BOSS_CLOSE.has(modal.kind)) modal = null;
+}
+function drawBossWarn() {
+  const age = performance.now() - bossWarn.at;
+  if (age > BOSS_WARN_MS || !G || G.over) return;
+  const fade = Math.min(1, age / 150, (BOSS_WARN_MS - age) / 500), pulse = 0.55 + 0.45 * Math.abs(Math.sin(age / 190));
+  // 화면 가장자리 빨간 번쩍임
+  ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+  const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
+  gr.addColorStop(0, 'rgba(255,40,40,0)'); gr.addColorStop(1, `rgba(255,40,40,${0.42 * pulse * fade})`);
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+  ctx.lineWidth = 6; ctx.strokeStyle = `rgba(255,90,80,${0.8 * pulse * fade})`; ctx.strokeRect(3, 3, VW - 6, VH - 6);
+  ctx.restore();
+  // 판 가운데 띠
+  ctx.save();
+  if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+  ctx.globalAlpha = fade;
+  const bw = W - 60, bh = 92, bx = 30, by = 330;
+  box(bx, by, bw, bh, 'rgba(60,8,10,.9)', `rgba(255,107,107,${0.6 + 0.4 * pulse})`, 12, 3);
+  fitText('⚠ 보스 등장!', W / 2, by + 34, bw - 30, 30, '#ff6b6b', 'center');
+  fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.RULES.waveLen}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
+  ctx.restore();
 }
 function combineNow(r, keep = 0) { const nu = E.combine(G, r, keep); if (nu) sfx('combine'); return nu; }
 function setVolume(v) {
@@ -2916,6 +2947,7 @@ function frame(now) {
       }
     } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
+  if (scene === 'play') drawBossWarn();
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene !== 'play') drawToast();
   if (perfShow.on) {
