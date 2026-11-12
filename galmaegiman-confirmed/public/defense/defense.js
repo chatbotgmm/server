@@ -74,7 +74,7 @@ function fit() {
   dpr = Math.min(window.devicePixelRatio || 1, dprCap, fxLite ? 1.5 : 3);
   landscape = window.innerWidth / window.innerHeight > 0.9;
   const wk = Math.min((Math.min(H * window.innerWidth / window.innerHeight, 2400) - SIDE_X - 16) / (2 * W), H / 664);
-  wide = landscape && !coopOn && wk >= 1.05; WK = wide ? wk : 1;
+  wide = false && landscape && !coopOn && wk >= 1.05; WK = wide ? wk : 1;   // 2026-11-12 사용자 의견: 3분할(판 | 창 | 메뉴)보다 예전 2분할(판 | 창·메뉴 한 칸)이 더 좋음 → 넓은 화면 배치 끔(코드는 남김)
   VW = wide ? Math.round(SIDE_X + 2 * W * WK + 16) : landscape ? SIDE_X + W : W;
   if (landscape && fullTitle) VW = Math.max(VW, Math.min(2400, Math.round(H * window.innerWidth / window.innerHeight)));
   // 세로 화면(사용자 요청 2026-11-08: 휴대폰 위아래 빈 곳 없이): 화면이 더 길면 그만큼 세로를 늘려(최대 +300) 아래 메뉴를 크게
