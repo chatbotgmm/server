@@ -46,7 +46,7 @@ const PEER_H = 208;          // 세로 화면 같이하기: 아래에 붙는 친
 let stripOn = false;         // 친구 판 줄을 붙였는가(frame이 정함)
 // 넓은 가로 화면(2026-11-11 검토: 긴 휴대폰에서 화면 가운데 61%만 쓰고 글자가 아주 작음): 오른쪽을 「창」 칸과 「메뉴」 칸 둘로 나누고 둘 다 WK배로 키움.
 // 화면 비율이 약 2:1 이상일 때만(그보다 좁으면 예전처럼 한 칸). 같이하기 중에는 친구 판이 있어 예전 배치
-let BOARD_X = 0;             // 넓은 화면에서 판이 시작하는 가로 위치(2026-11-12 사용자 요청: 판을 가운데 — 창 칸 | 판 | 메뉴 칸)
+let BOARD_X = 0;             // 판이 시작하는 가로 위치. 2026-11-12: 판 가운데(창 칸 | 판 | 메뉴 칸)를 해 봤으나 「메뉴와 조합창이 나뉘어 불편」 → 다시 판 왼쪽, 창·메뉴는 오른쪽에 나란히
 let wide = false, WK = 1, AX = 772, AY = 0, BX = 772, BYT = 0, coopOn = false;
 let fullTitle = true;        // 첫 화면·대기실은 가로 화면 폭 전체(밝은 배경 양옆에 검은 띠가 안 보이게, frame이 정함)
 let PBOT = H;                // 아래 메뉴 판의 바닥(세로 화면에서 휴대폰이 길면 늘어남)
@@ -81,8 +81,8 @@ function fit() {
   const base = stripOn && !landscape ? H + PEER_H : H;
   VH = landscape ? H : Math.round(Math.max(base, Math.min(VW * window.innerHeight / window.innerWidth, base + 300)));
   PBOT = wide ? Math.min(672 + 540, Math.floor(672 + H / WK - 8)) : landscape ? H : VH - (stripOn ? PEER_H : 0);
-  BOARD_X = wide ? Math.round(W * WK + 8) : 0;
-  if (wide) { AX = 0; AY = Math.round((H - 664 * WK) / 2); BX = BOARD_X + SIDE_X; BYT = Math.round((H - (PBOT - 672) * WK) / 2 - 672 * WK); }   // 두 칸 모두 세로 가운데
+  BOARD_X = 0;
+  if (wide) { AX = SIDE_X; AY = Math.round((H - 664 * WK) / 2); BX = Math.round(SIDE_X + W * WK + 8); BYT = Math.round((H - (PBOT - 672) * WK) / 2 - 672 * WK); }   // 두 칸 모두 세로 가운데
   // 화질(사용자 지적 2026-11-08): 화면 크기(정수 px)를 먼저 정하고 캔버스 픽셀은 그 × 기기 배율로 맞춘다.
   // 전에는 둘을 따로 내림해 일부 기기에서 화면 전체가 한 번 더 늘어나 흐려질 수 있었음
   const cssW = Math.floor(VW * Math.min(window.innerWidth / VW, window.innerHeight / VH));
@@ -537,7 +537,7 @@ const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.ha
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
-  if (landscape) return (wide ? p.x < BOARD_X : p.x >= SIDE_X) ? (modal?.scrollable ? modal : null) : null;
+  if (landscape) return p.x >= SIDE_X ? (modal?.scrollable ? modal : null) : null;
   return modal?.scrollable ? modal : null;
 }
 // 화면 좌표 → 판 좌표(가로 배치 왼쪽 판은 LS배로 그려짐)
@@ -1508,7 +1508,7 @@ function modalRect() {
 function shadeAll(a = 0.72) {
   const y0 = topModal() && !landscape ? 96 : 0, hh = topModal() ? MENU_Y : landscape ? H : PBOT;
   ctx.fillStyle = `rgba(3,9,14,${a})`;
-  if (wide && scene === 'play' && !topModal() && OS === 1 && OX > 0) { ctx.fillRect(BX - OX, 0, VW - BX, H); hit(BX - OX, 0, VW - BX, H, () => {}); return; }   // 넓은 화면의 일시정지·결과 창: 오른쪽 전체
+  if (wide && scene === 'play' && !topModal() && OS === 1 && OX > 0) { ctx.fillRect(SIDE_X - OX, 0, VW - SIDE_X, H); hit(SIDE_X - OX, 0, VW - SIDE_X, H, () => {}); return; }   // 넓은 화면의 일시정지·결과 창: 오른쪽 전체
   ctx.fillRect(0, y0, W, hh - y0); hit(0, y0, W, hh - y0, () => {});
 }
 // 상위 조합식 웹페이지를 새 탭으로(팝업이 막히면 이 탭에서 이동 — 판은 이어하기로 저장됨)
@@ -2889,7 +2889,7 @@ function frame(now) {
       // 오른쪽: 창이 열리면 창(열 전체), 없으면 위에 피해 미니판(같이하기면 친구 판) + 아래 메뉴
       if (wide) {   // 넓은 화면: 창 칸(A) + 메뉴 칸(B), 일시정지·결과 창은 오른쪽 가운데에 원래 크기로
         if (topModal()) { colA(drawModal); colB(drawBottom); }
-        else if (modal) { const fx = Math.round(BX + (VW - BX - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
+        else if (modal) { const fx = Math.round(SIDE_X + (VW - SIDE_X - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
         else { colA(drawSideTop); colB(drawBottom); }
         if (info) colA(drawInfo);
       } else {
