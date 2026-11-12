@@ -262,16 +262,27 @@ describe('랜덤 디펜스 엔진', () => {
     const g3 = E.newGame(5); g3.units = []; g3.choice = { k: 5 };
     E.chooseReward(g3, 0); expect(g3.units.filter((u: { id: string }) => u.id === E.TRANSCEND_KEY).length).toBe(1);
   });
-  it('탐사 특기: 새 전설·히든(고체력 ×6·근접술사 ×3), 그 재료로 만든 초불영제는 (배수−1)×0.5를 물려받음', () => {
-    for (const id of ['u66', 'u76']) expect(E.kit(id).explore, id).toBe(6);
-    for (const id of ['u63', 'u69', 'u75']) expect(E.kit(id).explore, id).toBe(3);
-    for (const u of E.UNITS.filter((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE)) {
-      const m = Math.max(0, ...E.recipeFor(u.id).in.map((i: string) => E.EXPLORE[i] ?? 0));
-      expect(E.kit(u.id).explore || 0, u.name).toBe(m > 1 ? 1 + (m - 1) * E.EXPLORE_INHERIT : 0);
+  it('탐사 특기(2026-11-12): 전설·히든 고체력 ×5·근접술사 ×2.5, 초불영제는 기본 ×2(물려받은 값이 더 크면 그것)·역할 감점 없음', () => {
+    for (const id of ['u66', 'u76']) expect(E.kit(id).explore, id).toBe(5);
+    for (const id of ['u63', 'u69', 'u75']) expect(E.kit(id).explore, id).toBe(2.5);
+    const tops = E.UNITS.filter((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE);
+    for (const u of tops) {
+      const m = Math.max(0, ...E.recipeFor(u.id).in.map((i: string) => E.EXPLORE[i] ?? 0)), k = E.kit(u.id);
+      expect(k.explore, u.name).toBe(Math.max(E.EXPLORE_TOP, m > 1 ? 1 + (m - 1) * E.EXPLORE_INHERIT : 0));
+      expect(k.exDmg, u.name).toBeGreaterThanOrEqual(k.dmg);   // 보조(×0.3) 감점 없음
     }
-    const heir = E.UNITS.find((x: { id: string; role: string }) => E.tierOf(x.id) >= 6 && x.role !== E.SPECIAL_ROLE && E.kit(x.id).exploreFrom);   // 물려받은 초불영제 하나
+    const heir = tops.find((x: { id: string }) => E.kit(x.id).exploreFrom);   // 물려받은 초불영제 하나
     expect(heir).toBeTruthy();
     expect(E.kitTips(E.kit(heir.id)).some((t: string) => t.includes('물려받음') && t.includes('탐사'))).toBe(true);
+    // 탐사에서 초불영제 가장 약한 것도 전설·히든 탐사 특기 가장 센 것보다 셈(10장 대장, 강화 0, 혼자 30초)
+    const exDps = (id: string) => {
+      const g = E.newGame(1); g.units = [{ uid: 1, id, x: 270, y: 380, tx: 270, ty: 380, cd: 0, born: 0, away: true }]; g.enemies = []; g.missionDone = 9; g.wave = 30; g.waveT = 1; g.spawnLeft = 0;
+      E.missionTarget(g); g.mission.hp = g.mission.max = 1e15;
+      for (let i = 0; i < 600; i++) { E.step(g, 0.05); g.enemies = []; g.spawnLeft = 0; g.waveT = 1; }
+      return g.missionDmg[9] ?? 0;
+    };
+    const lhBest = Math.max(...Object.keys(E.EXPLORE).map(exDps));
+    for (const u of tops) expect(exDps(u.id), u.name).toBeGreaterThan(lhBest);
   });
   it('전설·히든은 모두 물딜 초불영제와 마딜 초불영제의 재료(패에 맞춰 어느 쪽으로든 갈 수 있게), 유닛마다 조합법은 하나(2026-11-10)', () => {
     const tops = E.RECIPES.filter((r: { out: string }) => E.tierOf(r.out) >= 6);

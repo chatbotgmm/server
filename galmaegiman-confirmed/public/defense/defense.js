@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=881f1047bc29';
+import * as E from './engine.js?v=1786d790303c';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2288,6 +2288,9 @@ function drawInfo() {
   if (info.stack.length) { const back = info.stack[info.stack.length - 1]; button(x + w - 96, y + 56, 82, 36, '← 뒤로', () => { info = { id: back, stack: info.stack.slice(0, -1) }; }, 'normal'); }
   // 유틸
   text('유틸·특수', x + 16, y + 124, 15, C.gold);
+  // 이 갈매미로 만들 수 있는 것(2026-11-12 사용자 요청): 누르면 조합법 창을 「○○ 재료」로 열어 줌
+  const usedIn = E.RECIPES.filter((q) => q.in.includes(id)).length;
+  if (usedIn) button(x + w - 186, y + 100, 172, 32, `이걸로 만드는 것 ${usedIn}`, () => { info = null; openBook(null, id); }, 'normal');
   const tips = E.kitTips(k);
   let tipEnd = y + 170;
   if (tips.length) tipEnd = chipRow(tips.map((t) => [t, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag]), x + 16, y + 138, x + w - 12, tips.length > 6 ? 12 : 14);

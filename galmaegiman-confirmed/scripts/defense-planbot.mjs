@@ -75,7 +75,7 @@ function bot(g, st) {
   // 외부탐사(목표 재료는 안 보냄). 2026-11-10부터 보낸 갈매미가 장을 깨도 남으므로, 남은 대장 체력을 150초 안에 못 잡을 만큼이면 더 보냄
   if (E.missionOpen(g) && g.enemies.length < 25 && (st.nextSend ?? 0) <= g.t) {
     const t = E.missionTarget(g);
-    const edps = (u) => { const k = E.kit(u.id); return k.dmg * (k.explore || 1) / k.gap * 100 / (100 + (k.type === 'phys' ? t.armor : t.mr)); };
+    const edps = (u) => { const k = E.kit(u.id); return (k.exDmg || k.dmg) * (k.explore || 1) / k.gap * 100 / (100 + (k.type === 'phys' ? t.armor : t.mr)); };
     const have = E.awayUnits(g).reduce((a, u) => a + edps(u), 0), needDps = t.hp / 150 - have;
     if (needDps > 0) {
       const list = E.fieldUnits(g).filter((u) => !allowed.has(u.id) && !(leaves[u.id] > 0)).map((u) => [u, edps(u)]).sort((a, b) => b[1] - a[1]);

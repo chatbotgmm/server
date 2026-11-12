@@ -124,7 +124,9 @@ export const WISP_SKILL = {
 // 탐사 특기(사용자 요청 2026-11-08: 외부탐사에 능한 재료 단계 갈매미, 외부탐사에서만 강해짐): 외부탐사 대장에게 주는 피해 배수.
 // 재료로 쓰이면서 판 수비는 약한 보조(고체력)는 ×6, 근접술사는 ×3 → 같은 등급 주력보다 외부탐사 피해가 약 1.5~1.7배
 // 2026-11-10 사용자 요청: 새 전설·히든에도 탐사 특기(같은 규칙 — 고체력 보조 ×6, 근접술사 ×3), 그 유닛을 재료로 쓰는 초불영제는 일부를 물려받음(EXPLORE_INHERIT)
-export const EXPLORE = { u19: 6, u24: 3, u27: 6, u30: 3, u33: 6, u34: 3, u43: 3, u63: 3, u66: 6, u69: 3, u75: 3, u76: 6 };
+// 2026-11-12 사용자 요청(탐사 특기 전설·히든이 초불영제보다 탐사 딜이 셈): ×6→×5, ×3→×2.5로 줄이고(×4·×2는 계획형 봇 달인 마지막 장 클리어 14/16→8/16으로 너무 떨어져 되돌림), 초불영제는 모두 기본 ×2·역할 감점 없음(EXPLORE_TOP)
+export const EXPLORE = { u19: 5, u24: 2.5, u27: 5, u30: 2.5, u33: 5, u34: 2.5, u43: 2.5, u63: 2.5, u66: 5, u69: 2.5, u75: 2.5, u76: 5 };
+export const EXPLORE_TOP = 2;
 export const EXPLORE_INHERIT = 0.5;   // 초불영제: 재료 중 가장 높은 탐사 특기의 (배수−1)×0.5를 더함(×6 재료 → ×3.5, ×3 재료 → ×2)
 // 전설·히든 이감·스턴 더하기(2026-11-09 사용자 요청: 선택지가 적음). 값은 그 등급 기본 세기에 곱하는 비율(전담 보조보다 조금 약하게)
 // 전설: 이감 가시여왕·네레이드·설랑 / 스턴 거장·뇌호 · 히든: 이감 수경·꽃무덤·몽마 / 스턴 무명, 범위 스턴 금각
@@ -335,6 +337,8 @@ function kitRaw(id) {
     inheritUtil(id, out);
     const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
     if (m > 1) { const v = 1 + (m - 1) * EXPLORE_INHERIT; if (v > (out.explore || 0)) { out.explore = v; out.exploreFrom = true; } }
+    if ((out.explore || 0) < EXPLORE_TOP) { out.explore = EXPLORE_TOP; out.exploreTop = true; delete out.exploreFrom; }
+    out.exDmg = Math.round(RULES.dmg[t] * Math.max(k.mul, 1) / AS);   // 탐사에서는 보조(피해 ×0.3)·라인형(대장 ×0.6) 감점 없음
   }
   // 2026-11-10 사용자 요청: 방깍과 마방깍은 둘 다 갖지 못함 → 물딜은 방깍, 마딜은 마방깍만 남김
   if (out.shred && out.mshred) { if (out.type === 'phys') delete out.mshred; else delete out.shred; }
@@ -370,7 +374,7 @@ export function kitTips(k) {
   if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
-  if (k.explore) out.push(`탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}`);
+  if (k.explore) out.push(k.exploreTop ? `최상위 탐사: 외부탐사 피해 ×${k.explore}(역할 감점 없음)` : `탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}${k.exDmg ? '(역할 감점 없음)' : ''}`);
   if (k.slow) out.push(`주변 이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
   if (k.splash) out.push(`스플래시 ${Math.round(k.splash * 100)}%(반경 ${k.splashR ?? 50})`);
@@ -905,7 +909,8 @@ export function step(g, dt) {
     if (u.away) {
       if (!ms) { u.cd = 0.2; continue; }
       const before = ms.hp;
-      hurt(g, ms, k.dmg * (k.area ? 1.2 : 1) * (k.explore || 1), k, u.uid); debuff(g, ms, k, u.uid);
+      const ek = k.exDmg && (k.bossMul ?? 1) < 1 ? { ...k, bossMul: 1 } : k;   // 초불영제: 라인형 대장 감점 없음
+      hurt(g, ms, (k.exDmg || k.dmg) * (k.area ? 1.2 : 1) * (k.explore || 1), ek, u.uid); debuff(g, ms, k, u.uid);
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
       u.cd = Math.max(-0.05, u.cd) + gapOf(g, k); continue;
     }
