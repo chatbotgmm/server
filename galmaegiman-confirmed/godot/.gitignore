@@ -1,0 +1,5 @@
+# 고도가 만드는 캐시·내보내기 결과
+.godot/
+/android/
+*.tmp
+export/
