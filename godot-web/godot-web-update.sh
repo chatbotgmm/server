@@ -12,7 +12,7 @@ case "$CUR" in "$REL"/?*) ;; *) echo "실행 폴더가 $REL 아래가 아니라 
 free=$(df -Pk "$CUR" | awk 'NR==2{print $4}'); [ "$free" -gt 204800 ] || { echo "디스크 여유 부족(남음 ${free}KB, 200MB 필요)으로 중단"; exit 1; }
 TMP=$(mktemp -d /tmp/gmm-godot-XXXXXX); trap 'rm -rf "${TMP:?}"' EXIT
 echo '▶ 1/4 묶음 받기'
-runuser -u ubuntu -- git -C "$REPO" fetch -q origin "$BR"
+runuser -u ubuntu -- git -C "$REPO" fetch -q "${GMM_GIT_URL:-origin}" "$BR"   # GMM_GIT_URL: 받을 주소(기본 origin)
 for f in defense-godot.tar defense-godot.tar.sha256 files.sha256; do runuser -u ubuntu -- git -C "$REPO" show "FETCH_HEAD:godot-web/$f" > "$TMP/$f"; done
 (cd "$TMP" && sha256sum -c --quiet defense-godot.tar.sha256) || { echo '묶음 지문이 달라 중단'; exit 1; }
 echo '▶ 2/4 풀기·확인'
