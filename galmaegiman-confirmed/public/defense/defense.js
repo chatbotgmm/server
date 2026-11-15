@@ -735,6 +735,28 @@ function goalDots(cols, x, y, r = 4.5) {   // 목표 색 동그라미(여러 목
   cols.forEach((c, i) => { ctx.beginPath(); ctx.arc(x - i * (r * 2 + 2), y, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#07131c'; ctx.stroke(); });
 }
 // 재료 피라미드: 가진 갈매미(판·창고·탐사)를 쓰고, 없는 재료는 그 재료의 조합법으로 내려가며 펼친다
+// 재료 모인 정도(2026-11-15 사용자 요청: 바로 아래 재료만 세면 드라이어드가 40%로 나와 실제보다 낮음).
+// 재료 나무(needTree)와 같은 순서로 판의 갈매미를 써 가며, 각 재료를 「기본 재료(조합법 없는 것) 몇 개짜리인가」로 무게를 매겨 셈
+const baseCost = new Map();
+function costOf(c, depth = 0) {
+  if (baseCost.has(c)) return baseCost.get(c);
+  const r = depth < 8 ? E.recipeFor(c) : null, v = r ? r.in.reduce((a, x) => a + costOf(x, depth + 1), 0) : 1;
+  baseCost.set(c, v); return v;
+}
+let progCache = { t: 0, g: null, m: new Map() };
+function progOf(r, cnt) {   // { got, total } — 기본 재료 기준
+  const now = performance.now();
+  if (progCache.g !== G || now - progCache.t > 300) progCache = { t: now, g: G, m: new Map() };
+  const hit0 = progCache.m.get(r); if (hit0) return hit0;
+  const pool = { ...cnt };
+  const node = (c, depth) => {
+    if ((pool[c] ?? 0) > 0) { pool[c]--; return costOf(c); }
+    const rr = depth < 8 ? E.recipeFor(c) : null;
+    return rr ? rr.in.reduce((a, x) => a + node(x, depth + 1), 0) : 0;
+  };
+  const got = r.in.reduce((a, x) => a + node(x, 1), 0), total = r.in.reduce((a, x) => a + costOf(x), 0);
+  const res = { got, total }; progCache.m.set(r, res); return res;
+}
 function needTree(id, cnt) {
   const pool = { ...cnt };
   const node = (c, depth) => {
@@ -1549,10 +1571,12 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, ny, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
   if (tall) fitText(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, C.muted);
   // 재료 모인 정도 게이지(사용자 요청 2026-11-15): 금빛 = 진행(색 규칙), 다 모이면 초록
-  { const n = have(r, cnt), fr = n / r.in.length, gy = tall ? y + h - 13 : y + h - 15, gw = 54;
+  // 기본 재료 기준(아래 재료까지). 바로 아래 재료가 다 있어야 100%·초록 — 아래 재료만 다 있으면 99%(중간 조합이 남음)
+  { const pg = progOf(r, cnt), direct = have(r, cnt) === r.in.length, n = pg.got;
+    const fr = direct ? 1 : Math.min(0.99, pg.got / pg.total), gy = tall ? y + h - 13 : y + h - 15, gw = 54;
     box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(145,122,76,.55)', 3.5, 1);
-    if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, fr >= 1 ? C.good : C.gold, null, 3.5);
-    text(`${Math.round(fr * 100)}%`, x + 142, gy + 4, 13, fr >= 1 ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
+    if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, direct ? C.good : C.gold, null, 3.5);
+    text(`${direct ? 100 : Math.min(99, Math.round(fr * 100))}%`, x + 142, gy + 4, 13, direct ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
   const left = { ...cnt };
   // 재료가 5개 이상(초불영제)이면 두 줄로 나눠 칸을 넓게(2026-11-10: 재료 6~7개라 이름이 너무 잘림)
   const x0 = x + 150, lines = r.in.length > 4 ? 2 : 1, perLine = Math.ceil(r.in.length / lines), ch = lines === 2 ? 19 : 24, fs = lines === 2 ? 12 : 14;
@@ -1654,7 +1678,7 @@ function drawBook() {
   const top = y + 126, viewH = h - 136, cnt = E.countOnField(G), q = bookOpt.q;
   let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (!bookRoles.size || [...bookRoles].every((k) => rolesOf(r.out).includes(k)))
     && (!q || E.UNIT[r.out].name.includes(q) || r.in.some((id) => E.UNIT[id].name.includes(q))));
-  rows = rows.map((r) => ({ r, ok: canMake(r), frac: have(r, cnt) / r.in.length }));
+  rows = rows.map((r) => { const pg = progOf(r, cnt); return { r, ok: canMake(r), frac: have(r, cnt) === r.in.length ? 1 : Math.min(0.99, pg.got / pg.total) }; });   // 게이지와 같은 값으로 정렬
   if (bookOpt.ready) rows = rows.filter((it) => it.ok);
   const items = [];
   if (bookOpt.near) {   // 재료가 많이 모인 순(등급 묶음 없이)
@@ -3049,4 +3073,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
