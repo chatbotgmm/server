@@ -2349,7 +2349,8 @@ function drawModes() {
 }
 function drawSound() {
   shadeAll();
-  const x = 50, y = 220, w = W - 100, h = 620;   // 「공격 소리」 줄이 들어가 546 → 620(2026-11-15)
+  // 「공격 소리」 줄이 들어가 546 → 620(2026-11-15). 판 위에서 열면(아래 메뉴가 보이는 상태) 위에서부터 열어 아래 메뉴에 가리지 않게(검토: 성능 표시·공격 소리 줄이 메뉴 뒤로 숨음)
+  const top = topModal(), x = 50, y = top ? 12 : 220, w = W - 100, h = top ? MENU_Y - 20 : 620;
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
