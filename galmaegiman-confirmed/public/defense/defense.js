@@ -1030,6 +1030,37 @@ function drawLanesRaw() {
   ctx.restore();
   ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(220,230,235,.3)'; rr(ix0 + 0.75, iy0 + 0.75, ix1 - ix0 - 1.5, iy1 - iy0 - 1.5, 10); ctx.stroke();   // 연석 위 빛
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(10,15,20,.45)'; ctx.strokeRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
+  // ── 방범대 장식(2026-11-15 사용자 요청: 캔버스로, 어색하지 않게). 갈매미를 가리지 않게 낮은 것·바닥 칠만, 오른쪽 커먼 자리(x 445)는 비움 ──
+  // 바닥 칠: 흐린 스텐실 글씨
+  ctx.save(); ctx.globalAlpha = 0.16; ctx.font = `bold 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = '#e8d9a8'; ctx.fillText('제3초소 · 방범 구역', (gx0 + gx1) / 2 - 30, gy1 - 34); ctx.restore();
+  // 연석 네 모서리 경고 칠(노랑/검정)
+  ctx.save(); rr(ix0, iy0, ix1 - ix0, iy1 - iy0, 10); ctx.clip();
+  ctx.fillStyle = stripe('#d4a017', '#1e293b', 5, -1);
+  for (const [cx, cy] of [[ix0, iy0], [ix1, iy0], [ix0, iy1], [ix1, iy1]]) { ctx.fillRect(cx - 34, cy - 8, 68, 16); ctx.fillRect(cx - 8, cy - 34, 16, 68); }
+  ctx.restore();
+  // 계류 말뚝(연석 위, 쇠기둥 + 노란 머리) + 앞쪽 연석엔 늘어진 밧줄
+  const bollard = (x, y) => { ctx.beginPath(); ctx.ellipse(x + 1, y + 3, 5, 2, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+    ctx.fillStyle = '#2b3238'; ctx.fillRect(x - 3, y - 7, 6, 9); ctx.beginPath(); ctx.ellipse(x, y - 7, 4, 2, 0, 0, Math.PI * 2); ctx.fillStyle = '#e0b030'; ctx.fill(); };
+  const bx = [ix0 + 60, ix0 + 140, ix0 + 220, ix0 + 300], posts = [];
+  for (const x of bx) { posts.push([x, iy1 - 3]); bollard(x, iy0 + 4); }
+  for (const y of [iy0 + 90, iy0 + 210, iy0 + 330]) bollard(ix0 + 4, y);
+  ctx.strokeStyle = 'rgba(200,170,110,.75)'; ctx.lineWidth = 1.4;
+  for (let k = 1; k < posts.length; k++) { const [x0, y0] = posts[k - 1], [x1, y1] = posts[k]; ctx.beginPath(); ctx.moveTo(x0, y0 - 6); ctx.quadraticCurveTo((x0 + x1) / 2, y0 + 2, x1, y1 - 6); ctx.stroke(); }
+  posts.forEach(([x, y]) => bollard(x, y));
+  // 왼쪽 위 구석: 나무 상자 더미 + 작은 신호탑(불빛은 drawWater에서 깜빡)
+  const crate = (x, y, w, h) => { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x + 2, y + h, w, 3); ctx.fillStyle = '#7a5530'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#9a6c3c'; ctx.fillRect(x, y, w, 3);
+    ctx.strokeStyle = '#4e351c'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.beginPath(); ctx.moveTo(x + 2, y + 4); ctx.lineTo(x + w - 2, y + h - 2); ctx.moveTo(x + w - 2, y + 4); ctx.lineTo(x + 2, y + h - 2); ctx.stroke(); };
+  crate(gx0 + 30, gy0 + 6, 16, 14); crate(gx0 + 46, gy0 + 9, 14, 12); crate(gx0 + 36, gy0 - 4, 14, 11);
+  { const tx = gx0 + 12, ty = gy0 + 24;   // 신호탑: 철골 다리 + 등
+    ctx.beginPath(); ctx.ellipse(tx + 2, ty + 2, 8, 3, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
+    ctx.strokeStyle = '#3a434a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx - 6, ty); ctx.lineTo(tx - 2, ty - 24); ctx.moveTo(tx + 6, ty); ctx.lineTo(tx + 2, ty - 24); ctx.stroke();
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(tx - 5, ty - 6); ctx.lineTo(tx + 4, ty - 14); ctx.moveTo(tx + 5, ty - 6); ctx.lineTo(tx - 4, ty - 14); ctx.stroke();
+    ctx.fillStyle = '#2b3238'; ctx.fillRect(tx - 5, ty - 30, 10, 6); }
+  // 왼쪽 아래 구석: 모래주머니 벽 + 빈 철제 표지판
+  for (let r = 0; r < 2; r++) for (let k = 0; k < 4 - r; k++) { const x = gx0 + 8 + k * 11 + r * 5.5, y = gy1 - 14 - r * 6; ctx.beginPath(); ctx.ellipse(x, y, 6.5, 4, 0, 0, Math.PI * 2); ctx.fillStyle = r ? '#a18b5c' : '#8f7a4f'; ctx.fill(); ctx.strokeStyle = 'rgba(60,45,25,.6)'; ctx.lineWidth = 1; ctx.stroke(); }
+  { const sx = gx0 + 62, sy = gy1 - 30; ctx.fillStyle = '#2b3238'; ctx.fillRect(sx + 12, sy + 12, 2.5, 14); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(sx + 2, sy + 26, 26, 3);
+    ctx.fillStyle = '#334155'; ctx.fillRect(sx, sy, 28, 14); ctx.fillStyle = '#64748b'; ctx.fillRect(sx, sy, 28, 2); ctx.fillStyle = '#0f172a'; ctx.fillRect(sx, sy + 12, 28, 2);
+    ctx.font = `bold 8px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f59e0b'; ctx.fillText('제3초소', sx + 14, sy + 7); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
   // 물가 바위(바깥 가장자리 몇 곳)
   const rock = (x, y, r) => { ctx.beginPath(); ctx.ellipse(x + 2, y + r * 0.5, r * 1.2, r * 0.45, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fill();
     ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.75, 0, 0, Math.PI * 2); ctx.fillStyle = '#5d676e'; ctx.fill(); ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.55, r * 0.35, 0, 0, Math.PI * 2); ctx.fillStyle = '#8b959b'; ctx.fill();
@@ -1062,7 +1093,21 @@ function drawLanesRaw() {
 }
 // 물길 반짝임(매 장면, 가볍게): 물 위를 천천히 흐르는 작은 빛(화려한 효과 끔이면 없음)
 function drawWater() {
+  { // 신호탑 불빛(1.2초 켜짐·꺼짐, 사이렌과 같은 박자) — 효과 끔이어도 그림(가벼움)
+    const L0 = E.LOOP, tx = L0.x0 + 20 + 8 + 12, ty = L0.y0 + 20 + 8 + 24 - 30, on = Math.floor(performance.now() / 600) % 2 === 0;
+    ctx.fillStyle = on ? '#ef4444' : '#7f1d1d'; ctx.fillRect(tx - 3, ty - 4, 6, 4);
+    if (on && !fxLite) { const g = ctx.createRadialGradient(tx, ty - 2, 0, tx, ty - 2, 14); g.addColorStop(0, 'rgba(239,68,68,.55)'); g.addColorStop(1, 'rgba(239,68,68,0)'); ctx.fillStyle = g; ctx.fillRect(tx - 14, ty - 16, 28, 28); }
+  }
   if (fxLite) return;
+  { // 부표: 물길 바깥 모서리 넷, 천천히 출렁
+    const L1 = E.LOOP, t = performance.now() / 1000, o = 16;
+    [[L1.x0 - o, L1.y0 - o], [L1.x1 + o, L1.y0 - o], [L1.x0 - o, L1.y1 + o], [L1.x1 + o, L1.y1 + o]].forEach(([x, y], k) => {
+      const b = Math.sin(t * 1.6 + k * 1.3) * 1.5;
+      ctx.beginPath(); ctx.ellipse(x, y + 4, 7, 2.5, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(235,250,255,.4)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#d63b2f'; ctx.fillRect(x - 4, y - 6 + b, 8, 9); ctx.fillStyle = '#f2efe6'; ctx.fillRect(x - 4, y - 3 + b, 8, 3);
+      ctx.fillStyle = '#2b3238'; ctx.fillRect(x - 0.75, y - 11 + b, 1.5, 5); ctx.fillStyle = Math.floor(t * 1.2 + k) % 2 ? '#ffd76a' : '#7a5a14'; ctx.fillRect(x - 1.5, y - 12.5 + b, 3, 2);
+    });
+  }
   const L = E.LOOP, P = 2 * ((L.x1 - L.x0) + (L.y1 - L.y0)), t = performance.now() / 1000;
   ctx.save(); ctx.lineWidth = 1.4;
   for (let k = 0; k < 14; k++) {
