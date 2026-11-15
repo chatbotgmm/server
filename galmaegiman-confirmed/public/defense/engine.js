@@ -605,8 +605,25 @@ export function gather(g, uid) {
 }
 export const unitById = (g, uid) => g.units.find((u) => u.uid === uid) ?? null;
 
+// 겹침(2026-11-15 사용자 요청: 「같은 유닛은 겹치게, 나머지는 밀어내고」): 놓을 자리에 다른 종류 갈매미가 SEP 안에 있으면
+// 그 자리에서 나선으로 넓혀 가며 가장 가까운 빈자리로. 같은 종류끼리는 그대로 겹칠 수 있음(모으기). 자리는 각자의 목적지(tx·ty)로 봄
+// 간격 = SEP_K × (두 갈매미 크기 합). 크기는 화면에 그리는 배율과 같음(커먼 1 … 전설 1.34 … 초불영제 1.65) → 커먼끼리 42 · 전설끼리 56 · 초불영제끼리 69
+export const UNIT_SIZE = [1, 1.06, 1.13, 1.22, 1.34, 1.4, 1.65, 1.65, 1.65, 1.65];
+export const SEP_K = 21;
+const sizeOf = (id) => UNIT_SIZE[tierOf(id)] ?? 1;
+function freeSpot(g, id, x, y, selfUid = 0) {
+  const others = g.units.filter((o) => !o.away && !o.stored && o.uid !== selfUid && o.id !== id), z = sizeOf(id);
+  const ok = (px, py) => others.every((o) => { const d = SEP_K * (z + sizeOf(o.id)); return (o.tx - px) ** 2 + (o.ty - py) ** 2 >= d * d; });
+  let p = clampField(x, y);
+  if (ok(p.x, p.y)) return p;
+  for (let r = 8; r <= 200; r += 8) {
+    const n = Math.max(8, Math.round(r * 0.8));
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, q = clampField(x + Math.cos(a) * r, y + Math.sin(a) * r); if (ok(q.x, q.y)) return q; }
+  }
+  return p;   // 빈자리가 없으면(판이 꽉 참) 그대로
+}
 function addUnit(g, id, x, y) {
-  const p = clampField(x, y);
+  const p = freeSpot(g, id, x, y);
   const u = { uid: g.nextUid++, id, x: p.x, y: p.y, tx: p.x, ty: p.y, cd: 0.2 + g.rand() * 0.3, born: g.t, away: false };
   g.units.push(u);
   return u;
@@ -680,7 +697,7 @@ export const WALK = 320;
 export function moveUnit(g, uid, x, y, now = false) {
   const u = unitById(g, uid);
   if (!u || u.away || u.lock) return false;   // 고정한 갈매미는 안 움직임
-  const p = clampField(x, y); u.tx = p.x; u.ty = p.y;
+  const p = freeSpot(g, u.id, x, y, u.uid); u.tx = p.x; u.ty = p.y;   // 다른 종류와 겹치면 가까운 빈자리로
   if (now) { u.x = p.x; u.y = p.y; }
   return true;
 }

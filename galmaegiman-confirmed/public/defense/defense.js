@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=ffff1cf17a77';
+import * as E from './engine.js?v=1ff978766659';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -27,7 +27,7 @@ function setFxLite(on) { fxLite = on; fxChosen = true; try { localStorage.setIte
 const BGM_URL = '/defense/bgm.mp3?v=f7211afdc4a1';
 const UNIT_R = 24;   // 갈매미 누르기 반지름(커먼 기준, 등급 크기만큼 커짐)
 // 등급별 크기(사용자 요청 2026-11-08: 상위일수록 크게 — 보상 느낌). 커먼·언커먼·레어·에픽·전설·히든·제한·초월·불멸·영원
-const GRADE_SIZE = [1, 1.06, 1.13, 1.22, 1.34, 1.4, 1.65, 1.65, 1.65, 1.65];   // 초불영제는 같은 크기
+const GRADE_SIZE = E.UNIT_SIZE;   // 초불영제는 같은 크기(겹침 간격 계산과 같은 표 — engine.js)
 const usz = (id) => GRADE_SIZE[E.tierOf(id)] ?? 1;
 const BASE_SPEED = 1.5;   // 기본 게임 속도(사용자 요청 2026-11-08: 더 빠르게). 시간이 통째로 빨라져 난이도는 같음
 
@@ -1276,6 +1276,11 @@ function drawFieldInner() {
     const lf = lastShot.get(u.uid), face = !!lf && G.t - lf.t < 0.8 && lf.x1 > lf.x0 + 4;
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
+    if (E.tierOf(u.id) >= E.TOP_TIER) {   // 상위(제한~영원) 이름(2026-11-15 사용자 요청): 발밑 고리 아래, 등급 색 + 어두운 테두리
+      const ny = u.y + 8 * z + 9; ctx.font = `13px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
+      box(u.x - nw / 2, ny - 9, nw, 18, 'rgba(7,19,28,.72)', null, 8);
+      text(info.name, u.x, ny, 13, col, 'center');
+    }
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
