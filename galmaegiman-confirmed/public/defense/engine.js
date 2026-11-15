@@ -49,7 +49,7 @@ export const RULES = {
   lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.04,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +4%(60웨이브 체력 ×1.8·속도 ×1.8). 2026-11-15 사용자 요청: 입구에서 다 죽어 때리는 맛이 짧음 → 속도 1.5%→4%
   bossLen: 60, bossHpX: 1.6,   // 2026-11-15 사용자 요청: 보스는 시간을 길게(40→60초) 주고 체력을 더(×1.6, 시간보다 조금 더 늘려 필요한 초당 피해 +7%)
   hardLimitFrom: 45, hardLimit: 50,
-  stunLo: 0.10, stunHi: 0.20,   // 스턴·범위 스턴 확률(한 번 칠 때) 범위
+  stunBase: 0.2,   // 스턴·범위 스턴: 한 번 칠 때 확률 × 스턴 시간(초). 1초 20% · 1.5초 13% · 2초 10%
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
   finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
@@ -187,7 +187,7 @@ const STUN = (t) => (t < 3 ? [0.03, 0.05, 0.08][t] : Math.min(0.35, 0.18 + 0.03 
 // 시작값: 보조(고체력 등, 스턴이 본업) 2.25초 · 주력(딜러, 공격이 본업) 1.75초. 스턴 말고 가진 큰 성능 하나마다 −0.25초, 0.75~2초로 자름.
 // 큰 성능: 방깍 · 마방깍(그 등급 60% 이상, 전설·히든 모두에게 주는 작은 마방깍은 안 셈) · 마딜증폭 · 이감 · 범위 공격 · 스플래시 30% 이상 · 번개 연쇄 · 독 · 보스 추가 피해 · 위습 찾기
 // (탐사 특기는 판 수비와 상관없는 외부탐사 전용이라 안 셈 → 고체력 스턴 보조는 모두 2초)
-export const STUN_MIN = 0.75, STUN_MAX = 2;
+export const STUN_MIN = 1, STUN_MAX = 2;   // 2026-11-15: 1초 20% ~ 2초 10% 기준에 맞춰 최소 1초(예전 0.75초)
 export function stunPerks(k, t) {
   const big = Math.round(SHRED(t) * 0.6);
   return [k.shred && 'shred', (k.mshred ?? 0) >= big && 'mshred', k.amp && 'amp', k.slow && 'slow', k.area && 'area', (k.splash ?? 0) >= 0.3 && 'splash',
@@ -336,9 +336,6 @@ function kitRaw(id) {
   const AS = RULES.atkSpeed ?? 1;
   if (k.stun) k.stun /= AS;
   if (k.astun) k.astun /= AS;
-  // 2026-11-15 사용자 요청(스턴 확률이 너무 낮아 보임 → 10~20%): 공속 2배로 반이 됐던 확률을 다시 올려 한 번 칠 때 10~20% 사이로
-  if (k.stun) k.stun = Math.min(RULES.stunHi, Math.max(RULES.stunLo, k.stun * 1.4));
-  if (k.astun) k.astun = Math.min(RULES.stunHi, Math.max(RULES.stunLo, k.astun * 2.5));
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
   if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison', 'haste', 'might', 'weaken']) delete k[key];
@@ -352,8 +349,11 @@ function kitRaw(id) {
   }
   // 2026-11-10 사용자 요청: 방깍과 마방깍은 둘 다 갖지 못함 → 물딜은 방깍, 마딜은 마방깍만 남김
   if (out.shred && out.mshred) { if (out.type === 'phys') delete out.mshred; else delete out.shred; }
-  // 스턴: 맞힐 때 스턴 확률로 그 적이 stunTimeOf초 멈춤(0.75~2초, 위 설명). 보스는 그 1/4
+  // 스턴: 맞힐 때 스턴 확률로 그 적이 stunTimeOf초 멈춤(1~2초, 위 설명). 보스는 그 1/4
   if (out.stun || out.astun) out.stunTime = stunTimeOf(out, t);
+  // 2026-11-15 사용자 요청(기준값): 스턴 1초면 20%, 2초면 10% → 한 번 칠 때 확률 = stunBase ÷ 스턴 시간(확률×시간 = 0.2초로 같음)
+  if (out.stun) out.stun = RULES.stunBase / out.stunTime;
+  if (out.astun) out.astun = RULES.stunBase / out.stunTime;
   return out;
 }
 // 최상위(제한~영원)는 조합 재료의 유틸을 더 세게 물려받음(2026-11-09 사용자 요청).
@@ -381,7 +381,7 @@ export function kitTips(k) {
   if (k.shred) out.push(`방깍 ${Math.round(k.shred)}`);
   if (k.mshred) out.push(`주변 마방깍 ${Math.round(k.mshred)}`);
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
-  if (k.stun) out.push(`스턴 ${Math.round(k.stun * 100)}%(${k.stunTime ?? 1}초)`);
+  if (k.stun) out.push(`사거리 안 스턴 ${Math.round(k.stun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
   if (k.explore) out.push(k.exploreTop ? `최상위 탐사: 외부탐사 피해 ×${k.explore}(역할 감점 없음)` : `탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}${k.exDmg ? '(역할 감점 없음)' : ''}`);
@@ -914,6 +914,9 @@ function attack(g, u, k) {
   }
   let d0 = 0;
   hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
+  // 2026-11-15 사용자 요청(스턴 20%·1초 유닛 한 마리 + 이감 100%면 한 마리도 스턴 없이 못 지나가게): 스턴은 이감처럼 사거리 안 적 모두가 공격마다 굴림
+  if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')), r2 = k.range * k.range;
+    for (const e of g.enemies) { if (e.hp <= 0 || !e.speed || hits.includes(e) || (e.x - u.x) ** 2 + (e.y - u.y) ** 2 > r2) continue; if (g.rand() < p) e.stunUntil = Math.max(e.stunUntil, g.t + st * (e.boss ? BOSS_STUN : 1)); } }
   // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
   if (best.boss && k.tier >= 4 && d0 > 0 && g.fx.filter((f) => f.kind === 'num').length < 4) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
   if (k.chain) {
