@@ -41,7 +41,7 @@ systemctl is-active --quiet gmm-server || { echo '서버가 지금 실행 중이
 free=$(df -Pk "$CUR" | awk 'NR==2{print $4}'); [ "$free" -gt 30720 ] || { echo "디스크 여유 부족(남음 ${free}KB, 30MB 필요)으로 중단. deploy/tools/cleanup-releases.sh 로 정리해 주세요."; exit 1; }
 
 say '2/6 최신 판 받기(읽기)'
-runuser -u ubuntu -- git -C "$REPO" fetch -q origin manual/home-assembly-20261019
+runuser -u ubuntu -- git -C "$REPO" fetch -q "${GMM_GIT_URL:-origin}" manual/home-assembly-20261019   # GMM_GIT_URL: 받을 주소(2026-11-15: 서버에 남은 예전 토큰 대신 공개 주소로 받으려고)
 for f in defense-latest.tar.gz defense-latest.tar.gz.sha256 files.sha256 known-states.txt latest-state.txt; do runuser -u ubuntu -- git -C "$REPO" show "FETCH_HEAD:$SRCDIR/$f" > "$TMP/$f"; done
 (cd "$TMP" && sha256sum -c --quiet defense-latest.tar.gz.sha256) || { echo '묶음 지문이 달라 중단'; exit 1; }
 
