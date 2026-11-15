@@ -347,28 +347,28 @@ function combineNow(r, keep = 0) {
 // 큰 순간에만: 고유 기술 · 보스 처치 · 조합 완성 · 위습 찾기 · 외부탐사 성공 · 전설 이상이 보스를 칠 때. 「화려한 효과」를 끄면 나오지 않음
 let PFX = null, pfxLayer = null;
 const pfxSeen = new WeakSet(), pfxWatch = { g: null, boss: 0, md: 0, bossAt: null };
-import('./pixfx.js?v=01a3d31934cd').then((m) => { PFX = m; pfxLayer = m.createLayer(FIELD.w, FIELD.h, 1.6); }).catch(() => { /* 효과 없이 진행 */ });
+import('./pixfx.js?v=071157c1acc6').then((m) => { PFX = m; pfxLayer = m.createLayer(FIELD.w, FIELD.h, 1.6); }).catch(() => { /* 효과 없이 진행 */ });
 function pfx(name, x, y, o = {}) { return !!(pfxLayer && !fxLite) && pfxLayer.spawn(name, x - FIELD.x, y - FIELD.y, o); }   // 띄웠으면 true(무거워 건너뛰면 false)
 // 고유 기술 폭발(nova)·장판(field)은 속성마다 다른 효과: [효과, 속성 색 입힘]
 // 2.5D(2026-11-15 사용자 요청): 바닥 타원 위에서 터지는 효과로. [효과, 속성 색을 입힐지]
-const PFX_NOVA = { FIRE: ['firering', false], ICE: ['frostnova', false], WATER: ['frostnova', true], LIGHTNING: ['thunderclap', true], HOLY: ['holypillar', false], DARK: ['implosion', false], NATURE: ['magiccircle', true], NORMAL: ['firering', true] };
-const PFX_FIELD = { HOLY: ['healaoe', false] };   // 나머지는 룬 원(속성 색)
+const PFX_NOVA = { FIRE: ['firering', false], ICE: ['frostnova', false], WATER: ['frostnova', true], LIGHTNING: ['thunderclap', true], HOLY: ['holypillar', false], DARK: ['implosion', false], NATURE: ['gmmbloom', true], NORMAL: ['gmmquake', true] };   // gmm*: 직접 만든 2.5D 효과
+const PFX_FIELD = { HOLY: ['healaoe', false] };   // 나머지는 직접 만든 속성 장판(gmmfield: 불씨·서리·물결·그림자·번개·잎·먼지)
 function pfxTick(dt) {   // 판 상태가 바뀐 것을 보고 효과를 띄움
   if (!pfxLayer || scene !== 'play' || !G) return;
   if (pfxWatch.g !== G) { Object.assign(pfxWatch, { g: G, boss: G.bossDone ?? 0, md: G.missionDone }); pfxLayer.clear(); for (const f of G.fx) pfxSeen.add(f); return; }
   const boss = G.enemies.find((e) => e.boss); if (boss) pfxWatch.bossAt = { x: boss.x, y: boss.y };
-  if ((G.bossDone ?? 0) !== pfxWatch.boss) { pfxWatch.boss = G.bossDone ?? 0; const p = pfxWatch.bossAt; if (p) { pfx('powerstar', p.x, p.y - 30, { dur: 1.6, force: true }); pfx('confetti', p.x, p.y - 90, { dur: 1.0, force: true }); } }   // 보스 처치: 축하(금별·색종이) — 공격 효과와 다르게. 색종이는 바닥 한 줄에 쌓이기 전(1초)에 끊음
+  if ((G.bossDone ?? 0) !== pfxWatch.boss) { pfxWatch.boss = G.bossDone ?? 0; const p = pfxWatch.bossAt; if (p) { pfx('gmmvictory', p.x, p.y, { dur: 2.0, force: true, reach: 70 }); pfx('confetti', p.x, p.y - 90, { dur: 1.0, force: true }); } }   // 보스 처치: 축하(바닥 금빛 물결·솟는 빛 알갱이·위의 큰 별 + 색종이) — 공격 효과와 다르게. 색종이는 바닥 한 줄에 쌓이기 전(1초)에 끊음
   if (G.missionDone > pfxWatch.md) { pfxWatch.md = G.missionDone; pfx('quest', W / 2, FIELD.y + 230, { dur: 2.2, force: true }); }
   for (const f of G.fx) {
     if (pfxSeen.has(f)) continue; pfxSeen.add(f);
     if (f.kind === 'sig') {
       const el = f.elem ?? 'NORMAL', pts = f.pts ?? [];
-      if (f.sk === 'smash') { if (!pfx('meteor', f.x1, f.y1, { dur: 1.1, elem: el === 'FIRE' ? undefined : el })) pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el }); }   // 하늘에서 떨어져 바닥 타원에 꽂힘(무거우면 예전 별)
+      if (f.sk === 'smash') { if (!pfx('gmmquake', f.x1, f.y1, { dur: 1.3, elem: el, reach: 46 })) pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el }); }   // 강타: 땅이 울리며 금이 가고 돌이 튐(직접 만든 2.5D, 무거우면 예전 별)
       else if (f.sk === 'execute') pfx('darkx', f.x1, f.y1, { dur: 1.0 });
       else if (f.sk === 'nova' && f.type === 'mag') { pfx('holypillar', f.x1, f.y1, { dur: 1.3, elem: el === 'HOLY' ? undefined : el }); pfx('firework', f.x1, f.y1 - 50, { dur: 1.2, elem: el }); }   // 폭발형 마법딜러(우로보로스·귀해): 하늘에서 빛기둥 + 위에서 터지는 불꽃(2026-11-15 사용자 선택)
       else if (f.sk === 'nova') { const nv = PFX_NOVA[el] ?? ['firering', true]; pfx(nv[0], f.x1, f.y1, { dur: 1.2, elem: nv[1] ? el : undefined, reach: f.r ?? 80 }); }   // 기술 범위만큼 퍼짐
-      else if (f.sk === 'bind') pfx('magiccircle', f.x1, f.y1, { dur: 1.2, elem: el });
-      else if (f.sk === 'field') { const fd = PFX_FIELD[el] ?? ['runecircle', true]; pfx(fd[0], f.x1, f.y1, { dur: 1.6, elem: fd[1] ? el : undefined }); }
+      else if (f.sk === 'bind') pfx('gmmbind', f.x1, f.y1, { dur: 1.5, elem: el, reach: f.r ?? 70 });   // 바닥 마법진 + 둘레에서 솟아 조이는 사슬
+      else if (f.sk === 'field') { const fd = PFX_FIELD[el] ?? ['gmmfield', true]; pfx(fd[0], f.x1, f.y1, fd[0] === 'gmmfield' ? { dur: 3.0, elem: el, kind: el, reach: f.r ?? 80 } : { dur: 1.6 }); if (el === 'NATURE') pfx('gmmbloom', f.x1, f.y1, { dur: 1.5, reach: f.r ?? 80 }); }   // 자연 장판은 처음에 풀잎이 솟는 꽃핌   // 장판은 3초 동안(엔진 장판 시간)
       else if (f.sk === 'storm') pts.slice(0, 2).forEach(([x, y]) => pfx('strike', x, y, { dur: 0.8 }));   // 낙뢰는 2개까지(무거움)
       else if (f.sk === 'bounce') pts.slice(0, 3).forEach(([x, y]) => pfx('zap', x, y - 8, { dur: 0.7, elem: el }));
       else if (f.sk === 'pierce') pfx('zap', f.x1, f.y1 - 8, { dur: 0.7, elem: el });
