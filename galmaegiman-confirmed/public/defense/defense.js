@@ -317,6 +317,27 @@ function drawBossWarn() {
   fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.RULES.waveLen}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
   ctx.restore();
 }
+// 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
+function chainPlan(r) {   // 조합할 순서(아래부터, 마지막이 r). 기본 재료가 모자라면 null
+  const pool = E.countOnField(G), steps = [];
+  const need = (c, depth) => {
+    if ((pool[c] ?? 0) > 0) { pool[c]--; return true; }
+    const rr = depth < 8 ? E.recipeFor(c) : null;
+    if (!rr || E.tierOf(c) >= E.TOP_TIER) return false;   // 상위(제한~영원)는 중간 재료로 몰래 만들지 않음(마리 수 제한)
+    for (const x of rr.in) if (!need(x, depth + 1)) return false;
+    steps.push(rr); return true;
+  };
+  for (const x of r.in) if (!need(x, 1)) return null;
+  steps.push(r); return steps;
+}
+const canChain = (r) => !G.over && !E.topBlocked(G, r) && !!chainPlan(r);
+function combineChain(r, keep = 0) {   // 바로 되면 그대로, 아니면 중간 재료(효과 없이) → 마지막만 효과와 함께
+  if (canMake(r, keep)) return combineNow(r, keep);
+  const plan = canChain(r) ? chainPlan(r) : null; if (!plan) return null;
+  for (const st of plan.slice(0, -1)) if (!E.combine(G, st)) return null;
+  const nu = combineNow(r); if (nu) nu.chain = plan.length - 1;
+  return nu;
+}
 function combineNow(r, keep = 0) {
   const nu = E.combine(G, r, keep);
   if (nu) { sfx('combine'); const t = E.tierOf(nu.id); pfx('collect', nu.x, nu.y - 20, { dur: 1.2 }); if (t >= E.TOP_TIER) pfx('portal', nu.x, nu.y + 4, { dur: 1.6 }); if (t >= 4) pfx('starfall', nu.x, nu.y - 10, { dur: 1.6, elem: t >= E.TOP_TIER ? 'HOLY' : undefined }); }
@@ -745,8 +766,8 @@ function costOf(c, depth = 0) {
 }
 let progCache = { t: 0, g: null, m: new Map() };
 function progOf(r, cnt) {   // { got, total } — 기본 재료 기준
-  const now = performance.now();
-  if (progCache.g !== G || now - progCache.t > 300) progCache = { t: now, g: G, m: new Map() };
+  const now = performance.now(), sig = `${G.units.length}|${G.nextUid}`;   // 갈매미가 생기거나 없어지면 바로 다시 셈
+  if (progCache.g !== G || progCache.sig !== sig || now - progCache.t > 300) progCache = { t: now, g: G, sig, m: new Map() };
   const hit0 = progCache.m.get(r); if (hit0) return hit0;
   const pool = { ...cnt };
   const node = (c, depth) => {
@@ -1571,12 +1592,12 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, ny, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
   if (tall) fitText(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, C.muted);
   // 재료 모인 정도 게이지(사용자 요청 2026-11-15): 금빛 = 진행(색 규칙), 다 모이면 초록
-  // 기본 재료 기준(아래 재료까지). 기본 재료가 다 모이면 100%(2026-11-15 사용자: 중간 조합은 알아서 함) — 바로 조합할 수 있을 때만 초록
+  // 기본 재료 기준(아래 재료까지). 기본 재료가 다 모이면 100%·초록(2026-11-15 사용자 요청) — 「조합」이 중간 재료부터 한 번에 만듦
   { const pg = progOf(r, cnt), direct = have(r, cnt) === r.in.length, n = pg.got;
     const fr = direct ? 1 : pg.got / pg.total, gy = tall ? y + h - 13 : y + h - 15, gw = 54;
     box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(145,122,76,.55)', 3.5, 1);
-    if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, direct ? C.good : C.gold, null, 3.5);
-    text(`${fr >= 1 ? 100 : Math.min(99, Math.floor(fr * 100))}%`, x + 142, gy + 4, 13, direct ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
+    if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, fr >= 1 ? C.good : C.gold, null, 3.5);   // 다 모이면 초록(2026-11-15 사용자 요청)
+    text(`${fr >= 1 ? 100 : Math.min(99, Math.floor(fr * 100))}%`, x + 142, gy + 4, 13, fr >= 1 ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
   const left = { ...cnt };
   // 재료가 5개 이상(초불영제)이면 두 줄로 나눠 칸을 넓게(2026-11-10: 재료 6~7개라 이름이 너무 잘림)
   const x0 = x + 150, lines = r.in.length > 4 ? 2 : 1, perLine = Math.ceil(r.in.length / lines), ch = lines === 2 ? 19 : 24, fs = lines === 2 ? 12 : 14;
@@ -1600,7 +1621,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = combineNow(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!`); } }, 'primary', ok);
+  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
 }
 
 // ── 모달 ──
@@ -2450,13 +2471,13 @@ function drawInfo() {
     if (ready) fitText('재료가 모두 있어요! 바로 조합할 수 있어요.', W / 2, y + h - 107, w - 40, 15, C.good, 'center');
     else if (E.topBlocked(G, r) && E.recipeUnits(G, r)) fitText(`재료는 모두 있지만 상위(제한~영원)는 ${E.RULES.topCap}마리까지예요. 하나를 팔거나 재료로 쓰면 만들 수 있어요.`, W / 2, y + h - 107, w - 40, 13, C.bad, 'center');
     else if (miss) wrap(`더 필요: ${miss}`, x + 22, y + h - 127, w - 44, 13, C.goldEdge, 19);
-    else fitText('하위 재료는 다 있어요. 아래 단부터 조합해 올라가세요.', W / 2, y + h - 107, w - 40, 14, C.goldEdge, 'center');
+    else fitText('하위 재료는 다 있어요. 「조합」을 누르면 중간 재료부터 한 번에 만들어요.', W / 2, y + h - 107, w - 40, 14, C.good, 'center');
     ctx.restore();
     const gi = G.goals.indexOf(id), nb = pickable ? 3 : 2, bw = (w - 28 - 12 * (nb - 1)) / nb;
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
     if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
     if (pickable) pickBtn(x + 26 + bw, bw);
-    button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineNow(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!`); if (info.stack.length) { const back = info.stack[info.stack.length - 1]; info = { id: back, stack: info.stack.slice(0, -1) }; } } }, 'primary', ready);   // 창을 닫지 않음: 재료에서 들어왔으면 위 목표로 돌아감
+    button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineChain(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; if (info.stack.length) { const back = info.stack[info.stack.length - 1]; info = { id: back, stack: info.stack.slice(0, -1) }; } } }, 'primary', ready || canChain(r));   // 창을 닫지 않음: 재료에서 들어왔으면 위 목표로 돌아감
   }
 }
 // 피해 순위표(사용자 요청 2026-11-08): 갈매미마다 이번 판·이번 웨이브에 준 피해(외부탐사 대장 포함)
@@ -3073,4 +3094,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
