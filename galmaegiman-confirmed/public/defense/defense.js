@@ -327,10 +327,21 @@ function atkVoice(ac, key, t, p, v) {
   else if (key === 'DARK') { atkTone(ac, t, 300 * p, 200 * p, 0.09, 'sine', v * 0.5); atkHiss(ac, t, 0.08, 'lowpass', 800 * p, 300, 0.8, v * 0.5); }   // 웅
   else if (key === 'NATURE') { atkTone(ac, t, 620 * p, 540 * p, 0.05, 'triangle', v * 0.55); atkHiss(ac, t, 0.04, 'bandpass', 1800 * p, 1800 * p, 2, v * 0.35); }   // 톡
 }
+// 적 처치 소리(2026-11-15 사용자 요청): 짧은 「퍽」(흰 소리 + 떨어지는 낮은 음), 0.07초 간격·초당 10개까지, 여러 마리면 조금 크게. 보스는 큰 소리
+const killSfx = { t: 0, n: 0, last: 0 };
+function killSound(n, boss = false) {
+  if (!atkSfx.on || !(sfxState.vol > 0) || document.hidden || !sfxState.ctx) return;
+  const now = performance.now();
+  if (!boss) { if (now - killSfx.t > 1000) { killSfx.t = now; killSfx.n = 0; } if (killSfx.n >= 10 || now - killSfx.last < 70) return; killSfx.n++; killSfx.last = now; }
+  const ac = sfxCtx(); if (!ac) return;
+  const t = ac.currentTime + 0.005, p = 0.9 + Math.random() * 0.2, v = sfxState.vol * 0.05 * Math.min(1.6, 1 + (n - 1) * 0.15);
+  if (boss) { atkHiss(ac, t, 0.35, 'lowpass', 1400, 200, 0.7, sfxState.vol * 0.09); atkTone(ac, t, 330, 140, 0.4, 'sine', sfxState.vol * 0.07); atkTone(ac, t + 0.08, 660, 990, 0.25, 'triangle', sfxState.vol * 0.035); return; }   // 쿵 + 반짝
+  atkHiss(ac, t, 0.07, 'bandpass', 1100 * p, 500 * p, 1.2, v * 0.9); atkTone(ac, t, 520 * p, 240 * p, 0.06, 'sine', v * 0.55);   // 퍽
+}
 function setAtkSfx(on) { atkSfx.on = on; try { localStorage.setItem(ATK_KEY, on ? '1' : '0'); } catch { /* 진행 */ } }
 function setSfxVolume(v) { sfxState.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20; try { localStorage.setItem(SFX_KEY, String(sfxState.vol)); } catch { /* 진행 */ } }
 // 판 상태가 바뀐 것을 보고 소리: 보스 등장·경고·외부탐사 성공·위습 찾음
-const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, fx: new WeakSet() };
+const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, kills: 0, boss: 0, fx: new WeakSet() };
 // ── 전설 이상 갈매미 대사(2026-11-15 사용자 요청: 「전설 이상 유닛은 중간중간 대사 넣기」) ──
 // 싸우는 중 9~16초마다 판 위 전설 이상 한 마리가 한마디(역할·속성·최상위에 따라), 그리고 보스 등장·보스 처치·처음 만들어짐·경고에 한마디.
 // 말풍선은 머리 위 2.6초, 동시에 2개까지. 판 시간(G.t)으로 세서 일시정지면 멈춤. 규칙(engine.js)과는 상관없음
@@ -390,8 +401,10 @@ function drawTalk() {
 }
 function sfxTick() {
   if (scene !== 'play' || !G) return;
-  if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone }); return; }
-  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } sfxWatch.wave = G.wave; }
+  if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone, kills: G.kills, boss: G.bossDone ?? 0 }); return; }
+  if (G.kills > sfxWatch.kills) { killSound(G.kills - sfxWatch.kills); sfxWatch.kills = G.kills; }   // 적 처치 소리(2026-11-15)
+  if ((G.bossDone ?? 0) !== sfxWatch.boss) { sfxWatch.boss = G.bossDone ?? 0; if (sfxWatch.boss) killSound(0, true); }
+  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } else if (G.wave === (E.RULES.riftFrom ?? 999) + 1) { sfx('warn'); riftAlarm(); } sfxWatch.wave = G.wave; }
   if (G.warn > sfxWatch.warn) sfx('warn');
   sfxWatch.warn = G.warn;
   if (G.missionDone > sfxWatch.md) sfx('story');
@@ -403,8 +416,11 @@ function sfxTick() {
 const BOSS_CLOSE = new Set(['book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
 const bossWarn = { at: -1e9, wave: 0 };
 const BOSS_WARN_MS = 2600;
+function riftAlarm() {   // 균열 저항 시작 알림(2026-11-15 사용자 요청: 보스 경고처럼 한 번). 창은 닫지 않고 띠만
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'rift';
+}
 function bossAlarm() {
-  bossWarn.at = performance.now(); bossWarn.wave = G.wave;
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'boss';
   info = null;
   if (modal && BOSS_CLOSE.has(modal.kind)) modal = null;
 }
@@ -412,6 +428,24 @@ function drawBossWarn() {
   const age = performance.now() - bossWarn.at;
   if (age > BOSS_WARN_MS || !G || G.over) return;
   const fade = Math.min(1, age / 150, (BOSS_WARN_MS - age) / 500), pulse = 0.55 + 0.45 * Math.abs(Math.sin(age / 190));
+  if (bossWarn.kind === 'rift') {   // 균열 저항: 보라색으로 같은 모양
+    ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+    const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
+    gr.addColorStop(0, 'rgba(170,90,255,0)'); gr.addColorStop(1, `rgba(170,90,255,${0.38 * pulse * fade})`);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    ctx.lineWidth = 6; ctx.strokeStyle = `rgba(200,150,255,${0.8 * pulse * fade})`; ctx.strokeRect(3, 3, VW - 6, VH - 6);
+    ctx.restore();
+    ctx.save();
+    if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+    ctx.globalAlpha = fade;
+    const bw = W - 60, bh = 104, bx = 30, by = 324;
+    box(bx, by, bw, bh, 'rgba(32,10,58,.92)', `rgba(201,163,255,${0.6 + 0.4 * pulse})`, 12, 3);
+    fitText('⚠ 균열 저항 시작!', W / 2, by + 32, bw - 30, 28, '#c9a3ff', 'center');
+    fitText(`일반 적이 전설·히든 이하 공격을 웨이브마다 ${Math.round((E.RULES.riftPer ?? 0) * 100)}%씩 덜 받아요(최대 ${Math.round((E.RULES.riftMax ?? 0) * 100)}%)`, W / 2, by + 64, bw - 30, 14, '#ead9ff', 'center');
+    fitText('초불영제 피해와 보스는 그대로예요', W / 2, by + 86, bw - 30, 13, '#cbb6ea', 'center');
+    ctx.restore();
+    return;
+  }
   // 화면 가장자리 빨간 번쩍임
   ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
@@ -496,6 +530,7 @@ function setVolume(v) {
   try { localStorage.setItem(VOLUME_KEY, String(music.vol)); } catch { /* 저장 못 해도 진행 */ }
 }
 function musicPlay() { if (music.on) musicEl().play().catch(() => {}); }
+window.addEventListener('pointerdown', () => musicPlay(), { once: true });   // 브라우저는 첫 누르기 전 소리를 막음 → 처음 누를 때 음악 시작(켬일 때만)
 function musicToggle() {
   music.on = !music.on;
   try { localStorage.setItem(MUSIC_KEY, music.on ? 'on' : 'off'); } catch { /* 저장 못 해도 진행 */ }
@@ -503,7 +538,7 @@ function musicToggle() {
 }
 function musicSync() {   // 매 장면: 들어야 할 때만 재생
   if (!music.el) return;
-  const want = music.on && !document.hidden && (modal?.kind === 'sound' || (scene === 'play' && modal?.kind !== 'pause'));
+  const want = music.on && !document.hidden && modal?.kind !== 'pause';   // 2026-11-15 사용자 요청: 시작·로비 화면에서도 음악이 이어서(일시정지 창에서만 멈춤)
   if (want && music.el.paused) music.el.play().catch(() => {});
   else if (!want && !music.el.paused) music.el.pause();
 }
@@ -988,12 +1023,13 @@ function drawLanesRaw() {
   ctx.setLineDash([]);
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
-function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1) {   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
+function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false) {   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
   let z = usz(id);
   ctx.beginPath(); ctx.ellipse(x0, y0, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
   ctx.lineWidth = lw; ctx.strokeStyle = ring; ctx.stroke();
   const x = x0 + ox, y = y0 + oy; z *= zm;
   const im = unitImg(id), gl = E.tierOf(id) >= 4 && !fxLite ? glow(id) : null;   // 화려한 효과 끔이면 빛 테두리 없음
+  if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }   // 그림만 좌우로 뒤집음(발밑 고리·자물쇠는 그대로)
   if (im && gl) {   // 전설 이상: 그림 둘레가 등급 색으로 빛남(천천히 밝아졌다 어두워짐)
     const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
     const dx = x - bw / 2 + (bw - dw) / 2, dy = y - bh + bh - dh, f = dw / gl.w;
@@ -1002,6 +1038,7 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
     ctx.globalAlpha = 1;
   }
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
+  if (flip) ctx.restore();
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
@@ -1214,7 +1251,9 @@ function drawFieldInner() {
     }
     const cos = fxLite ? null : cosById[u.id];   // 화려한 효과 끔이면 꾸밈도 숨김(가볍게)
     if (cos) cosBack(cos, u.x + ox, u.y + oy, z * zm, u.uid);
-    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm);
+    // 공격 방향 보기(2026-11-15 사용자 요청): 기본은 왼쪽, 오른쪽 적을 치면 오른쪽을 봤다가 공격이 끊기면 돌아옴(공격 기록이 0.8초 남으므로 0.8초 뒤)
+    const lf = lastShot.get(u.uid), face = !!lf && G.t - lf.t < 0.8 && lf.x1 > lf.x0 + 4;
+    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
@@ -2486,9 +2525,9 @@ function drawSound() {
   text('성능 표시', x + 24, sy + 200, 18, C.text);
   button(x + w - 24 - 120, sy + 178, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
   fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 236, w - 48, 13, C.muted);
-  text('공격 소리', x + 24, sy + 286, 18, C.text);
+  text('공격·처치 소리', x + 24, sy + 286, 18, C.text);
   button(x + w - 24 - 120, sy + 264, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
-  fitText('갈매미가 쏠 때마다 속성별로 짧은 소리(효과음 음량을 따라요)', x + 24, sy + 322, w - 48, 13, C.muted);
+  fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, sy + 322, w - 48, 13, C.muted);
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
