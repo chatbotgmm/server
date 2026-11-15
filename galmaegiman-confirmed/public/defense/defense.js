@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=1ff978766659';
+import * as E from './engine.js?v=c69e86da6dc4';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -840,6 +840,8 @@ cv.addEventListener('pointerup', (ev) => {
       let moved = 0;
       for (const [uid, x, y] of d.start ?? []) if (E.moveUnit(G, uid, x + dx, y + dy, true)) moved++;   // 끄는 동안 이미 따라왔음, 마지막 자리로 맞춤
       if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
+      const sn = (d.start ?? []).map(([uid]) => E.unitById(G, uid)).find((u) => u?.snap);   // 같은 갈매미에 붙음: 고리 + 소리
+      if (sn) { G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t }); G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t - 0.15 }); sfx('summon'); }
       if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
       return;
     }

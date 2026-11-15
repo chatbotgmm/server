@@ -697,7 +697,12 @@ export const WALK = 320;
 export function moveUnit(g, uid, x, y, now = false) {
   const u = unitById(g, uid);
   if (!u || u.away || u.lock) return false;   // 고정한 갈매미는 안 움직임
-  const p = freeSpot(g, u.id, x, y, u.uid); u.tx = p.x; u.ty = p.y;   // 다른 종류와 겹치면 가까운 빈자리로
+  // 스냅(2026-11-15 사용자 요청: 같은 갈매미 근처로 가져가면 붙으면서 하나로): 같은 종류가 SEP_K×2×크기 안에 있으면 그 자리에 딱 겹침
+  const z = sizeOf(u.id), snapR = SEP_K * 2 * z;
+  let snap = null, sd = snapR * snapR;
+  for (const o of g.units) { if (o === u || o.away || o.stored || o.id !== u.id) continue; const d2 = (o.tx - x) ** 2 + (o.ty - y) ** 2; if (d2 <= sd) { sd = d2; snap = o; } }
+  const p = snap ? { x: snap.tx, y: snap.ty } : freeSpot(g, u.id, x, y, u.uid); u.tx = p.x; u.ty = p.y;   // 아니면 다른 종류와 겹치지 않는 가까운 빈자리로
+  u.snap = snap ? snap.uid : 0;
   if (now) { u.x = p.x; u.y = p.y; }
   return true;
 }
