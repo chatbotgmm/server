@@ -273,6 +273,49 @@ function sfx(name) {
     o.connect(g).connect(ac.destination); o.start(t0 + at); o.stop(t0 + at + dur + 0.02);
   }
 }
+// 기본 공격 소리(2026-11-15 사용자 요청): 쏠 때마다 속성·종류별로 아주 짧게(0.03~0.11초). 많이 쏘므로 초당 14개(전설 이상은 20개)까지,
+// 같은 소리는 0.055초 간격, 음 높이를 ±8% 흔들어 기관총처럼 들리지 않게. 소리 파일 없이 브라우저에서 만듦(흰 소리 + 거르개 + 짧은 음)
+const ATK_KEY = 'gmm-defense-atk';
+const atkSfx = { on: true, t: 0, n: 0, last: {}, buf: null };
+try { atkSfx.on = localStorage.getItem(ATK_KEY) !== '0'; } catch { /* 기본 켬 */ }
+function noiseBuf(ac) {
+  if (!atkSfx.buf) { const b = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.4), ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; atkSfx.buf = b; }
+  return atkSfx.buf;
+}
+function atkTone(ac, t, f0, f1, dur, type, v) {
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+function atkHiss(ac, t, dur, ft, f0, f1, q, v) {   // 흰 소리를 거르개로 깎아 「휙·쉭·화르륵·지직」
+  const s = ac.createBufferSource(), bq = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = noiseBuf(ac); s.playbackRate.value = 0.9 + Math.random() * 0.2;
+  bq.type = ft; bq.frequency.setValueAtTime(f0, t); if (f1 !== f0) bq.frequency.exponentialRampToValueAtTime(f1, t + dur); bq.Q.value = q;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(bq).connect(g).connect(ac.destination); s.start(t, Math.random() * 0.3); s.stop(t + dur + 0.02);
+}
+function atkSound(f) {
+  if (!atkSfx.on || !(sfxState.vol > 0) || document.hidden || !sfxState.ctx) return;   // 첫 누르기로 소리가 열린 뒤에만
+  const now = performance.now(), big = f.tier >= 4;
+  if (now - atkSfx.t > 1000) { atkSfx.t = now; atkSfx.n = 0; }
+  if (atkSfx.n >= (big ? 20 : 14)) return;
+  const key = f.near && f.type === 'phys' ? 'SLASH' : !f.elem || f.elem === 'NORMAL' ? (f.type === 'phys' ? 'ARROW' : 'ORB') : f.elem;
+  if (now - (atkSfx.last[key] ?? 0) < 55) return;
+  atkSfx.last[key] = now; atkSfx.n++;
+  const ac = sfxCtx(); if (!ac) return;
+  const t = ac.currentTime + 0.005, p = 0.92 + Math.random() * 0.16, v = sfxState.vol * 0.05 * (f.job === '보조' ? 0.6 : 1) * (big ? 1.35 : 1);
+  if (key === 'ARROW') { atkHiss(ac, t, 0.05, 'bandpass', 3200 * p, 1700 * p, 1.2, v * 1.1); atkTone(ac, t, 1400 * p, 900 * p, 0.03, 'triangle', v * 0.3); }   // 휙
+  else if (key === 'SLASH') atkHiss(ac, t, 0.08, 'highpass', 5000 * p, 1500 * p, 0.7, v * 1.2);   // 쉭
+  else if (key === 'ORB') atkTone(ac, t, 950 * p, 520 * p, 0.06, 'sine', v * 0.9);   // 퓻
+  else if (key === 'FIRE') { atkHiss(ac, t, 0.09, 'lowpass', 2600 * p, 500, 0.8, v * 1.3); atkTone(ac, t, 180 * p, 110 * p, 0.07, 'sawtooth', v * 0.22); }   // 화르륵
+  else if (key === 'ICE') { atkTone(ac, t, 2400 * p, 2250 * p, 0.07, 'sine', v * 0.55); atkTone(ac, t + 0.012, 3300 * p, 3150 * p, 0.05, 'sine', v * 0.3); atkHiss(ac, t, 0.03, 'highpass', 6000, 6000, 0.7, v * 0.45); }   // 팅
+  else if (key === 'WATER') atkTone(ac, t, 380 * p, 900 * p, 0.06, 'sine', v * 0.9);   // 뽁
+  else if (key === 'LIGHTNING') { atkHiss(ac, t, 0.07, 'highpass', 2500 * p, 4000 * p, 0.9, v * 1.1); atkTone(ac, t, 120 * p, 80 * p, 0.06, 'square', v * 0.16); }   // 지직
+  else if (key === 'HOLY') { atkTone(ac, t, 1320 * p, 1320 * p, 0.11, 'triangle', v * 0.45); atkTone(ac, t, 1980 * p, 1980 * p, 0.09, 'sine', v * 0.28); }   // 띵
+  else if (key === 'DARK') { atkTone(ac, t, 150 * p, 85 * p, 0.09, 'sawtooth', v * 0.28); atkHiss(ac, t, 0.08, 'lowpass', 900 * p, 300, 1, v * 0.7); }   // 웅
+  else if (key === 'NATURE') { atkTone(ac, t, 620 * p, 540 * p, 0.05, 'triangle', v * 0.6); atkHiss(ac, t, 0.04, 'bandpass', 2000 * p, 2000 * p, 2, v * 0.45); }   // 톡
+}
+function setAtkSfx(on) { atkSfx.on = on; try { localStorage.setItem(ATK_KEY, on ? '1' : '0'); } catch { /* 진행 */ } }
 function setSfxVolume(v) { sfxState.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20; try { localStorage.setItem(SFX_KEY, String(sfxState.vol)); } catch { /* 진행 */ } }
 // 판 상태가 바뀐 것을 보고 소리: 보스 등장·경고·외부탐사 성공·위습 찾음
 const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, fx: new WeakSet() };
@@ -284,7 +327,7 @@ function sfxTick() {
   sfxWatch.warn = G.warn;
   if (G.missionDone > sfxWatch.md) sfx('story');
   sfxWatch.md = G.missionDone;
-  for (const f of G.fx) if (f.kind === 'wisp' && !sfxWatch.fx.has(f)) { sfxWatch.fx.add(f); sfx('wisp'); }
+  for (const f of G.fx) if ((f.kind === 'wisp' || f.kind === 'shot') && !sfxWatch.fx.has(f)) { sfxWatch.fx.add(f); if (f.kind === 'wisp') sfx('wisp'); else atkSound(f); }   // 기본 공격 소리
 }
 // 보스 등장(2026-11-12 사용자 요청: 위험하니 보조 창을 내리고 판을 보여 주기 + 빨간 경고)
 // 일시정지·결과·보상 고르기·규칙처럼 사용자가 일부러 연 큰 창은 그대로 두고, 판을 가리는 보조 창만 닫음
@@ -1216,56 +1259,84 @@ function drawShot(f, age) {
     }
     return;
   }
+  // 기본 공격 연출 2판(2026-11-15 사용자 요청: 기본 공격도 시각 효과가 필요). 속성마다 날아가는 꼬리와 맞을 때 반응이 다름.
+  // 2.5D: 바닥 점(발밑)을 따라가며 높이를 더함(물리 화살은 높게, 마법은 낮게 포물선), 맞으면 파편이 높이를 갖고 튀었다 떨어짐. 많이 쏘므로 캔버스로 가볍게 그림
   const big = f.tier >= 4, sc = (f.job === '보조' ? 0.75 : 1) * (big ? 1.4 : 1), col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
   const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
-  const seed = (f.t * 1000 + f.x0) % 97;
-  // 2.5D(2026-11-15 사용자 요청): 바닥 점(발밑)을 따라가며 높이를 더함 — 물리 화살은 높게, 마법 구슬은 낮게 포물선. 바닥엔 그림자
+  const seed = (f.t * 1000 + f.x0) % 97, rnd = (i) => ((Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) % 1 + 1) % 1;   // 공격마다 같은 난수(화면마다 같게)
   const gd = Math.hypot(f.x1 - f.x0, f.y1 - f.y0), arcH = f.type === 'phys' ? Math.min(46, gd * 0.28) : Math.min(24, gd * 0.14);
   const at = (q) => { const gx = f.x0 + (f.x1 - f.x0) * q, gy = f.y0 + (f.y1 - f.y0) * q; return [gx, gy - (24 + (10 - 24) * q) - arcH * 4 * q * (1 - q), gx, gy]; };
-  const ang = Math.atan2(dy, dx);
+  const ang = Math.atan2(dy, dx), el = f.near && f.type === 'phys' ? 'SLASH' : f.elem === 'NORMAL' || !f.elem ? (f.type === 'phys' ? 'ARROW' : 'ORB') : f.elem;
+  const dot = (x, y, r, c, a) => { if (a <= 0 || r <= 0) return; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(${c},${a})`; ctx.fill(); };
+  const star4 = (x, y, s, c, a) => { if (a <= 0) return; ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x + s * 0.28, y - s * 0.28); ctx.lineTo(x + s, y); ctx.lineTo(x + s * 0.28, y + s * 0.28); ctx.lineTo(x, y + s); ctx.lineTo(x - s * 0.28, y + s * 0.28); ctx.lineTo(x - s, y); ctx.lineTo(x - s * 0.28, y - s * 0.28); ctx.closePath(); ctx.fillStyle = `rgba(${c},${a})`; ctx.fill(); };
+  // 맞은 자리에서 튀는 파편: i번째가 q(0~1)일 때 화면 위치. 바닥으로 퍼지며(납작) 높이는 포물선
+  const flyOut = (i, q, sp, up, n) => { const a = (i / n) * Math.PI * 2 + rnd(i) * 0.8, v = sp * (0.6 + rnd(i + 9) * 0.6) * sc, z = up * sc * (0.7 + rnd(i + 3) * 0.6) * (q * 2 - q * q * 1.6);
+    return [tx + Math.cos(a) * v * q, f.y1 - 8 + Math.sin(a) * v * q * FLAT - Math.max(0, z)]; };
   if (age < T) {
     const p = age / T, [x, y, gx, gy] = at(p);
-    if (f.near && f.type === 'phys') {   // 근접 물리: 적 몸통을 가로로 휘두르는 베기(납작한 호 = 옆으로 도는 칼날)
-      ctx.beginPath(); ctx.ellipse(tx, ty, 18 * sc, 18 * sc * FLAT, 0, Math.PI * (0.15 + p * 0.5), Math.PI * (0.95 + p * 0.9));
-      ctx.strokeStyle = `rgba(${col},0.92)`; ctx.lineWidth = 3.4 * sc; ctx.lineCap = 'round'; ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2 * sc; ctx.stroke(); ctx.lineCap = 'butt';
-    } else if (f.elem === 'LIGHTNING') {   // 번개: 하늘에서 대상에게 내리꽂힘 + 바닥 번쩍(쏜 갈매미 손엔 작은 불꽃)
-      const top = f.y1 - 120;
-      ctx.beginPath(); ctx.moveTo(tx + ((seed % 9) - 4) * 3, top);
-      for (let i = 1; i < 6; i++) { const q = i / 6; ctx.lineTo(tx + (((seed * (i + 3)) % 13) - 6) * 1.8 * (1 - q), top + (ty - top) * q); }
-      ctx.lineTo(tx, ty); ctx.strokeStyle = `rgba(${col},${0.95 - p * 0.4})`; ctx.lineWidth = 2.4 * sc; ctx.stroke();
-      ctx.strokeStyle = `rgba(255,255,255,${0.8 - p * 0.4})`; ctx.lineWidth = 1; ctx.stroke();
+    if (el === 'SLASH') {   // 근접 물리: 몸통을 가로로 휘두르는 베기 + 칼끝 불꽃
+      const a0 = Math.PI * (0.15 + p * 0.5), a1 = Math.PI * (0.95 + p * 0.9);
+      ctx.beginPath(); ctx.ellipse(tx, ty, 18 * sc, 18 * sc * FLAT, 0, a0, a1); ctx.strokeStyle = `rgba(${col},0.92)`; ctx.lineWidth = 3.4 * sc; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.2 * sc; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(tx, ty, 13 * sc, 13 * sc * FLAT, 0, a0 - 0.3, a1 - 0.3); ctx.strokeStyle = `rgba(${col},0.35)`; ctx.lineWidth = 2 * sc; ctx.stroke(); ctx.lineCap = 'butt';
+      star4(tx + Math.cos(a1) * 18 * sc, ty + Math.sin(a1) * 18 * sc * FLAT, 4 * sc, '255,255,255', 0.9);
+    } else if (el === 'LIGHTNING') {   // 번개: 하늘에서 내리꽂힘 + 갈래 + 맞은 자리 번쩍
+      const top = f.y1 - 120, pts = [[tx + ((seed % 9) - 4) * 3, top]];
+      for (let i = 1; i < 6; i++) { const q = i / 6; pts.push([tx + (((seed * (i + 3)) % 13) - 6) * 1.8 * (1 - q), top + (ty - top) * q]); }
+      pts.push([tx, ty]);
+      ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+      ctx.strokeStyle = `rgba(${col},${0.35 - p * 0.2})`; ctx.lineWidth = 6 * sc; ctx.stroke();   // 번개 둘레 빛
+      ctx.strokeStyle = `rgba(${col},${0.95 - p * 0.4})`; ctx.lineWidth = 2.4 * sc; ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.85 - p * 0.4})`; ctx.lineWidth = 1; ctx.stroke();
+      const [bx, by] = pts[2]; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 10 * sc, by + 12); ctx.lineTo(bx + 7 * sc, by + 22); ctx.strokeStyle = `rgba(${col},${0.7 - p * 0.4})`; ctx.lineWidth = 1.4 * sc; ctx.stroke();   // 갈래
       groundRing(tx, f.y1, 10 * sc * (0.6 + p), col, 0.9 - p * 0.5, 1.8, 0.25);
-      ctx.beginPath(); ctx.arc(sx, sy, 4 * sc * (1 - p), 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.8)`; ctx.fill();
-    } else if (f.elem === 'HOLY') {   // 성: 빛줄기 + 대상 발밑이 밝아짐
+      dot(tx, ty, 9 * sc * (1 - p * 0.5), '255,255,240', 0.5 * (1 - p)); dot(sx, sy, 4 * sc * (1 - p), col, 0.8);
+    } else if (el === 'HOLY') {   // 성: 빛줄기 + 줄기를 따라 반짝이 + 대상 발밑이 밝아짐
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + dx * p, sy + dy * p); ctx.strokeStyle = `rgba(${col},0.35)`; ctx.lineWidth = 7 * sc; ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2 * sc; ctx.stroke();
+      for (let i = 0; i < 3; i++) { const q = p * (0.3 + i * 0.25); star4(sx + dx * q + (rnd(i) - 0.5) * 8, sy + dy * q - 4 - age * 30, 3 * sc, '255,250,220', 0.9 - p * 0.4); }
       groundRing(tx, f.y1, 8 * sc * p, col, 0.6 * p, 1.5, 0.3);
     } else {
       ctx.beginPath(); ctx.ellipse(gx, gy, 4.5 * sc, 4.5 * sc * FLAT, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fill();   // 바닥 그림자
-      // 꼬리(불·어둠·물은 길게, 나머지는 짧게) — 같은 포물선 위
-      const tail = f.elem === 'FIRE' || f.elem === 'DARK' ? 3 : f.elem === 'WATER' ? 2 : 1;
-      for (let i = tail; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.12)); ctx.beginPath(); ctx.arc(qx, qy, (3 + (tail - i)) * sc * 0.8, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},${0.18 + 0.12 * (tail - i)})`; ctx.fill(); }
-      const [nx, ny] = at(Math.min(1, p + 0.04)), ang2 = Math.atan2(ny - y, nx - x);   // 포물선 방향으로 돌림(화살 끝이 내려가며 꽂힘)
+      // 꼬리: 같은 포물선 위 지나온 자리
+      if (el === 'FIRE') for (let i = 12; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.028)), k = 1 - i / 13; dot(qx + (rnd(i) - 0.5) * 3, qy - i * 0.5 + (rnd(i + 5) - 0.5) * 2, (1.6 + k * 3.4) * sc, k > 0.6 ? '255,220,120' : k > 0.3 ? '255,140,60' : '200,60,30', 0.25 + 0.5 * k); }   // 불꽃 꼬리(노랑→빨강, 살짝 위로)
+      else if (el === 'WATER') for (let i = 7; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.04)); dot(qx, qy + i * 0.8, (1.2 + (7 - i) * 0.4) * sc, col, 0.22 + 0.08 * (7 - i)); if (i % 3 === 1) dot(qx - 0.6, qy + i * 0.8 - 0.6, 0.7 * sc, '255,255,255', 0.6); }   // 물방울(떨어지듯)
+      else if (el === 'ICE') for (let i = 3; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.09)); star4(qx + (rnd(i) - 0.5) * 6, qy + (rnd(i + 2) - 0.5) * 6, (1.8 + (3 - i) * 0.6) * sc, '220,250,255', 0.4 + 0.15 * (3 - i)); }   // 서리 반짝이
+      else if (el === 'DARK') for (let i = 0; i < 3; i++) { const a = age * 22 + i * 2.1, [qx, qy] = at(Math.max(0, p - 0.08)); dot(qx + Math.cos(a) * 6 * sc, qy + Math.sin(a) * 6 * sc * FLAT, 2 * sc, '120,60,190', 0.55); }   // 감도는 그림자
+      else if (el === 'NATURE') for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.14)); ctx.save(); ctx.translate(qx, qy); ctx.rotate(age * 20 + i); ctx.beginPath(); ctx.ellipse(0, 0, 3.5 * sc, 1.5 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.5)`; ctx.fill(); ctx.restore(); }
+      else if (el === 'ARROW') { const [qx, qy] = at(Math.max(0, p - 0.25)); ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(x, y); ctx.strokeStyle = 'rgba(255,240,210,.35)'; ctx.lineWidth = 1.5 * sc; ctx.stroke(); }   // 바람 자국
+      else for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.12)); dot(qx, qy, (2.5 + (2 - i)) * sc, col, 0.22 + 0.12 * (2 - i)); }
+      const [nx, ny] = at(Math.min(1, p + 0.04)), ang2 = Math.atan2(ny - y, nx - x);   // 포물선 방향으로 돌림
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang2);
-      if (f.elem === 'ICE') { ctx.beginPath(); ctx.moveTo(8 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-6 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1; ctx.stroke(); }
-      else if (f.elem === 'NATURE') { ctx.rotate(age * 30); ctx.beginPath(); ctx.ellipse(0, 0, 6 * sc, 2.6 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); }
-      else if (f.type === 'phys' && f.elem === 'NORMAL') { ctx.beginPath(); ctx.moveTo(-9 * sc, 0); ctx.lineTo(6 * sc, 0); ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 2.4 * sc; ctx.stroke(); ctx.beginPath(); ctx.moveTo(7 * sc, 0); ctx.lineTo(2 * sc, 2.6 * sc); ctx.lineTo(2 * sc, -2.6 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},1)`; ctx.fill(); }   // 화살
-      else { const r = (f.elem === 'FIRE' ? 5 : f.elem === 'DARK' ? 4.6 : 4) * sc; ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.22)`; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.98)`; ctx.fill(); if (f.elem === 'DARK') { ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(40,10,70,.9)'; ctx.stroke(); } }
+      if (el === 'ICE') { ctx.beginPath(); ctx.moveTo(9 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-7 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 1; ctx.stroke(); }
+      else if (el === 'NATURE') { ctx.rotate(age * 30); ctx.beginPath(); ctx.ellipse(0, 0, 6 * sc, 2.6 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.beginPath(); ctx.moveTo(-5 * sc, 0); ctx.lineTo(5 * sc, 0); ctx.strokeStyle = 'rgba(40,110,40,.8)'; ctx.lineWidth = 0.8; ctx.stroke(); }
+      else if (el === 'ARROW') { ctx.beginPath(); ctx.moveTo(-9 * sc, 0); ctx.lineTo(6 * sc, 0); ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 2.4 * sc; ctx.stroke(); ctx.beginPath(); ctx.moveTo(7 * sc, 0); ctx.lineTo(2 * sc, 2.6 * sc); ctx.lineTo(2 * sc, -2.6 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},1)`; ctx.fill(); ctx.beginPath(); ctx.moveTo(-9 * sc, 0); ctx.lineTo(-11 * sc, 2.4 * sc); ctx.moveTo(-9 * sc, 0); ctx.lineTo(-11 * sc, -2.4 * sc); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.stroke(); }   // 화살(깃 달림)
+      else if (el === 'FIRE') { dot(0, 0, 8 * sc, '255,120,40', 0.25); dot(0, 0, 5 * sc, '255,150,60', 0.9); dot(0.8 * sc, -0.8 * sc, 2.6 * sc, '255,240,180', 0.95); }   // 불덩이(겉 주황·속 노랑)
+      else if (el === 'WATER') { dot(0, 0, 6.5 * sc, col, 0.25); dot(0, 0, 4.2 * sc, col, 0.95); dot(-1.4 * sc, -1.4 * sc, 1.3 * sc, '255,255,255', 0.9); }   // 물방울 구슬(반짝임)
+      else if (el === 'DARK') { dot(0, 0, 7.5 * sc, '150,90,230', 0.3); dot(0, 0, 4.6 * sc, '40,10,70', 0.95); ctx.lineWidth = 1.4; ctx.strokeStyle = `rgba(${col},0.95)`; ctx.stroke(); }   // 어둠 구슬(검은 속·보라 테)
+      else { const r = 4 * sc; dot(0, 0, r * 1.8, col, 0.22); dot(0, 0, r, col, 0.98); dot(0, 0, r * 0.45, '255,255,255', 0.85); }
       ctx.restore();
     }
     return;
   }
-  const a2 = age - T;
-  if (a2 < 0.16) {   // 닿음: 몸에서 튀는 파편 + 발밑에 퍼지는 납작한 고리
-    const q = Math.min(1, a2 / 0.13), n = big ? 7 : 5;
-    if (q < 1) {
-      ctx.strokeStyle = `rgba(${col},${0.9 * (1 - q)})`; ctx.lineWidth = big ? 2.2 : 1.6;
-      for (let i = 0; i < n; i++) { const an = ang + Math.PI + (i - (n - 1) / 2) * 0.55 + ((seed + i * 17) % 7 - 3) * 0.05, r0 = 3 + q * 6, r1 = r0 + (big ? 9 : 6) * (1 - q * 0.5); ctx.beginPath(); ctx.moveTo(tx + Math.cos(an) * r0, ty + Math.sin(an) * r0); ctx.lineTo(tx + Math.cos(an) * r1, ty + Math.sin(an) * r1); ctx.stroke(); }
-    }
-    const g = a2 / 0.16; groundRing(tx, f.y1, (big ? 8 : 5) + g * (big ? 16 : 10), col, 0.7 * (1 - g), big ? 2 : 1.4);
-    if (f.tier >= 6 && f.boss && a2 < 0.02 && shake.until < G.t + 0.05) { shake.until = G.t + 0.12; shake.mag = f.tier >= 8 ? 3 : 2; }
+  // 맞음: 속성마다 다른 반응(게임 시간 0.4초, 전설 이상 0.48초 — 기본 1.5배속이라 실제로는 0.27·0.32초) + 발밑 고리. 효과는 0.8초 뒤 지워짐(날아가는 시간 최대 0.22 + 0.48 안)
+  const a2 = age - T, D = big ? 0.48 : 0.4;
+  if (a2 >= D) return;
+  const q = a2 / D, fa = 1 - q, n = big ? 7 : 5;
+  if (q < 0.25) dot(tx, ty, (6 + q * 20) * sc, el === 'DARK' ? '150,90,230' : '255,250,230', 0.5 * (1 - q / 0.25));   // 맞는 순간 번쩍
+  if (el === 'FIRE') { for (let i = 0; i < n + 1; i++) { const [px, py] = flyOut(i, q, 22, 26, n + 1); dot(px, py, (2.2 - q * 1.4) * sc, q < 0.4 ? '255,220,120' : '255,120,50', fa); } groundRing(tx, f.y1, (5 + q * 9) * sc, '120,40,20', 0.5 * fa, 1, 0.5); }   // 불씨가 튀고 바닥이 그을림
+  else if (el === 'WATER') { for (let i = 0; i < n; i++) { const [px, py] = flyOut(i, q, 18, 30, n); dot(px, py, 1.8 * sc, col, fa); dot(px - 0.5, py - 0.5, 0.7 * sc, '255,255,255', fa); } groundRing(tx, f.y1, (4 + q * 14) * sc, col, 0.7 * fa, 1.4); groundRing(tx, f.y1, (2 + q * 8) * sc, col, 0.5 * fa, 1); }   // 물이 튀고 물결 두 겹
+  else if (el === 'ICE') { for (let i = 0; i < n; i++) { const [px, py] = flyOut(i, q, 20, 18, n); ctx.save(); ctx.translate(px, py); ctx.rotate(i + q * 8); ctx.beginPath(); ctx.moveTo(3 * sc, 0); ctx.lineTo(0, 1.4 * sc); ctx.lineTo(-3 * sc, 0); ctx.lineTo(0, -1.4 * sc); ctx.closePath(); ctx.fillStyle = `rgba(220,250,255,${fa})`; ctx.fill(); ctx.restore(); } star4(tx, ty, (5 + q * 4) * sc, '230,252,255', fa); groundRing(tx, f.y1, (5 + q * 10) * sc, col, 0.6 * fa, 1.4, 0.3); }   // 얼음 조각이 깨져 흩어짐 + 서리
+  else if (el === 'LIGHTNING') { ctx.strokeStyle = `rgba(${col},${fa})`; ctx.lineWidth = 1.4; for (let i = 0; i < 4; i++) { const a = i * 1.57 + rnd(i) * 0.8, r1 = (4 + q * 12) * sc; ctx.beginPath(); ctx.moveTo(tx + Math.cos(a) * 3, ty + Math.sin(a) * 3); ctx.lineTo(tx + Math.cos(a + 0.4) * r1 * 0.6, ty + Math.sin(a + 0.4) * r1 * 0.6); ctx.lineTo(tx + Math.cos(a) * r1, ty + Math.sin(a) * r1); ctx.stroke(); } groundRing(tx, f.y1, (6 + q * 10) * sc, col, 0.7 * fa, 1.6); }   // 사방으로 튀는 작은 전기
+  else if (el === 'HOLY') { const h = 34 * sc * (1 - q * 0.3), w = 6 * sc * fa; ctx.fillStyle = `rgba(255,245,200,${0.35 * fa})`; ctx.fillRect(tx - w, f.y1 - h, w * 2, h); for (let i = 0; i < 3; i++) star4(tx + (rnd(i) - 0.5) * 14, f.y1 - 10 - q * 30 - i * 8, 2.6 * sc, '255,250,220', fa); groundRing(tx, f.y1, (6 + q * 8) * sc, col, 0.8 * fa, 1.6, 0.35); }   // 작은 빛기둥 + 솟는 반짝이
+  else if (el === 'DARK') { groundRing(tx, f.y1, (16 - q * 13) * sc, '150,90,230', 0.8 * fa, 2, 0.25); for (let i = 0; i < 4; i++) { const a = i * 1.57 + q * 6, r = (14 - q * 12) * sc; dot(tx + Math.cos(a) * r, ty + Math.sin(a) * r * FLAT, 1.8 * sc, '120,60,190', fa); } }   // 빨려 드는 그림자
+  else if (el === 'NATURE') { for (let i = 0; i < n; i++) { const [px, py] = flyOut(i, q, 18, 22, n); ctx.save(); ctx.translate(px, py); ctx.rotate(i * 1.3 + q * 10); ctx.beginPath(); ctx.ellipse(0, 0, 3 * sc, 1.3 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},${fa})`; ctx.fill(); ctx.restore(); } groundRing(tx, f.y1, (5 + q * 9) * sc, col, 0.5 * fa, 1.2); }   // 잎이 흩날림
+  else {   // 화살·근접·마법 구슬: 불꽃 파편 + (화살·근접) 흙먼지 / (구슬) 반짝이
+    if (q < 0.45) { const qq = q / 0.45; ctx.strokeStyle = `rgba(${col},${0.9 * (1 - qq)})`; ctx.lineWidth = big ? 2.2 : 1.6; for (let i = 0; i < n; i++) { const an = ang + Math.PI + (i - (n - 1) / 2) * 0.55 + ((seed + i * 17) % 7 - 3) * 0.05, r0 = 3 + qq * 6, r1 = r0 + (big ? 9 : 6) * (1 - qq * 0.5); ctx.beginPath(); ctx.moveTo(tx + Math.cos(an) * r0, ty + Math.sin(an) * r0); ctx.lineTo(tx + Math.cos(an) * r1, ty + Math.sin(an) * r1); ctx.stroke(); } }
+    if (el === 'ORB') for (let i = 0; i < 4; i++) { const [px, py] = flyOut(i, q, 16, 20, 4); star4(px, py, 2.4 * sc, '255,255,255', fa); }
+    else for (let i = 0; i < 3; i++) dot(tx + (rnd(i) - 0.5) * 16 * sc, f.y1 - 2 - q * 6, (2.5 + q * 4) * sc, '170,150,120', 0.3 * fa);   // 흙먼지
+    groundRing(tx, f.y1, ((big ? 8 : 5) + q * (big ? 16 : 10)), col, 0.7 * fa, big ? 2 : 1.4);
   }
+  if (f.tier >= 6 && f.boss && a2 < 0.02 && shake.until < G.t + 0.05) { shake.until = G.t + 0.12; shake.mag = f.tier >= 8 ? 3 : 2; }
 }
 // 2.5D 바닥 효과: 바닥(발밑) 높이에 납작한 타원. 판의 기술 범위 표시(0.62)와 같은 비율
 const FLAT = 0.62;
@@ -2278,7 +2349,7 @@ function drawModes() {
 }
 function drawSound() {
   shadeAll();
-  const x = 50, y = 220, w = W - 100, h = 546;
+  const x = 50, y = 220, w = W - 100, h = 620;   // 「공격 소리」 줄이 들어가 546 → 620(2026-11-15)
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -2301,6 +2372,9 @@ function drawSound() {
   text('성능 표시', x + 24, sy + 200, 18, C.text);
   button(x + w - 24 - 120, sy + 178, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
   fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 236, w - 48, 13, C.muted);
+  text('공격 소리', x + 24, sy + 286, 18, C.text);
+  button(x + w - 24 - 120, sy + 264, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
+  fitText('갈매미가 쏠 때마다 속성별로 짧은 소리(효과음 음량을 따라요)', x + 24, sy + 322, w - 48, 13, C.muted);
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
@@ -3095,4 +3169,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, atkSound: (f) => atkSound(f), atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
