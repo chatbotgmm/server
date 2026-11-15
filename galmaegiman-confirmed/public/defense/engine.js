@@ -45,6 +45,7 @@ export const RULES = {
   // 균열 저항(2026-11-11 사용자 요청: 40웨이브 뒤에 초불영제 없이 전설 2마리로 라인이 버텨지면 안 됨): 41웨이브부터 라인 적은
   // 전설·히든 이하 갈매미의 피해를 riftPer×(웨이브−40)만큼 덜 받음(최대 riftMax). 초불영제 피해·보스는 그대로
   riftFrom: 40, riftPer: 0.1, riftMax: 0.7,   // 41 −10% · 43 −30% · 45 −50% · 47웨이브부터 −70%
+  midFrom: 20, midLineHp: 0.02, midBossHp: 0.01,   // 2026-11-15 사용자 요청(중후반 난이도 올리기, 증강체와 함께): 21웨이브부터 웨이브마다 일반 적 체력 +2%·보스 +1%(40웨이브 ×1.4·×1.2, 60웨이브 ×1.8·×1.4)
   lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.04,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +4%(60웨이브 체력 ×1.8·속도 ×1.8). 2026-11-15 사용자 요청: 입구에서 다 죽어 때리는 맛이 짧음 → 속도 1.5%→4%
   finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
@@ -446,7 +447,8 @@ export function waveInfo(w) {
   const look = boss ? BOSS_LOOK[Math.min(BOSS_LOOK.length, Math.ceil(w / 10)) - 1] : (() => { const band = ENEMY_LOOK.find(([to]) => w <= to)[1]; return band[w % band.length]; })();
   // 2026-11-10 사용자 요청(장인도 40웨이브쯤이면 다 만들어져 느슨함): lateFrom웨이브부터 일반 적 체력·이동속도가 웨이브마다 더 오름(보스는 그대로)
   const late = Math.max(0, w - (RULES.lateFrom ?? 999));
-  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late)),
+  const mid = Math.max(0, w - (RULES.midFrom ?? 999));
+  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) * (1 + (RULES.midBossHp ?? 0) * mid) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late) * (1 + (RULES.midLineHp ?? 0) * mid)),
     speed: boss ? 34 : (56 + Math.min(30, w)) * (1 + (RULES.lateSpdPer ?? 0) * late), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
@@ -464,6 +466,52 @@ export const MODES = {
   nostory: { name: '외부탐사 금지', desc: '외부탐사(스토리)를 보낼 수 없어요', noMission: true },
 };
 export const modeOf = (g) => MODES[g.mode] ?? MODES.normal;
+// ── 증강체(2026-11-15 사용자 요청: 「게임 흐름이 바뀌는 웨이브에 한 번씩, 총 2번」) ──
+// 20웨이브 보스(중반으로 넘어감)·40웨이브 보스(후반: 이속·체력 증가·균열 저항이 시작) 처치 직후 세 개 중 하나를 고름. 판이 끝날 때까지 유지
+export const AUG_WAVES = [20, 40];
+export const AUGS = {
+  // 20웨이브: 판 짜는 방향을 정하는 것
+  phys: { name: '날 선 부리', desc: '물리 공격 피해 +20%', v: 0.2 },
+  mag: { name: '마력 폭주', desc: '마법 공격 피해 +20%', v: 0.2 },
+  haste: { name: '날갯짓 가속', desc: '모든 갈매미 공격 속도 +12%', v: 0.12 },
+  shred: { name: '부식', desc: '방깍·마방깍 효과 +35%', v: 0.35 },
+  slow: { name: '끈끈한 바다', desc: '이감 효과 +25%(최대치는 그대로)', v: 0.25 },
+  stun: { name: '천둥 부리', desc: '스턴 확률 +50%', v: 0.5 },
+  boss: { name: '사냥꾼의 눈', desc: '보스·외부탐사 대장에게 주는 피해 +25%', v: 0.25 },
+  explore: { name: '원정대장', desc: '외부탐사 피해 +60%', v: 0.6 },
+  gold: { name: '새우 풍년', desc: '처치 새우 +40%', v: 0.4 },
+  upg: { name: '단골 대장간', desc: '강화 비용 −30%', v: 0.3 },
+  wisp: { name: '위습 꾸러미', desc: '지금 에픽 위습 2개 + 레어 위습 3개', v: 1 },
+  warn: { name: '든든한 방파제', desc: '경고 한도 +8회', v: 8 },
+  // 40웨이브: 후반을 버티게 하는 큰 것(대가가 있는 것도)
+  fury: { name: '광폭화', desc: '모든 공격 피해 +35% · 경고 한도 −5회', v: 0.35 },
+  chrono: { name: '시간 왜곡', desc: '일반 적 이동속도 −15%(보스 제외)', v: 0.15 },
+  exec: { name: '마무리 일격', desc: '체력 8% 아래로 내려간 일반 적은 바로 쓰러짐', v: 0.08 },
+  rift: { name: '균열 봉인', desc: '균열 저항이 절반으로', v: 0.5 },
+  storm: { name: '연쇄 번개', desc: '공격의 15%가 가까운 적 하나에게 60% 피해로 튕김', v: 0.15 },
+  legend: { name: '전설의 부름', desc: '지금 전설 위습 1개 + 에픽 위습 2개', v: 1 },
+  supply: { name: '보급선', desc: '지금 모집권 6개 + 리롤권 2개', v: 1 },
+};
+export const AUG_POOL = { 20: ['phys', 'mag', 'haste', 'shred', 'slow', 'stun', 'boss', 'explore', 'gold', 'upg', 'wisp', 'warn'], 40: ['fury', 'chrono', 'exec', 'rift', 'storm', 'legend', 'supply'] };
+export const augV = (g, id) => (g.augs && g.augs.includes(id) ? AUGS[id].v : 0);
+export const warnMaxOf = (g) => RULES.warnMax + augV(g, 'warn') - (augV(g, 'fury') ? 5 : 0);
+function offerAug(g) {
+  const pool = AUG_POOL[g.wave].filter((id) => !(g.augs ?? []).includes(id));
+  const r = rng(((g.seed >>> 0) ^ Math.imul(g.wave, 2654435761)) >>> 0);   // 판의 난수 흐름과 따로(증강체 제시가 다른 운에 영향을 주지 않게)
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  g.augOffer = { wave: g.wave, opts: pool.slice(0, 3) };
+  news(g, `${g.wave}웨이브 돌파! 증강체 하나를 고르세요`);
+}
+export function chooseAug(g, i) {
+  const o = g.augOffer, id = o?.opts?.[i];
+  if (!id || !AUGS[id]) return false;
+  (g.augs ??= []).push(id); g.augOffer = null;
+  if (id === 'wisp') addWisps(g, { EPIC: 2, RARE: 3 });
+  if (id === 'legend') addWisps(g, { LEGEND: 1, EPIC: 2 });
+  if (id === 'supply') { g.tickets = (g.tickets ?? 0) + 6; g.rerolls = (g.rerolls ?? 0) + 2; }
+  news(g, `증강체 「${AUGS[id].name}」: ${AUGS[id].desc}`);
+  return true;
+}
 // 난이도(2026-11-09 사용자 요청): 지금까지의 규칙 = 달인. 적 체력·방어 배수, 달인까지는 40웨이브에 전설 랜덤 위습 1개
 // 2026-11-09 사용자 요청: 난이도마다 라인 몬스터 체력·보스 체력·방어력·마법방어 차이를 따로(보스·외부탐사 대장은 boss)
 export const DIFFS = {
@@ -486,7 +534,7 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal',
     picks: { COMMON: 0, UNCOMMON: 0, RARE: 0, EPIC: 0, ...RULES.startPick },
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
-    over: null, reason: '', fx: [], news: [], zones: [],
+    over: null, reason: '', fx: [], news: [], zones: [], augs: [], augOffer: null,
   };
 }
 // 이어하기(사용자 요청 2026-11-08): 판 전체를 글로 저장하고 되살린다. 규칙 판이 바뀌면(SAVE_VER) 예전 저장은 버림
@@ -500,7 +548,7 @@ export function loadGame(text) {
     const g = o.g, s = g.rand >>> 0;
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0;
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null;
     return g;
   } catch { return null; }
 }
@@ -648,10 +696,10 @@ export const UPG_COUNT = UPG_NAME.length;
 // 등급(0 커먼 … 9 영원) → 강화 칸: 커먼·언커먼 0 · 레어 1 · 에픽 2 · 전설·히든 3 · 제한 4 · 초월 5 · 불멸 6 · 영원 7 (사용자 요청: 전설·히든 한 번에)
 export const upgGroup = (tier) => [0, 0, 1, 2, 3, 3, 4, 5, 6, 7][tier];
 // 강화 비용: 단계마다 upgGrowth배(곱으로 늘어 낮은 등급만 계속 강화해 버티는 것을 막음)
-export const upgradeCost = (g, gi) => Math.round(RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi]));
+export const upgradeCost = (g, gi) => Math.round((1 - augV(g, 'upg')) * (RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi])));   // 증강체 「단골 대장간」
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
 export const upgSpdMul = (g, tier) => 1 + (RULES.upgSpd ?? 0) * g.upg[upgGroup(tier)];
-export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier);   // 강화하면 공격 간격이 짧아짐
+export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier) / (1 + augV(g, 'haste'));   // 증강체 「날갯짓 가속」   // 강화하면 공격 간격이 짧아짐
 export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
@@ -770,12 +818,15 @@ function hurt(g, e, raw, k, uid) {
   e.hitT = g.t;   // 화면: 맞은 적이 잠깐 번쩍임(규칙에는 안 쓰임)
   const now = g.t;
   let m;
-  if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now)) * upgMul(g, k.tier);
-  else m = defMul(e.mr - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now))) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
+  const sh = 1 + augV(g, 'shred');   // 증강체 「부식」: 방깍·마방깍 효과
+  if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
+  else m = defMul(e.mr - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
+  if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
-  if (e.rift && k.tier < TOP_TIER) m *= 1 - e.rift;   // 균열 저항: 전설·히든 이하 피해만 줄어듦
+  if (e.rift && k.tier < TOP_TIER) m *= 1 - e.rift * (augV(g, 'rift') ? 0.5 : 1);   // 증강체 「균열 봉인」: 저항 절반   // 균열 저항: 전설·히든 이하 피해만 줄어듦
   const d = Math.min(Math.max(0, e.hp), raw * m);
   e.hp -= raw * m; e.by = uid;
+  if (e.hp > 0 && !e.boss && e.speed && augV(g, 'exec') && e.hp <= e.max * AUGS.exec.v) e.hp = 0;   // 증강체 「마무리 일격」
   if (uid && g.dmg) { g.dmg[uid] = (g.dmg[uid] ?? 0) + d; g.dmgWave[uid] = (g.dmgWave[uid] ?? 0) + d; }
   return d;
 }
@@ -789,8 +840,9 @@ function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍�
     e.slowUntil = now + 1.5;
   }
   const st = k.stunTime ?? 1;
-  if (k.stun && e.speed && g.rand() < k.stun) e.stunUntil = Math.max(e.stunUntil, now + st * (e.boss ? BOSS_STUN : 1));
-  if (k.astun && e.speed && g.rand() < k.astun) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
+  const stx = 1 + augV(g, 'stun');   // 증강체 「천둥 부리」
+  if (k.stun && e.speed && g.rand() < k.stun * stx) e.stunUntil = Math.max(e.stunUntil, now + st * (e.boss ? BOSS_STUN : 1));
+  if (k.astun && e.speed && g.rand() < k.astun * stx) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
   if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
 }
 export const hurtForTest = (g, e, raw, k) => hurt(g, e, raw, k, 0);
@@ -836,6 +888,10 @@ function attack(g, u, k) {
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
+  }
+  if (augV(g, 'storm') && g.rand() < AUGS.storm.v) {   // 증강체 「연쇄 번개」: 가까운 다른 적 하나에게 60%
+    let o = null, od = 90 * 90; for (const e of g.enemies) { if (e === best || e.hp <= 0) continue; const d2 = (e.x - best.x) ** 2 + (e.y - best.y) ** 2; if (d2 < od) { o = e; od = d2; } }
+    if (o) { hurt(g, o, k.dmg * 0.6, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: o.x, y1: o.y, t: g.t }); }
   }
   const sg = SIGNATURE[u.id];
   if (sg) { u.sigN = (u.sigN ?? 0) + 1; if (u.sigN >= sg.every) { u.sigN = 0; signature(g, u, k, best, sg); } }
@@ -886,8 +942,8 @@ export function step(g, dt) {
     if (e.hp <= 0) continue;
     e.slow = 0;
     if (e.slows) { for (const id in e.slows) { const sl = e.slows[id]; if (g.t >= sl.until) delete e.slows[id]; else e.slow += sl.v; } }
-    e.slow = Math.min(SLOW_MAX, e.slow);   // 합계(화면에 보여 줌)
-    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow);
+    e.slow = Math.min(SLOW_MAX, e.slow * (1 + augV(g, 'slow')));   // 합계(화면에 보여 줌). 증강체 「끈끈한 바다」
+    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? 1 : 1 - augV(g, 'chrono'));   // 증강체 「시간 왜곡」
     e.s += v * dt;
     const p = pathPos(e.s); e.x = p.x; e.y = p.y;
     if (g.t < e.poisonUntil) hurt(g, e, e.poison * dt, e.poisonK, e.by);
@@ -910,7 +966,7 @@ export function step(g, dt) {
       if (!ms) { u.cd = 0.2; continue; }
       const before = ms.hp;
       const ek = k.exDmg && (k.bossMul ?? 1) < 1 ? { ...k, bossMul: 1 } : k;   // 초불영제: 라인형 대장 감점 없음
-      hurt(g, ms, (k.exDmg || k.dmg) * (k.area ? 1.2 : 1) * (k.explore || 1), ek, u.uid); debuff(g, ms, k, u.uid);
+      hurt(g, ms, (k.exDmg || k.dmg) * (k.area ? 1.2 : 1) * (k.explore || 1) * (1 + augV(g, 'explore')), ek, u.uid); debuff(g, ms, k, u.uid);   // 증강체 「원정대장」(검토: 처음에 주석 뒤로 밀려 debuff가 빠졌던 것 고침)
       g.missionDmg[ms.k] = (g.missionDmg[ms.k] ?? 0) + Math.max(0, before - ms.hp);
       u.cd = Math.max(-0.05, u.cd) + gapOf(g, k); continue;
     }
@@ -923,7 +979,7 @@ export function step(g, dt) {
   let bossDown = false;
   g.enemies = g.enemies.filter((e) => {
     if (e.hp > 0) return true;
-    g.gold += e.gold; g.kills++;
+    g.gold += Math.round(e.gold * (1 + augV(g, 'gold'))); g.kills++;   // 증강체 「새우 풍년」
     if (e.boss) bossDown = true;
     if (e.by) g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, t: g.t });   // 화면: 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
     const killer = byUid.get(e.by), sk = killer ? WISP_SKILL[killer.id] : null;
@@ -948,7 +1004,7 @@ export function step(g, dt) {
   if (g.enemies.length > RULES.limit) {
     g.warnAcc += dt;
     while (g.warnAcc >= 1) { g.warnAcc -= 1; g.warn++; }
-    if (g.warn > RULES.warnMax) { g.over = 'lose'; g.reason = `경고가 ${RULES.warnMax}회를 넘었어요(길 위의 적 ${RULES.limit}마리 초과).`; return; }
+    if (g.warn > warnMaxOf(g)) { g.over = 'lose'; g.reason = `경고가 ${warnMaxOf(g)}회를 넘었어요(길 위의 적 ${RULES.limit}마리 초과).`; return; }
   } else g.warnAcc = 0;
   // 보스·웨이브 진행
   if (wi.boss && bossDown) {
@@ -963,6 +1019,7 @@ export function step(g, dt) {
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
     const rr = RULES.bossRerollEvery && g.wave % RULES.bossRerollEvery === 0 ? 1 : 0;
     if (rr) g.rerolls = (g.rerolls ?? 0) + rr;
+    if (AUG_WAVES.includes(g.wave) && !g.augOffer) offerAug(g);   // 증강체 고르기(화면에서 chooseAug)
     news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`, rr && `리롤권 ${rr}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
     }

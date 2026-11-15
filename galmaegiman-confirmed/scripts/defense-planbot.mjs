@@ -32,7 +32,11 @@ function expand(goal, have, allowed, leaves, top = true) {
   for (const i of r.in) expand(i, have, allowed, leaves, false);
 }
 function bot(g, st) {
-  if (g.choice) E.chooseReward(g, 0);   // 6장 보상: 초월 갈매미맨(초월 등급을 만들 수 있게)
+  if (g.choice) E.chooseReward(g, 0);
+  if (g.augOffer && E.chooseAug && process.env.NOAUG !== '1') {   // 증강체(2026-11-15): 봇 방식에 맞는 것부터. NOAUG=1이면 고르지 않음(전·후 비교용)
+    const pref = [st.style === 'phys' ? 'phys' : 'mag', 'fury', 'rift', 'shred', 'haste', 'boss', 'exec', 'storm', 'legend', 'chrono', 'wisp', 'upg', 'explore', 'slow', 'stun', 'gold', 'warn', 'supply', 'phys', 'mag'];
+    const o = g.augOffer.opts; let best = 0, bi = 99; o.forEach((id, i) => { const r = pref.indexOf(id); if (r >= 0 && r < bi) { bi = r; best = i; } }); E.chooseAug(g, best);
+  }   // 6장 보상: 초월 갈매미맨(초월 등급을 만들 수 있게)
   const have = ownedMap(g);
   // 지금 목표: 목록에서 아직 없는 것 2개
   const keyOk = (id) => !(recipeOf.get(id)?.in.includes(E.TRANSCEND_KEY)) || (have[E.TRANSCEND_KEY] ?? 0) > 0;   // 초월은 초월 갈매미맨이 있어야
@@ -92,7 +96,7 @@ function bot(g, st) {
 const res = [], reasons = {}, ch6s = [], ends = []; let tops = 0;
 for (let s = 1; s <= N; s++) {
   const g = E.newGame(s, 'normal', DIFF); let ch6 = 0, end = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
-  const st = { n: 0, wish: WISH[style].filter((id) => E.UNIT[id]) }; let acc = 0;
+  const st = { n: 0, style, wish: WISH[style].filter((id) => E.UNIT[id]) }; let acc = 0;
   while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; }
   ch6s.push(ch6); ends.push(end);
   res.push(g.over === 'win' ? 61 : g.wave);

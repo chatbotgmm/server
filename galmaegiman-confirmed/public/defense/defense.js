@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=19756c84022e';
+import * as E from './engine.js?v=ffff1cf17a77';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -678,7 +678,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'aug', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -1393,7 +1393,7 @@ function drawHud() {
   text(`적 ${n}/${lim}`, 20, 82, 14, n > lim ? C.bad : C.text);
   box(92, 77, 150, 10, 'rgba(0,0,0,.5)', C.line, 5, 1);
   box(92, 77, 150 * ratio, 10, n > lim ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
-  text(`경고 ${G.warn}/${E.RULES.warnMax}`, 256, 82, 14, G.warn ? C.bad : C.muted);
+  text(`경고 ${G.warn}/${E.warnMaxOf(G)}`, 256, 82, 14, G.warn ? C.bad : C.muted);   // 증강체로 한도가 바뀜
   // 새우·강화
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, 340, 64, 22, 22);
@@ -1520,8 +1520,8 @@ function drawMainPanel(y0) {
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
-const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0) + (G.choice ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
-const moreSub = () => [G.choice && '보상 고르기', (G.rerolls ?? 0) > 0 && `리롤권 ${G.rerolls}`, pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
+const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0) + (G.choice ? 1 : 0) + (G.augOffer ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
+const moreSub = () => [G.augOffer && '증강체 고르기', G.choice && '보상 고르기', (G.rerolls ?? 0) > 0 && `리롤권 ${G.rerolls}`, pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
 function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창고 · 피해 순위
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
@@ -1534,8 +1534,12 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
   ];
-  const cy0 = G.choice ? 76 : 0;   // 미뤄 둔 보상 고르기(맨 위)
-  if (G.choice) button(x + 12, y + 64, w - 24, 64, `${E.REGIONS[G.choice.k].ch}장 보상 고르기`, () => { modal = { kind: 'choice' }; }, 'primary', true, '초월 갈매미맨 · 전설 위습 1 · 에픽 선택 위습 2 중 하나');
+  // 맨 위: 미뤄 둔 증강체·보상 고르기, 가진 증강체(2026-11-15)
+  let cy0 = 0;
+  if (G.augOffer) { button(x + 12, y + 64, w - 24, 64, `${G.augOffer.wave}웨이브 증강체 고르기`, () => { modal = { kind: 'aug' }; }, 'primary', true, G.augOffer.opts.map((id) => E.AUGS[id].name).join(' · ')); cy0 += 76; }
+  else if (G.augs?.length) { fitText(`증강체: ${G.augs.map((id) => E.AUGS[id].name).join(' · ')}`, x + 18, y + 72, w - 36, 14, C.goldEdge); cy0 += 24; }
+  if (G.choice) button(x + 12, y + 64 + cy0, w - 24, 64, `${E.REGIONS[G.choice.k].ch}장 보상 고르기`, () => { modal = { kind: 'choice' }; }, 'primary', true, '초월 갈매미맨 · 전설 위습 1 · 에픽 선택 위습 2 중 하나');
+  if (G.choice) cy0 += 76;
   const gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12 - cy0) / 2);
   items.forEach(([icon, nm, fn, style, sub], i) => menuButton(x + 12 + (i % 2) * (gw + 12), y + 64 + cy0 + Math.floor(i / 2) * (gh + 12), gw, gh, icon, nm, fn, style, sub));
 }
@@ -2684,6 +2688,7 @@ function drawModal() {
   else if (modal?.kind === 'recruit') drawRecruit();
   else if (modal?.kind === 'signal') drawSignalPicker();
   else if (modal?.kind === 'choice') drawChoice();
+  else if (modal?.kind === 'aug') drawAug();
 }
 // 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 게임은 계속 흐름.
 // 2026-11-11 사용자 요청: 선택을 미룰 수 있게 — 「나중에」를 누르면 닫히고, 아래 「더보기」에서 언제든 다시 열어 받음
@@ -2706,6 +2711,26 @@ function drawChoice() {
     fitText(E.choiceText(c), x + 136, cy + 30, w - 136 - 24 - 110, 18, col);
     desc(c).forEach((l, k) => fitText(l, x + 136, cy + 60 + k * 22, w - 136 - 24 - 110, 13, C.muted));
     button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '받기', () => { if (E.chooseReward(G, i)) { G.choiceLater = false; modal = null; say(`${E.choiceText(c)}을(를) 받았어요.`); } }, 'primary');
+  });
+}
+// 증강체 고르기(2026-11-15 사용자 요청: 흐름이 바뀌는 20·40웨이브 보스 처치 뒤 한 번씩). 게임은 계속 흐르고, 「나중에」로 미룰 수 있음
+function drawAug() {
+  if (!G?.augOffer) { modal = null; return; }
+  shadeAll(0.45);
+  const { x, y, w, h } = modalRect(), o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
+  box(x, y, w, h, C.panel, col, 14, 2.5);
+  text(`${o.wave}웨이브 돌파! 증강체 고르기`, x + 18, y + 30, 22, C.text);
+  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
+  button(x + w - 110, y + 10, 96, 40, '나중에', () => { G.augLater = true; modal = null; say('증강체는 아래 「더보기」에서 언제든 고를 수 있어요.'); }, 'quiet');
+  const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
+  o.opts.forEach((id, i) => {
+    const a = E.AUGS[id], cy = y + 84 + i * (ch + 12);
+    box(x + 12, cy, w - 24, ch, 'rgba(11,30,42,.9)', col, 12, 2);
+    ctx.beginPath(); ctx.arc(x + 62, cy + ch / 2, 30, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
+    text(a.name.slice(0, 1), x + 62, cy + ch / 2 + 1, 26, col, 'center');   // 첫 글자를 문장처럼(기호 글꼴이 없는 기기에서도 보이게)
+    fitText(a.name, x + 108, cy + ch / 2 - 14, w - 108 - 24 - 112, 19, col);
+    fitText(a.desc, x + 108, cy + ch / 2 + 14, w - 108 - 24 - 112, 14, C.text, 'left', 10);
+    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { G.augLater = false; modal = null; say(`증강체 「${a.name}」: ${a.desc}`); sfx('story'); } }, 'primary');
   });
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
@@ -3113,6 +3138,7 @@ function frame(now) {
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
   else if (scene === 'play' && G?.choice && !G.choiceLater && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
+  else if (scene === 'play' && G?.augOffer && !G.augLater && !G.over && modal?.kind !== 'aug' && (!modal || modal.kind === 'mission')) { modal = { kind: 'aug' }; info = null; }   // 증강체 고르기(다른 창을 보고 있으면 닫은 뒤에)
   // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
