@@ -317,7 +317,44 @@ function drawBossWarn() {
   fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.RULES.waveLen}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
   ctx.restore();
 }
-function combineNow(r, keep = 0) { const nu = E.combine(G, r, keep); if (nu) sfx('combine'); return nu; }
+function combineNow(r, keep = 0) {
+  const nu = E.combine(G, r, keep);
+  if (nu) { sfx('combine'); const t = E.tierOf(nu.id); pfx('collect', nu.x, nu.y - 20, { dur: 1.2 }); if (t >= E.TOP_TIER) pfx('portal', nu.x, nu.y + 4, { dur: 1.6 }); if (t >= 4) pfx('starfall', nu.x, nu.y - 10, { dur: 1.6, elem: t >= E.TOP_TIER ? 'HOLY' : undefined }); }
+  return nu;
+}
+// ── 화려한 효과(2026-11-15 사용자 요청): pixelfx(MIT) 도트 효과를 판 위 투명한 층에 그림(pixfx.js, scripts/web/build-pixfx.sh로 묶음) ──
+// 큰 순간에만: 고유 기술 · 보스 처치 · 조합 완성 · 위습 찾기 · 외부탐사 성공 · 전설 이상이 보스를 칠 때. 「화려한 효과」를 끄면 나오지 않음
+let PFX = null, pfxLayer = null;
+const pfxSeen = new WeakSet(), pfxWatch = { g: null, boss: 0, md: 0, bossAt: null };
+import('./pixfx.js?v=3e15b1b7250b').then((m) => { PFX = m; pfxLayer = m.createLayer(FIELD.w, FIELD.h, 1.6); }).catch(() => { /* 효과 없이 진행 */ });
+function pfx(name, x, y, o = {}) { if (pfxLayer && !fxLite) pfxLayer.spawn(name, x - FIELD.x, y - FIELD.y, o); }
+// 고유 기술 폭발(nova)·장판(field)은 속성마다 다른 효과: [효과, 속성 색 입힘]
+const PFX_NOVA = { FIRE: ['plasma', true], ICE: ['snow', false], NATURE: ['thorns', false], HOLY: ['smite', false], DARK: ['darkx', false], WATER: ['plasma', true], LIGHTNING: ['plasma', false], NORMAL: ['plasma', true] };
+const PFX_FIELD = { NATURE: ['thorns', false], ICE: ['icespikes', false], WATER: ['icespikes', true], HOLY: ['healaoe', false] };
+function pfxTick(dt) {   // 판 상태가 바뀐 것을 보고 효과를 띄움
+  if (!pfxLayer || scene !== 'play' || !G) return;
+  if (pfxWatch.g !== G) { Object.assign(pfxWatch, { g: G, boss: G.bossDone ?? 0, md: G.missionDone }); pfxLayer.clear(); for (const f of G.fx) pfxSeen.add(f); return; }
+  const boss = G.enemies.find((e) => e.boss); if (boss) pfxWatch.bossAt = { x: boss.x, y: boss.y };
+  if ((G.bossDone ?? 0) !== pfxWatch.boss) { pfxWatch.boss = G.bossDone ?? 0; const p = pfxWatch.bossAt; if (p) pfx('big', p.x, p.y, { dur: 1.6, force: true }); }
+  if (G.missionDone > pfxWatch.md) { pfxWatch.md = G.missionDone; pfx('quest', W / 2, FIELD.y + 230, { dur: 2.2, force: true }); }
+  for (const f of G.fx) {
+    if (pfxSeen.has(f)) continue; pfxSeen.add(f);
+    if (f.kind === 'sig') {
+      const el = f.elem ?? 'NORMAL', pts = f.pts ?? [];
+      if (f.sk === 'smash') pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el });
+      else if (f.sk === 'execute') pfx('darkx', f.x1, f.y1, { dur: 1.0 });
+      else if (f.sk === 'nova') { const nv = PFX_NOVA[el] ?? ['plasma', true]; pfx(nv[0], f.x1, f.y1 - 4, { dur: 1.2, elem: nv[1] ? el : undefined }); }
+      else if (f.sk === 'bind') pfx('timestop', f.x1, f.y1, { dur: 1.2 });
+      else if (f.sk === 'field') { const fd = PFX_FIELD[el] ?? ['healaoe', true]; pfx(fd[0], f.x1, f.y1, { dur: 1.6, elem: fd[1] ? el : undefined }); }
+      else if (f.sk === 'storm') pts.slice(0, 2).forEach(([x, y]) => pfx('strike', x, y, { dur: 0.8 }));   // 낙뢰는 2개까지(무거움)
+      else if (f.sk === 'bounce') pts.slice(0, 3).forEach(([x, y]) => pfx('zap', x, y - 8, { dur: 0.7, elem: el }));
+      else if (f.sk === 'pierce') pfx('zap', f.x1, f.y1 - 8, { dur: 0.7, elem: el });
+    } else if (f.kind === 'wisp') pfx('collect', f.x, f.y - 16, { dur: 1.2 });
+    else if (f.kind === 'num') pfx('spark', f.x, f.y - 14, { dur: 0.5 });
+  }
+  if (running()) pfxLayer.update(dt);
+}
+function drawPfx() { if (pfxLayer && !fxLite) pfxLayer.draw(ctx, FIELD.x, FIELD.y, FIELD.w, FIELD.h); }
 function setVolume(v) {
   music.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20;   // 5% 단위
   if (music.el) music.el.volume = music.vol;
@@ -1059,6 +1096,7 @@ function drawFieldInner() {
       text('✦', f.x, f.y - 20 - (1 - a) * 30, 22, GRADE_COLOR[f.grade], 'center'); ctx.globalAlpha = 1;
     }
   }
+  drawPfx();   // 화려한 효과(도트 층)
 }
 
 // ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
@@ -2904,6 +2942,7 @@ function frame(now) {
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
+  pfxTick(dt * speed * BASE_SPEED);
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
   else if (scene === 'play' && G?.choice && !G.choiceLater && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
@@ -2976,4 +3015,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
