@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=510a7781093c';
+import * as E from './engine.js?v=40451f8287c6';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -377,18 +377,18 @@ function say2(u, msg) {   // 말풍선 하나(같은 갈매미가 말하는 중�
 }
 function talkTick() {
   if (scene !== 'play' || !G || G.over) return;
-  if (talk.g !== G) { Object.assign(talk, { g: G, list: [], next: G.t + 8, wave: G.wave, boss: G.bossDone ?? 0, warn: G.warn, seen: new Set(E.fieldUnits(G).map((u) => u.uid)), elist: [], enext: G.t + 5, low: new Set(), born: new Set(G.enemies.map((e) => e.id)), crowd: 0 }); return; }
+  if (talk.g !== G) { Object.assign(talk, { g: G, list: [], next: G.t + 15, wave: G.wave, boss: G.bossDone ?? 0, warn: G.warn, seen: new Set(E.fieldUnits(G).map((u) => u.uid)), elist: [], enext: G.t + 12, low: new Set(), born: new Set(G.enemies.map((e) => e.id)), crowd: 0 }); return; }
   talk.list = talk.list.filter((b) => G.t - b.t < 2.6);
   // 적 대사: 보스 등장·보스 체력 30% 아래·적이 많이 쌓임·가끔 도발
   talk.elist = talk.elist.filter((b) => G.t - b.t < 2.6);
   { const ek = Math.floor(G.t * 10), alive = G.enemies.filter((e) => e.hp > 0);
     for (const e of alive) if (!talk.born.has(e.id)) { talk.born.add(e.id); if (e.boss) { esay(e, talkPick(ETALK.boss, ek + e.id)); talk.enext = G.t + 6; } }
     for (const e of alive) if (e.boss && !talk.low.has(e.id) && e.hp < e.max * 0.3) { talk.low.add(e.id); esay(e, talkPick(ETALK.low, ek + e.id)); talk.enext = G.t + 6; }
-    if (alive.length > 40 && G.t - talk.crowd > 20) { talk.crowd = G.t; esay(alive[Math.floor(Math.abs(Math.sin(ek)) * alive.length) % alive.length], talkPick(ETALK.crowd, ek)); talk.enext = G.t + 6; }
+    if (alive.length > 40 && G.t - talk.crowd > 45) { talk.crowd = G.t; esay(alive[Math.floor(Math.abs(Math.sin(ek)) * alive.length) % alive.length], talkPick(ETALK.crowd, ek)); talk.enext = G.t + 6; }
     if (G.t >= talk.enext && alive.length) {
       const pool = alive.filter((e) => !e.boss && e.y > FIELD.y + 40), e = pool.length ? pool[Math.floor(Math.abs(Math.sin(ek * 3.7)) * pool.length) % pool.length] : null;   // 맨 위(정보 줄 가까이)는 피함
       if (e) esay(e, talkPick(String(e.look).startsWith('b:') ? ETALK.dark : ETALK.line, ek + e.id));
-      talk.enext = G.t + 8 + Math.abs(Math.sin(ek)) * 6;
+      talk.enext = G.t + 20 + Math.abs(Math.sin(ek)) * 12;   // 2026-11-15 사용자 요청: 대사 빈도 낮춤(8~14초 → 20~32초)
     }
     if (talk.born.size > 400) talk.born = new Set(alive.map((e) => e.id)); }
   const leg = talkLegend(); if (!leg.length) { for (const u of E.fieldUnits(G)) talk.seen.add(u.uid); return; }
@@ -397,11 +397,11 @@ function talkTick() {
   for (const u of E.fieldUnits(G)) talk.seen.add(u.uid);
   if (G.wave !== talk.wave) { talk.wave = G.wave; if (E.waveInfo(G.wave).boss) { say2(any(), talkPick(TALK.boss, k)); talk.next = G.t + 7; } }
   if ((G.bossDone ?? 0) !== talk.boss) { talk.boss = G.bossDone ?? 0; say2(any(), talkPick(TALK.bossDown, k + 3)); talk.next = G.t + 7; }
-  if (G.warn > talk.warn) { if (G.warn % 5 === 1) say2(any(), talkPick(TALK.warn, k + 5)); talk.warn = G.warn; }
+  if (G.warn > talk.warn) { if (G.warn % 10 === 1) say2(any(), talkPick(TALK.warn, k + 5)); talk.warn = G.warn; }
   if (G.t >= talk.next) {   // 가끔 한마디
     const u = any(), kt = E.kit(u.id), top = E.tierOf(u.id) >= E.TOP_TIER;
     const pool = [...(kt.job === '보조' ? TALK.sup : kt.type === 'phys' ? TALK.phys : TALK.mag), ...(TALK[kt.elem] ?? []), ...(top ? TALK.top : [])];
-    say2(u, talkPick(pool, k + u.uid)); talk.next = G.t + 9 + (Math.abs(Math.sin(k)) * 7);
+    say2(u, talkPick(pool, k + u.uid)); talk.next = G.t + 22 + (Math.abs(Math.sin(k)) * 14);   // 2026-11-15 사용자 요청: 대사 빈도 낮춤(9~16초 → 22~36초)
   }
 }
 function drawTalk() {
@@ -589,8 +589,8 @@ function pfxTick(dt) {   // 판 상태가 바뀐 것을 보고 효과를 띄움
     if (pfxSeen.has(f)) continue; pfxSeen.add(f);
     if (f.kind === 'sig') {
       const el = f.elem ?? 'NORMAL', pts = f.pts ?? [];
-      if (f.sk === 'smash') { if (!pfx('gmmquake', f.x1, f.y1, { dur: 1.3, elem: el, reach: 46 })) pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el }); }   // 강타: 땅이 울리며 금이 가고 돌이 튐(직접 만든 2.5D, 무거우면 예전 별)
-      else if (f.sk === 'execute') pfx('darkx', f.x1, f.y1, { dur: 1.0 });
+      if (f.sk === 'smash') { if (!pfx('gmmquake', f.x1, f.y1, { dur: 1.3, elem: el, reach: f.r ?? 46 })) pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el }); }   // 강타: 땅이 울리며 금이 가고 돌이 튐(직접 만든 2.5D, 무거우면 예전 별)
+      else if (f.sk === 'execute') pfx('firering', f.x1, f.y1, { dur: 0.9, elem: 'DARK', reach: f.r ?? 46 });   // 2026-11-15: 예전 darkx는 맞은 자리보다 100쯤 위에서 크게 터져 「효과만 있다」로 보임 → 맞은 자리에서 실제 피해 범위(r)만큼 퍼지는 어두운 고리
       else if (f.sk === 'nova' && f.type === 'mag') { pfx('holypillar', f.x1, f.y1, { dur: 1.3, elem: el === 'HOLY' ? undefined : el }); pfx('firework', f.x1, f.y1 - 50, { dur: 1.2, elem: el }); }   // 폭발형 마법딜러(우로보로스·귀해): 하늘에서 빛기둥 + 위에서 터지는 불꽃(2026-11-15 사용자 선택)
       else if (f.sk === 'nova') { const nv = PFX_NOVA[el] ?? ['firering', true]; pfx(nv[0], f.x1, f.y1, { dur: 1.2, elem: nv[1] ? el : undefined, reach: f.r ?? 80 }); }   // 기술 범위만큼 퍼짐
       else if (f.sk === 'bind') pfx('gmmbind', f.x1, f.y1, { dur: 1.5, elem: el, reach: f.r ?? 70 });   // 바닥 마법진 + 둘레에서 솟아 조이는 사슬
@@ -1143,12 +1143,7 @@ function drawLanesRaw() {
   ctx.restore();
   steelFrame(F.x, F.y, F.w, F.h);   // 항만 방범대: 철제 컨테이너 테두리 + 리벳
   text('▼', L.x0, L.y0 + 2, 16, C.goldEdge, 'center');   // 반시계 방향: 아래로 출발
-  // 나타나는 곳: 바닥에 납작한 마법진처럼
-  ctx.beginPath(); ctx.ellipse(E.SPAWN.x, E.SPAWN.y + 8, 36, 36 * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.4)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
-  // 커먼이 나오는 6곳(오른쪽 길 안쪽): 발밑에 옅은 고리
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(230,230,210,.35)'; ctx.setLineDash([3, 4]);
-  for (const sp of E.COMMON_SPOTS) { ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 22, 8, 0, 0, Math.PI * 2); ctx.stroke(); }
-  ctx.setLineDash([]);
+  // 나타나는 곳·커먼 6곳 점선 고리는 2026-11-15 사용자 요청(「굳이 안 그려도 될 듯」)으로 뺌
 }
 // 물길 반짝임(매 장면, 가볍게): 물 위를 천천히 흐르는 작은 빛(화려한 효과 끔이면 없음)
 function drawWater() {
@@ -1528,6 +1523,7 @@ function drawSig(f, age) {
       if (f.sk === 'bind') for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + age * 3; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(an) * rr, cy + Math.sin(an) * rr * FLAT); ctx.lineTo(f.x1 + Math.cos(an) * rr * 0.35, cy + Math.sin(an) * rr * 0.35 * FLAT); ctx.stroke(); }
     } else {   // smash·execute: 대상에 큰 별·베기
       const R = 26 + 18 * (1 - a); ctx.lineWidth = 5;
+      if (f.r) { groundRing(f.x1, f.y1, f.r * (0.6 + 0.4 * (1 - a)), col, 0.85 * a, 2.5, 0.18); ctx.strokeStyle = `rgba(${col},${0.95 * a})`; ctx.fillStyle = `rgba(${col},${0.22 * a})`; ctx.lineWidth = 5; }   // 실제로 피해가 들어가는 범위
       if (f.sk === 'execute') { ctx.beginPath(); ctx.moveTo(f.x1 - R, f.y1 - 10 - R); ctx.lineTo(f.x1 + R, f.y1 - 10 + R); ctx.moveTo(f.x1 + R, f.y1 - 10 - R); ctx.lineTo(f.x1 - R, f.y1 - 10 + R); ctx.stroke(); }
       else { ctx.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4, rr = i % 2 ? R * 0.45 : R; ctx.lineTo(f.x1 + Math.cos(an) * rr, f.y1 + Math.sin(an) * rr * FLAT); } ctx.closePath(); ctx.fill(); ctx.stroke(); }   // 내려친 자리 바닥에 갈라진 별
     }

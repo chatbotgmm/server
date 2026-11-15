@@ -48,7 +48,9 @@ export const RULES = {
   midFrom: 20, midLineHp: 0.02, midBossHp: 0.01,   // 2026-11-15 사용자 요청(중후반 난이도 올리기, 증강체와 함께): 21웨이브부터 웨이브마다 일반 적 체력 +2%·보스 +1%(40웨이브 ×1.4·×1.2, 60웨이브 ×1.8·×1.4)
   lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.04,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +4%(60웨이브 체력 ×1.8·속도 ×1.8). 2026-11-15 사용자 요청: 입구에서 다 죽어 때리는 맛이 짧음 → 속도 1.5%→4%
   bossLen: 60, bossHpX: 1.6,   // 2026-11-15 사용자 요청: 보스는 시간을 길게(40→60초) 주고 체력을 더(×1.6, 시간보다 조금 더 늘려 필요한 초당 피해 +7%)
-  hardLimitFrom: 45, hardLimit: 50,   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
+  hardLimitFrom: 45, hardLimit: 50,
+  stunLo: 0.10, stunHi: 0.20,   // 스턴·범위 스턴 확률(한 번 칠 때) 범위
+  spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
   finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
@@ -204,33 +206,33 @@ export const SIGNATURE = {
   u46: { name: '가시덤불', kind: 'field', every: 5, mul: 0.3, r: 80, sec: 3, slow: 0.25 },
   u47: { name: '화염 폭발', kind: 'nova', every: 5, mul: 1.1, r: 110 },
   u48: { name: '빙결', kind: 'bind', every: 6, mul: 1, r: 90, sec: 1.5 },
-  u49: { name: '천둥 날개', kind: 'storm', every: 5, mul: 0.9, n: 4 },
+  u49: { name: '천둥 날개', kind: 'storm', every: 5, mul: 0.9, n: 4, r: 50 },
   u50: { name: '해일 돌진', kind: 'pierce', every: 5, mul: 1.3, len: 280 },
   u51: { name: '뿌리 감옥', kind: 'field', every: 6, mul: 0.3, r: 85, sec: 3, slow: 0.35 },
-  u52: { name: '영혼 수확', kind: 'execute', every: 5, mul: 1.6 },
+  u52: { name: '영혼 수확', kind: 'execute', every: 5, mul: 1.6, r: 46 },
   u53: { name: '불사의 불길', kind: 'field', every: 5, mul: 0.35, r: 75, sec: 3, slow: 0.1 },
   u54: { name: '등불 튕기기', kind: 'bounce', every: 5, mul: 0.7, n: 5 },
   u55: { name: '똬리 휘감기', kind: 'nova', every: 5, mul: 1.1, r: 115 },
-  u56: { name: '죽음의 손길', kind: 'execute', every: 6, mul: 1.6 },
+  u56: { name: '죽음의 손길', kind: 'execute', every: 6, mul: 1.6, r: 46 },
   u57: { name: '새벽 광선', kind: 'pierce', every: 5, mul: 1.2, len: 320 },
   u58: { name: '눈보라', kind: 'field', every: 5, mul: 0.25, r: 95, sec: 3, slow: 0.35 },
-  u59: { name: '그림자 비', kind: 'storm', every: 5, mul: 0.9, n: 5 },
+  u59: { name: '그림자 비', kind: 'storm', every: 5, mul: 0.9, n: 5, r: 50 },
   u60: { name: '물줄기 숨결', kind: 'pierce', every: 5, mul: 1.2, len: 300 },
-  u82: { name: '황금 강타', kind: 'smash', every: 5, mul: 2 },
+  u82: { name: '황금 강타', kind: 'smash', every: 5, mul: 2, r: 46 },
   u83: { name: '어깨 밀치기', kind: 'bind', every: 6, mul: 1, r: 75, sec: 1.25 },
   u84: { name: '리본 휘감기', kind: 'bounce', every: 5, mul: 0.7, n: 4 },
   u85: { name: '깁스 고정', kind: 'bind', every: 5, mul: 1.2, r: 55, sec: 1.75 },
   u86: { name: '쫄쫄이 튕기기', kind: 'bounce', every: 5, mul: 0.75, n: 5 },
   u87: { name: '밀물', kind: 'nova', every: 5, mul: 1, r: 125 },
-  u88: { name: '발도장', kind: 'smash', every: 4, mul: 1.8 },
+  u88: { name: '발도장', kind: 'smash', every: 4, mul: 1.8, r: 46 },
   u89: { name: '후끈 내복', kind: 'field', every: 5, mul: 0.35, r: 80, sec: 3, slow: 0.1 },
   u90: { name: '다섯 번째 목소리', kind: 'storm', every: 5, mul: 1, n: 5, r: 55 },
   u91: { name: '고무줄 사격', kind: 'pierce', every: 5, mul: 1.2, len: 280 },
-  u92: { name: '조이기', kind: 'execute', every: 5, mul: 1.5 },
+  u92: { name: '조이기', kind: 'execute', every: 5, mul: 1.5, r: 46 },
   u93: { name: '슬리퍼 던지기', kind: 'bounce', every: 4, mul: 0.75, n: 4 },
 };
 const SIG_DESC = {
-  smash: (s) => `대상에게 ×${s.mul} 강타`, execute: (s) => `체력 30% 이하 적은 바로 쓰러뜨림(보스 제외), 아니면 ×${s.mul}`,
+  smash: (s) => `대상${s.r ? `과 둘레(반경 ${s.r}) 적 모두` : '에게'} ×${s.mul} 강타`, execute: (s) => `체력 30% 이하 적은 바로 쓰러뜨림(보스 제외), 아니면 ×${s.mul}${s.r ? ` · 둘레(반경 ${s.r}) 다른 적도 ×${s.mul}` : ''}`,
   pierce: (s) => `대상 쪽 직선 위 적 모두 ×${s.mul}`, bounce: (s) => `가까운 적 ${s.n}마리에게 튕기며 ×${s.mul}`,
   nova: (s) => `대상 둘레 적 모두 ×${s.mul}`, storm: (s) => (s.r ? `적 ${s.n}곳에 범위 낙뢰(반경 ${s.r}, 맞은 자리 둘레 적 모두) ×${s.mul}` : `적 ${s.n}마리에게 낙뢰 ×${s.mul}`),
   bind: (s) => `둘레 적 모두 ×${s.mul} + ${s.sec}초 묶기`, field: (s) => `${s.sec}초 장판(0.5초마다 ×${s.mul}${s.slow ? `·이감 ${Math.round(s.slow * 100)}%` : ''})`,
@@ -239,8 +241,10 @@ export const sigText = (id) => { const s = SIGNATURE[id]; return s ? `고유 기
 function signature(g, u, k, best, s) {
   const near = (x, y, r) => g.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - x, e.y - y) <= r);
   const fx = { kind: 'sig', sk: s.kind, uid: u.uid, name: s.name, x0: u.x, y0: u.y, x1: best.x, y1: best.y, elem: k.elem, type: k.type, t: g.t };
-  if (s.kind === 'smash') hurt(g, best, k.dmg * s.mul, k, u.uid);
-  else if (s.kind === 'execute') { if (!best.boss && best.hp <= best.max * 0.3) { best.by = u.uid; best.hp = 0; } else hurt(g, best, k.dmg * s.mul, k, u.uid); }
+  // 2026-11-15 사용자 요청(「범위처럼 보이는데 한 마리만 맞음」): 강타·처형도 효과 크기(r)만큼 둘레 적에게 피해
+  const around = () => { if (s.r) { for (const e of near(best.x, best.y, s.r)) if (e !== best) hurt(g, e, k.dmg * s.mul, k, u.uid); fx.r = s.r; } };
+  if (s.kind === 'smash') { hurt(g, best, k.dmg * s.mul, k, u.uid); around(); }
+  else if (s.kind === 'execute') { if (!best.boss && best.hp <= best.max * 0.3) { best.by = u.uid; best.hp = 0; } else hurt(g, best, k.dmg * s.mul, k, u.uid); around(); }
   else if (s.kind === 'pierce') {
     const dx = best.x - u.x, dy = best.y - u.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
     fx.x1 = u.x + ux * s.len; fx.y1 = u.y + uy * s.len;
@@ -332,6 +336,9 @@ function kitRaw(id) {
   const AS = RULES.atkSpeed ?? 1;
   if (k.stun) k.stun /= AS;
   if (k.astun) k.astun /= AS;
+  // 2026-11-15 사용자 요청(스턴 확률이 너무 낮아 보임 → 10~20%): 공속 2배로 반이 됐던 확률을 다시 올려 한 번 칠 때 10~20% 사이로
+  if (k.stun) k.stun = Math.min(RULES.stunHi, Math.max(RULES.stunLo, k.stun * 1.4));
+  if (k.astun) k.astun = Math.min(RULES.stunHi, Math.max(RULES.stunLo, k.astun * 2.5));
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
   if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison', 'haste', 'might', 'weaken']) delete k[key];
@@ -427,8 +434,8 @@ export const BOSS_LOOK = ['e:v5', 'e:v6', 'e:v15', 'e:v17', 'b:u31', 'b:u01'];
 export const defAt = (w) => RULES.defBase + RULES.defPer * Math.min(w, RULES.defLateFrom) + RULES.defLatePer * Math.max(0, w - RULES.defLateFrom);
 // 피해 배율 = (100 / (100 + 남은 방어))^armorPow. 2제곱이라 방어가 높으면 피해가 크게 줄고, 깎으면 크게 늘어난다
 export const defMul = (left) => Math.pow(100 / (100 + Math.max(0, left)), RULES.armorPow);
-export function waveInfo(w) {
-  const boss = w % RULES.bossEvery === 0;
+export function waveInfo(w, line = false) {   // line: 보스 웨이브에 같이 나오는 일반 적
+  const boss = !line && w % RULES.bossEvery === 0;
   // 적 체력: 초반(hpEarlyN웨이브까지)은 hpEarly배씩 가파르게, 그 뒤는 hpGrowth배씩
   const nE = RULES.hpEarlyN ?? 0, eW = Math.min(w - 1, nE), lW = Math.max(0, w - 1 - nE);
   let hp = Math.round(RULES.hpBase * Math.pow(RULES.hpEarly ?? RULES.hpGrowth, eW) * Math.pow(RULES.hpGrowth, lW) * (1 + w / RULES.hpLinear));
@@ -451,7 +458,7 @@ export function waveInfo(w) {
   const late = Math.max(0, w - (RULES.lateFrom ?? 999));
   const mid = Math.max(0, w - (RULES.midFrom ?? 999));
   return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) * (RULES.bossHpX ?? 1) * (1 + (RULES.midBossHp ?? 0) * mid) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late) * (1 + (RULES.midLineHp ?? 0) * mid)),
-    speed: boss ? 34 : (56 + Math.min(30, w)) * (1 + (RULES.lateSpdPer ?? 0) * late), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
+    speed: (boss ? 34 : (56 + Math.min(30, w)) * (1 + (RULES.lateSpdPer ?? 0) * late)) * (RULES.spdX ?? 1), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
   const r = REGIONS[k], wi = waveInfo(r.level + 2);
@@ -934,11 +941,13 @@ function startWave(g) {
   if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
   if (g.wave === (RULES.riftFrom ?? 999) + 1) news(g, `균열 저항 시작! 이제 적이 전설·히든 이하 공격을 웨이브마다 ${Math.round((RULES.riftPer ?? 0) * 100)}%씩 덜 받아요(최대 ${Math.round((RULES.riftMax ?? 0) * 100)}%). 초불영제 공격은 그대로`);
   const wi = waveInfo(g.wave);
-  g.spawnLeft = wi.boss ? 1 : RULES.perWave; g.spawnT = 0;
+  g.spawnLeft = (wi.boss ? 1 : 0) + RULES.perWave; g.bossLeft = wi.boss ? 1 : 0; g.spawnT = 0;   // 2026-11-15 사용자 요청: 보스 웨이브에도 일반 적이 똑같이 나옴(보스 먼저)
 }
 export const riftAt = (w) => (w > (RULES.riftFrom ?? 999) ? Math.min(RULES.riftMax ?? 0, (RULES.riftPer ?? 0) * (w - RULES.riftFrom)) : 0);   // 그 웨이브 라인 적의 균열 저항
 function spawn(g) {
-  const wi = waveInfo(g.wave);
+  const w0 = waveInfo(g.wave), asBoss = w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
+  if (w0.boss) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
+  const wi = asBoss ? w0 : waveInfo(g.wave, true);
   const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line);
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
   g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr), rift,
