@@ -1571,12 +1571,12 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, ny, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
   if (tall) fitText(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, C.muted);
   // 재료 모인 정도 게이지(사용자 요청 2026-11-15): 금빛 = 진행(색 규칙), 다 모이면 초록
-  // 기본 재료 기준(아래 재료까지). 바로 아래 재료가 다 있어야 100%·초록 — 아래 재료만 다 있으면 99%(중간 조합이 남음)
+  // 기본 재료 기준(아래 재료까지). 기본 재료가 다 모이면 100%(2026-11-15 사용자: 중간 조합은 알아서 함) — 바로 조합할 수 있을 때만 초록
   { const pg = progOf(r, cnt), direct = have(r, cnt) === r.in.length, n = pg.got;
-    const fr = direct ? 1 : Math.min(0.99, pg.got / pg.total), gy = tall ? y + h - 13 : y + h - 15, gw = 54;
+    const fr = direct ? 1 : pg.got / pg.total, gy = tall ? y + h - 13 : y + h - 15, gw = 54;
     box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(145,122,76,.55)', 3.5, 1);
     if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, direct ? C.good : C.gold, null, 3.5);
-    text(`${direct ? 100 : Math.min(99, Math.round(fr * 100))}%`, x + 142, gy + 4, 13, direct ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
+    text(`${fr >= 1 ? 100 : Math.min(99, Math.floor(fr * 100))}%`, x + 142, gy + 4, 13, direct ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
   const left = { ...cnt };
   // 재료가 5개 이상(초불영제)이면 두 줄로 나눠 칸을 넓게(2026-11-10: 재료 6~7개라 이름이 너무 잘림)
   const x0 = x + 150, lines = r.in.length > 4 ? 2 : 1, perLine = Math.ceil(r.in.length / lines), ch = lines === 2 ? 19 : 24, fs = lines === 2 ? 12 : 14;
@@ -1678,7 +1678,7 @@ function drawBook() {
   const top = y + 126, viewH = h - 136, cnt = E.countOnField(G), q = bookOpt.q;
   let rows = E.RECIPES.filter((r) => (!modal.using || r.in.includes(modal.using)) && (!bookRoles.size || [...bookRoles].every((k) => rolesOf(r.out).includes(k)))
     && (!q || E.UNIT[r.out].name.includes(q) || r.in.some((id) => E.UNIT[id].name.includes(q))));
-  rows = rows.map((r) => { const pg = progOf(r, cnt); return { r, ok: canMake(r), frac: have(r, cnt) === r.in.length ? 1 : Math.min(0.99, pg.got / pg.total) }; });   // 게이지와 같은 값으로 정렬
+  rows = rows.map((r) => { const pg = progOf(r, cnt); return { r, ok: canMake(r), frac: have(r, cnt) === r.in.length ? 1 : pg.got / pg.total }; });   // 게이지와 같은 값으로 정렬
   if (bookOpt.ready) rows = rows.filter((it) => it.ok);
   const items = [];
   if (bookOpt.near) {   // 재료가 많이 모인 순(등급 묶음 없이)
