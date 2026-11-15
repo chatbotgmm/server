@@ -47,6 +47,8 @@ export const RULES = {
   riftFrom: 40, riftPer: 0.1, riftMax: 0.7,   // 41 −10% · 43 −30% · 45 −50% · 47웨이브부터 −70%
   midFrom: 20, midLineHp: 0.02, midBossHp: 0.01,   // 2026-11-15 사용자 요청(중후반 난이도 올리기, 증강체와 함께): 21웨이브부터 웨이브마다 일반 적 체력 +2%·보스 +1%(40웨이브 ×1.4·×1.2, 60웨이브 ×1.8·×1.4)
   lateFrom: 40, lateHpPer: 0.04, lateSpdPer: 0.04,   // 40웨이브부터 웨이브마다 일반 적 체력 +4%·이동속도 +4%(60웨이브 체력 ×1.8·속도 ×1.8). 2026-11-15 사용자 요청: 입구에서 다 죽어 때리는 맛이 짧음 → 속도 1.5%→4%
+  bossLen: 60, bossHpX: 1.6,   // 2026-11-15 사용자 요청: 보스는 시간을 길게(40→60초) 주고 체력을 더(×1.6, 시간보다 조금 더 늘려 필요한 초당 피해 +7%)
+  hardLimitFrom: 45, hardLimit: 50,   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
   finaleLen: 30,   // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
   hpBase: 55, hpGrowth: 1.16, hpLinear: 25,
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
@@ -222,7 +224,7 @@ export const SIGNATURE = {
   u87: { name: '밀물', kind: 'nova', every: 5, mul: 1, r: 125 },
   u88: { name: '발도장', kind: 'smash', every: 4, mul: 1.8 },
   u89: { name: '후끈 내복', kind: 'field', every: 5, mul: 0.35, r: 80, sec: 3, slow: 0.1 },
-  u90: { name: '다섯 번째 목소리', kind: 'storm', every: 5, mul: 1, n: 5 },
+  u90: { name: '다섯 번째 목소리', kind: 'storm', every: 5, mul: 1, n: 5, r: 55 },
   u91: { name: '고무줄 사격', kind: 'pierce', every: 5, mul: 1.2, len: 280 },
   u92: { name: '조이기', kind: 'execute', every: 5, mul: 1.5 },
   u93: { name: '슬리퍼 던지기', kind: 'bounce', every: 4, mul: 0.75, n: 4 },
@@ -230,7 +232,7 @@ export const SIGNATURE = {
 const SIG_DESC = {
   smash: (s) => `대상에게 ×${s.mul} 강타`, execute: (s) => `체력 30% 이하 적은 바로 쓰러뜨림(보스 제외), 아니면 ×${s.mul}`,
   pierce: (s) => `대상 쪽 직선 위 적 모두 ×${s.mul}`, bounce: (s) => `가까운 적 ${s.n}마리에게 튕기며 ×${s.mul}`,
-  nova: (s) => `대상 둘레 적 모두 ×${s.mul}`, storm: (s) => `적 ${s.n}마리에게 낙뢰 ×${s.mul}`,
+  nova: (s) => `대상 둘레 적 모두 ×${s.mul}`, storm: (s) => (s.r ? `적 ${s.n}곳에 범위 낙뢰(반경 ${s.r}, 맞은 자리 둘레 적 모두) ×${s.mul}` : `적 ${s.n}마리에게 낙뢰 ×${s.mul}`),
   bind: (s) => `둘레 적 모두 ×${s.mul} + ${s.sec}초 묶기`, field: (s) => `${s.sec}초 장판(0.5초마다 ×${s.mul}${s.slow ? `·이감 ${Math.round(s.slow * 100)}%` : ''})`,
 };
 export const sigText = (id) => { const s = SIGNATURE[id]; return s ? `고유 기술 「${s.name}」: 공격 ${s.every}번마다 ${SIG_DESC[s.kind](s)}` : ''; };
@@ -250,8 +252,8 @@ function signature(g, u, k, best, s) {
   } else if (s.kind === 'nova') { for (const e of near(best.x, best.y, s.r)) hurt(g, e, k.dmg * s.mul, k, u.uid); fx.r = s.r; }
   else if (s.kind === 'storm') {
     const pool = near(u.x, u.y, k.range + 60), pts = [];
-    for (let i = 0; i < s.n && pool.length; i++) { const e = pool.splice(Math.floor(g.rand() * pool.length), 1)[0]; hurt(g, e, k.dmg * s.mul, k, u.uid); pts.push([e.x, e.y]); }
-    fx.pts = pts;
+    for (let i = 0; i < s.n && pool.length; i++) { const e = pool.splice(Math.floor(g.rand() * pool.length), 1)[0], x = e.x, y = e.y; if (s.r) { for (const o of near(x, y, s.r)) hurt(g, o, k.dmg * s.mul, k, u.uid); } else hurt(g, e, k.dmg * s.mul, k, u.uid); pts.push([x, y]); }
+    fx.pts = pts; if (s.r) fx.r = s.r;
   } else if (s.kind === 'bind') {
     for (const e of near(best.x, best.y, s.r)) { hurt(g, e, k.dmg * s.mul, k, u.uid); if (e.speed) e.stunUntil = Math.max(e.stunUntil, g.t + s.sec * (e.boss ? BOSS_STUN : 1)); }
     fx.r = s.r;
@@ -448,7 +450,7 @@ export function waveInfo(w) {
   // 2026-11-10 사용자 요청(장인도 40웨이브쯤이면 다 만들어져 느슨함): lateFrom웨이브부터 일반 적 체력·이동속도가 웨이브마다 더 오름(보스는 그대로)
   const late = Math.max(0, w - (RULES.lateFrom ?? 999));
   const mid = Math.max(0, w - (RULES.midFrom ?? 999));
-  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) * (1 + (RULES.midBossHp ?? 0) * mid) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late) * (1 + (RULES.midLineHp ?? 0) * mid)),
+  return { boss, kind, armor, mr, look, baseHp: hp, hp: boss ? hp * (RULES.bossMul[w] ?? 2) * (RULES.bossHpX ?? 1) * (1 + (RULES.midBossHp ?? 0) * mid) : Math.round(hp * (1 + (RULES.lateHpPer ?? 0) * late) * (1 + (RULES.midLineHp ?? 0) * mid)),
     speed: boss ? 34 : (56 + Math.min(30, w)) * (1 + (RULES.lateSpdPer ?? 0) * late), gold: Math.round((boss ? 30 : 1) * (RULES.killGold + RULES.killGoldGrow * w + (RULES.killGoldSq ?? 0) * w * w)) };
 }
 export function regionGuard(k) {
@@ -1023,6 +1025,7 @@ export function step(g, dt) {
   }
   g.fx = g.fx.filter((f) => g.t - f.t < 0.8);
   // 경고: 70마리를 넘은 동안 1초마다 1회(누적)
+  if (hardLimitOn(g) && g.enemies.length > RULES.hardLimit) { g.over = 'lose'; g.reason = `${RULES.hardLimitFrom}웨이브부터는 길 위의 적이 ${RULES.hardLimit}마리를 넘으면 바로 패배해요.`; return; }
   if (g.enemies.length > RULES.limit) {
     g.warnAcc += dt;
     while (g.warnAcc >= 1) { g.warnAcc -= 1; g.warn++; }
@@ -1056,7 +1059,7 @@ export function step(g, dt) {
     return;
   }
   g.waveT += dt;
-  if (g.waveT >= RULES.waveLen && wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }
+  if (g.waveT >= baseLenOf(g.wave) && wi.boss && g.bossDone !== g.wave) { g.over = 'lose'; g.reason = `${g.wave}웨이브 보스를 라운드 안에 잡지 못했어요.`; return; }
   if (g.waveT >= waveLenOf(g.wave)) {
     if (g.wave >= RULES.waves) return;
     if (g.wave === RULES.storyDeadline && storyLeft(g)) { g.over = 'lose'; g.reason = `스토리 ${REGIONS.length}장을 ${RULES.storyDeadline}웨이브까지 끝내지 못했어요.`; return; }
@@ -1065,6 +1068,8 @@ export function step(g, dt) {
 }
 // 10·20…웨이브는 끝나고 쉬는 시간만큼 길다(적은 더 나오지 않음)
 export const restWave = (w) => !!RULES.restEvery && w % RULES.restEvery === 0 && w < RULES.waves;
-export const waveLenOf = (w) => RULES.waveLen + (restWave(w) ? RULES.restLen : 0);
-export const resting = (g) => restWave(g.wave) && g.waveT >= RULES.waveLen;
+export const baseLenOf = (w) => (w % RULES.bossEvery === 0 && RULES.bossLen ? RULES.bossLen : RULES.waveLen);   // 보스 웨이브는 bossLen초
+export const waveLenOf = (w) => baseLenOf(w) + (restWave(w) ? RULES.restLen : 0);
+export const resting = (g) => restWave(g.wave) && g.waveT >= baseLenOf(g.wave);
+export const hardLimitOn = (g) => g.wave >= (RULES.hardLimitFrom ?? 999);   // 45웨이브부터 즉시 패배 한도
 export const nextWaveIn = (g) => Math.max(0, waveLenOf(g.wave) - g.waveT);

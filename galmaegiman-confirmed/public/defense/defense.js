@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=c69e86da6dc4';
+import * as E from './engine.js?v=510a7781093c';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -440,7 +440,8 @@ function sfxTick() {
   if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone, kills: G.kills, boss: G.bossDone ?? 0 }); return; }
   if (G.kills > sfxWatch.kills) { killSound(G.kills - sfxWatch.kills); sfxWatch.kills = G.kills; }   // 적 처치 소리(2026-11-15)
   if ((G.bossDone ?? 0) !== sfxWatch.boss) { sfxWatch.boss = G.bossDone ?? 0; if (sfxWatch.boss) killSound(0, true); }
-  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } else if (G.wave === (E.RULES.riftFrom ?? 999) + 1) { sfx('warn'); riftAlarm(); } sfxWatch.wave = G.wave; }
+  if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } else if (G.wave === (E.RULES.riftFrom ?? 999) + 1) { sfx('warn'); riftAlarm(); }
+    if (G.wave === E.RULES.hardLimitFrom) { if (E.waveInfo(G.wave).boss) bossWarn.next = 'hard'; else { sfx('warn'); hardAlarm(); } } sfxWatch.wave = G.wave; }   // 45웨이브는 보스 웨이브라 보스 경고 뒤에 이어서
   if (G.warn > sfxWatch.warn) sfx('warn');
   sfxWatch.warn = G.warn;
   if (G.missionDone > sfxWatch.md) sfx('story');
@@ -452,6 +453,9 @@ function sfxTick() {
 const BOSS_CLOSE = new Set(['book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
 const bossWarn = { at: -1e9, wave: 0 };
 const BOSS_WARN_MS = 2600;
+function hardAlarm() {   // 45웨이브: 적 50마리 넘으면 즉시 패배 알림(2026-11-15)
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'hard';
+}
 function augAlarm(id) {   // 증강체를 고르면 알림(2026-11-15 사용자 요청: 균열·보스 경고처럼). 창은 닫지 않음
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'aug'; bossWarn.aug = id;
 }
@@ -464,9 +468,28 @@ function bossAlarm() {
   if (modal && BOSS_CLOSE.has(modal.kind)) modal = null;
 }
 function drawBossWarn() {
-  const age = performance.now() - bossWarn.at;
+  let age = performance.now() - bossWarn.at;
+  if (age > BOSS_WARN_MS && bossWarn.next === 'hard' && G && !G.over) { bossWarn.next = null; hardAlarm(); sfx('warn'); age = 0; }   // 보스 경고가 끝나면 즉시 패배 알림
   if (age > BOSS_WARN_MS || !G || G.over) return;
   const fade = Math.min(1, age / 150, (BOSS_WARN_MS - age) / 500), pulse = 0.55 + 0.45 * Math.abs(Math.sin(age / 190));
+  if (bossWarn.kind === 'hard') {   // 즉시 패배 한도: 주황·빨강
+    ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+    const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
+    gr.addColorStop(0, 'rgba(255,120,30,0)'); gr.addColorStop(1, `rgba(255,120,30,${0.4 * pulse * fade})`);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    ctx.lineWidth = 6; ctx.strokeStyle = `rgba(255,150,70,${0.8 * pulse * fade})`; ctx.strokeRect(3, 3, VW - 6, VH - 6);
+    ctx.restore();
+    ctx.save();
+    if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+    ctx.globalAlpha = fade;
+    const bw = W - 60, bh = 100, bx = 30, by = 326;
+    box(bx, by, bw, bh, 'rgba(60,24,6,.93)', `rgba(255,160,80,${0.6 + 0.4 * pulse})`, 12, 3);
+    hazard(bx + 14, by + 8, bw - 28, 6);
+    fitText(`⚠ 길 위 적 ${E.RULES.hardLimit}마리 넘으면 즉시 패배!`, W / 2, by + 44, bw - 30, 24, '#ffb070', 'center');
+    fitText(`${E.RULES.hardLimitFrom}웨이브부터는 경고 없이 바로 끝나요 · 위 상황판 「적 N/${E.RULES.hardLimit}」을 지켜보세요`, W / 2, by + 76, bw - 30, 14, '#ffe2c8', 'center');
+    ctx.restore();
+    return;
+  }
   if (bossWarn.kind === 'aug') {   // 증강체 획득: 금빛으로 같은 모양
     const a = E.AUGS[bossWarn.aug]; if (!a) return;
     ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
@@ -517,7 +540,7 @@ function drawBossWarn() {
   const bw = W - 60, bh = 92, bx = 30, by = 330;
   box(bx, by, bw, bh, 'rgba(60,8,10,.9)', `rgba(255,107,107,${0.6 + 0.4 * pulse})`, 12, 3);
   fitText('⚠ 보스 등장!', W / 2, by + 34, bw - 30, 30, '#ff6b6b', 'center');
-  fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.RULES.waveLen}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
+  fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
   ctx.restore();
 }
 // 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
@@ -1495,7 +1518,7 @@ function drawSig(f, age) {
     if (f.sk === 'pierce') { ctx.lineWidth = 6 * a + 2; ctx.strokeStyle = `rgba(${col},${0.3 * a})`; ctx.beginPath(); ctx.moveTo(f.x0, f.y0); ctx.lineTo(f.x1, f.y1); ctx.stroke(); ctx.strokeStyle = `rgba(${col},${0.95 * a})`;   // 바닥에 그은 자국
       ctx.lineWidth = 12 * a + 3; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
     else if (f.sk === 'bounce' || f.sk === 'storm') {
-      for (const [x, y] of f.pts ?? []) { if (f.sk === 'storm') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 6, y - 120); ctx.lineTo(x + 6, y - 60); ctx.lineTo(x - 4, y - 50); ctx.lineTo(x, y - 8); ctx.stroke(); } groundRing(x, y, 16 * (1.4 - a), col, 0.9 * a, 2.5, 0.3); }   // 맞은 자리 바닥
+      for (const [x, y] of f.pts ?? []) { if (f.sk === 'storm') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 6, y - 120); ctx.lineTo(x + 6, y - 60); ctx.lineTo(x - 4, y - 50); ctx.lineTo(x, y - 8); ctx.stroke(); } if (f.sk === 'storm' && f.r) { ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip(); const rr = f.r * (0.55 + 0.45 * (1 - a)); groundRing(x, y, rr, col, 0.95 * a, 3, 0.22); groundRing(x, y, rr * 0.55, '255,255,255', 0.5 * a, 1.5); ctx.restore(); } else groundRing(x, y, 16 * (1.4 - a), col, 0.9 * a, 2.5, 0.3); }   // 맞은 자리 바닥(범위 낙뢰는 실제 반경)
       if (f.sk === 'bounce' && f.pts?.length > 1) { ctx.lineWidth = 3; ctx.beginPath(); f.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 12) : ctx.moveTo(x, y - 12))); ctx.stroke(); }
     } else if (f.sk === 'nova' || f.sk === 'bind' || f.sk === 'field') {
       // 2.5D: 바닥에 퍼지는 납작한 원(기술 범위 너비) + 안쪽 고리가 뒤따라옴
@@ -1651,7 +1674,7 @@ function drawHud() {
     text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum, mrNow));
   }
   const rest = E.resting(G);
-  const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.RULES.waveLen - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
+  const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.baseLenOf(G.wave) - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
   text(line2, 20, 58, 15, rest ? C.good : wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
   if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
     const nx = E.waveInfo(G.wave + 1); nx.armor = E.armorAt(G, G.wave + 1);
@@ -1661,11 +1684,12 @@ function drawHud() {
     fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}${rf ? ` · 균열 저항 ${Math.round(rf * 100)}%` : ''}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : rf ? '#c9a3ff' : nx.armor > armorNow ? C.goldEdge : C.muted);
   }
   // 적 수·경고
-  const n = G.enemies.length, lim = E.RULES.limit, ratio = Math.min(1, n / lim);
-  text(`적 ${n}/${lim}`, 20, 82, 14, n > lim ? C.bad : C.text);
-  box(92, 77, 150, 10, 'rgba(0,0,0,.5)', C.line, 5, 1);
-  box(92, 77, 150 * ratio, 10, n > lim ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
-  text(`경고 ${G.warn}/${E.warnMaxOf(G)}`, 256, 82, 14, G.warn ? C.bad : C.muted);   // 증강체로 한도가 바뀜
+  const hard = E.hardLimitOn(G), n = G.enemies.length, lim = hard ? E.RULES.hardLimit : E.RULES.limit, ratio = Math.min(1, n / lim);   // 45웨이브부터 /50(넘으면 즉시 패배)
+  text(`적 ${n}/${lim}`, 20, 82, 14, n > lim || (hard && ratio > 0.8) ? C.bad : C.text);
+  box(92, 77, 150, 10, 'rgba(0,0,0,.5)', hard ? '#b4482a' : C.line, 5, 1);
+  box(92, 77, 150 * ratio, 10, n > lim || (hard && ratio > 0.8) ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
+  if (hard) fitText('넘으면 즉시 패배', 256, 82, 78, 12, C.bad);   // 45웨이브부터: 경고 대신(새우 칸과 겹치지 않게 짧게 — 검토)
+  else text(`경고 ${G.warn}/${E.warnMaxOf(G)}`, 256, 82, 14, G.warn ? C.bad : C.muted);   // 증강체로 한도가 바뀜
   // 새우·강화
   const sh = img(`${ART}/menu/currency-shrimp.webp`);
   if (sh) drawFit(sh, 340, 64, 22, 22);
