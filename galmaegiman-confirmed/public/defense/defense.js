@@ -991,60 +991,86 @@ function drawWeather() {   // 판 위 날씨(효과 끔이면 없음)
   ctx.restore();
 }
 function drawLanesRaw() {
-  // 2.5D 판(2026-11-15 사용자 요청: 판 디자인도 2.5D 느낌): 길은 돋운 돌길(아래로 두께가 보이고 윗면에 돌 무늬), 안쪽 바닥은 한 단 낮아 길 그림자가 드리움.
-  // 위(먼 쪽)는 어둡고 아래(가까운 쪽)는 밝게, 바닥 줄은 위로 갈수록 촘촘(원근). 한 번 그려 두고 붙임(cachedLayer)
-  const L = E.LOOP, lane = 40, th = themeOf(), F = FIELD, SIDE = 7;
-  const ix0 = L.x0 + lane / 2, iy0 = L.y0 + lane / 2, ix1 = L.x1 - lane / 2, iy1 = L.y1 - lane / 2;   // 안쪽 바닥
-  ctx.fillStyle = th.bg; ctx.fillRect(F.x, F.y, F.w, F.h);   // 판 바닥(테두리는 맨 끝에 철제 컨테이너로)
+  // 섬과 물가(2026-11-15 사용자 요청: 적 길은 물가, 우리가 선 곳은 섬·땅 위 · 참고 그림 「갈매미맨 항만 방범대」: 돌 부두 섬·푸른 물길·순환 화살표·바위). 판 바깥은 깊은 바다, 길(적이 지나는 고리)은 얕은 물,
+  // 안쪽은 한 단 높은 섬(모래 해변 + 풀밭, 아래쪽 앞면으로 흙 절벽이 보임). 2.5D: 위(먼 쪽) 어둡게·아래 밝게. 한 번 그려 두고 붙임(cachedLayer)
+  const L = E.LOOP, lane = 40, F = FIELD, CL = 8;   // CL: 섬 절벽 높이
+  const ox0 = L.x0 - lane / 2, oy0 = L.y0 - lane / 2, ox1 = L.x1 + lane / 2, oy1 = L.y1 + lane / 2;   // 물길 바깥 가장자리
+  const ix0 = L.x0 + lane / 2, iy0 = L.y0 + lane / 2, ix1 = L.x1 - lane / 2, iy1 = L.y1 - lane / 2;   // 섬(물길 안쪽 가장자리)
   ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip();
-  let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, 'rgba(0,0,0,.32)'); g.addColorStop(0.5, 'rgba(0,0,0,.05)'); g.addColorStop(1, 'rgba(255,255,255,.06)');
-  ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
-  // 안쪽 바닥 줄(원근): 위로 갈수록 간격이 좁고 옅음
-  ctx.lineWidth = 1;
-  for (let y = iy1, sp = 34; y > iy0; y -= sp, sp = Math.max(12, sp * 0.9)) { const k = (y - iy0) / (iy1 - iy0); ctx.strokeStyle = `rgba(255,255,255,${(0.015 + 0.03 * k).toFixed(3)})`; ctx.beginPath(); ctx.moveTo(ix0, y); ctx.lineTo(ix1, y); ctx.stroke(); }
-  for (let x = ix0 + 34; x < ix1; x += 34) { ctx.strokeStyle = 'rgba(255,255,255,.022)'; ctx.beginPath(); ctx.moveTo(x, iy0); ctx.lineTo(x, iy1); ctx.stroke(); }
-  // 작은 돌·풀(희미하게, 그림자와 함께)
-  for (let k = 0; k < 14; k++) { const x = ix0 + 18 + ((k * 137) % (ix1 - ix0 - 36)), y = iy0 + 24 + ((k * 89 + 40) % (iy1 - iy0 - 48)), r = 2.5 + (k % 3);
-    ctx.beginPath(); ctx.ellipse(x + 1, y + r * 0.7, r * 1.3, r * 0.5, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fill();
-    if (k % 3) { ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(190,200,205,.12)'; ctx.fill(); }
-    else { ctx.strokeStyle = 'rgba(140,200,140,.16)'; ctx.lineWidth = 1.2; ctx.beginPath(); for (const dx of [-3, 0, 3]) { ctx.moveTo(x + dx, y); ctx.lineTo(x + dx * 1.6, y - 6 - Math.abs(dx)); } ctx.stroke(); } }
-  // 길 두께(앞면): 길을 아래로 SIDE만큼 내려 어둡게 → 위에서 보면 각 길 아래쪽에 옆면이 보임
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = lane; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.strokeRect(L.x0, L.y0 + SIDE, L.x1 - L.x0, L.y1 - L.y0);   // 더 어둡게(두께가 잘 보이게 — 검토)
-  ctx.lineWidth = lane; ctx.strokeStyle = th.lane; ctx.strokeRect(L.x0, L.y0 + SIDE, L.x1 - L.x0, L.y1 - L.y0);
-  // 안쪽 바닥에 드리운 길 그림자(위·왼쪽 안쪽 가장자리)
-  g = ctx.createLinearGradient(0, iy0 + SIDE, 0, iy0 + SIDE + 16); g.addColorStop(0, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ix0, iy0 + SIDE, ix1 - ix0, 16);
-  g = ctx.createLinearGradient(ix0, 0, ix0 + 12, 0); g.addColorStop(0, 'rgba(0,0,0,.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ix0, iy0, 12, iy1 - iy0);
-  // 길 윗면: 바탕(판 색) 위에 길 색 두 겹 → 불투명하게
-  ctx.lineWidth = lane; ctx.strokeStyle = th.bg; ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
-  ctx.strokeStyle = th.lane; ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
-  // 돌 무늬: 길을 따라 두 줄로 엇갈리게 놓은 납작한 돌(테두리는 그늘, 위쪽은 살짝 밝게)
-  let sn = 0;   // 돌마다 크기·자리를 조금씩 다르게(고르게 박힌 점 무늬처럼 보이지 않게 — 검토)
-  const jit = () => { sn++; return Math.sin(sn * 12.9898) * 0.5 + Math.sin(sn * 4.1414) * 0.5; };
-  const stone = (x, y) => { const rx = 6 + jit() * 2.5, ry = rx * (0.55 + jit() * 0.08), ox = jit() * 2.5, oy = jit() * 2;
-    ctx.beginPath(); ctx.ellipse(x + ox, y + oy, rx, ry, jit() * 0.3, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${(0.03 + Math.abs(jit()) * 0.035).toFixed(3)})`; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.lineWidth = 1; ctx.stroke(); };
-  for (const off of [-9, 9]) {
-    for (let x = L.x0 + 6 + (off > 0 ? 9 : 0); x < L.x1 - 4; x += 18) { stone(x, L.y0 + off); stone(x, L.y1 + off); }
-    for (let y = L.y0 + 18 + (off > 0 ? 9 : 0); y < L.y1 - 10; y += 18) { stone(L.x0 + off, y); stone(L.x1 + off, y); }
+  // 깊은 바다(판 전체)
+  let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, '#0b2a3a'); g.addColorStop(1, '#114055'); ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
+  // 얕은 물길(적이 지나는 고리): 바깥 둥근 사각형 − 섬
+  rr(ox0, oy0, ox1 - ox0, oy1 - oy0, 18); g = ctx.createLinearGradient(0, oy0, 0, oy1); g.addColorStop(0, '#1d5f8a'); g.addColorStop(1, '#2c86b0'); ctx.fillStyle = g; ctx.fill();
+  // 물결 반짝임(짧은 흰 호, 자리 고정)
+  let sn = 0; const rnd = () => { sn++; const v = Math.sin(sn * 12.9898) * 43758.5453; return v - Math.floor(v); };   // 장식 자리(늘 같게)
+  ctx.lineWidth = 1.2;
+  const ripple = (x, y) => { const w = 5 + rnd() * 6; ctx.strokeStyle = `rgba(190,240,250,${(0.12 + rnd() * 0.16).toFixed(2)})`; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x, y - 2.5, x + w, y); ctx.stroke(); };
+  for (let x = ox0 + 10; x < ox1 - 6; x += 22) { ripple(x + rnd() * 8, L.y0 + (rnd() - 0.5) * 22); ripple(x + rnd() * 8, L.y1 + (rnd() - 0.5) * 22); }
+  for (let y = oy0 + 24; y < oy1 - 10; y += 22) { ripple(L.x0 + (rnd() - 0.5) * 22, y + rnd() * 8); ripple(L.x1 + (rnd() - 0.5) * 22, y + rnd() * 8); }
+  // 바깥 물가: 모래 띠 + 하얀 거품선(물길 바깥 가장자리)
+  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(120,132,140,.7)'; rr(ox0 - 3, oy0 - 3, ox1 - ox0 + 6, oy1 - oy0 + 6, 20); ctx.stroke();   // 바깥 방파제 돌 띠
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(235,250,255,.45)'; ctx.setLineDash([7, 5]); rr(ox0 + 2, oy0 + 2, ox1 - ox0 - 4, oy1 - oy0 - 4, 16); ctx.stroke(); ctx.setLineDash([]);
+  // 섬 = 돌 부두(2026-11-15 사용자 참고 그림: 해안 초소·방파제): 절벽 앞면(아래로 CL) → 그림자 → 돌 테두리 → 돌 바닥 타일
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(ix0 + 3, iy0 + CL + 4, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 물에 비친 그림자
+  ctx.fillStyle = '#3c454d'; rr(ix0, iy0 + CL, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 옹벽 앞면
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; for (let x = ix0 + 14; x < ix1 - 8; x += 22) ctx.fillRect(x, iy1 + 1, 1.5, CL - 1);   // 옹벽 돌 이음
+  ctx.fillStyle = '#7d8890'; rr(ix0, iy0, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 테두리(연석)
+  const gx0 = ix0 + 8, gy0 = iy0 + 8, gx1 = ix1 - 8, gy1 = iy1 - 8, TS = 46;
+  g = ctx.createLinearGradient(0, gy0, 0, gy1); g.addColorStop(0, '#4a545c'); g.addColorStop(1, '#5f6a72');   // 돌 바닥(갈매미가 잘 보이게 차분한 회색)
+  ctx.fillStyle = g; ctx.fillRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
+  ctx.save(); ctx.beginPath(); ctx.rect(gx0, gy0, gx1 - gx0, gy1 - gy0); ctx.clip();
+  for (let y = gy0, row = 0; y < gy1; y += TS, row++) for (let x = gx0 - (row % 2 ? TS / 2 : 0); x < gx1; x += TS) {   // 엇갈린 큰 돌판: 위·왼쪽 밝은 모서리, 아래·오른쪽 어두운 줄눈
+    const v = rnd();
+    ctx.fillStyle = v > 0.66 ? 'rgba(255,255,255,.035)' : v < 0.33 ? 'rgba(0,0,0,.06)' : 'rgba(0,0,0,0)'; ctx.fillRect(x + 1, y + 1, TS - 2, TS - 2);
+    ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(x + 1, y + 1, TS - 2, 1.5); ctx.fillRect(x + 1, y + 1, 1.5, TS - 2);
+    ctx.fillStyle = 'rgba(10,15,20,.4)'; ctx.fillRect(x, y + TS - 1.5, TS, 1.5); ctx.fillRect(x + TS - 1.5, y, 1.5, TS);
+    if (rnd() > 0.8) { ctx.strokeStyle = 'rgba(10,15,20,.25)'; ctx.lineWidth = 1; ctx.beginPath(); const cx = x + 8 + rnd() * (TS - 16), cy = y + 8 + rnd() * (TS - 16); ctx.moveTo(cx, cy); ctx.lineTo(cx + 6, cy + 4); ctx.lineTo(cx + 9, cy + 2); ctx.stroke(); }   // 금
   }
-  // 가장자리: 바깥 위쪽은 빛, 안쪽 아래쪽(앞면과 만나는 곳)은 그늘
-  ctx.lineWidth = 1.5; ctx.strokeStyle = th.edge;
-  ctx.strokeRect(L.x0 - lane / 2, L.y0 - lane / 2, L.x1 - L.x0 + lane, L.y1 - L.y0 + lane);
-  ctx.strokeRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
-  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.moveTo(L.x0 - lane / 2, L.y1 + lane / 2 + 0.5); ctx.lineTo(L.x1 + lane / 2, L.y1 + lane / 2 + 0.5); ctx.moveTo(ix0, iy0 + 0.5); ctx.lineTo(ix1, iy0 + 0.5); ctx.stroke();
-  // 판 가장자리 어둡게(가운데로 시선)
-  g = ctx.createRadialGradient(F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.35, F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.28)');
+  g = ctx.createLinearGradient(0, gy0, 0, gy0 + 18); g.addColorStop(0, 'rgba(0,0,0,.22)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(gx0, gy0, gx1 - gx0, 18);   // 먼 쪽(위) 그늘
+  ctx.restore();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(220,230,235,.3)'; rr(ix0 + 0.75, iy0 + 0.75, ix1 - ix0 - 1.5, iy1 - iy0 - 1.5, 10); ctx.stroke();   // 연석 위 빛
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(10,15,20,.45)'; ctx.strokeRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
+  // 물가 바위(바깥 가장자리 몇 곳)
+  const rock = (x, y, r) => { ctx.beginPath(); ctx.ellipse(x + 2, y + r * 0.5, r * 1.2, r * 0.45, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.75, 0, 0, Math.PI * 2); ctx.fillStyle = '#5d676e'; ctx.fill(); ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.55, r * 0.35, 0, 0, Math.PI * 2); ctx.fillStyle = '#8b959b'; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(235,250,255,.35)'; ctx.beginPath(); ctx.ellipse(x, y + r * 0.35, r * 1.25, r * 0.5, 0, 0.2, Math.PI - 0.2); ctx.stroke(); };
+  for (const [x, y, r] of [[ox0 + 6, oy0 + 60, 6], [ox1 - 6, oy0 + 140, 7], [ox0 + 5, oy1 - 120, 6], [ox1 - 7, oy1 - 50, 5], [ox0 + 150, oy0 + 5, 5], [ox1 - 120, oy1 - 4, 6]]) rock(x, y, r);
+  // 흐름 표시: 물길 가운데 빛나는 선 + 반시계 방향 화살표(참고 그림의 순환 화살표)
+  ctx.save(); ctx.shadowColor = 'rgba(150,235,255,.9)'; ctx.shadowBlur = 8; ctx.lineWidth = 2.2; ctx.strokeStyle = 'rgba(200,245,255,.55)';
+  rr(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0, 12); ctx.stroke();
+  ctx.fillStyle = 'rgba(220,250,255,.8)';
+  const arrow = (x, y, ang) => { ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -6); ctx.lineTo(-2, 0); ctx.lineTo(-5, 6); ctx.closePath(); ctx.fill(); ctx.restore(); };
+  for (const q of [0.3, 0.7]) { arrow(L.x0, L.y0 + (L.y1 - L.y0) * q, Math.PI / 2); arrow(L.x1, L.y1 - (L.y1 - L.y0) * q, -Math.PI / 2); arrow(L.x0 + (L.x1 - L.x0) * q, L.y1, 0); arrow(L.x1 - (L.x1 - L.x0) * q, L.y0, Math.PI); }   // 왼쪽 ↓ · 아래 → · 오른쪽 ↑ · 위 ←
+  ctx.restore();
+  // 섬 둘레 물거품(섬과 물이 만나는 곳)
+  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(235,250,255,.35)'; ctx.setLineDash([4, 6]); rr(ix0 - 3, iy0 - 3, ix1 - ix0 + 6, iy1 - iy0 + CL + 6, 12); ctx.stroke(); ctx.setLineDash([]);
+  // 판 테마: 위에 색만 살짝 덮음(밤·눈·노을)
+  const tint = { night: 'rgba(10,20,60,.38)', snow: 'rgba(230,240,255,.18)', sunset: 'rgba(255,130,70,.14)' }[cosmetic.theme];
+  if (tint) { ctx.fillStyle = tint; ctx.fillRect(F.x, F.y, F.w, F.h); }
+  // 가장자리 어둡게
+  g = ctx.createRadialGradient(F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.35, F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.25)');
   ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
   ctx.restore();
   steelFrame(F.x, F.y, F.w, F.h);   // 항만 방범대: 철제 컨테이너 테두리 + 리벳
   text('▼', L.x0, L.y0 + 2, 16, C.goldEdge, 'center');   // 반시계 방향: 아래로 출발
   // 나타나는 곳: 바닥에 납작한 마법진처럼
-  ctx.beginPath(); ctx.ellipse(E.SPAWN.x, E.SPAWN.y + 8, 36, 36 * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.28)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.ellipse(E.SPAWN.x, E.SPAWN.y + 8, 36, 36 * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.4)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
   // 커먼이 나오는 6곳(오른쪽 길 안쪽): 발밑에 옅은 고리
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(154,165,173,.35)'; ctx.setLineDash([3, 4]);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(230,230,210,.35)'; ctx.setLineDash([3, 4]);
   for (const sp of E.COMMON_SPOTS) { ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 22, 8, 0, 0, Math.PI * 2); ctx.stroke(); }
   ctx.setLineDash([]);
+}
+// 물길 반짝임(매 장면, 가볍게): 물 위를 천천히 흐르는 작은 빛(화려한 효과 끔이면 없음)
+function drawWater() {
+  if (fxLite) return;
+  const L = E.LOOP, P = 2 * ((L.x1 - L.x0) + (L.y1 - L.y0)), t = performance.now() / 1000;
+  ctx.save(); ctx.lineWidth = 1.4;
+  for (let k = 0; k < 14; k++) {
+    const p = E.pathPos(((k / 14) * P + t * 18) % P), off = Math.sin(k * 2.3) * 12, a = 0.18 + 0.14 * Math.sin(t * 2 + k);
+    const horiz = Math.abs(p.y - L.y0) < 1 || Math.abs(p.y - L.y1) < 1, x = p.x + (horiz ? 0 : off), y = p.y + (horiz ? off : 0);
+    ctx.strokeStyle = `rgba(210,250,255,${a.toFixed(2)})`; ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.quadraticCurveTo(x, y - 2.5, x + 5, y); ctx.stroke();
+  }
+  ctx.restore();
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
 function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false) {   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
@@ -1226,7 +1252,7 @@ function drawField() {
   if (sh) ctx.restore();
 }
 function drawFieldInner() {
-  drawLanes(); drawWeather();
+  drawLanes(); drawWater(); drawWeather();
   // 고른 갈매미 사거리(한 마리일 때)
   const sel = selUnits();
   if (sel.length === 1) {
@@ -1279,11 +1305,11 @@ function drawFieldInner() {
     const lf = lastShot.get(u.uid), face = !!lf && G.t - lf.t < 0.8 && lf.x1 > lf.x0 + 4;
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
-    if (E.tierOf(u.id) >= E.TOP_TIER) {   // 상위(제한~영원) 이름(2026-11-15 사용자 요청): 발밑 고리 아래, 등급 색 + 어두운 테두리
-      const ny = u.y + 8 * z + 9; ctx.font = `13px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
-      box(u.x - nw / 2, ny - 9, nw, 18, 'rgba(7,19,28,.72)', null, 8);
-      text(info.name, u.x, ny, 13, col, 'center');
-    }
+    // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
+    // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)
+    { const t = E.tierOf(u.id), top = t >= E.TOP_TIER, end = [10, 15, 20, 25, 30, 30][t] ?? 30, na = top ? 1 : Math.max(0, Math.min(1, (end - G.wave) / 5));
+      if (na > 0) { const fs = top ? 13 : 11, ny = u.y + 8 * z + (top ? 9 : 8); ctx.font = `${fs}px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
+        ctx.globalAlpha = na; box(u.x - nw / 2, ny - fs * 0.7, nw, fs * 1.4, 'rgba(7,19,28,.72)', null, 7); text(info.name, u.x, ny, fs, col, 'center'); ctx.globalAlpha = 1; } }
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
