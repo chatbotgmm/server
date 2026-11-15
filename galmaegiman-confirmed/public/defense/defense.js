@@ -416,6 +416,9 @@ function sfxTick() {
 const BOSS_CLOSE = new Set(['book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
 const bossWarn = { at: -1e9, wave: 0 };
 const BOSS_WARN_MS = 2600;
+function augAlarm(id) {   // 증강체를 고르면 알림(2026-11-15 사용자 요청: 균열·보스 경고처럼). 창은 닫지 않음
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'aug'; bossWarn.aug = id;
+}
 function riftAlarm() {   // 균열 저항 시작 알림(2026-11-15 사용자 요청: 보스 경고처럼 한 번). 창은 닫지 않고 띠만
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'rift';
 }
@@ -428,6 +431,24 @@ function drawBossWarn() {
   const age = performance.now() - bossWarn.at;
   if (age > BOSS_WARN_MS || !G || G.over) return;
   const fade = Math.min(1, age / 150, (BOSS_WARN_MS - age) / 500), pulse = 0.55 + 0.45 * Math.abs(Math.sin(age / 190));
+  if (bossWarn.kind === 'aug') {   // 증강체 획득: 금빛으로 같은 모양
+    const a = E.AUGS[bossWarn.aug]; if (!a) return;
+    ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+    const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
+    gr.addColorStop(0, 'rgba(255,200,90,0)'); gr.addColorStop(1, `rgba(255,200,90,${0.3 * pulse * fade})`);
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    ctx.lineWidth = 6; ctx.strokeStyle = `rgba(255,220,140,${0.75 * pulse * fade})`; ctx.strokeRect(3, 3, VW - 6, VH - 6);
+    ctx.restore();
+    ctx.save();
+    if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+    ctx.globalAlpha = fade;
+    const bw = W - 60, bh = 96, bx = 30, by = 328;
+    box(bx, by, bw, bh, 'rgba(48,32,8,.93)', `rgba(243,216,158,${0.6 + 0.4 * pulse})`, 12, 3);
+    fitText(`✦ 증강체 「${a.name}」`, W / 2, by + 34, bw - 30, 28, C.goldEdge, 'center');
+    fitText(a.desc, W / 2, by + 70, bw - 30, 15, '#fff1d0', 'center');
+    ctx.restore();
+    return;
+  }
   if (bossWarn.kind === 'rift') {   // 균열 저항: 보라색으로 같은 모양
     ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
     const gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.hypot(VW, VH) / 2);
@@ -2866,7 +2887,7 @@ function drawAug() {
     text(a.name.slice(0, 1), x + 62, cy + ch / 2 + 1, 26, col, 'center');   // 첫 글자를 문장처럼(기호 글꼴이 없는 기기에서도 보이게)
     fitText(a.name, x + 108, cy + ch / 2 - 14, w - 108 - 24 - 112, 19, col);
     fitText(a.desc, x + 108, cy + ch / 2 + 14, w - 108 - 24 - 112, 14, C.text, 'left', 10);
-    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { G.augLater = false; modal = null; say(`증강체 「${a.name}」: ${a.desc}`); sfx('story'); } }, 'primary');
+    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { G.augLater = false; modal = null; augAlarm(id); sfx('story'); } }, 'primary');
   });
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
