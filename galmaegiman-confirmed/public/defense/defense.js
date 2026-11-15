@@ -357,7 +357,16 @@ const TALK = {
   born: ['드디어 내 차례군.', '부르셨습니까, 선장님?', '기다리느라 목 빠지는 줄 알았어.', '이제 진짜 싸움이다.'],
   warn: ['길이 꽉 찼어! 서둘러!', '이대로면 위험해!', '막아! 더 넘어오면 안 돼!'],
 };
-const talk = { list: [], next: 0, g: null, wave: 0, boss: 0, warn: 0, seen: new Set() };
+const talk = { list: [], next: 0, g: null, wave: 0, boss: 0, warn: 0, seen: new Set(), elist: [], enext: 0, low: new Set(), born: new Set(), crowd: 0 };
+// 적 대사(2026-11-15 사용자 요청: 적도 중간중간 대사, 심심하지 않게). 말풍선은 어두운 붉은색(아군과 구별)
+const ETALK = {
+  line: ['이 섬은 우리가 접수한다!', '끼룩단 돌격!', '비켜라, 갈매미들!', '쭈~ 쭈~ 길을 내놔!', '방범대? 하나도 안 무섭다!', '물길은 우리 거다!', '오늘이야말로 초소를 넘는다!'],
+  dark: ['흑화의 힘을 보여 주마…', '빛은 곧 꺼진다.', '너희도 곧 우리처럼 될 거야.', '어둠이 섬을 덮는다…'],
+  boss: ['이 바다는 이제 내 것이다!', '초소째 삼켜 주마!', '감히 날 막겠다고?', '모두 쓸어버려라!'],
+  low: ['크윽… 아직 끝나지 않았다!', '이, 이럴 수가…', '물러서지 마라, 부하들아!'],
+  crowd: ['우리가 더 많다!', '길이 꽉 찼군, 크크크.', '막을 수 있으면 막아 봐!'],
+};
+function esay(e, msg) { if (!e || !msg) return; talk.elist = talk.elist.filter((b) => b.eid !== e.id); if (talk.elist.length >= 2) talk.elist.shift(); talk.elist.push({ eid: e.id, msg, t: G.t }); }
 const talkPick = (arr, k) => arr[Math.floor(Math.abs(Math.sin(k * 12.9898) * 43758.5453) % 1 * arr.length)];
 function talkLegend() { return E.fieldUnits(G).filter((u) => E.tierOf(u.id) >= 4 && E.UNIT[u.id].role !== E.SPECIAL_ROLE); }
 function say2(u, msg) {   // 말풍선 하나(같은 갈매미가 말하는 중이면 바꿈, 2개 넘으면 가장 오래된 것을 지움)
@@ -368,8 +377,20 @@ function say2(u, msg) {   // 말풍선 하나(같은 갈매미가 말하는 중�
 }
 function talkTick() {
   if (scene !== 'play' || !G || G.over) return;
-  if (talk.g !== G) { Object.assign(talk, { g: G, list: [], next: G.t + 8, wave: G.wave, boss: G.bossDone ?? 0, warn: G.warn, seen: new Set(E.fieldUnits(G).map((u) => u.uid)) }); return; }
+  if (talk.g !== G) { Object.assign(talk, { g: G, list: [], next: G.t + 8, wave: G.wave, boss: G.bossDone ?? 0, warn: G.warn, seen: new Set(E.fieldUnits(G).map((u) => u.uid)), elist: [], enext: G.t + 5, low: new Set(), born: new Set(G.enemies.map((e) => e.id)), crowd: 0 }); return; }
   talk.list = talk.list.filter((b) => G.t - b.t < 2.6);
+  // 적 대사: 보스 등장·보스 체력 30% 아래·적이 많이 쌓임·가끔 도발
+  talk.elist = talk.elist.filter((b) => G.t - b.t < 2.6);
+  { const ek = Math.floor(G.t * 10), alive = G.enemies.filter((e) => e.hp > 0);
+    for (const e of alive) if (!talk.born.has(e.id)) { talk.born.add(e.id); if (e.boss) { esay(e, talkPick(ETALK.boss, ek + e.id)); talk.enext = G.t + 6; } }
+    for (const e of alive) if (e.boss && !talk.low.has(e.id) && e.hp < e.max * 0.3) { talk.low.add(e.id); esay(e, talkPick(ETALK.low, ek + e.id)); talk.enext = G.t + 6; }
+    if (alive.length > 40 && G.t - talk.crowd > 20) { talk.crowd = G.t; esay(alive[Math.floor(Math.abs(Math.sin(ek)) * alive.length) % alive.length], talkPick(ETALK.crowd, ek)); talk.enext = G.t + 6; }
+    if (G.t >= talk.enext && alive.length) {
+      const pool = alive.filter((e) => !e.boss && e.y > FIELD.y + 40), e = pool.length ? pool[Math.floor(Math.abs(Math.sin(ek * 3.7)) * pool.length) % pool.length] : null;   // 맨 위(정보 줄 가까이)는 피함
+      if (e) esay(e, talkPick(String(e.look).startsWith('b:') ? ETALK.dark : ETALK.line, ek + e.id));
+      talk.enext = G.t + 8 + Math.abs(Math.sin(ek)) * 6;
+    }
+    if (talk.born.size > 400) talk.born = new Set(alive.map((e) => e.id)); }
   const leg = talkLegend(); if (!leg.length) { for (const u of E.fieldUnits(G)) talk.seen.add(u.uid); return; }
   const k = Math.floor(G.t * 10), any = () => leg[Math.floor(Math.abs(Math.sin(k * 7.13)) * leg.length) % leg.length];
   for (const u of leg) if (!talk.seen.has(u.uid)) { talk.seen.add(u.uid); if (G.t - u.born < 1.5) { say2(u, talkPick(TALK.born, k + u.uid)); talk.next = Math.max(talk.next, G.t + 6); } }   // 처음 만들어짐
@@ -384,6 +405,21 @@ function talkTick() {
   }
 }
 function drawTalk() {
+  if (talk.elist.length) {   // 적 말풍선(어두운 붉은색)
+    const byId = new Map(G.enemies.map((e) => [e.id, e]));
+    for (const b of talk.elist) {
+      const e = byId.get(b.eid); if (!e || e.hp <= 0) continue;
+      const age = G.t - b.t, a = Math.min(1, age / 0.15, (2.6 - age) / 0.3); if (a <= 0) continue;
+      ctx.font = `13px ${FONT}`;
+      const sz = e.boss ? 84 : 44, tw = Math.min(210, ctx.measureText(b.msg).width) + 16, bh = 24;
+      const bx = Math.max(FIELD.x + 4, Math.min(FIELD.x + FIELD.w - tw - 4, e.x - tw / 2)), by = Math.max(FIELD.y + 4, e.y - sz * 0.75 - 12 - bh - 6);
+      ctx.globalAlpha = a;
+      box(bx, by, tw, bh, 'rgba(58,16,20,.95)', 'rgba(255,120,110,.85)', 10, 1.5);
+      ctx.beginPath(); const tx = Math.max(bx + 10, Math.min(bx + tw - 10, e.x)); ctx.moveTo(tx - 5, by + bh - 1); ctx.lineTo(tx + 5, by + bh - 1); ctx.lineTo(tx, by + bh + 6); ctx.closePath(); ctx.fillStyle = 'rgba(58,16,20,.95)'; ctx.fill();
+      fitText(b.msg, bx + tw / 2, by + bh / 2, tw - 12, 13, '#ffd2c8', 'center');
+      ctx.globalAlpha = 1;
+    }
+  }
   if (!talk.list.length) return;
   const byUid = new Map(E.fieldUnits(G).map((u) => [u.uid, u]));
   for (const b of talk.list) {
@@ -3478,4 +3514,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
