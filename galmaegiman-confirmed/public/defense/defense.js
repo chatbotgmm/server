@@ -247,6 +247,15 @@ function sfxCtx() {
   if (sfxState.ctx.state === 'suspended') sfxState.ctx.resume().catch(() => {});
   return sfxState.ctx;
 }
+// 모든 효과음의 공용 출력(2026-11-15 사용자: 공격 소리 중 스피커가 터지는 듯한 소리) — 여러 소리가 겹쳐 1을 넘으면 찢어지므로
+// 압축기(목소리가 커지면 눌러 줌)를 거쳐 내보냄. 시험용으로 다른 AudioContext(오프라인)에도 따로 만듦
+const sfxBus = new WeakMap();
+function sfxOut(ac) {
+  let b = sfxBus.get(ac);
+  if (!b) { const c = ac.createDynamicsCompressor(); c.threshold.value = -20; c.knee.value = 12; c.ratio.value = 10; c.attack.value = 0.002; c.release.value = 0.12;
+    const g = ac.createGain(); g.gain.value = 0.9; c.connect(g).connect(ac.destination); b = c; sfxBus.set(ac, b); }
+  return b;
+}
 // [주파수, 시작(초), 길이(초), 파형] 묶음
 const SFX = {
   summon: [[660, 0, 0.08, 'triangle'], [990, 0.06, 0.1, 'triangle']],
@@ -270,7 +279,7 @@ function sfx(name) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = type; o.frequency.value = f;
     g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
-    o.connect(g).connect(ac.destination); o.start(t0 + at); o.stop(t0 + at + dur + 0.02);
+    o.connect(g).connect(sfxOut(ac)); o.start(t0 + at); o.stop(t0 + at + dur + 0.02);
   }
 }
 // 기본 공격 소리(2026-11-15 사용자 요청): 쏠 때마다 속성·종류별로 아주 짧게(0.03~0.11초). 많이 쏘므로 초당 14개(전설 이상은 20개)까지,
@@ -282,17 +291,17 @@ function noiseBuf(ac) {
   if (!atkSfx.buf) { const b = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.4), ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; atkSfx.buf = b; }
   return atkSfx.buf;
 }
-function atkTone(ac, t, f0, f1, dur, type, v) {
-  const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.02);
+function atkTone(ac, t, f0, f1, dur, type, v) {   // 파형은 sine·triangle만(네모·톱니파는 휴대폰 스피커에서 찢어지는 소리 — 2026-11-15 사용자 지적)
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type === 'sine' ? 'sine' : 'triangle'; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);   // 시작 0.004 → 0.008초(톡 튀는 소리 줄임)
+  o.connect(g).connect(sfxOut(ac)); o.start(t); o.stop(t + dur + 0.02);
 }
 function atkHiss(ac, t, dur, ft, f0, f1, q, v) {   // 흰 소리를 거르개로 깎아 「휙·쉭·화르륵·지직」
   const s = ac.createBufferSource(), bq = ac.createBiquadFilter(), g = ac.createGain();
   s.buffer = noiseBuf(ac); s.playbackRate.value = 0.9 + Math.random() * 0.2;
   bq.type = ft; bq.frequency.setValueAtTime(f0, t); if (f1 !== f0) bq.frequency.exponentialRampToValueAtTime(f1, t + dur); bq.Q.value = q;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  s.connect(bq).connect(g).connect(ac.destination); s.start(t, Math.random() * 0.3); s.stop(t + dur + 0.02);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(bq).connect(g).connect(sfxOut(ac)); s.start(t, Math.random() * 0.3); s.stop(t + dur + 0.02);
 }
 function atkSound(f) {
   if (!atkSfx.on || !(sfxState.vol > 0) || document.hidden || !sfxState.ctx) return;   // 첫 누르기로 소리가 열린 뒤에만
@@ -303,17 +312,20 @@ function atkSound(f) {
   if (now - (atkSfx.last[key] ?? 0) < 55) return;
   atkSfx.last[key] = now; atkSfx.n++;
   const ac = sfxCtx(); if (!ac) return;
-  const t = ac.currentTime + 0.005, p = 0.92 + Math.random() * 0.16, v = sfxState.vol * 0.05 * (f.job === '보조' ? 0.6 : 1) * (big ? 1.35 : 1);
-  if (key === 'ARROW') { atkHiss(ac, t, 0.05, 'bandpass', 3200 * p, 1700 * p, 1.2, v * 1.1); atkTone(ac, t, 1400 * p, 900 * p, 0.03, 'triangle', v * 0.3); }   // 휙
-  else if (key === 'SLASH') atkHiss(ac, t, 0.08, 'highpass', 5000 * p, 1500 * p, 0.7, v * 1.2);   // 쉭
-  else if (key === 'ORB') atkTone(ac, t, 950 * p, 520 * p, 0.06, 'sine', v * 0.9);   // 퓻
-  else if (key === 'FIRE') { atkHiss(ac, t, 0.09, 'lowpass', 2600 * p, 500, 0.8, v * 1.3); atkTone(ac, t, 180 * p, 110 * p, 0.07, 'sawtooth', v * 0.22); }   // 화르륵
-  else if (key === 'ICE') { atkTone(ac, t, 2400 * p, 2250 * p, 0.07, 'sine', v * 0.55); atkTone(ac, t + 0.012, 3300 * p, 3150 * p, 0.05, 'sine', v * 0.3); atkHiss(ac, t, 0.03, 'highpass', 6000, 6000, 0.7, v * 0.45); }   // 팅
-  else if (key === 'WATER') atkTone(ac, t, 380 * p, 900 * p, 0.06, 'sine', v * 0.9);   // 뽁
-  else if (key === 'LIGHTNING') { atkHiss(ac, t, 0.07, 'highpass', 2500 * p, 4000 * p, 0.9, v * 1.1); atkTone(ac, t, 120 * p, 80 * p, 0.06, 'square', v * 0.16); }   // 지직
-  else if (key === 'HOLY') { atkTone(ac, t, 1320 * p, 1320 * p, 0.11, 'triangle', v * 0.45); atkTone(ac, t, 1980 * p, 1980 * p, 0.09, 'sine', v * 0.28); }   // 띵
-  else if (key === 'DARK') { atkTone(ac, t, 150 * p, 85 * p, 0.09, 'sawtooth', v * 0.28); atkHiss(ac, t, 0.08, 'lowpass', 900 * p, 300, 1, v * 0.7); }   // 웅
-  else if (key === 'NATURE') { atkTone(ac, t, 620 * p, 540 * p, 0.05, 'triangle', v * 0.6); atkHiss(ac, t, 0.04, 'bandpass', 2000 * p, 2000 * p, 2, v * 0.45); }   // 톡
+  atkVoice(ac, key, ac.currentTime + 0.005, 0.92 + Math.random() * 0.16, sfxState.vol * 0.05 * (f.job === '보조' ? 0.6 : 1) * (big ? 1.35 : 1));
+}
+// 속성별 소리 한 번(ac: 소리판, t: 시작, p: 음 높이 배수, v: 크기). 2026-11-15 손봄: 200Hz 아래 붕붕 소리·네모/톱니파 빼고, 흰 소리는 작게·너무 높은 쇳소리 거름
+function atkVoice(ac, key, t, p, v) {
+  if (key === 'ARROW') { atkHiss(ac, t, 0.05, 'bandpass', 2600 * p, 1500 * p, 1.4, v * 0.8); atkTone(ac, t, 1200 * p, 800 * p, 0.03, 'triangle', v * 0.3); }   // 휙
+  else if (key === 'SLASH') atkHiss(ac, t, 0.08, 'bandpass', 3500 * p, 1400 * p, 1.1, v * 0.85);   // 쉭
+  else if (key === 'ORB') atkTone(ac, t, 900 * p, 520 * p, 0.06, 'sine', v * 0.8);   // 퓻
+  else if (key === 'FIRE') { atkHiss(ac, t, 0.09, 'lowpass', 1800 * p, 500, 0.7, v * 0.9); atkTone(ac, t, 330 * p, 220 * p, 0.07, 'sine', v * 0.35); }   // 화르륵
+  else if (key === 'ICE') { atkTone(ac, t, 2200 * p, 2080 * p, 0.07, 'sine', v * 0.45); atkTone(ac, t + 0.012, 3000 * p, 2900 * p, 0.05, 'sine', v * 0.22); }   // 팅
+  else if (key === 'WATER') atkTone(ac, t, 380 * p, 900 * p, 0.06, 'sine', v * 0.8);   // 뽁
+  else if (key === 'LIGHTNING') { atkHiss(ac, t, 0.06, 'bandpass', 3000 * p, 2200 * p, 1.6, v * 0.75); atkTone(ac, t, 1600 * p, 1100 * p, 0.04, 'triangle', v * 0.2); }   // 지직
+  else if (key === 'HOLY') { atkTone(ac, t, 1320 * p, 1320 * p, 0.11, 'triangle', v * 0.4); atkTone(ac, t, 1980 * p, 1980 * p, 0.09, 'sine', v * 0.25); }   // 띵
+  else if (key === 'DARK') { atkTone(ac, t, 300 * p, 200 * p, 0.09, 'sine', v * 0.5); atkHiss(ac, t, 0.08, 'lowpass', 800 * p, 300, 0.8, v * 0.5); }   // 웅
+  else if (key === 'NATURE') { atkTone(ac, t, 620 * p, 540 * p, 0.05, 'triangle', v * 0.55); atkHiss(ac, t, 0.04, 'bandpass', 1800 * p, 1800 * p, 2, v * 0.35); }   // 톡
 }
 function setAtkSfx(on) { atkSfx.on = on; try { localStorage.setItem(ATK_KEY, on ? '1' : '0'); } catch { /* 진행 */ } }
 function setSfxVolume(v) { sfxState.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20; try { localStorage.setItem(SFX_KEY, String(sfxState.vol)); } catch { /* 진행 */ } }
@@ -3170,4 +3182,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, atkSound: (f) => atkSound(f), atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
