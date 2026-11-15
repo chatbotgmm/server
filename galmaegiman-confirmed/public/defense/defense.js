@@ -326,26 +326,27 @@ function combineNow(r, keep = 0) {
 // 큰 순간에만: 고유 기술 · 보스 처치 · 조합 완성 · 위습 찾기 · 외부탐사 성공 · 전설 이상이 보스를 칠 때. 「화려한 효과」를 끄면 나오지 않음
 let PFX = null, pfxLayer = null;
 const pfxSeen = new WeakSet(), pfxWatch = { g: null, boss: 0, md: 0, bossAt: null };
-import('./pixfx.js?v=3e15b1b7250b').then((m) => { PFX = m; pfxLayer = m.createLayer(FIELD.w, FIELD.h, 1.6); }).catch(() => { /* 효과 없이 진행 */ });
-function pfx(name, x, y, o = {}) { if (pfxLayer && !fxLite) pfxLayer.spawn(name, x - FIELD.x, y - FIELD.y, o); }
+import('./pixfx.js?v=95311768aeb8').then((m) => { PFX = m; pfxLayer = m.createLayer(FIELD.w, FIELD.h, 1.6); }).catch(() => { /* 효과 없이 진행 */ });
+function pfx(name, x, y, o = {}) { return !!(pfxLayer && !fxLite) && pfxLayer.spawn(name, x - FIELD.x, y - FIELD.y, o); }   // 띄웠으면 true(무거워 건너뛰면 false)
 // 고유 기술 폭발(nova)·장판(field)은 속성마다 다른 효과: [효과, 속성 색 입힘]
-const PFX_NOVA = { FIRE: ['plasma', true], ICE: ['snow', false], NATURE: ['thorns', false], HOLY: ['smite', false], DARK: ['darkx', false], WATER: ['plasma', true], LIGHTNING: ['plasma', false], NORMAL: ['plasma', true] };
-const PFX_FIELD = { NATURE: ['thorns', false], ICE: ['icespikes', false], WATER: ['icespikes', true], HOLY: ['healaoe', false] };
+// 2.5D(2026-11-15 사용자 요청): 바닥 타원 위에서 터지는 효과로. [효과, 속성 색을 입힐지]
+const PFX_NOVA = { FIRE: ['firering', false], ICE: ['frostnova', false], WATER: ['frostnova', true], LIGHTNING: ['thunderclap', true], HOLY: ['holypillar', false], DARK: ['implosion', false], NATURE: ['magiccircle', true], NORMAL: ['firering', true] };
+const PFX_FIELD = { HOLY: ['healaoe', false] };   // 나머지는 룬 원(속성 색)
 function pfxTick(dt) {   // 판 상태가 바뀐 것을 보고 효과를 띄움
   if (!pfxLayer || scene !== 'play' || !G) return;
   if (pfxWatch.g !== G) { Object.assign(pfxWatch, { g: G, boss: G.bossDone ?? 0, md: G.missionDone }); pfxLayer.clear(); for (const f of G.fx) pfxSeen.add(f); return; }
   const boss = G.enemies.find((e) => e.boss); if (boss) pfxWatch.bossAt = { x: boss.x, y: boss.y };
-  if ((G.bossDone ?? 0) !== pfxWatch.boss) { pfxWatch.boss = G.bossDone ?? 0; const p = pfxWatch.bossAt; if (p) pfx('big', p.x, p.y, { dur: 1.6, force: true }); }
+  if ((G.bossDone ?? 0) !== pfxWatch.boss) { pfxWatch.boss = G.bossDone ?? 0; const p = pfxWatch.bossAt; if (p) { pfx('holypillar', p.x, p.y, { dur: 1.6, force: true }); pfx('firework', p.x, p.y - 40, { dur: 1.4 }); } }
   if (G.missionDone > pfxWatch.md) { pfxWatch.md = G.missionDone; pfx('quest', W / 2, FIELD.y + 230, { dur: 2.2, force: true }); }
   for (const f of G.fx) {
     if (pfxSeen.has(f)) continue; pfxSeen.add(f);
     if (f.kind === 'sig') {
       const el = f.elem ?? 'NORMAL', pts = f.pts ?? [];
-      if (f.sk === 'smash') pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el });
+      if (f.sk === 'smash') { if (!pfx('meteor', f.x1, f.y1, { dur: 1.1, elem: el === 'FIRE' ? undefined : el })) pfx('crit', f.x1, f.y1 - 6, { dur: 0.9, elem: el }); }   // 하늘에서 떨어져 바닥 타원에 꽂힘(무거우면 예전 별)
       else if (f.sk === 'execute') pfx('darkx', f.x1, f.y1, { dur: 1.0 });
-      else if (f.sk === 'nova') { const nv = PFX_NOVA[el] ?? ['plasma', true]; pfx(nv[0], f.x1, f.y1 - 4, { dur: 1.2, elem: nv[1] ? el : undefined }); }
-      else if (f.sk === 'bind') pfx('timestop', f.x1, f.y1, { dur: 1.2 });
-      else if (f.sk === 'field') { const fd = PFX_FIELD[el] ?? ['healaoe', true]; pfx(fd[0], f.x1, f.y1, { dur: 1.6, elem: fd[1] ? el : undefined }); }
+      else if (f.sk === 'nova') { const nv = PFX_NOVA[el] ?? ['firering', true]; pfx(nv[0], f.x1, f.y1, { dur: 1.2, elem: nv[1] ? el : undefined, reach: f.r ?? 80 }); }   // 기술 범위만큼 퍼짐
+      else if (f.sk === 'bind') pfx('magiccircle', f.x1, f.y1, { dur: 1.2, elem: el });
+      else if (f.sk === 'field') { const fd = PFX_FIELD[el] ?? ['runecircle', true]; pfx(fd[0], f.x1, f.y1, { dur: 1.6, elem: fd[1] ? el : undefined }); }
       else if (f.sk === 'storm') pts.slice(0, 2).forEach(([x, y]) => pfx('strike', x, y, { dur: 0.8 }));   // 낙뢰는 2개까지(무거움)
       else if (f.sk === 'bounce') pts.slice(0, 3).forEach(([x, y]) => pfx('zap', x, y - 8, { dur: 0.7, elem: el }));
       else if (f.sk === 'pierce') pfx('zap', f.x1, f.y1 - 8, { dur: 0.7, elem: el });
@@ -1078,7 +1079,7 @@ function drawFieldInner() {
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
       const col = f.elem === 'FIRE' ? '255,140,70' : f.type === 'phys' ? '255,179,107' : '143,200,255';
-      ctx.beginPath(); ctx.arc(f.x, f.y - 10, rr2, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.ellipse(f.x, f.y, rr2, rr2 * FLAT, 0, 0, Math.PI * 2);   // 2.5D: 바닥에 납작하게
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
     } else if (f.kind === 'kill' && age < 0.6) {   // 꾸민 갈매미가 쓰러뜨림: 처치 효과
@@ -1089,7 +1090,7 @@ function drawFieldInner() {
       ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
     } else if (f.kind === 'combine' || f.kind === 'move') {
       const a = Math.max(0, 1 - age / 0.6); ctx.globalAlpha = a;
-      ctx.beginPath(); ctx.arc(f.x, f.y - (f.kind === 'move' ? 0 : 20), (f.kind === 'move' ? 8 : 20) + (1 - a) * 30, 0, Math.PI * 2);
+      const rm = (f.kind === 'move' ? 8 : 20) + (1 - a) * 30; ctx.beginPath(); if (f.kind === 'move') ctx.ellipse(f.x, f.y, rm, rm * FLAT, 0, 0, Math.PI * 2); else ctx.arc(f.x, f.y - 20, rm, 0, Math.PI * 2);   // 옮긴 자리는 바닥 타원
       ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
     } else if (f.kind === 'wisp') {
       const a = Math.max(0, 1 - age / 0.8); ctx.globalAlpha = a;
@@ -1120,18 +1121,21 @@ function drawSig(f, age) {
   ctx.save(); ctx.lineCap = 'round';
   if (a > 0) {
     ctx.strokeStyle = `rgba(${col},${0.95 * a})`; ctx.fillStyle = `rgba(${col},${0.22 * a})`;
-    if (f.sk === 'pierce') { ctx.lineWidth = 12 * a + 3; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
+    if (f.sk === 'pierce') { ctx.lineWidth = 6 * a + 2; ctx.strokeStyle = `rgba(${col},${0.3 * a})`; ctx.beginPath(); ctx.moveTo(f.x0, f.y0); ctx.lineTo(f.x1, f.y1); ctx.stroke(); ctx.strokeStyle = `rgba(${col},${0.95 * a})`;   // 바닥에 그은 자국
+      ctx.lineWidth = 12 * a + 3; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
     else if (f.sk === 'bounce' || f.sk === 'storm') {
-      for (const [x, y] of f.pts ?? []) { if (f.sk === 'storm') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 6, y - 120); ctx.lineTo(x + 6, y - 60); ctx.lineTo(x - 4, y - 50); ctx.lineTo(x, y - 8); ctx.stroke(); } ctx.beginPath(); ctx.arc(x, y - 10, 14 * (1.4 - a), 0, Math.PI * 2); ctx.fill(); }
+      for (const [x, y] of f.pts ?? []) { if (f.sk === 'storm') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 6, y - 120); ctx.lineTo(x + 6, y - 60); ctx.lineTo(x - 4, y - 50); ctx.lineTo(x, y - 8); ctx.stroke(); } groundRing(x, y, 16 * (1.4 - a), col, 0.9 * a, 2.5, 0.3); }   // 맞은 자리 바닥
       if (f.sk === 'bounce' && f.pts?.length > 1) { ctx.lineWidth = 3; ctx.beginPath(); f.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 12) : ctx.moveTo(x, y - 12))); ctx.stroke(); }
     } else if (f.sk === 'nova' || f.sk === 'bind' || f.sk === 'field') {
-      const rr = (f.r ?? 80) * (0.5 + 0.5 * (1 - a));
-      ctx.lineWidth = f.sk === 'bind' ? 5 : 3; ctx.beginPath(); ctx.arc(f.x1, f.y1 - 10, rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      if (f.sk === 'bind') for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + age * 3; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(an) * rr, f.y1 - 10 + Math.sin(an) * rr); ctx.lineTo(f.x1 + Math.cos(an) * rr * 0.35, f.y1 - 10 + Math.sin(an) * rr * 0.35); ctx.stroke(); }
+      // 2.5D: 바닥에 퍼지는 납작한 원(기술 범위 너비) + 안쪽 고리가 뒤따라옴
+      const R0 = f.r ?? 80, rr = R0 * (0.5 + 0.5 * (1 - a)), cy = f.y1;
+      groundRing(f.x1, cy, rr, col, 0.95 * a, f.sk === 'bind' ? 5 : 3, 0.24);
+      if (f.sk === 'nova') groundRing(f.x1, cy, rr * 0.6, col, 0.6 * a, 2);
+      if (f.sk === 'bind') for (let i = 0; i < 6; i++) { const an = i * Math.PI / 3 + age * 3; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(an) * rr, cy + Math.sin(an) * rr * FLAT); ctx.lineTo(f.x1 + Math.cos(an) * rr * 0.35, cy + Math.sin(an) * rr * 0.35 * FLAT); ctx.stroke(); }
     } else {   // smash·execute: 대상에 큰 별·베기
       const R = 26 + 18 * (1 - a); ctx.lineWidth = 5;
       if (f.sk === 'execute') { ctx.beginPath(); ctx.moveTo(f.x1 - R, f.y1 - 10 - R); ctx.lineTo(f.x1 + R, f.y1 - 10 + R); ctx.moveTo(f.x1 + R, f.y1 - 10 - R); ctx.lineTo(f.x1 - R, f.y1 - 10 + R); ctx.stroke(); }
-      else { ctx.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4, rr = i % 2 ? R * 0.45 : R; ctx.lineTo(f.x1 + Math.cos(an) * rr, f.y1 - 10 + Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else { ctx.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4, rr = i % 2 ? R * 0.45 : R; ctx.lineTo(f.x1 + Math.cos(an) * rr, f.y1 + Math.sin(an) * rr * FLAT); } ctx.closePath(); ctx.fill(); ctx.stroke(); }   // 내려친 자리 바닥에 갈라진 별
     }
   }
   if (!fxLite) {   // 기술 이름(0.75초). 검토(2026-11-11): 옆 갈매미 이름과 겹쳐 → 겹치면 위로 비켜 쓰고, 그래도 겹치면 건너뜀
@@ -1170,24 +1174,36 @@ function drawShot(f, age) {
   }
   const big = f.tier >= 4, sc = (f.job === '보조' ? 0.75 : 1) * (big ? 1.4 : 1), col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
   const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
-  const ang = Math.atan2(dy, dx), seed = (f.t * 1000 + f.x0) % 97;
+  const seed = (f.t * 1000 + f.x0) % 97;
+  // 2.5D(2026-11-15 사용자 요청): 바닥 점(발밑)을 따라가며 높이를 더함 — 물리 화살은 높게, 마법 구슬은 낮게 포물선. 바닥엔 그림자
+  const gd = Math.hypot(f.x1 - f.x0, f.y1 - f.y0), arcH = f.type === 'phys' ? Math.min(46, gd * 0.28) : Math.min(24, gd * 0.14);
+  const at = (q) => { const gx = f.x0 + (f.x1 - f.x0) * q, gy = f.y0 + (f.y1 - f.y0) * q; return [gx, gy - (24 + (10 - 24) * q) - arcH * 4 * q * (1 - q), gx, gy]; };
+  const ang = Math.atan2(dy, dx);
   if (age < T) {
-    const p = age / T, x = sx + dx * p, y = sy + dy * p;
-    if (f.near && f.type === 'phys') {   // 근접 물리: 적 앞에서 칼날 호
-      ctx.beginPath(); ctx.arc(tx - Math.cos(ang) * 6, ty - Math.sin(ang) * 6, 14 * sc, ang - 1.1 + p * 0.6, ang + 0.2 + p * 0.9);
-      ctx.strokeStyle = `rgba(${col},${0.9})`; ctx.lineWidth = 3.2 * sc; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
-    } else if (f.elem === 'LIGHTNING') {   // 번개: 지그재그(바로 닿음)
-      ctx.beginPath(); ctx.moveTo(sx, sy);
-      for (let i = 1; i < 6; i++) { const q = i / 6, off = (((seed * (i + 3)) % 13) - 6) * 1.6; ctx.lineTo(sx + dx * q - Math.sin(ang) * off, sy + dy * q + Math.cos(ang) * off); }
-      ctx.lineTo(tx, ty); ctx.strokeStyle = `rgba(${col},${0.95 - p * 0.4})`; ctx.lineWidth = 2.2 * sc; ctx.stroke();
-    } else if (f.elem === 'HOLY') {   // 성: 빛줄기
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(x, y); ctx.strokeStyle = `rgba(${col},0.35)`; ctx.lineWidth = 7 * sc; ctx.stroke();
+    const p = age / T, [x, y, gx, gy] = at(p);
+    if (f.near && f.type === 'phys') {   // 근접 물리: 적 몸통을 가로로 휘두르는 베기(납작한 호 = 옆으로 도는 칼날)
+      ctx.beginPath(); ctx.ellipse(tx, ty, 18 * sc, 18 * sc * FLAT, 0, Math.PI * (0.15 + p * 0.5), Math.PI * (0.95 + p * 0.9));
+      ctx.strokeStyle = `rgba(${col},0.92)`; ctx.lineWidth = 3.4 * sc; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2 * sc; ctx.stroke(); ctx.lineCap = 'butt';
+    } else if (f.elem === 'LIGHTNING') {   // 번개: 하늘에서 대상에게 내리꽂힘 + 바닥 번쩍(쏜 갈매미 손엔 작은 불꽃)
+      const top = f.y1 - 120;
+      ctx.beginPath(); ctx.moveTo(tx + ((seed % 9) - 4) * 3, top);
+      for (let i = 1; i < 6; i++) { const q = i / 6; ctx.lineTo(tx + (((seed * (i + 3)) % 13) - 6) * 1.8 * (1 - q), top + (ty - top) * q); }
+      ctx.lineTo(tx, ty); ctx.strokeStyle = `rgba(${col},${0.95 - p * 0.4})`; ctx.lineWidth = 2.4 * sc; ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${0.8 - p * 0.4})`; ctx.lineWidth = 1; ctx.stroke();
+      groundRing(tx, f.y1, 10 * sc * (0.6 + p), col, 0.9 - p * 0.5, 1.8, 0.25);
+      ctx.beginPath(); ctx.arc(sx, sy, 4 * sc * (1 - p), 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.8)`; ctx.fill();
+    } else if (f.elem === 'HOLY') {   // 성: 빛줄기 + 대상 발밑이 밝아짐
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + dx * p, sy + dy * p); ctx.strokeStyle = `rgba(${col},0.35)`; ctx.lineWidth = 7 * sc; ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2 * sc; ctx.stroke();
+      groundRing(tx, f.y1, 8 * sc * p, col, 0.6 * p, 1.5, 0.3);
     } else {
-      // 꼬리(불·어둠·물은 길게, 나머지는 짧게)
+      ctx.beginPath(); ctx.ellipse(gx, gy, 4.5 * sc, 4.5 * sc * FLAT, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fill();   // 바닥 그림자
+      // 꼬리(불·어둠·물은 길게, 나머지는 짧게) — 같은 포물선 위
       const tail = f.elem === 'FIRE' || f.elem === 'DARK' ? 3 : f.elem === 'WATER' ? 2 : 1;
-      for (let i = tail; i >= 1; i--) { const q = Math.max(0, p - i * 0.12); ctx.beginPath(); ctx.arc(sx + dx * q, sy + dy * q, (3 + (tail - i)) * sc * 0.8, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},${0.18 + 0.12 * (tail - i)})`; ctx.fill(); }
-      ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+      for (let i = tail; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.12)); ctx.beginPath(); ctx.arc(qx, qy, (3 + (tail - i)) * sc * 0.8, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},${0.18 + 0.12 * (tail - i)})`; ctx.fill(); }
+      const [nx, ny] = at(Math.min(1, p + 0.04)), ang2 = Math.atan2(ny - y, nx - x);   // 포물선 방향으로 돌림(화살 끝이 내려가며 꽂힘)
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang2);
       if (f.elem === 'ICE') { ctx.beginPath(); ctx.moveTo(8 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-6 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1; ctx.stroke(); }
       else if (f.elem === 'NATURE') { ctx.rotate(age * 30); ctx.beginPath(); ctx.ellipse(0, 0, 6 * sc, 2.6 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); }
       else if (f.type === 'phys' && f.elem === 'NORMAL') { ctx.beginPath(); ctx.moveTo(-9 * sc, 0); ctx.lineTo(6 * sc, 0); ctx.strokeStyle = `rgba(${col},0.95)`; ctx.lineWidth = 2.4 * sc; ctx.stroke(); ctx.beginPath(); ctx.moveTo(7 * sc, 0); ctx.lineTo(2 * sc, 2.6 * sc); ctx.lineTo(2 * sc, -2.6 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},1)`; ctx.fill(); }   // 화살
@@ -1197,12 +1213,23 @@ function drawShot(f, age) {
     return;
   }
   const a2 = age - T;
-  if (a2 < 0.13) {   // 닿음: 불꽃 파편
-    const q = a2 / 0.13, n = big ? 7 : 5;
-    ctx.strokeStyle = `rgba(${col},${0.9 * (1 - q)})`; ctx.lineWidth = big ? 2.2 : 1.6;
-    for (let i = 0; i < n; i++) { const an = ang + Math.PI + (i - (n - 1) / 2) * 0.55 + ((seed + i * 17) % 7 - 3) * 0.05, r0 = 3 + q * 6, r1 = r0 + (big ? 9 : 6) * (1 - q * 0.5); ctx.beginPath(); ctx.moveTo(tx + Math.cos(an) * r0, ty + Math.sin(an) * r0); ctx.lineTo(tx + Math.cos(an) * r1, ty + Math.sin(an) * r1); ctx.stroke(); }
+  if (a2 < 0.16) {   // 닿음: 몸에서 튀는 파편 + 발밑에 퍼지는 납작한 고리
+    const q = Math.min(1, a2 / 0.13), n = big ? 7 : 5;
+    if (q < 1) {
+      ctx.strokeStyle = `rgba(${col},${0.9 * (1 - q)})`; ctx.lineWidth = big ? 2.2 : 1.6;
+      for (let i = 0; i < n; i++) { const an = ang + Math.PI + (i - (n - 1) / 2) * 0.55 + ((seed + i * 17) % 7 - 3) * 0.05, r0 = 3 + q * 6, r1 = r0 + (big ? 9 : 6) * (1 - q * 0.5); ctx.beginPath(); ctx.moveTo(tx + Math.cos(an) * r0, ty + Math.sin(an) * r0); ctx.lineTo(tx + Math.cos(an) * r1, ty + Math.sin(an) * r1); ctx.stroke(); }
+    }
+    const g = a2 / 0.16; groundRing(tx, f.y1, (big ? 8 : 5) + g * (big ? 16 : 10), col, 0.7 * (1 - g), big ? 2 : 1.4);
     if (f.tier >= 6 && f.boss && a2 < 0.02 && shake.until < G.t + 0.05) { shake.until = G.t + 0.12; shake.mag = f.tier >= 8 ? 3 : 2; }
   }
+}
+// 2.5D 바닥 효과: 바닥(발밑) 높이에 납작한 타원. 판의 기술 범위 표시(0.62)와 같은 비율
+const FLAT = 0.62;
+function groundRing(x, y, r, col, a, lw = 2, fill = 0) {
+  if (a <= 0 || r <= 0) return;
+  ctx.beginPath(); ctx.ellipse(x, y, r, r * FLAT, 0, 0, Math.PI * 2);
+  if (fill) { ctx.fillStyle = `rgba(${col},${fill * a})`; ctx.fill(); }
+  ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = lw; ctx.stroke();
 }
 // ── 위 정보 줄 ──
 function drawHud() {
@@ -1515,10 +1542,17 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   hit(x, y, w, h, () => showInfo(r.out));   // 조합 버튼 말고 줄을 누르면 간단 설명(사용자 요청 2026-11-08)
   box(x, y, w, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', gi >= 0 ? GOAL_COLOR[gi] : ok ? '#2b7a62' : 'rgba(145,122,76,.4)', 8, gi >= 0 ? 2.5 : 1.5);
   drawFit(unitImg(r.out), x + 4, y + 2, 40, h - 4);
-  fitText(out.name, x + 50, y + 15, 92, 16, GRADE_COLOR[out.grade]);
+  // 줄 높이 52 이상(조합법 창): 이름·등급·게이지 세 줄. 낮은 줄(정보 창 목록): 이름·게이지 두 줄
+  const tall = h >= 52, ny = tall ? y + 14 : y + 14;
+  fitText(out.name, x + 50, ny, 92, 16, GRADE_COLOR[out.grade]);
   const gn = goalNeed();
-  if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, y + 15, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
-  text(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 34, 12, C.muted);
+  if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, ny, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
+  if (tall) fitText(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, C.muted);
+  // 재료 모인 정도 게이지(사용자 요청 2026-11-15): 금빛 = 진행(색 규칙), 다 모이면 초록
+  { const n = have(r, cnt), fr = n / r.in.length, gy = tall ? y + h - 13 : y + h - 15, gw = 54;
+    box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(145,122,76,.55)', 3.5, 1);
+    if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, fr >= 1 ? C.good : C.gold, null, 3.5);
+    text(`${Math.round(fr * 100)}%`, x + 142, gy + 4, 13, fr >= 1 ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
   const left = { ...cnt };
   // 재료가 5개 이상(초불영제)이면 두 줄로 나눠 칸을 넓게(2026-11-10: 재료 6~7개라 이름이 너무 잘림)
   const x0 = x + 150, lines = r.in.length > 4 ? 2 : 1, perLine = Math.ceil(r.in.length / lines), ch = lines === 2 ? 19 : 24, fs = lines === 2 ? 12 : 14;
@@ -1632,7 +1666,7 @@ function drawBook() {
     for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
   }
   if (!items.length) fitText(q ? `「${q}」에 맞는 조합법이 없어요` : '해당하는 조합법이 없어요', W / 2, top + 50, w - 40, 15, C.muted, 'center');
-  const rowH = (it) => (it.head ? 30 : 52);
+  const rowH = (it) => (it.head ? 30 : 60);   // 게이지 줄이 들어가 52 → 60(2026-11-15)
   const total = items.reduce((a, it) => a + rowH(it), 0);
   modal.maxScroll = Math.max(0, total - viewH);
   if (modal.focus && !modal.focused) { let yy = 0; for (const it of items) { if (it.r?.out === modal.focus) break; yy += rowH(it); } modal.scroll = Math.min(modal.maxScroll, Math.max(0, yy - 60)); modal.focused = true; }
