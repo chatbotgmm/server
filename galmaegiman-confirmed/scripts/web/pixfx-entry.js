@@ -23,9 +23,13 @@ import * as magiccircle from '../../vendor/pixelfx/src/fx/arcane/magic-circle-ca
 import * as runecircle from '../../vendor/pixelfx/src/fx/arcane/rune-circle.js';
 import * as meteor from '../../vendor/pixelfx/src/fx/fire/meteor.js';
 import * as firework from '../../vendor/pixelfx/src/fx/explosions/firework-burst.js';
+// 보스 처치 축하(2026-11-15 사용자 요청: 빛기둥·불꽃놀이는 공격처럼 보여 폭발형 마법딜러 고유 기술로 옮김) — 공격처럼 안 보이는 색종이·금별
+// (coin-collect는 동전 세는 칸이 붙어 판 밖으로 삐져나와 뺌 — 검토에서 찾음)
+import * as confetti from '../../vendor/pixelfx/src/fx/ui/confetti.js';
+import * as powerstar from '../../vendor/pixelfx/src/fx/pickups/power-star.js';
 
 
-const LIB = { crit, spark, zap, strike, darkx, starfall, collect, quest, healaoe, portal, firering, frostnova, thunderclap, holypillar, implosion, magiccircle, runecircle, meteor, firework };
+const LIB = { crit, spark, zap, strike, darkx, starfall, collect, quest, healaoe, portal, firering, frostnova, thunderclap, holypillar, implosion, magiccircle, runecircle, meteor, firework, confetti, powerstar };
 // 속성 색(어두운 것 → 밝은 것). 효과의 palette를 바꿔 같은 모양을 속성 색으로
 export const PALETTE = {
   FIRE: ['#2a0800', '#6a1800', '#b83a08', '#ec6a1c', '#ffa040', '#ffd890', '#fff6e0'],
@@ -41,7 +45,8 @@ export const NAMES = Object.keys(LIB);
 // 효과 하나가 한 프레임에 쓰는 시간(ms, 2026-11-15 헤드리스 크롬에서 잼). 동시에 떠 있는 합이 budget을 넘으면 새 효과를 건너뜀(force면 오래된 것을 밀어냄)
 export const COST = { darkx: 2.5, strike: 1.8, healaoe: 1.35, portal: 1.1, starfall: 0.9, quest: 0.75, zap: 0.7, crit: 0.4, collect: 0.4, spark: 0.15,
   // 아래 9개(2026-11-15 추가): node에서 338×425 도트판에 1.4초 동안 update+draw 평균(ms). 기존 효과를 같은 방법으로 재면 크롬 값의 0.77~1.9배(darkx 3.25·strike 2.13·healaoe 0.71)라 어림값
-  firering: 1.0, frostnova: 1.1, thunderclap: 1.2, holypillar: 1.7, implosion: 1.4, magiccircle: 1.4, runecircle: 1.6, meteor: 2.3, firework: 1.2 };
+  firering: 1.0, frostnova: 1.1, thunderclap: 1.2, holypillar: 2.2, implosion: 1.4, magiccircle: 1.4, runecircle: 1.6, meteor: 2.3, firework: 1.2,
+  confetti: 0.6, powerstar: 1.4 };   // 같은 방법으로 잼(2026-11-15 다시 잰 holypillar는 2.19라 2.2로 올림)
 // 효과마다 기본 색 수가 달라(7~9색) 속성 색 7개를 그 수에 맞게 늘이거나 줄임
 function fitPalette(src, n) { if (!n || n === src.length) return src; return Array.from({ length: n }, (_, i) => src[Math.round(i * (src.length - 1) / (n - 1))]); }
 
