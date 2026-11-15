@@ -331,6 +331,63 @@ function setAtkSfx(on) { atkSfx.on = on; try { localStorage.setItem(ATK_KEY, on 
 function setSfxVolume(v) { sfxState.vol = Math.round(Math.max(0, Math.min(1, v)) * 20) / 20; try { localStorage.setItem(SFX_KEY, String(sfxState.vol)); } catch { /* 진행 */ } }
 // 판 상태가 바뀐 것을 보고 소리: 보스 등장·경고·외부탐사 성공·위습 찾음
 const sfxWatch = { g: null, wave: 0, warn: 0, md: 0, fx: new WeakSet() };
+// ── 전설 이상 갈매미 대사(2026-11-15 사용자 요청: 「전설 이상 유닛은 중간중간 대사 넣기」) ──
+// 싸우는 중 9~16초마다 판 위 전설 이상 한 마리가 한마디(역할·속성·최상위에 따라), 그리고 보스 등장·보스 처치·처음 만들어짐·경고에 한마디.
+// 말풍선은 머리 위 2.6초, 동시에 2개까지. 판 시간(G.t)으로 세서 일시정지면 멈춤. 규칙(engine.js)과는 상관없음
+const TALK = {
+  phys: ['이 부리 맛 좀 봐라!', '한 놈도 못 지나간다!', '끼룩! 다음!', '날개가 근질근질하군.', '더 센 놈 없어?', '줄 서! 하나씩 상대해 주지.'],
+  mag: ['바닷바람이여, 힘을 빌려 다오.', '주문 준비 끝.', '끼룩… 집중, 집중.', '마력이 넘쳐흐른다!', '이 정도쯤이야.', '파도의 주문을 받아라!'],
+  sup: ['내가 받쳐 줄게!', '다들 힘내! 끼룩!', '느려져라~ 느려져라~', '뒤는 맡겨!', '조금만 더 버텨!'],
+  FIRE: ['다 태워 주마!', '뜨거운 맛 좀 봐!'], ICE: ['얼어붙어라.', '차갑게 식혀 주지.'], WATER: ['파도에 휩쓸려라!', '물보라 간다!'],
+  LIGHTNING: ['찌릿하지?', '번개보다 빠르게!'], NATURE: ['숲의 힘을 보여 주마!', '뿌리째 묶어 주지.'], HOLY: ['빛이 함께하길.', '눈부시지?'], DARK: ['어둠 속으로…', '그림자가 너를 부른다.'],
+  top: ['이 판은 내가 접수한다.', '전설? 난 그 위야.', '선장님, 맡겨만 주십시오.', '모두 물러서. 내가 간다.'],
+  boss: ['보스다! 진형 유지!', '큰 놈이 온다… 끼룩!', '저 녀석부터 잡자!'],
+  bossDown: ['해냈다! 끼룩끼룩!', '역시 우리 팀!', '봤지? 이게 갈매미다!'],
+  born: ['드디어 내 차례군.', '부르셨습니까, 선장님?', '기다리느라 목 빠지는 줄 알았어.', '이제 진짜 싸움이다.'],
+  warn: ['길이 꽉 찼어! 서둘러!', '이대로면 위험해!', '막아! 더 넘어오면 안 돼!'],
+};
+const talk = { list: [], next: 0, g: null, wave: 0, boss: 0, warn: 0, seen: new Set() };
+const talkPick = (arr, k) => arr[Math.floor(Math.abs(Math.sin(k * 12.9898) * 43758.5453) % 1 * arr.length)];
+function talkLegend() { return E.fieldUnits(G).filter((u) => E.tierOf(u.id) >= 4 && E.UNIT[u.id].role !== E.SPECIAL_ROLE); }
+function say2(u, msg) {   // 말풍선 하나(같은 갈매미가 말하는 중이면 바꿈, 2개 넘으면 가장 오래된 것을 지움)
+  if (!u || !msg) return;
+  talk.list = talk.list.filter((b) => b.uid !== u.uid);
+  if (talk.list.length >= 2) talk.list.shift();
+  talk.list.push({ uid: u.uid, msg, t: G.t });
+}
+function talkTick() {
+  if (scene !== 'play' || !G || G.over) return;
+  if (talk.g !== G) { Object.assign(talk, { g: G, list: [], next: G.t + 8, wave: G.wave, boss: G.bossDone ?? 0, warn: G.warn, seen: new Set(E.fieldUnits(G).map((u) => u.uid)) }); return; }
+  talk.list = talk.list.filter((b) => G.t - b.t < 2.6);
+  const leg = talkLegend(); if (!leg.length) { for (const u of E.fieldUnits(G)) talk.seen.add(u.uid); return; }
+  const k = Math.floor(G.t * 10), any = () => leg[Math.floor(Math.abs(Math.sin(k * 7.13)) * leg.length) % leg.length];
+  for (const u of leg) if (!talk.seen.has(u.uid)) { talk.seen.add(u.uid); if (G.t - u.born < 1.5) { say2(u, talkPick(TALK.born, k + u.uid)); talk.next = Math.max(talk.next, G.t + 6); } }   // 처음 만들어짐
+  for (const u of E.fieldUnits(G)) talk.seen.add(u.uid);
+  if (G.wave !== talk.wave) { talk.wave = G.wave; if (E.waveInfo(G.wave).boss) { say2(any(), talkPick(TALK.boss, k)); talk.next = G.t + 7; } }
+  if ((G.bossDone ?? 0) !== talk.boss) { talk.boss = G.bossDone ?? 0; say2(any(), talkPick(TALK.bossDown, k + 3)); talk.next = G.t + 7; }
+  if (G.warn > talk.warn) { if (G.warn % 5 === 1) say2(any(), talkPick(TALK.warn, k + 5)); talk.warn = G.warn; }
+  if (G.t >= talk.next) {   // 가끔 한마디
+    const u = any(), kt = E.kit(u.id), top = E.tierOf(u.id) >= E.TOP_TIER;
+    const pool = [...(kt.job === '보조' ? TALK.sup : kt.type === 'phys' ? TALK.phys : TALK.mag), ...(TALK[kt.elem] ?? []), ...(top ? TALK.top : [])];
+    say2(u, talkPick(pool, k + u.uid)); talk.next = G.t + 9 + (Math.abs(Math.sin(k)) * 7);
+  }
+}
+function drawTalk() {
+  if (!talk.list.length) return;
+  const byUid = new Map(E.fieldUnits(G).map((u) => [u.uid, u]));
+  for (const b of talk.list) {
+    const u = byUid.get(b.uid); if (!u) continue;
+    const age = G.t - b.t, a = Math.min(1, age / 0.15, (2.6 - age) / 0.3); if (a <= 0) continue;
+    ctx.font = `13px ${FONT}`;
+    const z = usz(u.id), tw = Math.min(200, ctx.measureText(b.msg).width) + 16, bh = 24;
+    const bx = Math.max(FIELD.x + 4, Math.min(FIELD.x + FIELD.w - tw - 4, u.x - tw / 2)), by = Math.max(FIELD.y + 4, u.y - 58 * z - bh - 8 - (1 - Math.min(1, age / 0.15)) * 6);
+    ctx.globalAlpha = a;
+    box(bx, by, tw, bh, 'rgba(250,244,228,.96)', 'rgba(145,122,76,.9)', 10, 1.5);
+    ctx.beginPath(); const tx = Math.max(bx + 10, Math.min(bx + tw - 10, u.x)); ctx.moveTo(tx - 5, by + bh - 1); ctx.lineTo(tx + 5, by + bh - 1); ctx.lineTo(tx, by + bh + 6); ctx.closePath(); ctx.fillStyle = 'rgba(250,244,228,.96)'; ctx.fill();   // 꼬리
+    fitText(b.msg, bx + tw / 2, by + bh / 2, tw - 12, 13, '#3b2614', 'center');
+    ctx.globalAlpha = 1;
+  }
+}
 function sfxTick() {
   if (scene !== 'play' || !G) return;
   if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone }); return; }
@@ -876,16 +933,55 @@ function drawWeather() {   // 판 위 날씨(효과 끔이면 없음)
   ctx.restore();
 }
 function drawLanesRaw() {
-  const L = E.LOOP, lane = 40, th = themeOf();
-  box(FIELD.x, FIELD.y, FIELD.w, FIELD.h, th.bg, C.edge, 12, 1.5);
-  ctx.lineWidth = lane; ctx.strokeStyle = th.lane; ctx.lineJoin = 'round';
-  ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
+  // 2.5D 판(2026-11-15 사용자 요청: 판 디자인도 2.5D 느낌): 길은 돋운 돌길(아래로 두께가 보이고 윗면에 돌 무늬), 안쪽 바닥은 한 단 낮아 길 그림자가 드리움.
+  // 위(먼 쪽)는 어둡고 아래(가까운 쪽)는 밝게, 바닥 줄은 위로 갈수록 촘촘(원근). 한 번 그려 두고 붙임(cachedLayer)
+  const L = E.LOOP, lane = 40, th = themeOf(), F = FIELD, SIDE = 7;
+  const ix0 = L.x0 + lane / 2, iy0 = L.y0 + lane / 2, ix1 = L.x1 - lane / 2, iy1 = L.y1 - lane / 2;   // 안쪽 바닥
+  box(F.x, F.y, F.w, F.h, th.bg, C.edge, 12, 1.5);
+  ctx.save(); rr(F.x, F.y, F.w, F.h, 12); ctx.clip();
+  let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, 'rgba(0,0,0,.32)'); g.addColorStop(0.5, 'rgba(0,0,0,.05)'); g.addColorStop(1, 'rgba(255,255,255,.06)');
+  ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
+  // 안쪽 바닥 줄(원근): 위로 갈수록 간격이 좁고 옅음
+  ctx.lineWidth = 1;
+  for (let y = iy1, sp = 34; y > iy0; y -= sp, sp = Math.max(12, sp * 0.9)) { const k = (y - iy0) / (iy1 - iy0); ctx.strokeStyle = `rgba(255,255,255,${(0.015 + 0.03 * k).toFixed(3)})`; ctx.beginPath(); ctx.moveTo(ix0, y); ctx.lineTo(ix1, y); ctx.stroke(); }
+  for (let x = ix0 + 34; x < ix1; x += 34) { ctx.strokeStyle = 'rgba(255,255,255,.022)'; ctx.beginPath(); ctx.moveTo(x, iy0); ctx.lineTo(x, iy1); ctx.stroke(); }
+  // 작은 돌·풀(희미하게, 그림자와 함께)
+  for (let k = 0; k < 14; k++) { const x = ix0 + 18 + ((k * 137) % (ix1 - ix0 - 36)), y = iy0 + 24 + ((k * 89 + 40) % (iy1 - iy0 - 48)), r = 2.5 + (k % 3);
+    ctx.beginPath(); ctx.ellipse(x + 1, y + r * 0.7, r * 1.3, r * 0.5, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fill();
+    if (k % 3) { ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.7, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(190,200,205,.12)'; ctx.fill(); }
+    else { ctx.strokeStyle = 'rgba(140,200,140,.16)'; ctx.lineWidth = 1.2; ctx.beginPath(); for (const dx of [-3, 0, 3]) { ctx.moveTo(x + dx, y); ctx.lineTo(x + dx * 1.6, y - 6 - Math.abs(dx)); } ctx.stroke(); } }
+  // 길 두께(앞면): 길을 아래로 SIDE만큼 내려 어둡게 → 위에서 보면 각 길 아래쪽에 옆면이 보임
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = lane; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.strokeRect(L.x0, L.y0 + SIDE, L.x1 - L.x0, L.y1 - L.y0);   // 더 어둡게(두께가 잘 보이게 — 검토)
+  ctx.lineWidth = lane; ctx.strokeStyle = th.lane; ctx.strokeRect(L.x0, L.y0 + SIDE, L.x1 - L.x0, L.y1 - L.y0);
+  // 안쪽 바닥에 드리운 길 그림자(위·왼쪽 안쪽 가장자리)
+  g = ctx.createLinearGradient(0, iy0 + SIDE, 0, iy0 + SIDE + 16); g.addColorStop(0, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ix0, iy0 + SIDE, ix1 - ix0, 16);
+  g = ctx.createLinearGradient(ix0, 0, ix0 + 12, 0); g.addColorStop(0, 'rgba(0,0,0,.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ix0, iy0, 12, iy1 - iy0);
+  // 길 윗면: 바탕(판 색) 위에 길 색 두 겹 → 불투명하게
+  ctx.lineWidth = lane; ctx.strokeStyle = th.bg; ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
+  ctx.strokeStyle = th.lane; ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); ctx.strokeRect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0);
+  // 돌 무늬: 길을 따라 두 줄로 엇갈리게 놓은 납작한 돌(테두리는 그늘, 위쪽은 살짝 밝게)
+  let sn = 0;   // 돌마다 크기·자리를 조금씩 다르게(고르게 박힌 점 무늬처럼 보이지 않게 — 검토)
+  const jit = () => { sn++; return Math.sin(sn * 12.9898) * 0.5 + Math.sin(sn * 4.1414) * 0.5; };
+  const stone = (x, y) => { const rx = 6 + jit() * 2.5, ry = rx * (0.55 + jit() * 0.08), ox = jit() * 2.5, oy = jit() * 2;
+    ctx.beginPath(); ctx.ellipse(x + ox, y + oy, rx, ry, jit() * 0.3, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${(0.03 + Math.abs(jit()) * 0.035).toFixed(3)})`; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.lineWidth = 1; ctx.stroke(); };
+  for (const off of [-9, 9]) {
+    for (let x = L.x0 + 6 + (off > 0 ? 9 : 0); x < L.x1 - 4; x += 18) { stone(x, L.y0 + off); stone(x, L.y1 + off); }
+    for (let y = L.y0 + 18 + (off > 0 ? 9 : 0); y < L.y1 - 10; y += 18) { stone(L.x0 + off, y); stone(L.x1 + off, y); }
+  }
+  // 가장자리: 바깥 위쪽은 빛, 안쪽 아래쪽(앞면과 만나는 곳)은 그늘
   ctx.lineWidth = 1.5; ctx.strokeStyle = th.edge;
   ctx.strokeRect(L.x0 - lane / 2, L.y0 - lane / 2, L.x1 - L.x0 + lane, L.y1 - L.y0 + lane);
-  ctx.strokeRect(L.x0 + lane / 2, L.y0 + lane / 2, L.x1 - L.x0 - lane, L.y1 - L.y0 - lane);
+  ctx.strokeRect(ix0, iy0, ix1 - ix0, iy1 - iy0);
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(L.x0 - lane / 2, L.y1 + lane / 2 + 0.5); ctx.lineTo(L.x1 + lane / 2, L.y1 + lane / 2 + 0.5); ctx.moveTo(ix0, iy0 + 0.5); ctx.lineTo(ix1, iy0 + 0.5); ctx.stroke();
+  // 판 가장자리 어둡게(가운데로 시선)
+  g = ctx.createRadialGradient(F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.35, F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.28)');
+  ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
+  ctx.restore();
   text('▼', L.x0, L.y0 + 2, 16, C.goldEdge, 'center');   // 반시계 방향: 아래로 출발
-  // 나타나는 곳
-  ctx.beginPath(); ctx.arc(E.SPAWN.x, E.SPAWN.y, 34, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.25)'; ctx.setLineDash([5, 6]); ctx.stroke(); ctx.setLineDash([]);
+  // 나타나는 곳: 바닥에 납작한 마법진처럼
+  ctx.beginPath(); ctx.ellipse(E.SPAWN.x, E.SPAWN.y + 8, 36, 36 * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.28)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
   // 커먼이 나오는 6곳(오른쪽 길 안쪽): 발밑에 옅은 고리
   ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(154,165,173,.35)'; ctx.setLineDash([3, 4]);
   for (const sp of E.COMMON_SPOTS) { ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 22, 8, 0, 0, Math.PI * 2); ctx.stroke(); }
@@ -1197,6 +1293,7 @@ function drawFieldInner() {
     }
   }
   drawPfx();   // 화려한 효과(도트 층)
+  drawTalk();   // 전설 이상 갈매미 대사(말풍선)
 }
 
 // ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
@@ -3143,7 +3240,7 @@ function frame(now) {
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';
   if (wantStrip !== stripOn || coop() !== coopOn || (scene !== 'play') !== fullTitle) { stripOn = wantStrip; coopOn = coop(); fullTitle = scene !== 'play'; fit(); }
-  musicSync(); sfxTick(); placeSearch();
+  musicSync(); sfxTick(); talkTick(); placeSearch();
   hits = [];
   const tDraw0 = performance.now();
   ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
@@ -3208,4 +3305,4 @@ function frame(now) {
 })();
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
-window.__defense = { E, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense = { E, say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
