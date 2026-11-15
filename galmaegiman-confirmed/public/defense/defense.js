@@ -978,7 +978,7 @@ function cachedLayer(key, x, y, w, h, draw) {
 const THEMES = { '': { bg: '#0c1c27', lane: C.lane, edge: C.laneEdge }, night: { bg: '#080f1f', lane: 'rgba(130,150,230,.2)', edge: 'rgba(175,195,255,.38)' },
   snow: { bg: '#15232e', lane: 'rgba(230,242,255,.26)', edge: 'rgba(245,250,255,.5)' }, sunset: { bg: '#24141d', lane: 'rgba(255,170,120,.22)', edge: 'rgba(255,205,150,.42)' } };
 const themeOf = () => THEMES[cosmetic.theme] ?? THEMES[''];
-function drawLanes() { cachedLayer('lanes:' + (cosmetic.theme ?? ''), FIELD.x - 2, FIELD.y - 2, FIELD.w + 4, FIELD.h + 4, drawLanesRaw); }
+function drawLanes() { cachedLayer('lanes:' + (cosmetic.theme ?? ''), FIELD.x - 2, FIELD.y - 2, FIELD.w + 4, FIELD.h + 8, drawLanesRaw); }   // 아래 4는 철제 테두리 그림자
 function drawWeather() {   // 판 위 날씨(효과 끔이면 없음)
   const th = cosmetic.theme; if (fxLite || (th !== 'snow' && th !== 'night')) return;
   const t = performance.now() / 1000;
@@ -995,8 +995,8 @@ function drawLanesRaw() {
   // 위(먼 쪽)는 어둡고 아래(가까운 쪽)는 밝게, 바닥 줄은 위로 갈수록 촘촘(원근). 한 번 그려 두고 붙임(cachedLayer)
   const L = E.LOOP, lane = 40, th = themeOf(), F = FIELD, SIDE = 7;
   const ix0 = L.x0 + lane / 2, iy0 = L.y0 + lane / 2, ix1 = L.x1 - lane / 2, iy1 = L.y1 - lane / 2;   // 안쪽 바닥
-  box(F.x, F.y, F.w, F.h, th.bg, C.edge, 12, 1.5);
-  ctx.save(); rr(F.x, F.y, F.w, F.h, 12); ctx.clip();
+  ctx.fillStyle = th.bg; ctx.fillRect(F.x, F.y, F.w, F.h);   // 판 바닥(테두리는 맨 끝에 철제 컨테이너로)
+  ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip();
   let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, 'rgba(0,0,0,.32)'); g.addColorStop(0.5, 'rgba(0,0,0,.05)'); g.addColorStop(1, 'rgba(255,255,255,.06)');
   ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
   // 안쪽 바닥 줄(원근): 위로 갈수록 간격이 좁고 옅음
@@ -1037,6 +1037,7 @@ function drawLanesRaw() {
   g = ctx.createRadialGradient(F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.35, F.x + F.w / 2, F.y + F.h * 0.55, F.h * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.28)');
   ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
   ctx.restore();
+  steelFrame(F.x, F.y, F.w, F.h);   // 항만 방범대: 철제 컨테이너 테두리 + 리벳
   text('▼', L.x0, L.y0 + 2, 16, C.goldEdge, 'center');   // 반시계 방향: 아래로 출발
   // 나타나는 곳: 바닥에 납작한 마법진처럼
   ctx.beginPath(); ctx.ellipse(E.SPAWN.x, E.SPAWN.y + 8, 36, 36 * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(243,216,158,.28)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
@@ -1524,7 +1525,7 @@ function groundRing(x, y, r, col, a, lw = 2, fill = 0) {
 }
 // ── 위 정보 줄 ──
 function drawHud() {
-  box(8, 6, W - 16, 88, C.header, C.edge, 10);
+  fenceBox(8, 6, W - 16, 88); siren(14, 3, 8); siren(W - 22, 3, 8);   // 항만 방범대 상황판 + 양쪽 위 경고등(테두리 위 — 글자·단추와 겹치지 않게, 검토)
   const wi = E.waveInfo(Math.max(1, G.wave)), left = Math.ceil(E.nextWaveIn(G));
   text(`웨이브 ${G.wave}/${E.RULES.waves}`, 20, 28, 20, C.text);
   // 방어(방어력=마법방어력)와 내 판의 방깍·마방깍 합계(사용자 요청 2026-11-08: 후반엔 깎는 조합이 있어야 깸)
@@ -1595,6 +1596,41 @@ function panelLayout(y0 = 672) {
   const wy = top + gap * 0.9, by = wy + wh + 10 + gap * 1.05;
   return { ex, wy, wh, by, bh, by2: by + bh + 8, labelY: y0 + 18 + gap * 0.7, divY: wy + wh + 5 + gap * 0.52, gap };
 }
+// ── 항만 방범대 스타일(2026-11-15 사용자 제공 스타일셋 v2.0: 네온 대신 묵직한 밀리터리) ──
+// harbor-fence-border(빗금 강판 + 철제 이중 테두리 + 아래 그림자) · siren-light(1.2초 켜짐/꺼짐 두 단계) · military-panel(위·왼쪽 밝고 아래·오른쪽 어두운 철판 + 리벳) · hazard-stripe(노랑/검정 빗금)
+const stripePat = new Map();
+function stripe(a, b, sz, dir = 1) {   // 빗금 무늬(45°·−45°), 크기 sz마다 두 색
+  const k = `${a}|${b}|${sz}|${dir}`; let p = stripePat.get(k);
+  if (!p) { const c = document.createElement('canvas'); c.width = c.height = sz * 2; const x = c.getContext('2d'); x.fillStyle = a; x.fillRect(0, 0, sz * 2, sz * 2); x.fillStyle = b;
+    x.beginPath(); if (dir > 0) { x.moveTo(sz, 0); x.lineTo(sz * 2, 0); x.lineTo(0, sz * 2); x.lineTo(0, sz); x.closePath(); x.moveTo(sz * 2, sz); x.lineTo(sz * 2, sz * 2); x.lineTo(sz, sz * 2); x.closePath(); }
+    else { x.moveTo(0, 0); x.lineTo(sz, 0); x.lineTo(sz * 2, sz); x.lineTo(sz * 2, sz * 2); x.closePath(); x.moveTo(0, sz); x.lineTo(sz, sz * 2); x.lineTo(0, sz * 2); x.closePath(); }
+    x.fill(); p = ctx.createPattern(c, 'repeat'); stripePat.set(k, p); }
+  return p;
+}
+function fenceBox(x, y, w, h) {   // 상단 상황판: 빗금 강판 + 철제 테두리 4 + 안쪽 2·4 + 아래 그림자 4
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(x, y + 4, w, h);
+  ctx.fillStyle = stripe('#1e293b', '#0f172a', 10); ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = 'rgba(15,23,42,.55)'; ctx.fillRect(x, y, w, h);   // 글자가 읽히게 빗금을 눌러 줌
+  ctx.lineWidth = 4; ctx.strokeStyle = '#2a3439'; ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+  ctx.lineWidth = 2; ctx.strokeStyle = '#4a5568'; ctx.strokeRect(x + 5, y + 5, w - 10, h - 10);
+  ctx.lineWidth = 2; ctx.strokeStyle = '#1a202c'; ctx.strokeRect(x + 7, y + 7, w - 14, h - 14);
+}
+function siren(x, y, s = 10) {   // 초소 경고등: 1.2초에 켜짐·꺼짐 두 단계(부드럽게 바뀌지 않음)
+  const on = Math.floor(performance.now() / 600) % 2 === 0;
+  if (on) { ctx.save(); ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 8; ctx.fillStyle = '#ef4444'; ctx.fillRect(x, y, s, s); ctx.restore(); ctx.fillStyle = 'rgba(252,165,165,.7)'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
+  else { ctx.fillStyle = '#7f1d1d'; ctx.fillRect(x, y, s, s); ctx.fillStyle = '#991b1b'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
+  ctx.lineWidth = 1; ctx.strokeStyle = '#0f172a'; ctx.strokeRect(x - 0.5, y - 0.5, s + 1, s + 1);
+}
+function steelFrame(x, y, w, h, t = 3) {   // 철제 컨테이너 테두리(안은 그대로): 위·왼쪽 #64748b, 아래·오른쪽 #0f172a, 아래 그림자, 네 모서리 리벳
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(x, y + h, w, 4);
+  ctx.fillStyle = '#64748b'; ctx.fillRect(x, y, w, t); ctx.fillRect(x, y, t, h);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(x, y + h - t, w, t); ctx.fillRect(x + w - t, y, t, h);
+  ctx.fillStyle = '#94a3b8'; for (const [rx, ry] of [[x + 5, y + 5], [x + w - 11, y + 5], [x + 5, y + h - 11], [x + w - 11, y + h - 11]]) { ctx.fillRect(rx, ry, 6, 6); ctx.fillStyle = '#475569'; ctx.fillRect(rx + 3, ry + 3, 3, 3); ctx.fillStyle = '#94a3b8'; }
+}
+function hazard(x, y, w, h = 10) {   // 경고 테이프: 노랑/검정 −45° 빗금 12 + 위아래 검은 선 2
+  ctx.fillStyle = stripe('#f59e0b', '#1e293b', 12, -1); ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(x, y - 2, w, 2); ctx.fillRect(x, y + h, w, 2);
+}
 // 판 테두리 장식(게임 UI 모서리 그림)
 function decorCorners(x, y, w, h, s = 46) {
   const im = (n) => img(`${ART}/ui/decor-corner-${n}.webp`), r = 216 / 256;
@@ -1612,6 +1648,7 @@ function drawBottom() {
   const y0 = 672;
   box(8, y0, W - 16, PBOT - y0 - 8, C.panel, C.edge, 12);
   decorCorners(8, y0, W - 16, PBOT - y0 - 8);
+  hazard(40, y0 - 6, W - 80, 4);   // 위 창(전술창)과 아래 메뉴 사이 경고 테이프(가로 화면엔 위습·버튼 사이 줄이 없어 여기에도)
   const sel = selUnits();
   if (sel.length === 1) drawUnitPanel(y0, sel[0]);
   else if (sel.length > 1) drawGroupPanel(y0, sel);
@@ -1663,9 +1700,7 @@ function drawMainPanel(y0) {
   });
   if (PL.gap > 14) {   // 위습과 버튼 사이 장식 구분선
     const dy = PL.divY, cx = W / 2;
-    const lg = ctx.createLinearGradient(40, 0, W - 40, 0); lg.addColorStop(0, 'rgba(217,187,127,0)'); lg.addColorStop(0.5, 'rgba(217,187,127,.75)'); lg.addColorStop(1, 'rgba(217,187,127,0)');
-    ctx.fillStyle = lg; ctx.fillRect(40, dy - 0.75, W - 80, 1.5);
-    ctx.save(); ctx.translate(cx, dy); ctx.rotate(Math.PI / 4); box(-5, -5, 10, 10, C.gold, null, 2); ctx.restore();
+    hazard(28, dy - 4, W - 56, 8);   // 항만 방범대 경고 테이프(2026-11-15 사용자 스타일셋)
   }
   // 아래 버튼 4개(2026-11-11 유저 피드백 「버튼이 너무 많음」: 6개 → 4개, 두 개씩 두 줄): 조합법 · 강화 / 외부탐사 · 더보기(선택위습·용병모집·창고·피해)
   const b2 = (W - 44 - 6) / 2, BH = PL.bh, bx = (i) => 22 + (i % 2) * (b2 + 6), byy = (i) => (i < 2 ? PL.by : PL.by2);
@@ -3205,7 +3240,7 @@ function chipRow(items, x, y, maxX, size = 14) {   // 넘치면 다음 줄
 // 친구 판 전체(가로 화면 오른쪽 창·크게 보기): 위 정보 줄 + 판 + 친구 상황
 function drawPeerFull(withButtons = false, topOnly = false) {
   const P = net.peer, [stText, stCol] = peerState();
-  box(8, 6, W - 16, 88, C.header, C.edge, 10);
+  fenceBox(8, 6, W - 16, 88);
   chip('친구 판', 20, 15, C.goldEdge, 14);
   text(stText, W - 24, 27, 14, stCol, 'right');
   if (P) {
@@ -3241,7 +3276,7 @@ function drawPeerFull(withButtons = false, topOnly = false) {
 // 가로 화면에서 창을 연 동안: 오른쪽 위에 친구 소식 한 줄
 function drawPeerBar() {
   const P = net.peer, [stText, stCol] = peerState();
-  box(8, 6, W - 16, 88, C.header, C.edge, 10);
+  fenceBox(8, 6, W - 16, 88);
   chip('친구 판', 20, 15, C.goldEdge, 14);
   text(stText, 110, 27, 14, stCol);
   fitText(P ? (P.ov ? `${P.ov === 'win' ? '방어 성공' : '방어 실패'} · ${num(P.w)}웨이브` : `웨이브 ${num(P.w)} · 적 ${Array.isArray(P.e) ? P.e.length : 0}/${E.RULES.limit} · 경고 ${num(P.wn)}/${E.RULES.warnMax}`) : '친구 판을 받는 중…', 20, 66, W - 200, 16, C.text);
