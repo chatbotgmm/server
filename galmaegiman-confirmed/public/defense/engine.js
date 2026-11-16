@@ -52,6 +52,7 @@ export const RULES = {
   hardLimitFrom: 45, hardLimit: 50,
   stunBase: 0.2,   // 스턴·범위 스턴: 한 번 칠 때 확률 × 스턴 시간(초). 1초 20% · 1.5초 13% · 2초 10%
   physSplash: 0.29,   // 2026-11-16: 물리 주력(에픽 이상, 불 속성 제외) 스플래시 29%(30% 미만이라 보스 감점 없음). 달인 물리 조합 봇 0/60 → 10/60
+  topLineBossMul: 1,   // 최상위 라인 정리형의 보스 피해 배율(전설 이하 라인형은 lineBossMul)
   hpX: 0.8,   // 적 체력 전체 배율. 2026-11-16: 선택 위습을 무작위로 바꾸고 몰아주던 모집권을 줄이며 1 → 0.8(달인 봇 깬 비율을 예전과 비슷하게)
   poisonMul: 0.15,   // 독 세기(자연 주력). 2026-11-16: 중첩·방어 무시를 넣으며 0.25 → 0.15(스턴 없는 이감+독 봇 달인 12/60, 일반 봇 9/60)
   poisonStack: 3,   // 독은 다른 갈매미 것 3겹까지 더해짐(2026-11-16)
@@ -64,7 +65,7 @@ export const RULES = {
   // 보스 체력 = 그 웨이브 적 체력 × 아래 배수(2026-11-09 보스 5웨이브마다: 10의 배수 웨이브는 예전 값 그대로, 5·15…는 그 사이)
   // 2026-11-09 사용자 요청: 마방깍 없이 마법 딜러만으로는 보스를 못 잡게. 웨이브별 기준 마법 조합이 보스에게 40초 동안 주는 피해를 재서
   // 체력 = 「마방깍 없을 때 피해×1.2」 이상 · 「있을 때 피해×0.75」 이하가 되게 맞춤(20웨이브부터, 사이 웨이브는 앞뒤 사이 값). 기준 물리 조합(방깍 포함)도 잡을 수 있음
-  bossMul: { 5: 2, 10: 3.5, 15: 4, 20: 5.4, 25: 4.5, 30: 3.8, 35: 5.1, 40: 6.6, 45: 7.3, 50: 8, 55: 5.7, 60: 3.7 },
+  bossMul: { 5: 2, 10: 3.5, 15: 4, 20: 5.4, 25: 4.5, 30: 3.8, 35: 5.1, 40: 6.6, 45: 4.2, 50: 4.5, 55: 4.5, 60: 3.7 },   // 2026-11-16 사용자 기준(최상위가 있으면 50웨이브까지 보스는 잡음): 45 7.3→4.2 · 50 8→4.5 · 55 5.7→4.5
   // 적 체력 기준점 [웨이브, 체력](사이는 곱으로 이음). 1~10웨이브는 「초반이 많이 어렵다」는 의견으로 ×0.7. 사용자 요청(2026-11-08): 3웨이브쯤부터 커먼 풀강이 아니면 쌓이고,
   // 5웨이브쯤부터는 커먼만으로는 못 버티게. 등급별로 조합하는 봇이 버티는 한계를 재서 맞춤
   hpAnchors: [[1, 146], [2, 280], [3, 426], [4, 627], [5, 952], [6, 1120], [7, 1232], [8, 1400], [10, 1624], [12, 4160], [15, 6720], [20, 11700], [25, 25920], [30, 43200], [35, 70000], [40, 75000], [45, 82000], [50, 95000], [55, 114000], [60, 134000]],   // 2026-11-08 상위 한두 마리·전설·히든 중심으로 바꾸며 31웨이브부터 점점 낮춤(60웨이브 ×0.07)   // 위습 웨이브당 2개로 늘린 뒤 다시 맞춤
@@ -288,7 +289,7 @@ function tickZones(g) {   // 장판: 0.5초마다 범위 안 적에게 피해·�
 // 갈매미 한 마리의 공격 방식. 같은 규칙이면 결과가 같으므로 한 번 계산해 둠(2026-11-10 렉 줄이기: 매 프레임·매 틱 유닛마다 다시 계산했음).
 // 규칙 값(RULES.dmg 등)이 바뀌면 다시 계산. 돌려준 객체는 고치지 않는다
 const kitCache = new Map(); let kitKey = [];
-const kitKeyNow = () => [RULES.dmg, RULES.sell, RULES.atkSpeed, RULES.mshredAll, RULES.singleMul, RULES.lineBossMul, RULES.singleBossMul];
+const kitKeyNow = () => [RULES.dmg, RULES.sell, RULES.atkSpeed, RULES.mshredAll, RULES.singleMul, RULES.lineBossMul, RULES.singleBossMul, RULES.topLineBossMul, RULES.poisonMul, RULES.physSplash];
 export function kit(id) {
   const key = kitKeyNow();
   if (key.some((v, i) => v !== kitKey[i])) { kitCache.clear(); kitKey = key; }
@@ -338,7 +339,7 @@ function kitRaw(id) {
   if (!k.mshred && (t === 4 || t === 5 || (mage && k.job === '주력'))) k.mshred = Math.max(1, Math.round(SHRED(t) * (RULES.mshredAll ?? 0.35)));
   // 역할(사용자 요청 2026-11-08): 라인 정리를 잘하면 보스 딜이 부족하고, 보스 딜이 좋으면 단일 공격만 좋게
   if (k.job === '주력') {
-    k.line = !!(k.area || k.chain || (k.splash ?? 0) >= 0.3); k.bossMul = k.line ? RULES.lineBossMul : RULES.singleBossMul;
+    k.line = !!(k.area || k.chain || (k.splash ?? 0) >= 0.3); k.bossMul = k.line ? (tt >= TOP_TIER ? (RULES.topLineBossMul ?? RULES.lineBossMul) : RULES.lineBossMul) : RULES.singleBossMul;   // 2026-11-16: 최상위 라인 정리형은 보스 감점 덜(50웨이브까지 보스를 잡을 수 있게)
     if (!k.line && t >= 4) k.mul *= RULES.singleMul ?? 1;   // 전설 이상 단일 공격형은 한 마리에게 더 세게(범위가 없는 대신, 초반 난이도는 그대로)
   }
   // 공격 속도(사용자 요청 2026-11-08: 공속이 느려 보는 맛이 없음): 공격 간격 ÷AS, 한 번 피해 ÷AS → 초당 피해는 같음.
@@ -405,7 +406,7 @@ export function kitTips(k) {
   if (k.amp) out.push(`마딜증폭 ${Math.round(k.amp * 100)}%`);
   if (k.stun) out.push(`사거리 안 스턴 ${Math.round(k.stun * 100)}%(${k.stunTime ?? 1}초)`);
   if (k.astun) out.push(`범위 스턴 ${Math.round(k.astun * 100)}%(${k.stunTime ?? 1}초)`);
-  if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${RULES.lineBossMul})` : `단일 공격형(보스 피해 ×${RULES.singleBossMul})`);
+  if (k.job === '주력') out.push(k.line ? `라인 정리형(보스 피해 ×${k.bossMul})` : `단일 공격형(보스 피해 ×${k.bossMul})`);
   if (k.explore) out.push(k.exploreTop ? `최상위 탐사: 외부탐사 피해 ×${k.explore}(역할 감점 없음)` : `탐사 특기${k.exploreFrom ? '(재료에게 물려받음)' : ''}: 외부탐사 피해 ×${k.explore}${k.exDmg ? '(역할 감점 없음)' : ''}`);
   if (k.slow) out.push(`주변 이속감소 ${Math.round(k.slow * 100)}%(겹침)`);
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
@@ -955,9 +956,12 @@ function attack(g, u, k) {
     if (e.hp <= 0) continue;
     const dx = e.x - u.x, dy = e.y - u.y, d2 = dx * dx + dy * dy;
     if (d2 > rg2) continue;
-    // 2026-11-15 사용자 요청: 보스와 일반 적이 같이 나오면 사거리 안 보스를 먼저 때림
-    if (best?.boss && !e.boss) continue;
-    if (d2 >= bestD && !(e.boss && !best?.boss)) continue;
+    // 2026-11-15 사용자 요청: 보스와 일반 적이 같이 나오면 사거리 안 보스를 먼저 때림.
+    // 2026-11-16(A안): 라인 정리형(범위·스플래시·연쇄)은 가까운 적부터 — 보스에 붙잡혀 일반 적이 넘쳐 즉시 패배하던 것
+    if (!k.line) {
+      if (best?.boss && !e.boss) continue;
+      if (d2 >= bestD && !(e.boss && !best?.boss)) continue;
+    } else if (d2 >= bestD) continue;
     best = e; bestD = d2;
   }
   if (!best) return false;
