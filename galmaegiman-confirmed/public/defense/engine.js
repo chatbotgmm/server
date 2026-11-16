@@ -52,6 +52,9 @@ export const RULES = {
   hardLimitFrom: 45, hardLimit: 50,
   stunBase: 0.2,   // 스턴·범위 스턴: 한 번 칠 때 확률 × 스턴 시간(초). 1초 20% · 1.5초 13% · 2초 10%
   physSplash: 0.29,   // 2026-11-16: 물리 주력(에픽 이상, 불 속성 제외) 스플래시 29%(30% 미만이라 보스 감점 없음). 달인 물리 조합 봇 0/60 → 10/60
+  hpX: 0.8,   // 적 체력 전체 배율. 2026-11-16: 선택 위습을 무작위로 바꾸고 몰아주던 모집권을 줄이며 1 → 0.8(달인 봇 깬 비율을 예전과 비슷하게)
+  poisonMul: 0.15,   // 독 세기(자연 주력). 2026-11-16: 중첩·방어 무시를 넣으며 0.25 → 0.15(스턴 없는 이감+독 봇 달인 12/60, 일반 봇 9/60)
+  poisonStack: 3,   // 독은 다른 갈매미 것 3겹까지 더해짐(2026-11-16)
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -86,11 +89,11 @@ export const RULES = {
   // 칸: 커먼·언커먼 · 레어 · 에픽 · 전설·히든(묶음) · 제한 · 초월 · 불멸 · 영원 (8칸)
   // 강화(2026-11-09 사용자 요청: 공격 속도도 오르게): 단계마다 공격력 +10% · 공격 속도 +3%. 10단계면 공격력 ×2 · 공속 ×1.3(예전 공격력 +15%×10 = ×2.5와 초당 피해가 비슷)
   upgPct: 0.10, upgSpd: 0.03, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
-  bossReward: { 10: { EPIC: 1 }, 20: { EPIC: 1 }, 30: { EPIC: 1 }, 40: { EPIC: 1 }, 50: { EPIC: 1 } },   // 2026-11-11 보상 검토: 20웨이브가 10웨이브(에픽)보다 적던 것(레어)을 에픽으로   // 2026-11-10 사용자 요청: 10웨이브 보스는 레어 → 에픽. 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
+  bossReward: { 5: { COMMON: 1 }, 10: { EPIC: 1, COMMON: 1 }, 15: { COMMON: 1 }, 20: { EPIC: 1, UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { EPIC: 1, UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { EPIC: 1, RARE: 1 }, 45: { RARE: 1 }, 50: { EPIC: 1, RARE: 1 }, 55: { RARE: 1 } },   // 2026-11-16: 예전 보스 선택 위습(고르는 것)을 같은 등급 무작위 위습으로   // 2026-11-11 보상 검토: 20웨이브가 10웨이브(에픽)보다 적던 것(레어)을 에픽으로   // 2026-11-10 사용자 요청: 10웨이브 보스는 레어 → 에픽. 2026-11-08 위습 공급 줄임: 상위 4마리는 전설 위습 2개쯤 얻어야 쥐어짤 정도
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
   // 2026-11-11 보상 검토: 보스마다 선택 위습 1개, 등급은 웨이브에 맞춰 5~15 커먼 · 20~35 언커먼 · 40~55 레어(후반 커먼 선택 위습은 쓸 데가 없었음)
-  startPick: {}, bossPickEach: {}, bossPick: { 5: { COMMON: 1 }, 10: { COMMON: 1 }, 15: { COMMON: 1 }, 20: { UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { RARE: 1 }, 45: { RARE: 1 }, 50: { RARE: 1 }, 55: { RARE: 1 } },
+  startPick: {}, bossPickEach: {}, bossPick: {},   // 2026-11-16 사용자 요청(재료를 퍼주는 느낌 — 무작위로 받은 재료로 최선의 조합을 짜게): 보스 선택 위습 없앰 → 같은 등급 무작위 위습으로(bossReward). 스토리 선택 위습도 무작위로, 9·11·12장 커먼 선택 5 → 무작위 3
   // 외부탐사 장별 대장 체력(사용자 요청: 10웨이브쯤 2장은 에픽 1마리를 보내야 깨지는 정도)
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
   // 2026-11-11 보상 검토: 5장이 6장보다 높던 것(300만·250만)을 맞바꿈.
@@ -103,23 +106,23 @@ export const RULES = {
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
   // 스토리 선택 위습: 장마다 1개(2026-11-10 사용자 「선택위습이 너무 많음」으로 3 → 1). 2026-11-11 보상 검토: 등급은 1~3장 커먼 · 4~6장 언커먼 · 7·8장 레어
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 150 },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1 }, pick: { COMMON: 1 }, ticket: 1, gold: 400 },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2 }, pick: { COMMON: 1 }, ticket: 1, gold: 800 },
-  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 1500 },
-  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 3000 },
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2, COMMON: 1 }, ticket: 1, gold: 150 },
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1, COMMON: 1 }, ticket: 1, gold: 400 },
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2, COMMON: 1 }, ticket: 1, gold: 800 },
+  { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1, UNCOMMON: 1 }, ticket: 1, gold: 1500 },
+  { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1, UNCOMMON: 1 }, ticket: 1, gold: 3000 },
   // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
-  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1 }, pick: { UNCOMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
+  { ch: 6, name: '함께 돌아오는 길', place: '마을 방어 준비', img: 'identity-hq', look: 'b:u28', level: 28, reward: { EPIC: 1, UNCOMMON: 1 }, ticket: 1, gold: 5000, unit: 'u81',
     choice: [{ unit: 'u81' }, { wisps: { LEGEND: 1 } }, { picks: { EPIC: 2 } }] },
-  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 30, reward: { EPIC: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 9000 },
-  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 31, reward: { EPIC: 1, LEGEND: 1 }, pick: { RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
+  { ch: 7, name: '최초의 균열', place: '석상 앞', img: 'identity-statue', look: 'b:u31', level: 30, reward: { EPIC: 1, RARE: 1 }, ticket: 1, gold: 9000 },
+  { ch: 8, name: '균열 너머의 그림자(외전)', place: '먼 바다', img: '10-distant-bay', look: 'e:v17', level: 31, reward: { EPIC: 1, LEGEND: 1, RARE: 1 }, ticket: 1, gold: 15000 },   // 2026-11-08 추가: 스토리 자료(7장)에 없는 게임 전용 외전, 최상위가 여럿 있어야 깸
   // 9~13장(2026-11-11 사용자 요청: 외부탐사 13장까지, 새 외전 이름). 보상: 새우 없음(같은 날 사용자 요청 — 강화 뒤 새우가 남아돎) → 에픽 위습 1 +
   // 9·11·12장 커먼 선택 위습 5 + 모집권 2 / 10·13장 모집권 10
-  { ch: 9, name: '안개 속 항로(외전)', place: '먼 바다', img: 'identity-ship', look: 'e:v19', level: 32, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
-  { ch: 10, name: '그림자 상인(외전)', place: '항구 시장', img: 'identity-market', look: 'e:v20', level: 34, reward: { EPIC: 1 }, ticket: 10 },
-  { ch: 11, name: '사라진 주민들(외전)', place: '마을 골목', img: 'identity-residents', look: 'e:v16', level: 35, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
-  { ch: 12, name: '해안의 잔불(외전)', place: '해안 절벽', img: 'identity-coast-panorama', look: 'e:v14', level: 36, reward: { EPIC: 1 }, pick: { COMMON: 5 }, ticket: 2 },
-  { ch: 13, name: '균열의 심장(외전)', place: '석상 아래', img: 'identity-statue', look: 'b:u01', level: 37, reward: { EPIC: 1 }, ticket: 10 },
+  { ch: 9, name: '안개 속 항로(외전)', place: '먼 바다', img: 'identity-ship', look: 'e:v19', level: 32, reward: { EPIC: 1, COMMON: 3 }, ticket: 2 },
+  { ch: 10, name: '그림자 상인(외전)', place: '항구 시장', img: 'identity-market', look: 'e:v20', level: 34, reward: { EPIC: 1 }, ticket: 3 },
+  { ch: 11, name: '사라진 주민들(외전)', place: '마을 골목', img: 'identity-residents', look: 'e:v16', level: 35, reward: { EPIC: 1, COMMON: 3 }, ticket: 2 },
+  { ch: 12, name: '해안의 잔불(외전)', place: '해안 절벽', img: 'identity-coast-panorama', look: 'e:v14', level: 36, reward: { EPIC: 1, COMMON: 3 }, ticket: 2 },
+  { ch: 13, name: '균열의 심장(외전)', place: '석상 아래', img: 'identity-statue', look: 'b:u01', level: 37, reward: { EPIC: 1 }, ticket: 3 },
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
@@ -315,7 +318,7 @@ function kitRaw(id) {
     if (elem === 'LIGHTNING') k.chain = 2;
     if (elem === 'ICE') k.slow = SLOW(t) * 0.8;
     if (elem === 'WATER') k.slow = SLOW(t) * 0.5;
-    if (elem === 'NATURE') k.poison = 0.25;
+    if (elem === 'NATURE') k.poison = RULES.poisonMul ?? 0.25;   // 한 번 피해 × 이 값을 초당(독)
     if (elem === 'DARK') { if (mage) k.mshred = SHRED(t); else k.shred = SHRED(t); }   // 어둠: 방깍·마방깍 그대로(마방깍 갈매미가 적어 후반 마법방어를 깎을 수 있게)
     if (elem === 'HOLY') k.holy = 1.5;
     // 2026-11-16 봇 집계: 물리 조합이 라인 정리를 못 해 45웨이브 즉시 패배로 거의 다 짐 → 물리 주력(에픽 이상)도 작은 스플래시(30% 미만이라 보스 감점 없음)
@@ -408,7 +411,7 @@ export function kitTips(k) {
   if (k.area) out.push(`범위 공격(반경 ${k.area})`);
   if (k.splash) out.push(`스플래시 ${Math.round(k.splash * 100)}%(반경 ${k.splashR ?? 50})`);
   if (k.chain) out.push('번개 연쇄');
-  if (k.poison) out.push('독');
+  if (k.poison) out.push('독(방어 무시·다른 독과 3겹)');
   if (k.holy) out.push('보스 추가 피해');
   if (k.wisp) out.push('위습 찾기');
   if (k.inherited?.length) out.push('재료 유틸 물려받음');
@@ -894,7 +897,8 @@ function hurt(g, e, raw, k, uid) {
   let m;
   const sh = 1 + augV(g, 'shred');   // 증강체 「부식」: 방깍·마방깍 효과
   const wd = weatherOf(g).def ?? 1;   // 날씨 「소금 결계」: 방어·마방 ×
-  if (k.type === 'phys') m = defMul(e.armor * wd - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
+  if (k.pierce) m = upgMul(g, k.tier);   // 독: 방어·마방 무시
+  else if (k.type === 'phys') m = defMul(e.armor * wd - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
   else m = defMul(e.mr * wd - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (augV(g, 'lowtide')) m *= k.tier <= 2 ? AUGS.lowtide.v : k.tier >= 4 ? 0.85 : 1;   // 룰 브레이커 「하급 총공세」
@@ -920,7 +924,8 @@ function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍�
   const stx = 1 + augV(g, 'stun');   // 증강체 「천둥 부리」
   if (k.stun && e.speed && g.rand() < k.stun * stx) e.stunUntil = Math.max(e.stunUntil, now + st * (e.boss ? BOSS_STUN : 1));
   if (k.astun && e.speed && g.rand() < k.astun * stx) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
-  if (k.poison) { e.poison = Math.max(now < e.poisonUntil ? e.poison : 0, k.dmg * k.poison); e.poisonK = k; e.poisonUntil = now + 2; }
+  // 독(2026-11-16 사용자 요청: 독 조합으로도 깰 수 있게): 다른 갈매미의 독은 poisonStack겹까지 더해지고(같은 갈매미는 시간만 늘어남), 방어·마방을 무시함
+  if (k.poison) { (e.poisons ??= {})[uid] = { v: k.dmg * k.poison, k, until: now + 2 }; e.poisonUntil = Math.max(e.poisonUntil, now + 2); }
 }
 export const hurtForTest = (g, e, raw, k) => hurt(g, e, raw, k, 0);
 export const debuffForTest = (g, e, k, uid) => debuff(g, e, k, uid);   // 시험용
@@ -1001,7 +1006,7 @@ function spawn(g) {
   const w0 = waveInfo(g.wave), asBoss = w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
   if (w0.boss) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
   const wi = asBoss ? w0 : waveInfo(g.wave, true);
-  const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
+  const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
   g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr), rift,
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
@@ -1033,7 +1038,11 @@ export function step(g, dt) {
     const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? 1 : 1 - augV(g, 'chrono')) * wsp;   // 증강체 「시간 왜곡」
     e.s += v * dt;
     const p = pathPos(e.s); e.x = p.x; e.y = p.y;
-    if (g.t < e.poisonUntil) hurt(g, e, e.poison * dt, e.poisonK, e.by);
+    if (e.poisons && g.t < e.poisonUntil) {   // 독: 센 것부터 poisonStack겹(방어 무시)
+      const list = []; for (const id in e.poisons) { const ps = e.poisons[id]; if (g.t >= ps.until) delete e.poisons[id]; else list.push([id, ps]); }
+      list.sort((a, b) => b[1].v - a[1].v); e.poison = 0;
+      for (const [id, ps] of list.slice(0, RULES.poisonStack ?? 1)) { e.poison += ps.v; hurt(g, e, ps.v * dt, { ...ps.k, pierce: true }, +id); }
+    }
   }
   const byUid = new Map(g.units.map((u) => [u.uid, u]));
   if (g.peerDmg) ensureMission(g);   // 같이하기: 내가 아무도 안 보냈어도 친구 피해로 깰 수 있게

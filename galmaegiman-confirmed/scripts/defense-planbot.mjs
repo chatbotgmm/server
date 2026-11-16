@@ -25,6 +25,12 @@ if (process.env.BOTWISH === 'mixed') for (const style of ['mag', 'phys']) {
   const tops = E.UNITS.filter((u) => E.tierOf(u.id) >= 6 && u.role !== E.SPECIAL_ROLE && (style === 'mag') === u.role.endsWith('술사')).map((u) => u.id);
   WISH[style] = [...WISH[style].slice(0, 3), ...tops.slice(0, 2), ...WISH[style].slice(3)];
 }
+// BOTWISH=poison(2026-11-16 독 조합 확인): 에픽 3개 → 독 최상위 → 독 전설·히든 → 나머지
+if (process.env.BOTWISH === 'poison') for (const style of ['mag', 'phys']) {
+  const pz = (t0, t1) => E.UNITS.filter((u) => u.role !== E.SPECIAL_ROLE && E.tierOf(u.id) >= t0 && E.tierOf(u.id) <= t1 && E.kit(u.id).poison).map((u) => u.id);
+  const base = WISH[style].filter((id) => E.tierOf(id) < 6);
+  WISH[style] = [...base.slice(0, 3), ...pz(6, 9).slice(0, 2), ...pz(4, 5), ...base.slice(3)];
+}
 // 전설 환산(2026-11-15 사용자 기준 「전설 10마리 정도면 클리어」): 전설·히든 1, 최상위 2.5(재료 전설 2~3마리)
 const legEq = (g) => E.fieldUnits(g).concat(E.awayUnits(g)).reduce((a, u) => { const t = E.tierOf(u.id); return a + (E.UNIT[u.id].role === E.SPECIAL_ROLE ? 0 : t >= 6 ? 2.5 : t >= 4 ? 1 : 0); }, 0);
 const eqLog = [], compLog = [];
