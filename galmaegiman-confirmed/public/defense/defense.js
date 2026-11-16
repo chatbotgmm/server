@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=3a227c05e8f4';
+import * as E from './engine.js?v=fa7ea2e82b41';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -441,7 +441,9 @@ function sfxTick() {
   if (G.kills > sfxWatch.kills) { killSound(G.kills - sfxWatch.kills); sfxWatch.kills = G.kills; }   // 적 처치 소리(2026-11-15)
   if ((G.bossDone ?? 0) !== sfxWatch.boss) { sfxWatch.boss = G.bossDone ?? 0; if (sfxWatch.boss) killSound(0, true); }
   if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } else if (G.wave === (E.RULES.riftFrom ?? 999) + 1) { sfx('warn'); riftAlarm(); }
-    if (G.wave === E.RULES.hardLimitFrom) { if (E.waveInfo(G.wave).boss) bossWarn.next = 'hard'; else { sfx('warn'); hardAlarm(); } } sfxWatch.wave = G.wave; }   // 45웨이브는 보스 웨이브라 보스 경고 뒤에 이어서
+    if (G.wave === E.RULES.hardLimitFrom) { if (E.waveInfo(G.wave).boss) bossWarn.next = 'hard'; else { sfx('warn'); hardAlarm(); } }
+    if (G.wave > 1 && E.weatherAt(G, G.wave) !== E.weatherAt(G, G.wave - 1)) { if (bossWarn.wave === G.wave && performance.now() - bossWarn.at < BOSS_WARN_MS) bossWarn.next ??= 'weather'; else weatherAlarm(); }   // 날씨 바뀜(다른 알림이 떠 있으면 그 뒤에)
+    sfxWatch.wave = G.wave; }   // 45웨이브는 보스 웨이브라 보스 경고 뒤에 이어서
   if (G.warn > sfxWatch.warn) sfx('warn');
   sfxWatch.warn = G.warn;
   if (G.missionDone > sfxWatch.md) sfx('story');
@@ -459,6 +461,9 @@ function hardAlarm() {   // 45웨이브: 적 50마리 넘으면 즉시 패배 �
 function augAlarm(id) {   // 증강체를 고르면 알림(2026-11-15 사용자 요청: 균열·보스 경고처럼). 창은 닫지 않음
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'aug'; bossWarn.aug = id;
 }
+function weatherAlarm() {   // 날씨가 바뀌면 알림(2026-11-16). 창은 닫지 않고 띠만
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'weather';
+}
 function riftAlarm() {   // 균열 저항 시작 알림(2026-11-15 사용자 요청: 보스 경고처럼 한 번). 창은 닫지 않고 띠만
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'rift';
 }
@@ -470,6 +475,7 @@ function bossAlarm() {
 function drawBossWarn() {
   let age = performance.now() - bossWarn.at;
   if (age > BOSS_WARN_MS && bossWarn.next === 'hard' && G && !G.over) { bossWarn.next = null; hardAlarm(); sfx('warn'); age = 0; }   // 보스 경고가 끝나면 즉시 패배 알림
+  if (age > BOSS_WARN_MS && bossWarn.next === 'weather' && G && !G.over) { bossWarn.next = null; weatherAlarm(); age = 0; }   // 앞 알림이 끝나면 날씨 알림
   if (age > BOSS_WARN_MS || !G || G.over) return;
   const fade = Math.min(1, age / 150, (BOSS_WARN_MS - age) / 500), pulse = 0.55 + 0.45 * Math.abs(Math.sin(age / 190));
   if (bossWarn.kind === 'hard') {   // 즉시 패배 한도: 주황·빨강
@@ -485,8 +491,20 @@ function drawBossWarn() {
     const bw = W - 60, bh = 100, bx = 30, by = 326;
     box(bx, by, bw, bh, 'rgba(60,24,6,.93)', `rgba(255,160,80,${0.6 + 0.4 * pulse})`, 12, 3);
     hazard(bx + 14, by + 8, bw - 28, 6);
-    fitText(`⚠ 길 위 적 ${E.RULES.hardLimit}마리 넘으면 즉시 패배!`, W / 2, by + 44, bw - 30, 24, '#ffb070', 'center');
-    fitText(`${E.RULES.hardLimitFrom}웨이브부터는 경고 없이 바로 끝나요 · 위 상황판 「적 N/${E.RULES.hardLimit}」을 지켜보세요`, W / 2, by + 76, bw - 30, 14, '#ffe2c8', 'center');
+    fitText(`⚠ 길 위 적 ${E.hardLimitOf(G)}마리 넘으면 즉시 패배!`, W / 2, by + 44, bw - 30, 24, '#ffb070', 'center');
+    fitText(`${E.RULES.hardLimitFrom}웨이브부터는 경고 없이 바로 끝나요 · 위 상황판 「적 N/${E.hardLimitOf(G)}」을 지켜보세요`, W / 2, by + 76, bw - 30, 14, '#ffe2c8', 'center');
+    ctx.restore();
+    return;
+  }
+  if (bossWarn.kind === 'weather') {   // 날씨 바뀜: 하늘색 띠(가장자리 빛 없이 — 자주 뜨므로 가볍게)
+    const wx = E.weatherOf(G);
+    ctx.save();
+    if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+    ctx.globalAlpha = fade;
+    const bw = W - 60, bh = 92, bx = 30, by = 330;
+    box(bx, by, bw, bh, 'rgba(8,34,52,.93)', `rgba(143,216,255,${0.55 + 0.35 * pulse})`, 12, 3);
+    fitText(`날씨가 바뀌었어요: ${wx.name}`, W / 2, by + 38, bw - 30, 23, '#8fd8ff', 'center');
+    fitText(`${wx.desc} · ${E.WEATHER_LEN}웨이브 동안`, W / 2, by + 68, bw - 30, 15, '#d8f1ff', 'center');
     ctx.restore();
     return;
   }
@@ -759,6 +777,12 @@ if (!stats || typeof stats.byDiff !== 'object' || !stats.byDiff) {   // 처음: 
   stats = { byDiff, seen: 0 };
   ls.set(STATS_KEY, JSON.stringify(stats));
 }
+// 최상위 유닛별 클리어 횟수(2026-11-16 사용자 요청: 첫 화면에서 볼 수 있게). 처음엔 남아 있는 판 기록(최근 30판)으로 채움
+const isTopId = (id) => !!E.UNIT[id] && E.UNIT[id].role !== E.SPECIAL_ROLE && E.tierOf(id) >= E.TOP_TIER;
+if (!stats.topClears || typeof stats.topClears !== 'object') {
+  const tc = {}; for (const r of hist) if (r?.win) for (const [id] of r.comp ?? []) if (isTopId(id)) { (tc[r.diff] ??= {})[id] = (tc[r.diff][id] ?? 0) + 1; }
+  stats.topClears = tc; ls.set(STATS_KEY, JSON.stringify(stats));
+}
 let cosmetic = readJson(COS_KEY, {});
 if (!Array.isArray(cosmetic.slots)) cosmetic = { slots: [] };
 for (const c of cosmetic.slots) if (c?.wing === 'fairy') { c.wing = ''; if (!c.aura) c.aura = 'wrap'; }   // 예전 요정 날개 → 두름 오라
@@ -820,7 +844,9 @@ function mergeExtra(x) {   // 계정에 있던 것(x)과 이 기기 것을 합�
   const xs = x.stats ?? {}, bd = { ...(stats.byDiff ?? {}) };
   for (const [d, n] of Object.entries(xs.byDiff ?? {})) if (Number(n) > (bd[d] ?? 0)) bd[d] = Number(n);
   const mx = (k) => Math.max(Number(stats[k]) || 0, Number(xs[k]) || 0);
-  stats = { ...stats, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow), bought: { ...(xs.bought ?? {}), ...(stats.bought ?? {}) } };
+  const tcm = JSON.parse(JSON.stringify(stats.topClears ?? {}));   // 최상위 클리어 횟수: 난이도·유닛마다 큰 값
+  for (const [d, o] of Object.entries(xs.topClears ?? {})) for (const [id, n] of Object.entries(o ?? {})) if (isTopId(id) && Number(n) > (tcm[d]?.[id] ?? 0)) (tcm[d] ??= {})[id] = Number(n);
+  stats = { ...stats, topClears: tcm, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow), bought: { ...(xs.bought ?? {}), ...(stats.bought ?? {}) } };
   if (x.cosmetic && Array.isArray(x.cosmetic.slots) && (Number(x.cosmetic.at) || 0) > (Number(cosmetic.at) || 0)) cosmetic = { at: x.cosmetic.at, slots: x.cosmetic.slots.map((c) => (c?.id && cosAllowed(c.id) ? c : null)), theme: x.cosmetic.theme ?? '', presets: Array.isArray(x.cosmetic.presets) ? x.cosmetic.presets : [] };
   if (Array.isArray(x.hist)) { const seen = new Set(hist.map((r) => r.at)); hist = [...hist, ...x.hist.filter((r) => r && !seen.has(r.at))].sort((a, b) => b.at - a.at).slice(0, 30); }
   for (const [k, r] of Object.entries(x.bestComp ?? {})) if (r && (!bestComp[k] || r.wave > bestComp[k].wave)) bestComp[k] = r;
@@ -830,6 +856,7 @@ function mergeExtra(x) {   // 계정에 있던 것(x)과 이 기기 것을 합�
 function addClear(diff) {
   const before = cosOpen(), rb = rainbowOpen();
   stats.byDiff = { ...stats.byDiff, [diff]: (stats.byDiff?.[diff] ?? 0) + 1 };
+  { const tc = { ...(stats.topClears ?? {}) }, d = { ...(tc[diff] ?? {}) }; for (const id of new Set(G.units.map((u) => u.id).filter(isTopId))) d[id] = (d[id] ?? 0) + 1; tc[diff] = d; stats.topClears = tc; }   // 이번 클리어 판의 최상위(종류마다 1번)
   if (G.leftover === 0 && CLEAR_PTS[diff]) { stats.earned = (stats.earned ?? 0) + CLEAR_PTS[diff]; G.pointNews = `완벽 클리어! 꾸미기 포인트 +${CLEAR_PTS[diff]}(지금 ${pointsLeft()}점)`; }
   stats.at = Date.now();
   ls.set(STATS_KEY, JSON.stringify(stats)); cosRebuild();
@@ -1566,7 +1593,7 @@ function drawShot(f, age) {
   // 2.5D: 바닥 점(발밑)을 따라가며 높이를 더함(물리 화살은 높게, 마법은 낮게 포물선), 맞으면 파편이 높이를 갖고 튀었다 떨어짐. 많이 쏘므로 캔버스로 가볍게 그림
   // 2026-11-16 사용자 요청: 하위도 효과를 쓰되 등급이 오를수록 화려하게 — 단계 lv 0 커먼·언커먼 · 1 레어 · 2 에픽 · 3 전설·히든 · 4 최상위
   const lv = f.tier >= 6 ? 4 : f.tier >= 4 ? 3 : f.tier >= 3 ? 2 : f.tier >= 2 ? 1 : 0, big = lv >= 3;
-  const sc = (f.job === '보조' ? 0.75 : 1) * [0.8, 0.9, 1.05, 1.35, 1.6][lv], col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
+  const sc = (f.job === '보조' ? 0.75 : 1) * [1.6, 1.72, 1.85, 2.0, 2.2][lv], col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
   const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
   const seed = (f.t * 1000 + f.x0) % 97, rnd = (i) => ((Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) % 1 + 1) % 1;   // 공격마다 같은 난수(화면마다 같게)
   const gd = Math.hypot(f.x1 - f.x0, f.y1 - f.y0), arcH = f.type === 'phys' ? Math.min(46, gd * 0.28) : Math.min(24, gd * 0.14);
@@ -1610,8 +1637,10 @@ function drawShot(f, age) {
       else if (el === 'NATURE') for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.14)); ctx.save(); ctx.translate(qx, qy); ctx.rotate(age * 20 + i); ctx.beginPath(); ctx.ellipse(0, 0, 3.5 * sc, 1.5 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.5)`; ctx.fill(); ctx.restore(); }
       else if (el === 'ARROW') { const [qx, qy] = at(Math.max(0, p - 0.25)); ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(x, y); ctx.strokeStyle = 'rgba(255,240,210,.35)'; ctx.lineWidth = 1.5 * sc; ctx.stroke(); }   // 바람 자국
       else for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.12)); dot(qx, qy, (2.5 + (2 - i)) * sc, col, 0.22 + 0.12 * (2 - i)); }
-      if (lv >= 3) dot(x, y, (lv >= 4 ? 13 : 10) * sc * 0.6, col, lv >= 4 ? 0.22 : 0.15);   // 전설 이상: 탄 둘레 빛무리
-      if (lv >= 4) for (let i = 1; i <= 4; i++) { const [qx, qy] = at(Math.max(0, p - i * 0.07)); star4(qx + (rnd(i + 20) - 0.5) * 10, qy + (rnd(i + 30) - 0.5) * 10, (2.6 - i * 0.4) * sc * 0.7, '255,250,220', 0.75 - i * 0.15); }   // 최상위: 반짝이 꼬리
+      // 2026-11-16 사용자 요청: 예전 최상위 효과를 커먼(가장 낮은 단계) 기본으로, 단계가 오를수록 겹을 더함
+      dot(x, y, 8 * sc * (1 + lv * 0.12), col, 0.16 + lv * 0.03);   // 탄 둘레 빛무리(모든 단계)
+      if (lv >= 3) dot(x, y, 4.5 * sc, '255,255,255', 0.18 + (lv - 3) * 0.1);   // 전설 이상: 하얀 속빛
+      for (let i = 1; i <= 2 + lv; i++) { const [qx, qy] = at(Math.max(0, p - i * 0.06)); star4(qx + (rnd(i + 20) - 0.5) * 10, qy + (rnd(i + 30) - 0.5) * 10, Math.max(0.6, (2.6 - i * 0.3)) * sc * 0.62, lv >= 4 ? '255,236,150' : '255,250,220', Math.max(0.12, 0.8 - i * 0.12)); }   // 반짝이 꼬리(단계마다 길어짐, 최상위는 금빛)
       const [nx, ny] = at(Math.min(1, p + 0.04)), ang2 = Math.atan2(ny - y, nx - x);   // 포물선 방향으로 돌림
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang2);
       if (el === 'ICE') { ctx.beginPath(); ctx.moveTo(9 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-7 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 1; ctx.stroke(); }
@@ -1626,11 +1655,15 @@ function drawShot(f, age) {
     return;
   }
   // 맞음: 속성마다 다른 반응(게임 시간 0.4초, 전설 이상 0.48초 — 기본 1.5배속이라 실제로는 0.27·0.32초) + 발밑 고리. 효과는 0.8초 뒤 지워짐(날아가는 시간 최대 0.22 + 0.48 안)
-  const a2 = age - T, D = [0.34, 0.37, 0.42, 0.48, 0.56][lv];
+  const a2 = age - T, D = [0.46, 0.48, 0.5, 0.53, 0.56][lv];
   if (a2 >= D) return;
-  const q = a2 / D, fa = 1 - q, n = [3, 4, 5, 7, 10][lv];
-  if (lv >= 3) groundRing(tx, f.y1, (10 + q * (lv >= 4 ? 34 : 24)) * sc * 0.7, col, (lv >= 4 ? 0.75 : 0.55) * fa, lv >= 4 ? 2.4 : 1.6);   // 전설 이상: 바닥에 퍼지는 고리
-  if (lv >= 4 && q < 0.5) { const s4 = (8 + q * 26) * sc * 0.7; star4(tx, ty, s4, col, 0.85 * (1 - q * 2)); star4(tx, ty, s4 * 0.5, '255,255,255', 0.9 * (1 - q * 2)); }   // 최상위: 맞은 자리 큰 별빛
+  const q = a2 / D, fa = 1 - q, n = [8, 9, 11, 13, 16][lv];
+  groundRing(tx, f.y1, (10 + q * 30) * sc * 0.62, col, 0.7 * fa, 2 + lv * 0.3);   // 바닥 고리(모든 단계)
+  if (lv >= 1) groundRing(tx, f.y1, (6 + q * 16) * sc * 0.62, '255,255,255', 0.45 * fa, 1.2);   // 레어 이상: 안쪽 흰 고리
+  if (lv >= 2 && q < 0.6) { ctx.strokeStyle = `rgba(${col},${0.8 * (1 - q / 0.6)})`; ctx.lineWidth = 1.6; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + rnd(i + 40) * 0.3, r0 = (5 + q * 14) * sc * 0.6, r1 = r0 + 8 * sc * (1 - q); ctx.beginPath(); ctx.moveTo(tx + Math.cos(a) * r0, ty + Math.sin(a) * r0 * FLAT); ctx.lineTo(tx + Math.cos(a) * r1, ty + Math.sin(a) * r1 * FLAT); ctx.stroke(); } }   // 에픽 이상: 사방으로 튀는 빛줄기
+  if (lv >= 3 && q < 0.7) { const h = (40 + lv * 10) * sc * 0.6 * (1 - q * 0.4), w = 5 * sc * (1 - q / 0.7); const gr = ctx.createLinearGradient(0, f.y1 - h, 0, f.y1); gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(1, `rgba(${col},${0.5 * (1 - q / 0.7)})`); ctx.fillStyle = gr; ctx.fillRect(tx - w, f.y1 - h, w * 2, h); }   // 전설 이상: 솟는 빛기둥
+  if (lv >= 4) { groundRing(tx, f.y1, (16 + q * 46) * sc * 0.62, '255,236,150', 0.6 * fa, 2.6); for (let i = 0; i < 4; i++) { const a = q * 7 + i * Math.PI / 2, r = (10 + q * 18) * sc * 0.6; star4(tx + Math.cos(a) * r, ty + Math.sin(a) * r * FLAT, 3 * sc * 0.7 * fa, '255,236,150', fa); } }   // 최상위: 금빛 충격파·도는 별
+  if (q < 0.5) { const s4 = (8 + q * 26) * sc * 0.6 * (1 + lv * 0.1); star4(tx, ty, s4, col, 0.85 * (1 - q * 2)); star4(tx, ty, s4 * 0.5, '255,255,255', 0.9 * (1 - q * 2)); }   // 맞은 자리 별빛(모든 단계, 단계마다 큼)
   if (q < 0.25) dot(tx, ty, (6 + q * 20) * sc, el === 'DARK' ? '150,90,230' : '255,250,230', 0.5 * (1 - q / 0.25));   // 맞는 순간 번쩍
   if (el === 'FIRE') { for (let i = 0; i < n + 1; i++) { const [px, py] = flyOut(i, q, 22, 26, n + 1); dot(px, py, (2.2 - q * 1.4) * sc, q < 0.4 ? '255,220,120' : '255,120,50', fa); } groundRing(tx, f.y1, (5 + q * 9) * sc, '120,40,20', 0.5 * fa, 1, 0.5); }   // 불씨가 튀고 바닥이 그을림
   else if (el === 'WATER') { for (let i = 0; i < n; i++) { const [px, py] = flyOut(i, q, 18, 30, n); dot(px, py, 1.8 * sc, col, fa); dot(px - 0.5, py - 0.5, 0.7 * sc, '255,255,255', fa); } groundRing(tx, f.y1, (4 + q * 14) * sc, col, 0.7 * fa, 1.4); groundRing(tx, f.y1, (2 + q * 8) * sc, col, 0.5 * fa, 1); }   // 물이 튀고 물결 두 겹
@@ -1678,15 +1711,17 @@ function drawHud() {
   const rest = E.resting(G);
   const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.baseLenOf(G.wave) - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
   text(line2, 20, 58, 15, rest ? C.good : wi.boss ? (G.bossDone === G.wave ? C.good : left <= 12 ? C.bad : '#ffc2a8') : C.muted);
+  ctx.font = `15px ${FONT}`;
+  let lx = 20 + ctx.measureText(line2).width + 10;
+  const wx = E.weatherOf(G);   // 날씨(2026-11-16): 맑음이 아니면 이름을 옆에
+  if (wx !== E.WEATHERS.calm) { text(`· ${wx.name}`, lx - 4, 58, 15, '#8fd8ff'); ctx.font = `15px ${FONT}`; lx += ctx.measureText(`· ${wx.name}`).width + 8; }
   if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
     const nx = E.waveInfo(G.wave + 1); nx.armor = E.armorAt(G, G.wave + 1);
-    ctx.font = `15px ${FONT}`;
-    const lx = 20 + ctx.measureText(line2).width + 10;
     const rf = nx.boss ? 0 : E.riftAt(G.wave + 1);   // 균열 저항(41웨이브부터 라인 적이 전설·히든 이하 피해를 덜 받음)
     fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}${rf ? ` · 균열 저항 ${Math.round(rf * 100)}%` : ''}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : rf ? '#c9a3ff' : nx.armor > armorNow ? C.goldEdge : C.muted);
   }
   // 적 수·경고
-  const hard = E.hardLimitOn(G), n = G.enemies.length, lim = hard ? E.RULES.hardLimit : E.RULES.limit, ratio = Math.min(1, n / lim);   // 45웨이브부터 /50(넘으면 즉시 패배)
+  const hard = E.hardLimitOn(G), n = G.enemies.length, lim = hard ? E.hardLimitOf(G) : E.RULES.limit, ratio = Math.min(1, n / lim);   // 45웨이브부터 /50(넘으면 즉시 패배)
   text(`적 ${n}/${lim}`, 20, 82, 14, n > lim || (hard && ratio > 0.8) ? C.bad : C.text);
   box(92, 77, 150, 10, 'rgba(0,0,0,.5)', hard ? '#b4482a' : C.line, 5, 1);
   box(92, 77, 150 * ratio, 10, n > lim || (hard && ratio > 0.8) ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
@@ -2659,7 +2694,7 @@ const TITLE_RULES = () => [
 ];
 function drawTitleMenu() {   // 첫 화면 「≡ 메뉴」
   shadeAll();
-  const x = 40, w = W - 80, items = [['기록', '지난 판 기록·조합', () => { modal = { kind: 'records' }; }], ['꾸미기', '클리어 보상: 날개·오라·효과', openCustomize, cosOpen() > (stats.seen ?? 0)],
+  const x = 40, w = W - 80, items = [['기록', '지난 판 기록·조합', () => { modal = { kind: 'records' }; }], ['최상위 기록', '최상위 유닛별 클리어 횟수', () => { modal = { kind: 'tops', td: 'all' }; }], ['꾸미기', '클리어 보상: 날개·오라·효과', openCustomize, cosOpen() > (stats.seen ?? 0)],
     ['도전 모드', `규칙을 바꿔 도전(난이도 ${diffName(selDiff)})`, () => { modal = { kind: 'modes' }; }], ['조합식 ↗', '상위 조합식 웹페이지(새 탭)', openRecipePage], ['게임 방법', '처음 하는 분을 위한 안내', () => { modal = { kind: 'rules' }; }]];
   const h = 92 + items.length * 70, y = Math.max(70, (VH0() - h) / 2);
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
@@ -2668,6 +2703,30 @@ function drawTitleMenu() {   // 첫 화면 「≡ 메뉴」
   items.forEach(([nm, sub, fn, dot], i) => {
     button(x + 16, y + 70 + i * 70, w - 32, 60, nm, fn, 'normal', true, sub);
     if (dot) { ctx.beginPath(); ctx.arc(x + w - 26, y + 80 + i * 70, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }
+  });
+}
+function drawTopClears() {   // 최상위 유닛별 클리어 횟수(난이도 고르기: 전체·달인·장인 등)
+  shadeAll();
+  const x = 24, w = W - 48, y = 60, td = modal.td ?? 'all', tc = stats.topClears ?? {}, h = 160 + Math.ceil(E.UNITS.filter((u) => isTopId(u.id)).length / 2) * 46;
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('최상위 기록', x + 20, y + 32, 22, C.text);
+  button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = { kind: 'tmenu' }; }, 'quiet');
+  const tabs = [['all', '전체'], ...E.DIFF_ORDER.filter((d) => d === 'master' || d === 'artisan' || Object.keys(tc[d] ?? {}).length).map((d) => [d, diffName(d)])];
+  const tw = Math.min(96, (w - 40) / tabs.length - 6);
+  tabs.forEach(([k, nm], i) => button(x + 20 + i * (tw + 6), y + 62, tw, 38, nm, () => { modal.td = k; }, td === k ? 'primary' : 'normal'));
+  const cnt = (id) => (td === 'all' ? Object.values(tc).reduce((a, o) => a + (o?.[id] ?? 0), 0) : tc[td]?.[id] ?? 0);
+  const tops = E.UNITS.filter((u) => isTopId(u.id)).map((u) => u.id).sort((a, b) => cnt(b) - cnt(a) || E.tierOf(b) - E.tierOf(a));
+  const total = td === 'all' ? Object.values(stats.byDiff ?? {}).reduce((a, n) => a + n, 0) : stats.byDiff?.[td] ?? 0;
+  fitText(`클리어 ${total}번 · 클리어한 판에 있던 최상위를 종류마다 1번씩 셈`, x + 20, y + 124, w - 40, 14, C.muted);
+  const cols = 2, cw = (w - 40) / cols, rh = 46, top0 = y + 144, rows = Math.ceil(tops.length / cols), max = Math.max(1, ...tops.map(cnt));
+  tops.forEach((id, i) => {
+    const cx = x + 20 + Math.floor(i / rows) * cw, cy = top0 + (i % rows) * rh, u = E.UNIT[id], n = cnt(id);
+    box(cx, cy, cw - 8, rh - 6, 'rgba(11,30,42,.85)', n ? GRADE_COLOR[u.grade] : C.line, 8, n ? 1.5 : 1);
+    ctx.save(); ctx.beginPath(); ctx.arc(cx + 22, cy + 20, 16, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(id), cx + 6, cy + 4, 32, 32); ctx.restore();
+    fitText(u.name, cx + 44, cy + 16, cw - 120, 15, n ? C.text : C.muted);
+    fitText(E.GRADE_NAME[u.grade], cx + 44, cy + 33, 60, 12, GRADE_COLOR[u.grade]);
+    box(cx + 92, cy + 27, (cw - 170) * n / max, 6, n ? C.gold : 'transparent', null, 3);
+    text(n ? `${n}번` : '-', cx + cw - 18, cy + 21, 15, n ? C.goldEdge : C.muted, 'right');
   });
 }
 function drawRules() {
@@ -3056,8 +3115,9 @@ function drawAug() {
   button(x + w - 110, y + 10, 96, 40, '나중에', () => { G.augLater = true; modal = null; say('증강체는 아래 「더보기」에서 언제든 고를 수 있어요.'); }, 'quiet');
   const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
   o.opts.forEach((id, i) => {
-    const a = E.AUGS[id], cy = y + 84 + i * (ch + 12);
-    box(x + 12, cy, w - 24, ch, 'rgba(11,30,42,.9)', col, 12, 2);
+    const a = E.AUGS[id], cy = y + 84 + i * (ch + 12), rb = !!a.rb;
+    box(x + 12, cy, w - 24, ch, rb ? 'rgba(48,16,20,.92)' : 'rgba(11,30,42,.9)', rb ? '#ff7a6a' : col, 12, 2);
+    if (rb) { box(x + 108, cy + 8, 84, 20, 'rgba(255,122,106,.18)', '#ff7a6a', 6, 1); text('룰 브레이커', x + 150, cy + 18, 12, '#ffb0a4', 'center'); }   // 대가가 큰 증강(2026-11-16)
     ctx.beginPath(); ctx.arc(x + 62, cy + ch / 2, 30, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
     text(a.name.slice(0, 1), x + 62, cy + ch / 2 + 1, 26, col, 'center');   // 첫 글자를 문장처럼(기호 글꼴이 없는 기기에서도 보이게)
     fitText(a.name, x + 108, cy + ch / 2 - 14, w - 108 - 24 - 112, 19, col);
@@ -3484,7 +3544,7 @@ function frame(now) {
     drawTitleBack();
     const tx = (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
-    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'cosmetic') drawCustomize(); else if (modal?.kind === 'tmenu') drawTitleMenu(); else if (modal?.kind === 'rules') drawRules(); } else drawLobby();
+    if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'tops') drawTopClears(); else if (modal?.kind === 'cosmetic') drawCustomize(); else if (modal?.kind === 'tmenu') drawTitleMenu(); else if (modal?.kind === 'rules') drawRules(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
     if (scene === 'title') drawOnline();   // 지금 이용자 수(화면 오른쪽 아래, 아주 작게)
   } else {

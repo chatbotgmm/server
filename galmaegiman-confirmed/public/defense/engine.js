@@ -52,6 +52,7 @@ export const RULES = {
   hardLimitFrom: 45, hardLimit: 50,
   stunBase: 0.2,   // 스턴·범위 스턴: 한 번 칠 때 확률 × 스턴 시간(초). 1초 20% · 1.5초 13% · 2초 10%
   physSplash: 0.29,   // 2026-11-16: 물리 주력(에픽 이상, 불 속성 제외) 스플래시 29%(30% 미만이라 보스 감점 없음). 달인 물리 조합 봇 0/60 → 10/60
+  weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
   finaleLen: 25,   // 2026-11-16: 30 → 25초(전설 환산 10마리면 남은 적이 조금 남게)
     // 60웨이브 보스를 잡은 뒤 남은 적을 처리하는 시간(초). 끝날 때 남은 적 수를 기록, 0마리면 완벽 클리어
@@ -509,6 +510,9 @@ export const AUGS = {
   upg: { name: '단골 대장간', desc: '강화 비용 −30%', v: 0.3 },
   wisp: { name: '위습 꾸러미', desc: '지금 에픽 위습 2개 + 레어 위습 3개', v: 1 },
   warn: { name: '든든한 방파제', desc: '경고 한도 +8회', v: 8 },
+  // 룰 브레이커(2026-11-16 기획안 반영: 판 짜는 방식 자체를 뒤집는 것, 대가가 큼)
+  lowtide: { name: '하급 총공세', desc: '커먼~레어 피해 ×3 · 전설 이상 −15%', v: 3, rb: true },
+  rush: { name: '빠른 물살', desc: '적 이속 +15% · 일반 적 체력 −15%', v: 0.15, rb: true },
   // 40웨이브: 후반을 버티게 하는 큰 것(대가가 있는 것도)
   fury: { name: '광폭화', desc: '모든 공격 피해 +35% · 경고 한도 −5회', v: 0.35 },
   chrono: { name: '시간 왜곡', desc: '일반 적 이동속도 −15%(보스 제외)', v: 0.15 },
@@ -517,8 +521,24 @@ export const AUGS = {
   storm: { name: '연쇄 번개', desc: '공격의 15%가 가까운 적 하나에게 60% 피해로 튕김', v: 0.15 },
   legend: { name: '전설의 부름', desc: '지금 전설 위습 1개 + 에픽 위습 2개', v: 1 },
   supply: { name: '보급선', desc: '지금 모집권 6개 + 리롤권 2개', v: 1 },
+  allin: { name: '모 아니면 도', desc: '모든 피해 +50% · 즉시 패배 50 → 40마리', v: 0.5, rb: true },
 };
-export const AUG_POOL = { 20: ['phys', 'mag', 'haste', 'shred', 'slow', 'stun', 'boss', 'explore', 'gold', 'upg', 'wisp', 'warn'], 40: ['fury', 'chrono', 'exec', 'rift', 'storm', 'legend', 'supply'] };
+export const AUG_POOL = { 20: ['phys', 'mag', 'haste', 'shred', 'slow', 'stun', 'boss', 'explore', 'gold', 'upg', 'wisp', 'warn', 'lowtide', 'rush'], 40: ['fury', 'chrono', 'exec', 'rift', 'storm', 'legend', 'supply', 'allin'] }
+// 날씨(2026-11-16 기획안 반영): 11웨이브부터 5웨이브마다 바뀜(판 시드로 정해 같이하기도 같음). 사거리·이속·방어·공속을 흔들어 조합을 바꾸게 함
+export const WEATHERS = {
+  calm: { name: '맑음', desc: '특별한 날씨 없음', icon: '☀' },
+  fog: { name: '짙은 해무', desc: '갈매미 사거리 −15%', icon: '🌫', range: 0.85 },
+  tide: { name: '만조', desc: '적 이동속도 +12%', icon: '🌊', spd: 1.12 },
+  brine: { name: '소금 결계', desc: '적 방어·마방 +25%', icon: '🧂', def: 1.25 },
+  wind: { name: '순풍', desc: '갈매미 공격 속도 +10%', icon: '🍃', atk: 1.1 },
+};
+export const WEATHER_FROM = 11, WEATHER_LEN = 5;
+export function weatherAt(g, w) {
+  if (!RULES.weather || w < WEATHER_FROM) return 'calm';
+  const b = Math.floor((w - WEATHER_FROM) / WEATHER_LEN), r = rng(((g.seed >>> 0) ^ Math.imul(b + 101, 2654435761)) >>> 0), keys = ['fog', 'tide', 'brine', 'wind', 'calm'];
+  return keys[Math.floor(r() * keys.length)];
+}
+export const weatherOf = (g) => { if (g._wx?.w !== g.wave) g._wx = { w: g.wave, id: weatherAt(g, g.wave) }; return WEATHERS[g._wx.id]; };;
 export const augV = (g, id) => (g.augs && g.augs.includes(id) ? AUGS[id].v : 0);
 export const warnMaxOf = (g) => RULES.warnMax + augV(g, 'warn') - (augV(g, 'fury') ? 5 : 0);
 function offerAug(g) {
@@ -747,7 +767,7 @@ export const upgGroup = (tier) => [0, 0, 1, 2, 3, 3, 4, 5, 6, 7][tier];
 export const upgradeCost = (g, gi) => Math.round((1 - augV(g, 'upg')) * (RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi])));   // 증강체 「단골 대장간」
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
 export const upgSpdMul = (g, tier) => 1 + (RULES.upgSpd ?? 0) * g.upg[upgGroup(tier)];
-export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier) / (1 + augV(g, 'haste'));   // 증강체 「날갯짓 가속」   // 강화하면 공격 간격이 짧아짐
+export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier) / (1 + augV(g, 'haste')) / (weatherOf(g).atk ?? 1);   // 날씨 「순풍」   // 증강체 「날갯짓 가속」   // 강화하면 공격 간격이 짧아짐
 export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
@@ -867,9 +887,12 @@ function hurt(g, e, raw, k, uid) {
   const now = g.t;
   let m;
   const sh = 1 + augV(g, 'shred');   // 증강체 「부식」: 방깍·마방깍 효과
-  if (k.type === 'phys') m = defMul(e.armor - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
-  else m = defMul(e.mr - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
+  const wd = weatherOf(g).def ?? 1;   // 날씨 「소금 결계」: 방어·마방 ×
+  if (k.type === 'phys') m = defMul(e.armor * wd - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
+  else m = defMul(e.mr * wd - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
+  if (augV(g, 'lowtide')) m *= k.tier <= 2 ? AUGS.lowtide.v : k.tier >= 4 ? 0.85 : 1;   // 룰 브레이커 「하급 총공세」
+  if (augV(g, 'allin')) m *= 1 + AUGS.allin.v;   // 룰 브레이커 「모 아니면 도」
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
   if (e.rift && k.tier < TOP_TIER) m *= 1 - e.rift * (augV(g, 'rift') ? 0.5 : 1);   // 증강체 「균열 봉인」: 저항 절반   // 균열 저항: 전설·히든 이하 피해만 줄어듦
   const d = Math.min(Math.max(0, e.hp), raw * m);
@@ -903,7 +926,7 @@ function applyAuras(g) {
     if (u.away || u.stored) continue;
     const k = kit(u.id);
     if (!k.slow && !k.mshred) continue;
-    const r2 = k.range * k.range;
+    const r2 = (k.range * (weatherOf(g).range ?? 1)) ** 2;
     for (const e of g.enemies) {
       if (e.hp <= 0) continue;
       const dx = e.x - u.x, dy = e.y - u.y;
@@ -916,10 +939,11 @@ function applyAuras(g) {
 function attack(g, u, k) {
   // 공격 대상: 사거리 안에서 가장 가까운 적 먼저(사용자 요청 2026-11-08)
   let best = null, bestD = Infinity;
+  const rgw = k.range * (weatherOf(g).range ?? 1), rg2 = rgw * rgw;   // 날씨 「짙은 해무」: 사거리 ×
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
     const dx = e.x - u.x, dy = e.y - u.y, d2 = dx * dx + dy * dy;
-    if (d2 > k.range * k.range) continue;
+    if (d2 > rg2) continue;
     // 2026-11-15 사용자 요청: 보스와 일반 적이 같이 나오면 사거리 안 보스를 먼저 때림
     if (best?.boss && !e.boss) continue;
     if (d2 >= bestD && !(e.boss && !best?.boss)) continue;
@@ -935,7 +959,7 @@ function attack(g, u, k) {
   let d0 = 0;
   hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
   // 2026-11-15 사용자 요청(스턴 20%·1초 유닛 한 마리 + 이감 100%면 한 마리도 스턴 없이 못 지나가게): 스턴은 이감처럼 사거리 안 적 모두가 공격마다 굴림
-  if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')), r2 = k.range * k.range;
+  if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')), r2 = rg2;
     for (const e of g.enemies) { if (e.hp <= 0 || !e.speed || hits.includes(e) || (e.x - u.x) ** 2 + (e.y - u.y) ** 2 > r2) continue; if (g.rand() < p) e.stunUntil = Math.max(e.stunUntil, g.t + st * (e.boss ? BOSS_STUN : 1)); } }
   // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
   if (best.boss && k.tier >= 4 && d0 > 0 && g.fx.filter((f) => f.kind === 'num').length < 4) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
@@ -971,7 +995,7 @@ function spawn(g) {
   const w0 = waveInfo(g.wave), asBoss = w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
   if (w0.boss) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
   const wi = asBoss ? w0 : waveInfo(g.wave, true);
-  const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line);
+  const df = diffOf(g), hp = wi.hp * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
   g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr), rift,
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
@@ -994,12 +1018,13 @@ export function step(g, dt) {
     if (g.spawnT <= 0) { spawn(g); g.spawnLeft--; g.spawnT = RULES.spawnGap; }
   }
   applyAuras(g);
+  const wsp = (weatherOf(g).spd ?? 1) * (1 + augV(g, 'rush'));   // 날씨 「만조」 · 룰 브레이커 「빠른 물살」
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
     e.slow = 0;
     if (e.slows) { for (const id in e.slows) { const sl = e.slows[id]; if (g.t >= sl.until) delete e.slows[id]; else e.slow += sl.v; } }
     e.slow = Math.min(SLOW_MAX, e.slow * (1 + augV(g, 'slow')));   // 합계(화면에 보여 줌). 증강체 「끈끈한 바다」
-    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? 1 : 1 - augV(g, 'chrono'));   // 증강체 「시간 왜곡」
+    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? 1 : 1 - augV(g, 'chrono')) * wsp;   // 증강체 「시간 왜곡」
     e.s += v * dt;
     const p = pathPos(e.s); e.x = p.x; e.y = p.y;
     if (g.t < e.poisonUntil) hurt(g, e, e.poison * dt, e.poisonK, e.by);
@@ -1057,7 +1082,7 @@ export function step(g, dt) {
   }
   g.fx = g.fx.filter((f) => g.t - f.t < 0.8);
   // 경고: 70마리를 넘은 동안 1초마다 1회(누적)
-  if (hardLimitOn(g) && g.enemies.length > RULES.hardLimit) { g.over = 'lose'; g.reason = `${RULES.hardLimitFrom}웨이브부터는 길 위의 적이 ${RULES.hardLimit}마리를 넘으면 바로 패배해요.`; return; }
+  if (hardLimitOn(g) && g.enemies.length > hardLimitOf(g)) { g.over = 'lose'; g.reason = `${RULES.hardLimitFrom}웨이브부터는 길 위의 적이 ${hardLimitOf(g)}마리를 넘으면 바로 패배해요.`; return; }
   if (g.enemies.length > RULES.limit) {
     g.warnAcc += dt;
     while (g.warnAcc >= 1) { g.warnAcc -= 1; g.warn++; }
@@ -1103,5 +1128,6 @@ export const restWave = (w) => !!RULES.restEvery && w % RULES.restEvery === 0 &&
 export const baseLenOf = (w) => (w % RULES.bossEvery === 0 && RULES.bossLen ? RULES.bossLen : RULES.waveLen);   // 보스 웨이브는 bossLen초
 export const waveLenOf = (w) => baseLenOf(w) + (restWave(w) ? RULES.restLen : 0);
 export const resting = (g) => restWave(g.wave) && g.waveT >= baseLenOf(g.wave);
-export const hardLimitOn = (g) => g.wave >= (RULES.hardLimitFrom ?? 999);   // 45웨이브부터 즉시 패배 한도
+export const hardLimitOn = (g) => g.wave >= (RULES.hardLimitFrom ?? 999);
+export const hardLimitOf = (g) => RULES.hardLimit - (augV(g, 'allin') ? 10 : 0);   // 「모 아니면 도」: 50 → 40   // 45웨이브부터 즉시 패배 한도
 export const nextWaveIn = (g) => Math.max(0, waveLenOf(g.wave) - g.waveT);
