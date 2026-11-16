@@ -1204,7 +1204,7 @@ function drawWater() {
 // hold: 「집혀 올려짐」 칸 수(반복) · land: 「내려놓기」 칸 번호(0부터) — 처음(쿵·주저앉음) → 버티는 동안 반복 → 끝(일어남)
 const ANIM_SHEETS = {
   u01: { hold: 6, land: { intro: [0, 1], loop: [2, 3], outro: [4, 5] } },
-  u45: { hold: 12, land: { intro: [0, 1, 3, 4], loop: [5, 6], outro: [7, 8, 9] } },   // 타이탄(2026-11-16)
+  u45: { hold: 12, land: { intro: [0, 1, 3, 4], loop: [5], outro: [7, 8, 9] } },   // 타이탄(2026-11-16): 버티는 동안 6칸 하나만(사용자 요청)
 };
 const animImg = (id, kind) => (ANIM_SHEETS[id] ? img(`${ART}/units/${id}-${kind}.webp`) : null);
 function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false, anim = null) {   // anim: { kind: 'hold'|'land', frame, p }   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
