@@ -28,6 +28,17 @@ if (process.env.BOTWISH === 'mixed') for (const style of ['mag', 'phys']) {
 // 전설 환산(2026-11-15 사용자 기준 「전설 10마리 정도면 클리어」): 전설·히든 1, 최상위 2.5(재료 전설 2~3마리)
 const legEq = (g) => E.fieldUnits(g).concat(E.awayUnits(g)).reduce((a, u) => { const t = E.tierOf(u.id); return a + (E.UNIT[u.id].role === E.SPECIAL_ROLE ? 0 : t >= 6 ? 2.5 : t >= 4 ? 1 : 0); }, 0);
 const eqLog = [];
+// 조합 조화도(2026-11-16 사용자 기준: 이감·스턴·깎기 조건이 맞는 팀인지). 주력 공격 쪽(초당 피해가 큰 쪽) 깎기 합 ÷ 그 웨이브 방어, 이감 합(1까지), 스턴 가진 유닛 수
+const harmony = (g) => { const f = E.fieldUnits(g); let pd = 0, md = 0, sh = 0, msh = 0, sl = 0, st = 0;
+  for (const u of f) { const k = E.kit(u.id); const d = k.dmg / k.gap * E.upgMul(g, k.tier); if (k.type === 'phys') pd += d; else md += d; sh += k.shred ?? 0; msh += k.mshred ?? 0; sl += k.slow ?? 0; if (k.stun || k.astun) st++; }
+  const phys = pd >= md, cut = (phys ? sh : msh) / Math.max(1, phys ? E.armorAt(g, g.wave) : E.mrAt(g, g.wave));
+  const tiers = {}; for (const u of f) { const t = E.tierOf(u.id); tiers[t] = (tiers[t] ?? 0) + 1; }
+  return { cut: +cut.toFixed(2), slow: +Math.min(1, sl).toFixed(2), stun: st, tiers, augs: (g.augs ?? []).join('+') }; };
+// BAN=slow|stun|cut(2026-11-16 조합 조화 확인): 그 갈래 유틸을 가진 전설 이상은 만들지 않음(조합이 안 맞는 팀)
+const BAN = process.env.BAN;
+const famOf = (id) => { const k = E.kit(id), small = Math.round(80 * (E.RULES.mshredAll ?? 0.35)) + 1;
+  return { slow: !!k.slow, stun: !!(k.stun || k.astun), cut: k.type === 'phys' ? !!k.shred : ((k.mshred ?? 0) > small || !!k.amp) }; };
+if (BAN) for (const style of ['mag', 'phys']) WISH[style] = WISH[style].filter((id) => !E.UNIT[id] || E.tierOf(id) < 4 || !famOf(id)[BAN]);
 const SPOTS = [[110, 200], [430, 200], [430, 565], [110, 565], [270, 200], [270, 565], [110, 382], [430, 382]];
 const recipeOf = new Map(E.RECIPES.map((r) => [r.out, r]));
 const ownedMap = (g) => { const m = {}; for (const u of g.units) if (!u.away) m[u.id] = (m[u.id] ?? 0) + 1; return m; };
@@ -105,9 +116,9 @@ const res = [], reasons = {}, ch6s = [], ends = []; let tops = 0;
 for (let s = 1; s <= N; s++) {
   const g = E.newGame(s, 'normal', DIFF); let ch6 = 0, end = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
   const st = { n: 0, style, wish: WISH[style].filter((id) => E.UNIT[id]) }; let acc = 0;
-  let eq40 = null, eq55 = null;
-  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; if (eq40 == null && g.wave >= 40) eq40 = legEq(g); if (eq55 == null && g.wave >= 55) eq55 = legEq(g); }
-  eqLog.push({ eq40, eqEnd: legEq(g), eq55, win: g.over === 'win', wave: g.wave, left: g.leftover ?? null });
+  let eq40 = null, eq55 = null, hm55 = null;
+  while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; if (eq40 == null && g.wave >= 40) eq40 = legEq(g); if (eq55 == null && g.wave >= 55) { eq55 = legEq(g); hm55 = harmony(g); } }
+  eqLog.push({ eq40, eqEnd: legEq(g), eq55, hm55, win: g.over === 'win', wave: g.wave, left: g.leftover ?? null });
   ch6s.push(ch6); ends.push(end);
   res.push(g.over === 'win' ? 61 : g.wave);
   const key = g.over + ':' + g.reason.slice(0, 10); reasons[key] = (reasons[key] ?? 0) + 1;
@@ -128,5 +139,6 @@ if (process.env.EQ === '1') {   // 전설 환산(55웨이브 시점, 전설·히
   const band = (v) => v == null ? '55 전 패배' : v < 8 ? '~7' : v < 9 ? '8' : v < 10 ? '9' : v < 11 ? '10' : v < 12 ? '11' : '12+';
   const b = {}; for (const r of eqLog) { const k = band(r.eq55); (b[k] ??= { n: 0, w: 0, left: [], lw: [] }); b[k].n++; if (r.win) { b[k].w++; b[k].left.push(r.left); } else b[k].lw.push(r.wave); }
   for (const [k, v] of Object.entries(b)) console.log(`환산 ${k}: 깬 판 ${v.w}/${v.n} · 남은 적 [${v.left.sort((x, y) => x - y).join(',')}] · 진 웨이브 [${v.lw.sort((x, y) => x - y).join(',')}]`);
+  if (process.env.HM === '1') for (const r of eqLog.filter((r) => r.eq55 != null).sort((a, b) => a.eq55 - b.eq55)) console.log(`HM 환산 ${r.eq55} · 깎기 ${r.hm55.cut} · 이감 ${r.hm55.slow} · 스턴 ${r.hm55.stun} → ${r.win ? '깸 남은 ' + r.left : '짐 ' + r.wave} · 등급별 ${JSON.stringify(r.hm55.tiers)} · 증강 ${r.hm55.augs}`);
   console.log(`평균 환산 40웨이브 ${(eqLog.filter((r) => r.eq40 != null).reduce((a, r) => a + r.eq40, 0) / Math.max(1, eqLog.filter((r) => r.eq40 != null).length)).toFixed(1)} · 끝 ${(eqLog.reduce((a, r) => a + r.eqEnd, 0) / eqLog.length).toFixed(1)}`);
 }

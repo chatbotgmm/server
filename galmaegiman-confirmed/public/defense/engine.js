@@ -364,9 +364,21 @@ export const INHERIT = 1.3;
 const INHERIT_CAP = { slow: 0.6, stun: 0.3, astun: 0.2 };
 function inheritUtil(id, k) {
   const r = RECIPES.find((q) => q.out === id); if (!r) return;
-  const keys = ['slow', 'stun', 'astun', ...(k.type === 'phys' ? ['shred'] : ['mshred', 'amp'])];
+  // 2026-11-16 사용자 요청(최상위에 유틸이 너무 많이 몰림): 이감 · 스턴(범위 스턴 포함) · 깎기(물딜 방깍 / 마딜 마방깍·증폭) 세 갈래 중
+  // 자기에게 없는 갈래 하나만 물려받음(재료 값이 가장 센 갈래). 전설 마방깍 덤(35%)은 깎기 갈래로 치지 않음
+  const fam = { slow: ['slow'], stun: ['stun', 'astun'], cut: k.type === 'phys' ? ['shred'] : ['mshred', 'amp'] };
+  const ref = { slow: 0.5, stun: 0.2, astun: 0.2, shred: SHRED(4), mshred: SHRED(4), amp: AMP(4) };
+  const small = Math.round(SHRED(TOP_POWER_TIER) * (RULES.mshredAll ?? 0.35));
+  const has = (f) => fam[f].some((key) => (k[key] ?? 0) > (key === 'mshred' ? small : 0));
   k.inherited = [];
-  for (const key of keys) {
+  let pick = null, pv = 0;
+  for (const f of Object.keys(fam)) {
+    if (has(f)) continue;
+    let sc = 0; for (const key of fam[f]) for (const ing of r.in) sc = Math.max(sc, (kit(ing)[key] ?? 0) / ref[key]);
+    if (sc > pv) { pv = sc; pick = f; }
+  }
+  if (!pick) return;
+  for (const key of fam[pick]) {
     let best = 0;
     for (const ing of r.in) { const v = kit(ing)[key] ?? 0; if (v > best) best = v; }
     if (!best) continue;
