@@ -1485,7 +1485,7 @@ function drawFieldInner() {
     const tn = performance.now(), sw = Math.sin(tn / 130 + u.uid) * 0.16 + Math.sin(tn / 23 + u.uid * 3) * 0.035;
     const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % 6, p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: landFrame(landP * LT, LT), p: landP, e: landP * LT } : null;
     if (u.held) { oy -= 9 * z; ox = 0; zm = 1; }
-    const dragFace = (u.held || landP >= 0) && u.dragDir ? u.dragDir > 0 : null;   // 끄는 방향(오른쪽이면 오른쪽을 봄)
+    const dragFace = u.held || landP >= 0 ? false : null;   // 2026-11-16 사용자 요청: 들고 있을 때(파닥임)·내려앉을 때는 늘 왼쪽을 봄
     if (landP >= 0 && landP * LT < 0.35 && !fxLite) landFx(u.x, u.y, z, landP * LT / 0.35);   // 쿵: 바닥 충격 고리·먼지(앞 0.35초)
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, dragFace ?? (face && !anim), anim);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
