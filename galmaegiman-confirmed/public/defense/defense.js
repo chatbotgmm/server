@@ -908,8 +908,8 @@ cv.addEventListener('pointermove', (ev) => {
   // 끌기를 실시간으로(2026-11-12 사용자 요청): 끄는 동안 갈매미(고른 무리면 무리째)가 손가락을 바로 따라옴
   if (down.field && down.unit && down.moved && playing()) {
     if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); E.holdUnits(G, down.start.map(([uid]) => uid), true); }   // 집어 듦: 공격 멈춤
-    const dx = bp.x - down.x0, dy = bp.y - down.y0;
-    for (const [uid, x, y] of down.start) E.moveUnit(G, uid, x + dx, y + dy, true);
+    const dx = bp.x - down.x0, dy = bp.y - down.y0, mvx = bp.x - (down.lx ?? down.x0); down.lx = bp.x;
+    for (const [uid, x, y] of down.start) { E.moveUnit(G, uid, x + dx, y + dy, true); if (Math.abs(mvx) > 1.5) { const u = E.unitById(G, uid); if (u) u.dragDir = mvx > 0 ? 1 : -1; } }   // 끄는 방향 기억(그림만)
     return;
   }
   if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.sy0) / (wide ? WK : 1)));
@@ -1212,14 +1212,16 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }   // 그림만 좌우로 뒤집음(발밑 고리·자물쇠는 그대로)
   if (anim && sheet) {   // 시트 한 칸(칸 높이 256 중 몸 약 204 → 평소 그림 높이 50·z에 맞춤)
     const S = 50 * z * 256 / 204;
+    if (anim.rot) { const py = y - 50 * z; ctx.save(); ctx.translate(x, py); ctx.rotate(anim.rot); ctx.translate(-x, -py); }   // 집힌 머리 위를 축으로 대롱대롱
     ctx.drawImage(sheet, anim.frame * 256, 0, 256, 256, x - S / 2, y - S * 224 / 256, S, S);
+    if (anim.rot) ctx.restore();
     if (flip) ctx.restore();
     if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
     return;
   }
   if (anim) {   // 시트 없는 유닛: 들면 좌우로 버둥, 내려놓으면 납작했다 펴짐
     ctx.save(); ctx.translate(x, y);
-    if (anim.kind === 'hold') ctx.rotate(Math.sin(performance.now() / 70) * 0.14);
+    if (anim.kind === 'hold') { ctx.translate(0, -50 * z); ctx.rotate(anim.rot ?? 0); ctx.translate(0, 50 * z); }
     else { const q = Math.min(1, anim.p * 2.2), sx = 1 + 0.18 * (1 - q), sy = 1 - 0.22 * (1 - q); ctx.scale(sx, sy); }
     ctx.translate(-x, -y);
     drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
@@ -1238,6 +1240,19 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
   if (flip) ctx.restore();
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
+}
+// 내려놓을 때 쿵(2026-11-16 사용자 요청): 납작한 충격 고리 두 겹 + 사방으로 튀었다 가라앉는 먼지. q 0→1
+function landFx(x, y, z, q) {
+  const a = 1 - q;
+  ctx.beginPath(); ctx.ellipse(x, y, (14 + q * 30) * z, (5 + q * 11) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = `rgba(235,225,200,${0.75 * a})`; ctx.lineWidth = 3 * a + 1; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x, y, (8 + q * 18) * z, (3 + q * 6) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,255,255,${0.5 * a})`; ctx.lineWidth = 1.5; ctx.stroke();
+  for (let i = 0; i < 8; i++) {
+    const an = (i / 8) * Math.PI * 2 + 0.3, d = (10 + q * 26) * z, h = Math.sin(q * Math.PI) * 9 * z * (0.6 + (i % 3) * 0.2);
+    const px = x + Math.cos(an) * d, py = y + Math.sin(an) * d * 0.38 - h, r = (6 - q * 3) * z * (0.8 + (i % 2) * 0.4);
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(196,182,156,${0.95 * a})`; ctx.fill();   // 먼지(회색 바닥에서도 보이게 모래빛)
+    ctx.beginPath(); ctx.arc(px - r * 0.3, py - r * 0.3, r * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(250,244,230,${0.85 * a})`; ctx.fill();   // 먼지 밝은 쪽
+  }
+  if (q < 0.3) { ctx.beginPath(); ctx.ellipse(x, y - 4 * z, 22 * z, 9 * z, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,250,235,${0.45 * (1 - q / 0.3)})`; ctx.fill(); }   // 닿는 순간 섬광
 }
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
 const rainbowHue = (seed) => (performance.now() / 14 + seed * 37) % 360;
@@ -1453,9 +1468,13 @@ function drawFieldInner() {
     const lf = lastShot.get(u.uid), face = !!lf && G.t - lf.t < 0.8 && lf.x1 > lf.x0 + 4;
     // 손으로 집기(2026-11-16): 들고 있으면 떠서 파닥임(반복), 내려놓으면 쿵 주저앉는 동작(한 번)
     const LT = E.RULES.landTime ?? 0.8, landP = u.landUntil > G.t ? 1 - (u.landUntil - G.t) / LT : -1;
-    const anim = u.held ? { kind: 'hold', frame: Math.floor(performance.now() / 85) % 6, p: 0 } : landP >= 0 ? { kind: 'land', frame: Math.min(5, Math.floor(landP * 6)), p: landP } : null;
-    if (u.held) { oy -= 16 * z; ox = 0; zm = 1; }
-    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face && !anim, anim);
+    // 2026-11-16 사용자 의견(나는 것 같음): 빠르게 버둥(45ms) + 집힌 머리 위를 축으로 흔들림·잔떨림, 끄는 방향을 봄
+    const tn = performance.now(), sw = Math.sin(tn / 130 + u.uid) * 0.16 + Math.sin(tn / 23 + u.uid * 3) * 0.035;
+    const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % 6, p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: Math.min(5, Math.floor(landP * 6)), p: landP } : null;
+    if (u.held) { oy -= 9 * z; ox = 0; zm = 1; }
+    const dragFace = (u.held || landP >= 0) && u.dragDir ? u.dragDir > 0 : null;   // 끄는 방향(오른쪽이면 오른쪽을 봄)
+    if (landP >= 0 && landP < 0.4 && !fxLite) landFx(u.x, u.y, z, landP / 0.4);   // 쿵: 바닥 충격 고리·먼지
+    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, dragFace ?? (face && !anim), anim);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
     // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)

@@ -1,6 +1,7 @@
 # 제미나이가 그려 준 애니메이션 시트(흰 배경, 칸 없음)를 게임용으로 바꿈(2026-11-16).
 # 흰 배경 지우기(가장자리와 이어진 흰색만) → 그림 덩어리를 frames개로 나눔 → 같은 배율로 256×256 칸에 발(아래 끝)을 224선에 맞춰 놓음 → webp
 # 사용: python3 -I scripts/web/anim-sheet.py <입력.png> <출력.webp> [frames=6] [rows=1] [ref=min|last]
+#   flip: 좌우로 뒤집을 칸(예: 1,2,5)
 #   ref: 평소 그림 크기에 맞출 기준 칸 — min(가장 낮은 칸, 날개 편 칸 때문에 몸이 작아지지 않게) · last(마지막 칸, 「내려놓기」처럼 서 있는 자세로 끝날 때)
 import sys
 import numpy as np
@@ -11,6 +12,7 @@ src, dst = sys.argv[1], sys.argv[2]
 frames = int(sys.argv[3]) if len(sys.argv) > 3 else 6
 rows = int(sys.argv[4]) if len(sys.argv) > 4 else 1
 ref = sys.argv[5] if len(sys.argv) > 5 else 'min'
+flip = {int(v) for v in (sys.argv[6].split(',') if len(sys.argv) > 6 and sys.argv[6] else [])}   # 좌우로 뒤집을 칸 번호(1부터) — 원본처럼 왼쪽을 보게 맞춤
 CELL, BASE, FIT_H, FIT_W = 256, 224, 204, 236
 
 im = np.asarray(Image.open(src).convert('RGB')).astype(np.float32)
@@ -66,6 +68,7 @@ s = min(FIT_H / rh, 250 / mh, FIT_W / mw)   # 기준 칸을 몸 높이 204로, �
 out = Image.new('RGBA', (CELL * frames, CELL * rows), (0, 0, 0, 0))
 for i, c in enumerate(cells):
     img = Image.fromarray(c, 'RGBA')
+    if i + 1 in flip: img = img.transpose(Image.FLIP_LEFT_RIGHT)
     img = img.resize((max(1, round(img.width * s)), max(1, round(img.height * s))), Image.LANCZOS)
     col, row = i % frames, i // frames
     out.alpha_composite(img, (col * CELL + (CELL - img.width) // 2, row * CELL + BASE - img.height))
