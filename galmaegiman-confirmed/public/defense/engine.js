@@ -52,6 +52,7 @@ export const RULES = {
   hardLimitFrom: 45, hardLimit: 50,
   stunBase: 0.2,   // 스턴·범위 스턴: 한 번 칠 때 확률 × 스턴 시간(초). 1초 20% · 1.5초 13% · 2초 10%
   physSplash: 0.29,   // 2026-11-16: 물리 주력(에픽 이상, 불 속성 제외) 스플래시 29%(30% 미만이라 보스 감점 없음). 달인 물리 조합 봇 0/60 → 10/60
+  landTime: 0.8,   // 내려놓은 뒤 주저앉아 행동 불능(초)
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
   finaleLen: 25,   // 2026-11-16: 30 → 25초(전설 환산 10마리면 남은 적이 조금 남게)
@@ -595,6 +596,7 @@ export function loadGame(text) {
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
     g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null;
+    for (const u of g.units) u.held = false;   // 들고 있던 중에 저장된 판
     return g;
   } catch { return null; }
 }
@@ -751,6 +753,10 @@ export function moveUnit(g, uid, x, y, now = false) {
   u.snap = snap ? snap.uid : 0;
   if (now) { u.x = p.x; u.y = p.y; }
   return true;
+}
+// 손으로 집어 옮기기(2026-11-16 사용자 요청): 들고 있는 동안 공격하지 않고, 내려놓으면 landTime초 동안 주저앉아 행동 불능
+export function holdUnits(g, uids, on) {
+  for (const uid of uids) { const u = unitById(g, uid); if (!u) continue; if (on) u.held = true; else if (u.held) { u.held = false; u.landUntil = g.t + (RULES.landTime ?? 0.8); } }
 }
 // 위치 고정(사용자 요청 2026-11-08): 고정하면 끌어도·모으기에도 안 움직임
 export function setLock(g, uids, on) {
@@ -1039,6 +1045,7 @@ export function step(g, dt) {
       const dx = u.tx - u.x, dy = u.ty - u.y, d = Math.hypot(dx, dy), m = WALK * dt;
       if (d <= m) { u.x = u.tx; u.y = u.ty; } else { u.x += dx / d * m; u.y += dy / d * m; }
     }
+    if (u.held || g.t < (u.landUntil ?? 0)) continue;   // 들고 있는 중·내려놓고 주저앉은 중: 행동 불능(공격 대기 시간도 멈춤)
     u.cd -= dt;
     if (u.cd > 0) continue;
     if (UNIT[u.id]?.role === SPECIAL_ROLE) { u.cd = 5; continue; }   // 초월 갈매미맨은 공격하지 않음

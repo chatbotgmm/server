@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=fa7ea2e82b41';
+import * as E from './engine.js?v=8f0c498822a2';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -907,7 +907,7 @@ cv.addEventListener('pointermove', (ev) => {
   if (down.dragFn) { down.dragFn(p); return; }
   // 끌기를 실시간으로(2026-11-12 사용자 요청): 끄는 동안 갈매미(고른 무리면 무리째)가 손가락을 바로 따라옴
   if (down.field && down.unit && down.moved && playing()) {
-    if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); }
+    if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); E.holdUnits(G, down.start.map(([uid]) => uid), true); }   // 집어 듦: 공격 멈춤
     const dx = bp.x - down.x0, dy = bp.y - down.y0;
     for (const [uid, x, y] of down.start) E.moveUnit(G, uid, x + dx, y + dy, true);
     return;
@@ -925,6 +925,7 @@ cv.addEventListener('pointerup', (ev) => {
       const dx = p.x - d.x0, dy = p.y - d.y0;
       let moved = 0;
       for (const [uid, x, y] of d.start ?? []) if (E.moveUnit(G, uid, x + dx, y + dy, true)) moved++;   // 끄는 동안 이미 따라왔음, 마지막 자리로 맞춤
+      E.holdUnits(G, (d.start ?? []).map(([uid]) => uid), false);   // 내려놓음: 쿵 주저앉음(잠깐 행동 불능)
       if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
       const sn = (d.start ?? []).map(([uid]) => E.unitById(G, uid)).find((u) => u?.snap);   // 같은 갈매미에 붙음: 고리 + 소리
       if (sn) { G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t }); G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t - 0.15 }); sfx('summon'); }
@@ -945,7 +946,7 @@ cv.addEventListener('pointerup', (ev) => {
   const h = hitAt(sp);
   if (h) h.fn(sp);
 });
-cv.addEventListener('pointercancel', () => { down = null; });
+cv.addEventListener('pointercancel', () => { if (down?.start && G) E.holdUnits(G, down.start.map(([uid]) => uid), false); down = null; });
 cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
   if (document.activeElement === searchEl) { if (ev.key === 'Escape') searchEl.blur(); return; }   // 검색 입력 중에는 단축키 안 씀
@@ -1199,13 +1200,34 @@ function drawWater() {
   ctx.restore();
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
-function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false) {   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
+// 손으로 집기 애니메이션 시트(2026-11-16, 제미나이 그림): 256×256 칸 6개, 발이 칸 위에서 224. 시트가 있는 유닛만(없으면 코드로 흔들기·눌림)
+const ANIM_SHEETS = new Set(['u01']);
+const animImg = (id, kind) => (ANIM_SHEETS.has(id) ? img(`${ART}/units/${id}-${kind}.webp`) : null);
+function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false, anim = null) {   // anim: { kind: 'hold'|'land', frame, p }   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
   let z = usz(id);
   ctx.beginPath(); ctx.ellipse(x0, y0, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
   ctx.lineWidth = lw; ctx.strokeStyle = ring; ctx.stroke();
   const x = x0 + ox, y = y0 + oy; z *= zm;
-  const im = unitImg(id), gl = E.tierOf(id) >= 4 && !fxLite ? glow(id) : null;   // 화려한 효과 끔이면 빛 테두리 없음
+  const im = unitImg(id), sheet = anim ? animImg(id, anim.kind) : null, gl = E.tierOf(id) >= 4 && !fxLite && !anim ? glow(id) : null;   // 화려한 효과 끔이면 빛 테두리 없음
   if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }   // 그림만 좌우로 뒤집음(발밑 고리·자물쇠는 그대로)
+  if (anim && sheet) {   // 시트 한 칸(칸 높이 256 중 몸 약 204 → 평소 그림 높이 50·z에 맞춤)
+    const S = 50 * z * 256 / 204;
+    ctx.drawImage(sheet, anim.frame * 256, 0, 256, 256, x - S / 2, y - S * 224 / 256, S, S);
+    if (flip) ctx.restore();
+    if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
+    return;
+  }
+  if (anim) {   // 시트 없는 유닛: 들면 좌우로 버둥, 내려놓으면 납작했다 펴짐
+    ctx.save(); ctx.translate(x, y);
+    if (anim.kind === 'hold') ctx.rotate(Math.sin(performance.now() / 70) * 0.14);
+    else { const q = Math.min(1, anim.p * 2.2), sx = 1 + 0.18 * (1 - q), sy = 1 - 0.22 * (1 - q); ctx.scale(sx, sy); }
+    ctx.translate(-x, -y);
+    drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
+    ctx.restore();
+    if (flip) ctx.restore();
+    if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
+    return;
+  }
   if (im && gl) {   // 전설 이상: 그림 둘레가 등급 색으로 빛남(천천히 밝아졌다 어두워짐)
     const bw = 48 * z, bh = 50 * z, sc = Math.min(bw / im.naturalWidth, bh / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
     const dx = x - bw / 2 + (bw - dw) / 2, dy = y - bh + bh - dh, f = dw / gl.w;
@@ -1216,6 +1238,22 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
   if (flip) ctx.restore();
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
+}
+// 손가락으로 집은 모양(엄지·검지, 위에서 내려옴). x·y는 집는 자리(머리 위), z는 크기
+function drawPinch(x, y, z) {
+  const k = Math.max(0.85, z);
+  ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+  ctx.lineJoin = 'round'; ctx.lineWidth = 2; ctx.strokeStyle = '#7a4a2e';
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(2, -2, 9, 3, 0, 0, Math.PI * 2); ctx.fill();   // 집은 자리 그림자
+  const skin = '#f4cba4', shade = '#e2ad83';
+  // 팔(소매)과 손등: 위에서 비스듬히 내려옴
+  ctx.fillStyle = '#4f7fb3'; ctx.beginPath(); ctx.moveTo(10, -64); ctx.lineTo(24, -58); ctx.lineTo(16, -40); ctx.lineTo(3, -45); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = skin; ctx.beginPath(); ctx.moveTo(2, -46); ctx.quadraticCurveTo(20, -46, 17, -30); ctx.quadraticCurveTo(14, -18, 4, -16); ctx.quadraticCurveTo(-8, -18, -9, -28); ctx.quadraticCurveTo(-9, -42, 2, -46); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 검지(앞): 손등에서 아래로 굽어 집는 자리로
+  ctx.beginPath(); ctx.moveTo(-6, -24); ctx.quadraticCurveTo(-12, -12, -4, -3); ctx.quadraticCurveTo(0, 1, 3, -3); ctx.quadraticCurveTo(-3, -12, 1, -21); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // 엄지(뒤쪽에서 마주 집음)
+  ctx.fillStyle = shade; ctx.beginPath(); ctx.moveTo(12, -24); ctx.quadraticCurveTo(14, -10, 6, -3); ctx.quadraticCurveTo(3, 0, 2, -4); ctx.quadraticCurveTo(8, -12, 6, -22); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
 }
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
 const rainbowHue = (seed) => (performance.now() / 14 + seed * 37) % 360;
@@ -1429,7 +1467,12 @@ function drawFieldInner() {
     if (cos) cosBack(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 공격 방향 보기(2026-11-15 사용자 요청): 기본은 왼쪽, 오른쪽 적을 치면 오른쪽을 봤다가 공격이 끊기면 돌아옴(공격 기록이 0.8초 남으므로 0.8초 뒤)
     const lf = lastShot.get(u.uid), face = !!lf && G.t - lf.t < 0.8 && lf.x1 > lf.x0 + 4;
-    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face);
+    // 손으로 집기(2026-11-16): 들고 있으면 떠서 파닥임(반복), 내려놓으면 쿵 주저앉는 동작(한 번)
+    const LT = E.RULES.landTime ?? 0.8, landP = u.landUntil > G.t ? 1 - (u.landUntil - G.t) / LT : -1;
+    const anim = u.held ? { kind: 'hold', frame: Math.floor(performance.now() / 85) % 6, p: 0 } : landP >= 0 ? { kind: 'land', frame: Math.min(5, Math.floor(landP * 6)), p: landP } : null;
+    if (u.held) { oy -= 16 * z; ox = 0; zm = 1; }
+    drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face && !anim, anim);
+    if (u.held) drawPinch(u.x, u.y - 16 * z - 50 * z + 6, z);   // 목덜미를 집은 손가락
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
     // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)
