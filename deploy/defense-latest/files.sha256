@@ -4,13 +4,13 @@ c8cb073a2f775deab4af08fe654756b6d91b7239c1192c0c02b8575ad81e26d5  ./dist/src/sit
 f7211afdc4a1843ef086473cebf2f9e67860195044ec773005ed6e77ae5624e0  ./public/defense/bgm.mp3
 47b73634cac150ccc5eaf6a4a564fec33e3785a26345b751dbcae558b87587da  ./public/defense/data.js
 0f4c4a80c79a1081942ece5b3c057896e0efb416243799fbc6984927ea8a1c73  ./public/defense/defense.css
-88addb27d30919d0ffeaa06f9fa7ffffab760d0367b1512044a1bb4b43722be7  ./public/defense/defense.js
-8e14e1939a51fd09a4059d7d4f89a88ed860a9219ebb3b4588bdcabc8758c8a1  ./public/defense/engine.js
-aa5d78fd1ded83581b5796930ee6d53985d4695eb2785bb99a5c1f456a22b34a  ./public/defense/index.html
+4870c3551cb865152530b010e296e4a85b7ffce9a077a0d3d589bb5c1060e918  ./public/defense/defense.js
+8f0c498822a2c38d08ce6d7a9861a9437d77a249050ffbf66091e23a96dd1706  ./public/defense/engine.js
+ed87f49e09e528eae769a34ba5ec1003bfede0de6c3a542ce46cf671700a9eef  ./public/defense/index.html
 071157c1acc6c45118bbf25f27d8894d2a507b511faa9a86418ba90abb9ae365  ./public/defense/pixfx.js
 2780ea8f158aaa08d711ddba1137bfe6aec4bad03473a653fad97e53e7fbfb63  ./public/defense/recipes.css
-659e00fc1744810ea374d8692e6a8dabb33d13f0ebe951fd2030c987a7d8fa08  ./public/defense/recipes.html
-bfaba3d59323db7f5d7ad91837df630ada92274e37dfba47d11c58627cd75bc6  ./public/defense/recipes.js
+c25057c5ae3ed4f273a90724af5cfc89530b50df351ae10145c99fb94b166f19  ./public/defense/recipes.html
+81e4369656e67cc85d47ae454a80ef63a681e133be92b91b3ae0ac26ac107c70  ./public/defense/recipes.js
 42aa98767a66a7eaff1e4dc4d6e8d11340b5af230370b0abb07c6d0b8ab05705  ./public/game60/assets/enemies/v1.webp
 f04e1e8e4d3e8a8871cd0dd779484a38f31cbd00aea3ab8a99ffa802314be231  ./public/game60/assets/enemies/v12.webp
 2e2d81088cb030b647ef8515c6c10f172020aea96c91a0b84594029c362a6ac1  ./public/game60/assets/enemies/v13.webp
@@ -25,6 +25,8 @@ f4c454d3d5b26decfd85955203664cc289dec48e814131f5e2a9193c69fb89c2  ./public/game6
 78c591925f3aee64a58cb73b3d6e984ea1ecd46bf475b8aff875da886ae598ae  ./public/game60/assets/enemies/v4.webp
 eb68afda963c00ddb723b12471e000f12d6d006b1a437d0adaa802371657a7ff  ./public/game60/assets/enemies/v5.webp
 ea5e690864fd3f0db1b3ecf63cd87909f44ca6cfb8c664821056bbeeaad704a5  ./public/game60/assets/enemies/v6.webp
+393bebaa84d997dcb48825c8d63d238c06688cc483a3eb17ed7df6f5ba01cb6c  ./public/game60/assets/units/u01-hold.webp
+6cf148c63f269309368cb6891d82a3f139a7939335065bb6fa9c33e43dbc6819  ./public/game60/assets/units/u01-land.webp
 26149d6c00540e7b348946d07547cc0030bd6b8eb493f2c938378189ef0b3968  ./public/game60/assets/units/u61-front.webp
 f264a27ea0cf580a6bb2a4826d340f240e44e73068c12e4f6e6f1c60e259dd76  ./public/game60/assets/units/u62-front.webp
 b22e2e45150315712c4506695274dfd1994ad9b9a47366081144590f56f4f509  ./public/game60/assets/units/u63-front.webp
