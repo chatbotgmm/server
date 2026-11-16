@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=8f0c498822a2';
+import * as E from './engine.js?v=eebd45284867';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1222,11 +1222,15 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   if (anim) {   // 시트 없는 유닛: 들면 좌우로 버둥, 내려놓으면 납작했다 펴짐
     ctx.save(); ctx.translate(x, y);
     if (anim.kind === 'hold') { ctx.translate(0, -50 * z); ctx.rotate(anim.rot ?? 0); ctx.translate(0, 50 * z); }
-    else { const q = Math.min(1, anim.p * 2.2), sx = 1 + 0.18 * (1 - q), sy = 1 - 0.22 * (1 - q); ctx.scale(sx, sy); }
+    else { const q = Math.min(1, (anim.e ?? 0) / 0.35), sx = 1 + 0.18 * (1 - q), sy = 1 - 0.22 * (1 - q); ctx.scale(sx, sy); }
     ctx.translate(-x, -y);
     drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
     ctx.restore();
     if (flip) ctx.restore();
+    if (anim.kind === 'land' && anim.frame >= 2 && anim.frame <= 3) for (let i = 0; i < 3; i++) {   // 시트 없는 유닛: 버티는 동안 머리 위에 별이 돎
+      const an = performance.now() / 260 + i * 2.1, sx = x + Math.cos(an) * 13 * z, sy = y - 54 * z + Math.sin(an) * 4 * z, r = 3.6 * z;
+      ctx.beginPath(); for (let k = 0; k < 10; k++) { const rr = k % 2 ? r * 0.45 : r, a2 = -Math.PI / 2 + k * Math.PI / 5; ctx.lineTo(sx + Math.cos(a2) * rr, sy + Math.sin(a2) * rr); } ctx.closePath(); ctx.fillStyle = '#ffd76a'; ctx.fill();
+    }
     if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
     return;
   }
@@ -1240,6 +1244,15 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   drawFit(im, x - 24 * z, y - 50 * z, 48 * z, 50 * z);
   if (flip) ctx.restore();
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
+}
+// 내려앉는 칸 고르기(2026-11-16 사용자 요청): 1·2칸(쿵·주저앉음) → 어지러운 3·4칸을 번갈아 반복하며 버팀 → 끝에 5·6칸(일어남). e: 지난 초, T: 전체 초
+const LAND_F = 0.12;
+function landFrame(e, T) {
+  if (e < LAND_F) return 0;
+  if (e < LAND_F * 2) return 1;
+  if (e >= T - LAND_F) return 5;
+  if (e >= T - LAND_F * 2) return 4;
+  return 2 + (Math.floor((e - LAND_F * 2) / 0.16) % 2);
 }
 // 내려놓을 때 쿵(2026-11-16 사용자 요청): 납작한 충격 고리 두 겹 + 사방으로 튀었다 가라앉는 먼지. q 0→1
 function landFx(x, y, z, q) {
@@ -1470,10 +1483,10 @@ function drawFieldInner() {
     const LT = E.RULES.landTime ?? 0.8, landP = u.landUntil > G.t ? 1 - (u.landUntil - G.t) / LT : -1;
     // 2026-11-16 사용자 의견(나는 것 같음): 빠르게 버둥(45ms) + 집힌 머리 위를 축으로 흔들림·잔떨림, 끄는 방향을 봄
     const tn = performance.now(), sw = Math.sin(tn / 130 + u.uid) * 0.16 + Math.sin(tn / 23 + u.uid * 3) * 0.035;
-    const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % 6, p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: Math.min(5, Math.floor(landP * 6)), p: landP } : null;
+    const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % 6, p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: landFrame(landP * LT, LT), p: landP, e: landP * LT } : null;
     if (u.held) { oy -= 9 * z; ox = 0; zm = 1; }
     const dragFace = (u.held || landP >= 0) && u.dragDir ? u.dragDir > 0 : null;   // 끄는 방향(오른쪽이면 오른쪽을 봄)
-    if (landP >= 0 && landP < 0.4 && !fxLite) landFx(u.x, u.y, z, landP / 0.4);   // 쿵: 바닥 충격 고리·먼지
+    if (landP >= 0 && landP * LT < 0.35 && !fxLite) landFx(u.x, u.y, z, landP * LT / 0.35);   // 쿵: 바닥 충격 고리·먼지(앞 0.35초)
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, dragFace ?? (face && !anim), anim);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
