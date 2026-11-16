@@ -1239,22 +1239,6 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   if (flip) ctx.restore();
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
-// 손가락으로 집은 모양(엄지·검지, 위에서 내려옴). x·y는 집는 자리(머리 위), z는 크기
-function drawPinch(x, y, z) {
-  const k = Math.max(0.85, z);
-  ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-  ctx.lineJoin = 'round'; ctx.lineWidth = 2; ctx.strokeStyle = '#7a4a2e';
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(2, -2, 9, 3, 0, 0, Math.PI * 2); ctx.fill();   // 집은 자리 그림자
-  const skin = '#f4cba4', shade = '#e2ad83';
-  // 팔(소매)과 손등: 위에서 비스듬히 내려옴
-  ctx.fillStyle = '#4f7fb3'; ctx.beginPath(); ctx.moveTo(10, -64); ctx.lineTo(24, -58); ctx.lineTo(16, -40); ctx.lineTo(3, -45); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = skin; ctx.beginPath(); ctx.moveTo(2, -46); ctx.quadraticCurveTo(20, -46, 17, -30); ctx.quadraticCurveTo(14, -18, 4, -16); ctx.quadraticCurveTo(-8, -18, -9, -28); ctx.quadraticCurveTo(-9, -42, 2, -46); ctx.closePath(); ctx.fill(); ctx.stroke();
-  // 검지(앞): 손등에서 아래로 굽어 집는 자리로
-  ctx.beginPath(); ctx.moveTo(-6, -24); ctx.quadraticCurveTo(-12, -12, -4, -3); ctx.quadraticCurveTo(0, 1, 3, -3); ctx.quadraticCurveTo(-3, -12, 1, -21); ctx.closePath(); ctx.fill(); ctx.stroke();
-  // 엄지(뒤쪽에서 마주 집음)
-  ctx.fillStyle = shade; ctx.beginPath(); ctx.moveTo(12, -24); ctx.quadraticCurveTo(14, -10, 6, -3); ctx.quadraticCurveTo(3, 0, 2, -4); ctx.quadraticCurveTo(8, -12, 6, -22); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
-}
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
 const rainbowHue = (seed) => (performance.now() / 14 + seed * 37) % 360;
 function hueRGB(deg) { const hue = deg / 60, f = (n) => { const k = (n + hue) % 6; return Math.round(255 * (1 - 0.62 * Math.max(0, Math.min(k, 4 - k, 1)))); }; return [f(5), f(3), f(1)]; }
@@ -1472,7 +1456,6 @@ function drawFieldInner() {
     const anim = u.held ? { kind: 'hold', frame: Math.floor(performance.now() / 85) % 6, p: 0 } : landP >= 0 ? { kind: 'land', frame: Math.min(5, Math.floor(landP * 6)), p: landP } : null;
     if (u.held) { oy -= 16 * z; ox = 0; zm = 1; }
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, face && !anim, anim);
-    if (u.held) drawPinch(u.x, u.y - 16 * z - 50 * z + 6, z);   // 목덜미를 집은 손가락
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
     // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)
