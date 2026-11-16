@@ -1201,8 +1201,12 @@ function drawWater() {
 }
 // 판 위 갈매미 한 마리(그림자 고리 + 그림). 등급이 높을수록 크게
 // 손으로 집기 애니메이션 시트(2026-11-16, 제미나이 그림): 256×256 칸 6개, 발이 칸 위에서 224. 시트가 있는 유닛만(없으면 코드로 흔들기·눌림)
-const ANIM_SHEETS = new Set(['u01']);
-const animImg = (id, kind) => (ANIM_SHEETS.has(id) ? img(`${ART}/units/${id}-${kind}.webp`) : null);
+// hold: 「집혀 올려짐」 칸 수(반복) · land: 「내려놓기」 칸 번호(0부터) — 처음(쿵·주저앉음) → 버티는 동안 반복 → 끝(일어남)
+const ANIM_SHEETS = {
+  u01: { hold: 6, land: { intro: [0, 1], loop: [2, 3], outro: [4, 5] } },
+  u45: { hold: 12, land: { intro: [0, 1, 3, 4], loop: [5, 6], outro: [7, 8, 9] } },   // 타이탄(2026-11-16)
+};
+const animImg = (id, kind) => (ANIM_SHEETS[id] ? img(`${ART}/units/${id}-${kind}.webp`) : null);
 function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 1, flip = false, anim = null) {   // anim: { kind: 'hold'|'land', frame, p }   // flip: 오른쪽을 봄(공격 방향)   // ox·oy·zm: 공격 동작(그림만 움직임, 발밑 고리는 제자리)
   let z = usz(id);
   ctx.beginPath(); ctx.ellipse(x0, y0, 20 * z, 7 * z, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
@@ -1246,13 +1250,13 @@ function drawUnitShape(id, x0, y0, ring, lw, lock = false, ox = 0, oy = 0, zm = 
   if (lock) drawLockMark(x0 + 22 * usz(id), y0 - 2);
 }
 // 내려앉는 칸 고르기(2026-11-16 사용자 요청): 1·2칸(쿵·주저앉음) → 어지러운 3·4칸을 번갈아 반복하며 버팀 → 끝에 5·6칸(일어남). e: 지난 초, T: 전체 초
-const LAND_F = 0.12;
-function landFrame(e, T) {
-  if (e < LAND_F) return 0;
-  if (e < LAND_F * 2) return 1;
-  if (e >= T - LAND_F) return 5;
-  if (e >= T - LAND_F * 2) return 4;
-  return 2 + (Math.floor((e - LAND_F * 2) / 0.16) % 2);
+const LAND_F = 0.12, LAND_DEF = { intro: [0, 1], loop: [2, 3], outro: [4, 5] };
+function landFrame(e, T, id) {
+  const L = ANIM_SHEETS[id]?.land ?? LAND_DEF, fi = Math.min(LAND_F, 0.36 / L.intro.length), fo = Math.min(LAND_F, 0.32 / L.outro.length);   // 칸이 많으면 한 칸을 짧게(처음 0.36초·끝 0.32초 안)
+  if (e < fi * L.intro.length) return L.intro[Math.floor(e / fi)];
+  const left = T - e;
+  if (left <= fo * L.outro.length) return L.outro[Math.min(L.outro.length - 1, L.outro.length - 1 - Math.floor(left / fo))];
+  return L.loop[Math.floor((e - fi * L.intro.length) / 0.16) % L.loop.length];
 }
 // 내려놓을 때 쿵(2026-11-16 사용자 요청): 납작한 충격 고리 두 겹 + 사방으로 튀었다 가라앉는 먼지. q 0→1
 function landFx(x, y, z, q) {
@@ -1483,7 +1487,7 @@ function drawFieldInner() {
     const LT = E.RULES.landTime ?? 0.8, landP = u.landUntil > G.t ? 1 - (u.landUntil - G.t) / LT : -1;
     // 2026-11-16 사용자 의견(나는 것 같음): 빠르게 버둥(45ms) + 집힌 머리 위를 축으로 흔들림·잔떨림, 끄는 방향을 봄
     const tn = performance.now(), sw = Math.sin(tn / 130 + u.uid) * 0.16 + Math.sin(tn / 23 + u.uid * 3) * 0.035;
-    const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % 6, p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: landFrame(landP * LT, LT), p: landP, e: landP * LT } : null;
+    const anim = u.held ? { kind: 'hold', frame: Math.floor(tn / 45) % (ANIM_SHEETS[u.id]?.hold ?? 6), p: 0, rot: sw } : landP >= 0 ? { kind: 'land', frame: landFrame(landP * LT, LT, u.id), p: landP, e: landP * LT } : null;
     if (u.held) { oy -= 9 * z; ox = 0; zm = 1; }
     const dragFace = u.held || landP >= 0 ? false : null;   // 2026-11-16 사용자 요청: 들고 있을 때(파닥임)·내려앉을 때는 늘 왼쪽을 봄
     if (landP >= 0 && landP * LT < 0.35 && !fxLite) landFx(u.x, u.y, z, landP * LT / 0.35);   // 쿵: 바닥 충격 고리·먼지(앞 0.35초)

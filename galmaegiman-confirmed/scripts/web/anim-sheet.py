@@ -56,21 +56,38 @@ def split(mask_rows):   # 한 줄 안에서 그림 덩어리를 frames개로 묶
 
 band = H // rows
 cells = []
-for r in range(rows):
+for r in range(rows):   # 덩어리 단위로 칸 나누기: 날개처럼 옆 칸 자리까지 뻗은 부분도 몸과 이어져 있으면 함께(세로줄로 자르지 않음)
     part = rgba[r * band:(r + 1) * band]
-    for a, b in split(part[..., 3]):
-        piece = part[:, a:b]
-        ys = np.where(piece[..., 3].max(axis=1) > 8)[0]
-        cells.append(piece[ys[0]:ys[-1] + 1])
+    m = part[..., 3] > 8
+    lab2, k = ndimage.label(m)
+    if k == 0: raise SystemExit('그림이 없어요')
+    idx = np.arange(1, k + 1)
+    area = ndimage.sum(m, lab2, idx)
+    cx = ndimage.center_of_mass(m, lab2, idx)
+    big = [i2 for i2 in range(k) if area[i2] >= area.max() * 0.15]   # 몸통 덩어리(별·먼지 같은 작은 조각 제외)
+    if len(big) != frames:
+        # 몸통 수가 칸 수와 다르면(몸끼리 붙음 등) 예전 방식처럼 가로 위치로 칸을 나눔
+        bounds = [W * f / frames for f in range(frames + 1)]
+        centers = [(bounds[f] + bounds[f + 1]) / 2 for f in range(frames)]
+    else:
+        centers = sorted(cx[i2][1] for i2 in big)
+    owner = {}
+    for i2 in range(k):
+        x2 = cx[i2][1]; owner[i2 + 1] = min(range(frames), key=lambda f: abs(centers[f] - x2))
+    for f in range(frames):
+        keep = np.isin(lab2, [l for l, o in owner.items() if o == f])
+        if not keep.any(): raise SystemExit(f'{r + 1}줄 {f + 1}칸이 비었어요')
+        piece = part.copy(); piece[~keep] = 0
+        ys, xs = np.where(keep)
+        cells.append(piece[ys.min():ys.max() + 1, xs.min():xs.max() + 1])
 mh = max(c.shape[0] for c in cells); mw = max(c.shape[1] for c in cells)
 rh = cells[-1].shape[0] if ref == 'last' else min(c.shape[0] for c in cells)
-s = min(FIT_H / rh, 250 / mh, FIT_W / mw)   # 기준 칸을 몸 높이 204로, 단 가장 큰 칸도 256 칸 안에
-out = Image.new('RGBA', (CELL * frames, CELL * rows), (0, 0, 0, 0))
+s = min(FIT_H / rh, (BASE - 4) / mh, (CELL - 6) / mw)   # 기준 칸을 몸 높이 204로, 단 가장 큰 칸도 위·옆으로 잘리지 않게   # 기준 칸을 몸 높이 204로, 단 가장 큰 칸도 256 칸 안에
+out = Image.new('RGBA', (CELL * len(cells), CELL), (0, 0, 0, 0))   # 여러 줄로 그려 와도 한 줄로 이어 붙임(게임은 칸 번호 순서로 가로로 읽음)
 for i, c in enumerate(cells):
     img = Image.fromarray(c, 'RGBA')
     if i + 1 in flip: img = img.transpose(Image.FLIP_LEFT_RIGHT)
     img = img.resize((max(1, round(img.width * s)), max(1, round(img.height * s))), Image.LANCZOS)
-    col, row = i % frames, i // frames
-    out.alpha_composite(img, (col * CELL + (CELL - img.width) // 2, row * CELL + BASE - img.height))
+    out.alpha_composite(img, (i * CELL + (CELL - img.width) // 2, BASE - img.height))
 out.save(dst, 'WEBP', quality=88, method=6)
 print(f'{dst}: {out.size[0]}×{out.size[1]}, 배율 {s:.3f}, 칸 {len(cells)}개')
