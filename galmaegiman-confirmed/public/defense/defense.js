@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=2f88a876ebe2';
+import * as E from './engine.js?v=3a227c05e8f4';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1564,7 +1564,9 @@ function drawShot(f, age) {
   }
   // 기본 공격 연출 2판(2026-11-15 사용자 요청: 기본 공격도 시각 효과가 필요). 속성마다 날아가는 꼬리와 맞을 때 반응이 다름.
   // 2.5D: 바닥 점(발밑)을 따라가며 높이를 더함(물리 화살은 높게, 마법은 낮게 포물선), 맞으면 파편이 높이를 갖고 튀었다 떨어짐. 많이 쏘므로 캔버스로 가볍게 그림
-  const big = f.tier >= 4, sc = (f.job === '보조' ? 0.75 : 1) * (big ? 1.4 : 1), col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
+  // 2026-11-16 사용자 요청: 하위도 효과를 쓰되 등급이 오를수록 화려하게 — 단계 lv 0 커먼·언커먼 · 1 레어 · 2 에픽 · 3 전설·히든 · 4 최상위
+  const lv = f.tier >= 6 ? 4 : f.tier >= 4 ? 3 : f.tier >= 3 ? 2 : f.tier >= 2 ? 1 : 0, big = lv >= 3;
+  const sc = (f.job === '보조' ? 0.75 : 1) * [0.8, 0.9, 1.05, 1.35, 1.6][lv], col = ELEM_COL[f.elem] ?? (f.type === 'phys' ? '255,179,107' : '143,200,255');
   const T = f.near ? 0.07 : Math.max(0.08, Math.min(0.22, dist / 950));   // 날아가는 시간
   const seed = (f.t * 1000 + f.x0) % 97, rnd = (i) => ((Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) % 1 + 1) % 1;   // 공격마다 같은 난수(화면마다 같게)
   const gd = Math.hypot(f.x1 - f.x0, f.y1 - f.y0), arcH = f.type === 'phys' ? Math.min(46, gd * 0.28) : Math.min(24, gd * 0.14);
@@ -1608,6 +1610,8 @@ function drawShot(f, age) {
       else if (el === 'NATURE') for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.14)); ctx.save(); ctx.translate(qx, qy); ctx.rotate(age * 20 + i); ctx.beginPath(); ctx.ellipse(0, 0, 3.5 * sc, 1.5 * sc, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${col},0.5)`; ctx.fill(); ctx.restore(); }
       else if (el === 'ARROW') { const [qx, qy] = at(Math.max(0, p - 0.25)); ctx.beginPath(); ctx.moveTo(qx, qy); ctx.lineTo(x, y); ctx.strokeStyle = 'rgba(255,240,210,.35)'; ctx.lineWidth = 1.5 * sc; ctx.stroke(); }   // 바람 자국
       else for (let i = 2; i >= 1; i--) { const [qx, qy] = at(Math.max(0, p - i * 0.12)); dot(qx, qy, (2.5 + (2 - i)) * sc, col, 0.22 + 0.12 * (2 - i)); }
+      if (lv >= 3) dot(x, y, (lv >= 4 ? 13 : 10) * sc * 0.6, col, lv >= 4 ? 0.22 : 0.15);   // 전설 이상: 탄 둘레 빛무리
+      if (lv >= 4) for (let i = 1; i <= 4; i++) { const [qx, qy] = at(Math.max(0, p - i * 0.07)); star4(qx + (rnd(i + 20) - 0.5) * 10, qy + (rnd(i + 30) - 0.5) * 10, (2.6 - i * 0.4) * sc * 0.7, '255,250,220', 0.75 - i * 0.15); }   // 최상위: 반짝이 꼬리
       const [nx, ny] = at(Math.min(1, p + 0.04)), ang2 = Math.atan2(ny - y, nx - x);   // 포물선 방향으로 돌림
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang2);
       if (el === 'ICE') { ctx.beginPath(); ctx.moveTo(9 * sc, 0); ctx.lineTo(0, 3.5 * sc); ctx.lineTo(-7 * sc, 0); ctx.lineTo(0, -3.5 * sc); ctx.closePath(); ctx.fillStyle = `rgba(${col},0.95)`; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 1; ctx.stroke(); }
@@ -1622,9 +1626,11 @@ function drawShot(f, age) {
     return;
   }
   // 맞음: 속성마다 다른 반응(게임 시간 0.4초, 전설 이상 0.48초 — 기본 1.5배속이라 실제로는 0.27·0.32초) + 발밑 고리. 효과는 0.8초 뒤 지워짐(날아가는 시간 최대 0.22 + 0.48 안)
-  const a2 = age - T, D = big ? 0.48 : 0.4;
+  const a2 = age - T, D = [0.34, 0.37, 0.42, 0.48, 0.56][lv];
   if (a2 >= D) return;
-  const q = a2 / D, fa = 1 - q, n = big ? 7 : 5;
+  const q = a2 / D, fa = 1 - q, n = [3, 4, 5, 7, 10][lv];
+  if (lv >= 3) groundRing(tx, f.y1, (10 + q * (lv >= 4 ? 34 : 24)) * sc * 0.7, col, (lv >= 4 ? 0.75 : 0.55) * fa, lv >= 4 ? 2.4 : 1.6);   // 전설 이상: 바닥에 퍼지는 고리
+  if (lv >= 4 && q < 0.5) { const s4 = (8 + q * 26) * sc * 0.7; star4(tx, ty, s4, col, 0.85 * (1 - q * 2)); star4(tx, ty, s4 * 0.5, '255,255,255', 0.9 * (1 - q * 2)); }   // 최상위: 맞은 자리 큰 별빛
   if (q < 0.25) dot(tx, ty, (6 + q * 20) * sc, el === 'DARK' ? '150,90,230' : '255,250,230', 0.5 * (1 - q / 0.25));   // 맞는 순간 번쩍
   if (el === 'FIRE') { for (let i = 0; i < n + 1; i++) { const [px, py] = flyOut(i, q, 22, 26, n + 1); dot(px, py, (2.2 - q * 1.4) * sc, q < 0.4 ? '255,220,120' : '255,120,50', fa); } groundRing(tx, f.y1, (5 + q * 9) * sc, '120,40,20', 0.5 * fa, 1, 0.5); }   // 불씨가 튀고 바닥이 그을림
   else if (el === 'WATER') { for (let i = 0; i < n; i++) { const [px, py] = flyOut(i, q, 18, 30, n); dot(px, py, 1.8 * sc, col, fa); dot(px - 0.5, py - 0.5, 0.7 * sc, '255,255,255', fa); } groundRing(tx, f.y1, (4 + q * 14) * sc, col, 0.7 * fa, 1.4); groundRing(tx, f.y1, (2 + q * 8) * sc, col, 0.5 * fa, 1); }   // 물이 튀고 물결 두 겹
