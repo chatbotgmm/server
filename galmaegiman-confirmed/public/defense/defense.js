@@ -1203,7 +1203,7 @@ function drawWater() {
 // 손으로 집기 애니메이션 시트(2026-11-16, 제미나이 그림): 256×256 칸 6개, 발이 칸 위에서 224. 시트가 있는 유닛만(없으면 코드로 흔들기·눌림)
 // hold: 「집혀 올려짐」 칸 수(반복) · land: 「내려놓기」 칸 번호(0부터) — 처음(쿵·주저앉음) → 버티는 동안 반복 → 끝(일어남)
 const ANIM_SHEETS = {
-  u01: { hold: 6, land: { intro: [0, 1], loop: [2, 3], outro: [4, 5] } },
+  u01: { hold: 6, land: { intro: [0, 1], loop: [2], outro: [3, 4, 5] } },   // 버티는 동안 3칸 하나만(사용자 요청), 4칸(고개 흔들기)은 일어나기 앞에
   u45: { hold: 12, land: { intro: [0, 1, 3, 4], loop: [5], outro: [7, 8, 9] } },   // 타이탄(2026-11-16): 버티는 동안 6칸 하나만(사용자 요청)
 };
 const animImg = (id, kind) => (ANIM_SHEETS[id] ? img(`${ART}/units/${id}-${kind}.webp`) : null);
