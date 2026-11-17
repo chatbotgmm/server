@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=4896dbf42cd4';
+import * as E from './engine.js?v=e383d8164c4c';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1271,6 +1271,25 @@ function landFx(x, y, z, q) {
   }
   if (q < 0.3) { ctx.beginPath(); ctx.ellipse(x, y - 4 * z, 22 * z, 9 * z, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,250,235,${0.45 * (1 - q / 0.3)})`; ctx.fill(); }   // 닿는 순간 섬광
 }
+// 적이 쓰러질 때(2026-11-16): 맞은 반대쪽으로 튕겨 오르며 돌다가 작아지고, 바닥에 연기 고리·조각. q 0→1
+function drawEnemyDeath(f, q) {
+  const sh = enemyImg(f.look), sz = f.boss ? 84 : 44, dir = f.sx != null && f.sx > f.x ? -1 : 1, a = 1 - q;
+  if (q < 0.3) { const g2 = ctx.createRadialGradient(f.x, f.y - sz * 0.35, 0, f.x, f.y - sz * 0.35, sz * (0.5 + q * 1.5)); g2.addColorStop(0, `rgba(255,250,230,${0.9 * (1 - q / 0.3)})`); g2.addColorStop(1, 'rgba(255,220,150,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(f.x, f.y - sz * 0.35, sz * (0.5 + q * 1.5), 0, Math.PI * 2); ctx.fill(); }   // 섬광 폭발
+  if (sh) {
+    const x = f.x + dir * q * sz * 0.8, y = f.y - Math.sin(q * Math.PI) * sz * 0.75, s2 = 1 - q * 0.6;
+    ctx.save(); ctx.globalAlpha = Math.min(1, a * 1.4); ctx.translate(x, y - sz * 0.3); ctx.rotate(dir * q * 2.6); ctx.scale(s2, s2);
+    drawFit(sh, -sz / 2, -sz * 0.45, sz, sz);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6 * a; drawFit(sh, -sz / 2, -sz * 0.45, sz, sz);
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.ellipse(f.x, f.y, sz * (0.25 + q * 0.7), sz * (0.1 + q * 0.25), 0, 0, Math.PI * 2); ctx.strokeStyle = `rgba(240,230,205,${0.85 * a})`; ctx.lineWidth = 4 * a + 0.5; ctx.stroke();   // 바닥 충격 고리
+  for (let i = 0; i < 10; i++) {   // 튀는 조각(어두운 테두리로 바닥에서도 보이게)
+    const an = i * 0.628 + f.x * 0.01, d = sz * (0.15 + q * (0.6 + (i % 3) * 0.15)), hgt = Math.sin(q * Math.PI) * (10 + (i % 4) * 5) * (f.boss ? 1.6 : 1), r = (4.5 - q * 2.8) * (f.boss ? 1.6 : 1);
+    const px = f.x + Math.cos(an) * d, py = f.y + Math.sin(an) * d * 0.4 - hgt;
+    ctx.beginPath(); ctx.arc(px, py, r + 1.2, 0, Math.PI * 2); ctx.fillStyle = `rgba(70,50,30,${0.6 * a})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fillStyle = i % 2 ? `rgba(255,225,150,${a})` : `rgba(230,215,190,${a})`; ctx.fill();
+  }
+}
 // 꾸밈 그리기: 날개·오라 아래쪽은 갈매미 뒤(cosBack), 반짝이·불티는 앞(cosFront). x·y는 발밑, z는 크기
 const rainbowHue = (seed) => (performance.now() / 14 + seed * 37) % 360;
 function hueRGB(deg) { const hue = deg / 60, f = (n) => { const k = (n + hue) % 6; return Math.round(255 * (1 - 0.62 * Math.max(0, Math.min(k, 4 - k, 1)))); }; return [f(5), f(3), f(1)]; }
@@ -1459,9 +1478,26 @@ function drawFieldInner() {
   // 적
   for (const e of G.enemies) {
     const sz = e.boss ? 84 : 44, sh = enemyImg(e.look);
-    const ha = G.t - (e.hitT ?? -9), jit = !fxLite && ha < 0.07 ? (((e.id * 7) % 3) - 1) * 1.5 : 0;   // 맞은 순간 살짝 떨림
-    if (sh) drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz);
-    if (sh && !fxLite && ha < 0.08) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 * (1 - ha / 0.08); drawFit(sh, e.x - sz / 2 + jit, e.y - sz * 0.75, sz, sz); ctx.restore(); }   // 하얗게 번쩍
+    // 맞는 표현(2026-11-16 사용자 요청: 더 액션감 있게 → 「약하다」로 한 번 더 세게): 때린 쪽 반대로 크게 튕겼다 돌아옴(등급 높을수록 멀리, 보스는 조금)
+    // + 처음 0.05초 멈칫 흔들림 + 크게 납작해졌다 펴짐 + 진한 번쩍임 + 테두리 있는 금빛 타격 불꽃·충격 고리
+    const ha = G.t - (e.hitT ?? -9), HT = 0.22, hq = !fxLite && ha < HT ? 1 - ha / HT : 0, bm = e.boss ? 0.4 : 1;
+    let kx = 0, ky = 0;
+    if (hq > 0) { const dx = e.x - (e.hsx ?? e.x - 1), dy = e.y - (e.hsy ?? e.y), dl = Math.hypot(dx, dy) || 1, pw = (6 + (e.hitK ?? 0) * 1.6) * bm * hq * hq; kx = dx / dl * pw; ky = dy / dl * pw * 0.6;
+      if (ha < 0.05) { kx += (((e.id * 7 + Math.floor(ha * 400)) % 3) - 1) * 2.2; ky += (((e.id * 3 + Math.floor(ha * 400)) % 3) - 1) * 1.2; } }
+    const sqx = 1 + 0.28 * hq * bm, sqy = 1 - 0.22 * hq * bm;
+    if (sh) { if (hq > 0) { ctx.save(); ctx.translate(e.x + kx, e.y + ky); ctx.scale(sqx, sqy); ctx.translate(-(e.x + kx), -(e.y + ky)); }
+      drawFit(sh, e.x - sz / 2 + kx, e.y - sz * 0.75 + ky, sz, sz);
+      if (hq > 0.4) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, 1.6 * (hq - 0.4) / 0.6); drawFit(sh, e.x - sz / 2 + kx, e.y - sz * 0.75 + ky, sz, sz); drawFit(sh, e.x - sz / 2 + kx, e.y - sz * 0.75 + ky, sz, sz); ctx.restore(); }   // 하얗게 번쩍(두 겹, 처음 0.13초)
+      if (hq > 0) ctx.restore(); }
+    if (hq > 0.3) { const cx = e.x + kx * 0.4, cy = e.y - sz * 0.35, q2 = (hq - 0.3) / 0.7, r0 = sz * 0.1, r1 = sz * (0.22 + 0.4 * (1 - q2)), sc2 = e.boss ? 1.4 : 1;
+      ctx.beginPath(); ctx.ellipse(cx, cy + sz * 0.1, sz * (0.25 + 0.4 * (1 - q2)), sz * (0.1 + 0.16 * (1 - q2)), 0, 0, Math.PI * 2); ctx.strokeStyle = `rgba(255,236,170,${0.8 * q2})`; ctx.lineWidth = 3 * q2 + 1; ctx.stroke();   // 충격 고리
+      ctx.lineCap = 'round';
+      for (let pass = 0; pass < 2; pass++) {   // 타격 불꽃: 어두운 테두리 → 금빛 줄기(밝은 그림 위에서도 보이게)
+        ctx.strokeStyle = pass ? `rgba(255,${200 + Math.round(40 * q2)},90,${q2})` : `rgba(60,30,10,${0.7 * q2})`; ctx.lineWidth = (pass ? 3 : 5.5) * sc2;
+        for (let i = 0; i < 6; i++) { const an = i * 1.0472 + e.id * 0.7 + (e.hitT ?? 0) * 13, rr1 = r1 * (i % 2 ? 0.7 : 1); ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0); ctx.lineTo(cx + Math.cos(an) * rr1, cy + Math.sin(an) * rr1); ctx.stroke(); }
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, sz * 0.12 * q2 * sc2, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,240,${q2})`; ctx.fill();   // 가운데 섬광
+    }
     if (!fxLite && G.t < (e.poisonUntil ?? 0)) for (let b = 0; b < 2; b++) { const ph = ((G.t * 1.6 + b * 0.5 + e.id * 0.13) % 1); ctx.beginPath(); ctx.arc(e.x - 8 + b * 14, e.y - sz * 0.3 - ph * 22, 2.5 + b, 0, Math.PI * 2); ctx.fillStyle = `rgba(120,220,110,${0.7 * (1 - ph)})`; ctx.fill(); }
     if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
   }
@@ -1559,7 +1595,8 @@ function drawFieldInner() {
       ctx.beginPath(); ctx.ellipse(f.x, f.y, rr2, rr2 * FLAT, 0, 0, Math.PI * 2);   // 2.5D: 바닥에 납작하게
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
-    } else if (f.kind === 'kill' && age < 0.6) {   // 꾸민 갈매미가 쓰러뜨림: 처치 효과
+    } else if (f.kind === 'kill' && age < 0.6) {   // 쓰러짐(모든 적) + 꾸민 갈매미가 쓰러뜨리면 처치 효과
+      if (!fxLite && age < 0.42) drawEnemyDeath(f, age / 0.42);
       const cc = cosUid.get(f.uid); if (cc?.kill) drawKillFx(cc, f, age);
     } else if (f.kind === 'sig' && age < 0.75) {
       drawSig(f, age);

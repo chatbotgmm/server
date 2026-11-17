@@ -893,7 +893,7 @@ function effSum(e, key, now) {
 export const shredNow = (e, now) => ({ shred: effSum(e, 'shreds', now), mshred: effSum(e, 'mshreds', now) });
 function hurt(g, e, raw, k, uid) {
   if (e.hp <= 0) return 0;
-  e.hitT = g.t;   // 화면: 맞은 적이 잠깐 번쩍임(규칙에는 안 쓰임)
+  if (!k.pierce) { e.hitT = g.t; e.hitK = k.tier ?? 0; }   // 화면: 맞은 적이 번쩍·밀려남(규칙에는 안 쓰임). 독(지속 피해)은 매 순간 번쩍이지 않게 뺌
   const now = g.t;
   let m;
   const sh = 1 + augV(g, 'shred');   // 증강체 「부식」: 방깍·마방깍 효과
@@ -972,6 +972,7 @@ function attack(g, u, k) {
     g.fx.push({ kind: 'boom', x: best.x, y: best.y, r, area: !!k.area, type: k.type, elem: k.elem, t: g.t });   // 화면에 범위 표시
   }
   let d0 = 0;
+  for (const e of hits) { e.hsx = u.x; e.hsy = u.y; }   // 화면: 때린 갈매미 반대쪽으로 밀려나는 방향(규칙에는 안 쓰임)
   hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
   // 2026-11-15 사용자 요청(스턴 20%·1초 유닛 한 마리 + 이감 100%면 한 마리도 스턴 없이 못 지나가게): 스턴은 이감처럼 사거리 안 적 모두가 공격마다 굴림
   if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')), r2 = rg2;
@@ -1082,7 +1083,7 @@ export function step(g, dt) {
     if (e.hp > 0) return true;
     g.gold += Math.round(e.gold * (1 + augV(g, 'gold'))); g.kills++;   // 증강체 「새우 풍년」
     if (e.boss) bossDown = true;
-    if (e.by) g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, t: g.t });   // 화면: 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
+    g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, look: e.look, boss: !!e.boss, sx: e.hsx, t: g.t });   // 화면: 쓰러짐(모든 적) + 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
     const killer = byUid.get(e.by), sk = killer ? WISP_SKILL[killer.id] : null;
     if (sk) { const w = rollWisp(g, sk); if (w) { addWisps(g, { [w]: 1 }); news(g, `${UNIT[killer.id].name}이(가) ${GRADE_NAME[w]} 위습을 찾았어요!`); g.fx.push({ kind: 'wisp', x: e.x, y: e.y, grade: w, t: g.t }); } }
     return false;
