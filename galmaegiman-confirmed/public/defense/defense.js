@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=e383d8164c4c';
+import * as E from './engine.js?v=fa4d1d24391f';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -438,6 +438,7 @@ function drawTalk() {
 function sfxTick() {
   if (scene !== 'play' || !G) return;
   if (sfxWatch.g !== G) { Object.assign(sfxWatch, { g: G, wave: G.wave, warn: G.warn, md: G.missionDone, kills: G.kills, boss: G.bossDone ?? 0 }); return; }
+  if (!G.biasShown && G.bias && G.wave >= 1) { G.biasShown = true; biasAlarm(); }   // 판 성향 알림(한 번)
   if (G.kills > sfxWatch.kills) { killSound(G.kills - sfxWatch.kills); sfxWatch.kills = G.kills; }   // 적 처치 소리(2026-11-15)
   if ((G.bossDone ?? 0) !== sfxWatch.boss) { sfxWatch.boss = G.bossDone ?? 0; if (sfxWatch.boss) killSound(0, true); }
   if (G.wave !== sfxWatch.wave) { if (E.waveInfo(G.wave).boss) { sfx('boss'); bossAlarm(); } else if (G.wave === (E.RULES.riftFrom ?? 999) + 1) { sfx('warn'); riftAlarm(); }
@@ -452,7 +453,7 @@ function sfxTick() {
 }
 // 보스 등장(2026-11-12 사용자 요청: 위험하니 보조 창을 내리고 판을 보여 주기 + 빨간 경고)
 // 일시정지·결과·보상 고르기·규칙처럼 사용자가 일부러 연 큰 창은 그대로 두고, 판을 가리는 보조 창만 닫음
-const BOSS_CLOSE = new Set(['book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
+const BOSS_CLOSE = new Set(['shop', 'book', 'upgrade', 'mission', 'more', 'meter', 'storage', 'recruit', 'sound', 'signal', 'peer']);
 const bossWarn = { at: -1e9, wave: 0 };
 const BOSS_WARN_MS = 2600;
 function hardAlarm() {   // 45웨이브: 적 50마리 넘으면 즉시 패배 알림(2026-11-15)
@@ -460,6 +461,9 @@ function hardAlarm() {   // 45웨이브: 적 50마리 넘으면 즉시 패배 �
 }
 function augAlarm(id) {   // 증강체를 고르면 알림(2026-11-15 사용자 요청: 균열·보스 경고처럼). 창은 닫지 않음
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'aug'; bossWarn.aug = id;
+}
+function biasAlarm() {   // 판 성향 알림(판 시작)
+  bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'bias';
 }
 function weatherAlarm() {   // 날씨가 바뀌면 알림(2026-11-16). 창은 닫지 않고 띠만
   bossWarn.at = performance.now(); bossWarn.wave = G.wave; bossWarn.kind = 'weather';
@@ -495,6 +499,16 @@ function drawBossWarn() {
     fitText(`${E.RULES.hardLimitFrom}웨이브부터는 경고 없이 바로 끝나요 · 위 상황판 「적 N/${E.hardLimitOf(G)}」을 지켜보세요`, W / 2, by + 76, bw - 30, 14, '#ffe2c8', 'center');
     ctx.restore();
     return;
+  }
+  if (bossWarn.kind === 'bias') {   // 판 성향(갑옷형·결계형)
+    const bi = E.BIAS[G.bias]; if (!bi) return;
+    ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
+    ctx.globalAlpha = fade;
+    const bw = W - 60, bh = 92, bx = 30, by = 330, cl = G.bias === 'armor' ? '143,183,255' : '255,178,122';
+    box(bx, by, bw, bh, 'rgba(10,26,40,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
+    fitText(`이번 판은 ${bi.name}!`, W / 2, by + 38, bw - 30, 24, `rgb(${cl})`, 'center');
+    fitText(bi.desc, W / 2, by + 68, bw - 30, 15, '#e3eef5', 'center');
+    ctx.restore(); return;
   }
   if (bossWarn.kind === 'weather') {   // 날씨 바뀜: 하늘색 띠(가장자리 빛 없이 — 자주 뜨므로 가볍게)
     const wx = E.weatherOf(G);
@@ -558,7 +572,8 @@ function drawBossWarn() {
   const bw = W - 60, bh = 92, bx = 30, by = 330;
   box(bx, by, bw, bh, 'rgba(60,8,10,.9)', `rgba(255,107,107,${0.6 + 0.4 * pulse})`, 12, 3);
   fitText('⚠ 보스 등장!', W / 2, by + 34, bw - 30, 30, '#ff6b6b', 'center');
-  fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡아야 해요`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center');
+  { const bp = E.BOSS_PAT_INFO[E.BOSS_PAT[(Math.round(bossWarn.wave / E.RULES.bossEvery) - 1) % E.BOSS_PAT.length]];
+    fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
   ctx.restore();
 }
 // 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
@@ -742,6 +757,7 @@ function saveBest() {   // 모드마다 따로
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
   recordRun(w);
   if (G.over === 'win') addClear(G.diff);
+  if (G.gold > 0 && !coop()) { stats.bank = (stats.bank ?? 0) + Math.floor(G.gold); ls.set(STATS_KEY, JSON.stringify(stats)); G.bankNews = `새우 ${fmtN(Math.floor(G.gold))} 저금 · 모은 새우 ${fmtN(stats.bank)}`; }   // 2026-11-16 새우 저금
   if (w > bestOf(G.mode, G.diff)) ls.set(bestKey(G.mode, G.diff), String(w));
   best = bestOf('normal', selDiff);
   const solo = !coop() && !inRoom();
@@ -791,6 +807,7 @@ const clearPts = () => Object.entries(CLEAR_PTS).reduce((a, [d, k]) => a + k * (
 // 꾸미기 포인트(2026-11-10 사용자 요청): 60웨이브 보스 뒤 남은 적까지 0마리로 끝내면(완벽 클리어) 달인 1점·장인 2점(클리어 수와 같은 기준).
 // 잠긴 칸 하나 열기 3점, 무지개 색 열기 5점. 번 것(earned)과 쓴 것(spent)을 따로 두어 기기끼리 합칠 때 큰 값으로 합침
 const COS_COST = { slot: 3, rainbow: 5 };
+const BANK_PER_PT = 50000;   // 모은 새우 → 꾸미기 포인트 1점(2026-11-16)
 const pointsLeft = () => Math.max(0, (stats.earned ?? 0) - (stats.spent ?? 0));
 const cosOpen = () => Math.min(COS_SLOTS.length, COS_SLOTS.filter((n) => clearPts() >= n).length + (stats.boughtSlots ?? 0));
 const rainbowOpen = () => (stats.byDiff?.[RAINBOW_DIFF] ?? 0) > 0 || !!stats.boughtRainbow;
@@ -846,7 +863,7 @@ function mergeExtra(x) {   // 계정에 있던 것(x)과 이 기기 것을 합�
   const mx = (k) => Math.max(Number(stats[k]) || 0, Number(xs[k]) || 0);
   const tcm = JSON.parse(JSON.stringify(stats.topClears ?? {}));   // 최상위 클리어 횟수: 난이도·유닛마다 큰 값
   for (const [d, o] of Object.entries(xs.topClears ?? {})) for (const [id, n] of Object.entries(o ?? {})) if (isTopId(id) && Number(n) > (tcm[d]?.[id] ?? 0)) (tcm[d] ??= {})[id] = Number(n);
-  stats = { ...stats, topClears: tcm, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow), bought: { ...(xs.bought ?? {}), ...(stats.bought ?? {}) } };
+  stats = { ...stats, topClears: tcm, byDiff: bd, earned: mx('earned'), spent: mx('spent'), boughtSlots: mx('boughtSlots'), seen: mx('seen'), bank: mx('bank'), boughtRainbow: !!(stats.boughtRainbow || xs.boughtRainbow), bought: { ...(xs.bought ?? {}), ...(stats.bought ?? {}) } };
   if (x.cosmetic && Array.isArray(x.cosmetic.slots) && (Number(x.cosmetic.at) || 0) > (Number(cosmetic.at) || 0)) cosmetic = { at: x.cosmetic.at, slots: x.cosmetic.slots.map((c) => (c?.id && cosAllowed(c.id) ? c : null)), theme: x.cosmetic.theme ?? '', presets: Array.isArray(x.cosmetic.presets) ? x.cosmetic.presets : [] };
   if (Array.isArray(x.hist)) { const seen = new Set(hist.map((r) => r.at)); hist = [...hist, ...x.hist.filter((r) => r && !seen.has(r.at))].sort((a, b) => b.at - a.at).slice(0, 30); }
   for (const [k, r] of Object.entries(x.bestComp ?? {})) if (r && (!bestComp[k] || r.wave > bestComp[k].wave)) bestComp[k] = r;
@@ -877,7 +894,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'aug', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
+const NONPAUSE = new Set(['shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'aug', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
@@ -1498,6 +1515,8 @@ function drawFieldInner() {
       }
       ctx.beginPath(); ctx.arc(cx, cy, sz * 0.12 * q2 * sc2, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,240,${q2})`; ctx.fill();   // 가운데 섬광
     }
+    if (e.boss && G.t < (e.shieldUntil ?? 0)) { const pu = 0.6 + 0.4 * Math.sin(G.t * 12); ctx.beginPath(); ctx.ellipse(e.x, e.y - sz * 0.35, sz * 0.62, sz * 0.58, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(120,220,255,${0.18 * pu})`; ctx.fill(); ctx.strokeStyle = `rgba(160,235,255,${0.85 * pu})`; ctx.lineWidth = 3; ctx.stroke(); }   // 보스 방어막
+    if (e.boss && G.t < (e.dashUntil ?? 0)) { const P2 = E.pathPos(Math.max(0, e.s - 30)), dx = e.x - P2.x, dy = e.y - P2.y, dl = Math.hypot(dx, dy) || 1; ctx.strokeStyle = 'rgba(255,120,90,.7)'; ctx.lineWidth = 3; for (let k = -1; k <= 1; k++) { const ox2 = -dy / dl * k * 14, oy2 = dx / dl * k * 14; ctx.beginPath(); ctx.moveTo(e.x - dx / dl * 20 + ox2, e.y - sz * 0.3 - dy / dl * 20 + oy2); ctx.lineTo(e.x - dx / dl * 60 + ox2, e.y - sz * 0.3 - dy / dl * 60 + oy2); ctx.stroke(); } }   // 보스 돌진 꼬리
     if (!fxLite && G.t < (e.poisonUntil ?? 0)) for (let b = 0; b < 2; b++) { const ph = ((G.t * 1.6 + b * 0.5 + e.id * 0.13) % 1); ctx.beginPath(); ctx.arc(e.x - 8 + b * 14, e.y - sz * 0.3 - ph * 22, 2.5 + b, 0, Math.PI * 2); ctx.fillStyle = `rgba(120,220,110,${0.7 * (1 - ph)})`; ctx.fill(); }
     if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
   }
@@ -1595,6 +1614,13 @@ function drawFieldInner() {
       ctx.beginPath(); ctx.ellipse(f.x, f.y, rr2, rr2 * FLAT, 0, 0, Math.PI * 2);   // 2.5D: 바닥에 납작하게
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
+    } else if (f.kind === 'bomb' && age < 0.8) {   // 갈매미맨 폭격: 판 전체 섬광 + 적마다 폭발 고리
+      const a = 1 - age / 0.8;
+      if (age < 0.25) { ctx.fillStyle = `rgba(255,236,190,${0.55 * (1 - age / 0.25)})`; ctx.fillRect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); }
+      for (const e of G.enemies) { const r = (12 + age * 70) * (e.boss ? 1.6 : 1); ctx.beginPath(); ctx.arc(e.x, e.y - 14, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,150,60,${0.35 * a})`; ctx.fill(); ctx.strokeStyle = `rgba(255,230,160,${0.9 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
+      if (age < 0.5) { ctx.globalAlpha = 1 - age / 0.5; text('갈매미맨 폭격!', W / 2, FIELD.y + 120 - age * 40, 34, '#ffd76a', 'center'); ctx.globalAlpha = 1; }
+    } else if (f.kind === 'summon' && age < 0.6) {   // 보스가 부하를 부름: 보라 고리
+      const a = 1 - age / 0.6; groundRing(f.x, f.y, 20 + age * 60, '186,120,255', 0.9 * a, 3, 0.2);
     } else if (f.kind === 'kill' && age < 0.6) {   // 쓰러짐(모든 적) + 꾸민 갈매미가 쓰러뜨리면 처치 효과
       if (!fxLite && age < 0.42) drawEnemyDeath(f, age / 0.42);
       const cc = cosUid.get(f.uid); if (cc?.kill) drawKillFx(cc, f, age);
@@ -2422,7 +2448,7 @@ function drawOver() {
   text(`[${diffName(G.diff)}${G.mode !== 'normal' ? ` · ${E.modeOf(G).name}` : ''}] 최고 기록 ${bestText(bestOf(G.mode, G.diff))}`, W / 2, y + 226, 15, C.gold, 'center');
   if (hh) { box(x + 20, y + 242, w - 40, hh - 6, 'rgba(180,72,42,.14)', 'rgba(255,154,133,.5)', 8, 1); hints.forEach((t, i) => fitText(`· ${t}`, x + 30, y + 258 + i * 22, w - 60, 14, '#ffd9cf')); }
   text('이번 조합', x + 24, y + 256 + hh, 13, C.muted);
-  if (G.cosNews) fitText(G.cosNews, x + w - 24, y + 256 + hh, w - 130, 13, C.good, 'right');
+  if (G.cosNews || G.bankNews) fitText(G.cosNews ?? G.bankNews, x + w - 24, y + 256 + hh, w - 130, 13, C.good, 'right');
   drawCompStrip(G.lastRec?.comp ?? compOf(G), x + 24, y + 268 + hh, w - 48, 34);
   button(x + 30, y + 318 + hh, w - 60, 54, '다시 하기', () => start(undefined, G.mode, G.diff), 'primary');
   button(x + 30, y + 382 + hh, w - 60, 44, '시작 화면으로', () => { scene = 'title'; modal = null; }, 'quiet');
@@ -2658,7 +2684,8 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('꾸미기', x + 18, y + 32, 24, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''} · 포인트 ${pointsLeft()}점`, x + 18, y + 66, w - 36, 14, C.muted);
+  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''} · 포인트 ${pointsLeft()}점 · 모은 새우 ${fmtN(stats.bank ?? 0)}`, x + 18, y + 66, w - 36 - 190, 14, C.muted);
+  button(x + w - 18 - 180, y + 50, 180, 34, `새우 ${fmtN(BANK_PER_PT)} → 1점`, () => { if ((stats.bank ?? 0) < BANK_PER_PT) return say(`모은 새우가 ${fmtN(BANK_PER_PT)} 있어야 해요(지금 ${fmtN(stats.bank ?? 0)}). 판이 끝날 때 남은 새우가 모여요.`); stats.bank -= BANK_PER_PT; stats.earned = (stats.earned ?? 0) + 1; ls.set(STATS_KEY, JSON.stringify(stats)); cloudSaveExtra(); say(`꾸미기 포인트 +1(지금 ${pointsLeft()}점)`); }, 'normal', (stats.bank ?? 0) >= BANK_PER_PT);   // 2026-11-16 새우 저금 → 포인트
   // 칸 8개
   const sw = (w - 24 - 7 * 6) / 8;
   COS_SLOTS.forEach((need, i) => {
@@ -2902,21 +2929,56 @@ function drawToast() {   // 짧은 알림(판 아래쪽 가운데)
 // 가로 화면 오른쪽 위(창이 없을 때): 이번 웨이브 피해 순위 미니판 + 안내
 function drawSideTop() {
   box(8, 6, W - 16, 658, 'rgba(16,36,51,.82)', C.edge, 12);
-  text('이번 웨이브 피해', 22, 30, 17, C.gold);
-  const rows = E.fieldUnits(G).concat(E.awayUnits(G)).map((u) => ({ u, d: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d).slice(0, 8);
-  const top = rows[0]?.d ?? 1;
-  if (!rows.length) fitText('아직 이번 웨이브에 피해를 준 갈매미가 없어요', W / 2, 90, W - 60, 14, C.muted, 'center');
-  rows.forEach((r, i) => {
-    const y = 52 + i * 50, col = GRADE_COLOR[E.UNIT[r.u.id].grade];
-    drawFit(unitImg(r.u.id), 18, y, 40, 44);
-    fitText(`${E.UNIT[r.u.id].name}${r.u.away ? ' (탐사)' : ''}`, 64, y + 14, 180, 14, col);
-    box(64, y + 27, W - 64 - 120, 8, 'rgba(0,0,0,.45)', null, 4);
-    box(64, y + 27, (W - 64 - 120) * r.d / top, 8, col, null, 4);
-    fitText(fmtN(r.d), W - 24, y + 22, 90, 14, C.text, 'right');
+  // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 에픽 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
+  text('시너지', 22, 28, 17, C.gold);
+  const bi = E.BIAS[G.bias];
+  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : '물리'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', G.bias === 'armor' ? '#8fb7ff' : '#ffb27a', 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, G.bias === 'armor' ? '#bcd3ff' : '#ffd0a8', 'center'); }
+  const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
+  if (!list.length) fitText('에픽 이상 같은 속성을 2종 모으면 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
+  list.forEach((el, i) => {
+    const sv = syn[el], y = 44 + i * 40, col = `rgb(${ELEM_COL[el] ?? '220,220,220'})`, on = sv.lv > 0, nx = E.SYN_STEPS.find((x) => sv.n < x);
+    box(16, y, W - 32, 36, on ? 'rgba(11,30,42,.95)' : 'rgba(11,30,42,.5)', on ? col : 'rgba(145,122,76,.35)', 8, on ? 2 : 1);
+    ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; ctx.lineTo(38 + Math.cos(a) * 13, y + 18 + Math.sin(a) * 13); } ctx.closePath();   // 육각 표
+    ctx.fillStyle = on ? col : 'rgba(80,90,100,.8)'; ctx.fill(); text(String(sv.n), 38, y + 19, 14, on ? '#10202c' : '#cfd6da', 'center');
+    text(E.SYN_NAME[el], 62, y + 18, 15, on ? col : '#9aa9b0');
+    E.SYN_STEPS.forEach((st, k) => { const px = 120 + k * 52; box(px, y + 10, 44, 16, sv.n >= st ? col : 'rgba(0,0,0,.4)', 'rgba(255,255,255,.15)', 5, 1); text(`${st}종`, px + 22, y + 18, 11, sv.n >= st ? '#10202c' : '#7d8c94', 'center'); });
+    fitText(on ? `피해 +${Math.round(sv.bonus * 100)}%${nx ? ` · ${nx}종이면 +${Math.round(E.SYN_BONUS[E.SYN_STEPS.indexOf(nx)] * 100)}%` : ''}` : `${nx}종이면 피해 +${Math.round(E.SYN_BONUS[0] * 100)}%`, 284, y + 18, W - 300, 12, on ? C.text : '#8b9aa3');
   });
-  const hy = 470;
-  ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(22, hy, W - 44, 1);
-  if (!TOUCH) fitText('단축키 1~5 위습 · U 강화 · M 탐사 · S 창고 · B 조합법 · P 선택 · D 피해 · L 고정', 22, hy + 30, W - 44, 12, C.muted);   // 터치 기기에는 필요 없음(2026-11-11 검토)
+  // ② 이번 웨이브 피해(줄여서 위 4)
+  const my = 44 + Math.max(1, list.length) * 40 + 14;
+  text('이번 웨이브 피해', 22, my, 15, C.gold);
+  const rows = E.fieldUnits(G).concat(E.awayUnits(G)).map((u) => ({ u, d: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d).slice(0, Math.max(2, Math.floor((548 - my - 16) / 38)));
+  const top = rows[0]?.d ?? 1;
+  if (!rows.length) fitText('아직 이번 웨이브에 피해를 준 갈매미가 없어요', 22, my + 28, W - 44, 13, C.muted);
+  rows.forEach((r, i) => {
+    const y = my + 14 + i * 38, col = GRADE_COLOR[E.UNIT[r.u.id].grade];
+    drawFit(unitImg(r.u.id), 18, y, 32, 34);
+    fitText(`${E.UNIT[r.u.id].name}${r.u.away ? ' (탐사)' : ''}`, 56, y + 11, 180, 13, col);
+    box(56, y + 22, W - 56 - 110, 7, 'rgba(0,0,0,.45)', null, 4);
+    box(56, y + 22, (W - 56 - 110) * r.d / top, 7, col, null, 4);
+    fitText(fmtN(r.d), W - 24, y + 18, 84, 13, C.text, 'right');
+  });
+  // ③ 갈매미맨 폭격(2026-11-16) · 새우 상점
+  const by = 560, left = E.skillLeft(G), ready = left <= 0 && !G.over;
+  button(16, by, W - 32 - 150, 92, ready ? '갈매미맨 폭격!' : '갈매미맨 폭격', () => { if (E.useSkill(G)) sfx('boss'); }, ready ? 'primary' : 'normal', ready, ready ? `일반 적 체력 ${Math.round(E.RULES.skillPct * 100)}% · 보스 ${Math.round(E.RULES.skillBossPct * 100)}%` : `${Math.ceil(left)}초 뒤에 쓸 수 있어요`);
+  if (!ready) box(16, by + 86, (W - 32 - 150) * (1 - left / E.RULES.skillCd), 6, C.gold, null, 3);
+  button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)}`);
+}
+// 새우 상점(2026-11-16): 무작위 위습·리롤권. 살 때마다 값이 오름. 판이 끝나면 남은 새우는 저금(첫 화면 꾸미기에서 포인트로)
+function drawShop() {
+  shadeAll(0.3);
+  const R0 = modalRect(), x = R0.x + 6, y = R0.y, w = R0.w - 12, h = Math.min(R0.h, 420);
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('새우 상점', x + 18, y + 30, 22, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText(`가진 새우 ${fmtN(G.gold)} · 무작위로 나와요 · 살수록 비싸져요 · 판이 끝나면 남은 새우는 저금돼요`, x + 18, y + 66, w - 36, 13, C.muted);
+  Object.entries(E.SHOP).forEach(([id, it], i) => {
+    const yy = y + 92 + i * 100, pr = E.shopPrice(G, id);
+    box(x + 14, yy, w - 28, 88, 'rgba(11,30,42,.85)', C.edge, 10, 1.5);
+    text(it.name, x + 30, yy + 30, 18, C.text);
+    fitText(id === 'reroll' ? '에픽 한 마리를 다른 에픽으로 바꿔요' : `산 횟수 ${G.shopN?.[id] ?? 0}번`, x + 30, yy + 60, w - 230, 13, C.muted);
+    button(x + w - 28 - 160, yy + 14, 160, 60, '사기', () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', G.gold >= pr, `새우 ${fmtN(pr)}`);
+  });
 }
 function drawSideEmpty() {
   box(14, 100, W - 28, H - 108, 'rgba(11,30,42,.35)', 'rgba(145,122,76,.35)', 14, 1.5);
@@ -3167,6 +3229,7 @@ function drawModal() {
   if (modal?.kind === 'book') drawBook();
   else if (modal?.kind === 'mission') drawMission();
   else if (modal?.kind === 'upgrade') drawUpgrade();
+  else if (modal?.kind === 'shop') drawShop();
   else if (modal?.kind === 'sound') drawSound();
   else if (modal?.kind === 'pick') drawPick();
   else if (modal?.kind === 'more') drawMore();

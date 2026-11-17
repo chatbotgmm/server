@@ -56,6 +56,8 @@ export const RULES = {
   hpX: 0.8,   // 적 체력 전체 배율. 2026-11-16: 선택 위습을 무작위로 바꾸고 몰아주던 모집권을 줄이며 1 → 0.8(달인 봇 깬 비율을 예전과 비슷하게)
   poisonMul: 0.15,   // 독 세기(자연 주력). 2026-11-16: 중첩·방어 무시를 넣으며 0.25 → 0.15(스턴 없는 이감+독 봇 달인 12/60, 일반 봇 9/60)
   poisonStack: 3,   // 독은 다른 갈매미 것 3겹까지 더해짐(2026-11-16)
+  synergy: true,   // 시너지 켬
+  skillCd: 90, skillFirst: 30, skillPct: 0.35, skillBossPct: 0.05,   // 갈매미맨 폭격
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -574,8 +576,11 @@ export const DIFFS = {
 };
 export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
 export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
-export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor);   // 이 판(난이도)의 그 웨이브 방어력
-export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr);            // 마법방어
+// 판 성향(2026-11-16 사용자 요청): 판을 시작할 때 무작위로 갑옷형(방어↑ 마방↓) 또는 결계형(반대). 그 판 내내 모든 적에
+export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마방 ×0.75 — 마법이 유리', armor: 1.4, mr: 0.75 }, mr: { name: '결계형', desc: '적 마방 ×1.4 · 방어 ×0.75 — 물리가 유리', armor: 0.75, mr: 1.4 } };
+const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
+export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
+export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul(g, 'mr'));            // 마법방어
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal', diff = 'master') {
   return {
     seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, rerolls: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
@@ -586,6 +591,8 @@ export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal',
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
     over: null, reason: '', fx: [], news: [], zones: [], augs: [], augOffer: null,
+    bias: rng((seed ^ 0xb1a5) >>> 0)() < 0.5 ? 'armor' : 'mr',   // 판 성향(판의 난수 흐름과 따로)
+    skillAt: RULES.skillFirst ?? 30, shopN: {},
   };
 }
 // 이어하기(사용자 요청 2026-11-08): 판 전체를 글로 저장하고 되살린다. 규칙 판이 바뀌면(SAVE_VER) 예전 저장은 버림
@@ -599,7 +606,7 @@ export function loadGame(text) {
     const g = o.g, s = g.rand >>> 0;
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null;
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null; g.skillAt ??= 0; g.shopN ??= {};
     for (const u of g.units) u.held = false;   // 들고 있던 중에 저장된 판
     return g;
   } catch { return null; }
@@ -613,6 +620,38 @@ export const unitsOfGrade = (grade) => BY_GRADE[grade] ?? [];
 
 // 판에서 싸우는 갈매미(탐사 중·창고 제외)
 export const fieldUnits = (g) => g.units.filter((u) => !u.away && !u.stored);
+// 시너지(2026-11-16 사용자 요청, TFT처럼): 판에 있는 에픽 이상 갈매미를 속성별로 「종류」 수로 셈. 2·4·6종이면 그 속성 피해 +10·22·36%
+export const SYN_ELEMS = ['FIRE', 'WATER', 'ICE', 'LIGHTNING', 'NATURE', 'HOLY', 'DARK', 'NORMAL'];
+export const SYN_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '빛', DARK: '어둠', NORMAL: '보통' };
+export const SYN_STEPS = [2, 4, 6], SYN_BONUS = [0.1, 0.22, 0.36];
+export function synergyOf(g) {
+  if (g._syn?.t === g.t && g._syn.n === g.units.length) return g._syn.v;
+  const kinds = {};
+  for (const u of g.units) { if (u.away || u.stored || UNIT[u.id]?.role === SPECIAL_ROLE || tierOf(u.id) < 3) continue; const el = kit(u.id).elem; (kinds[el] ??= new Set()).add(u.id); }
+  const v = {};
+  for (const el of SYN_ELEMS) { const n = kinds[el]?.size ?? 0; const lv = SYN_STEPS.filter((x) => n >= x).length; v[el] = { n, lv, bonus: lv ? SYN_BONUS[lv - 1] : 0 }; }
+  g._syn = { t: g.t, n: g.units.length, v };
+  return v;
+}
+const synBonus = (g, el) => (RULES.synergy && el ? synergyOf(g)[el]?.bonus ?? 0 : 0);
+// 갈매미맨 폭격(2026-11-16 사용자 요청): skillCd초마다. 일반 적은 최대 체력의 skillPct, 보스는 skillBossPct만큼(방어 무시)
+export const skillLeft = (g) => Math.max(0, (g.skillAt ?? 0) - g.t);
+export function useSkill(g) {
+  if (g.over || skillLeft(g) > 0) return false;
+  for (const e of g.enemies) { if (e.hp <= 0) continue; const d = e.max * (e.boss ? RULES.skillBossPct : RULES.skillPct); e.hp -= d; e.hitT = g.t; e.hitK = 6; e.hsx = e.x; e.hsy = e.y - 40; }
+  g.skillAt = g.t + RULES.skillCd; g.fx.push({ kind: 'bomb', t: g.t, n: g.enemies.length });
+  return true;
+}
+// 새우 상점(2026-11-16 사용자 요청): 무작위 위습·리롤권. 살 때마다 값이 올라감
+export const SHOP = { rare: { name: '무작위 레어 위습', base: 1500, grow: 1.18, give: { RARE: 1 } }, epic: { name: '무작위 에픽 위습', base: 6000, grow: 1.25, give: { EPIC: 1 } }, reroll: { name: '에픽 리롤권', base: 4000, grow: 1.3 } };
+export const shopPrice = (g, id) => Math.round(SHOP[id].base * Math.pow(SHOP[id].grow, g.shopN?.[id] ?? 0) / 10) * 10;
+export function shopBuy(g, id) {
+  const it = SHOP[id]; if (!it) return { ok: false, why: '없는 물건이에요.' };
+  const pr = shopPrice(g, id); if (g.gold < pr) return { ok: false, why: `새우가 모자라요(${pr} 필요).` };
+  g.gold -= pr; (g.shopN ??= {})[id] = (g.shopN[id] ?? 0) + 1;
+  if (it.give) addWisps(g, it.give); if (id === 'reroll') g.rerolls = (g.rerolls ?? 0) + 1;
+  return { ok: true, price: pr };
+}
 // 창고: 판에서 빠져 공격은 안 하지만 조합 재료로는 쓰인다(사용자 요청 2026-11-08)
 export const storedUnits = (g) => g.units.filter((u) => u.stored);
 const nearSpawn = (g, u) => { const a = g.rand() * Math.PI * 2, r = 10 + g.rand() * 40; const p = clampField(SPAWN.x + Math.cos(a) * r, SPAWN.y + Math.sin(a) * r); u.x = u.tx = p.x; u.y = u.ty = p.y; };
@@ -902,6 +941,8 @@ function hurt(g, e, raw, k, uid) {
   else if (k.type === 'phys') m = defMul(e.armor * wd - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
   else m = defMul(e.mr * wd - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
+  if (e.shieldUntil > now) m *= 0.3;   // 보스 방어막
+  m *= 1 + synBonus(g, k.elem);   // 시너지
   if (augV(g, 'lowtide')) m *= k.tier <= 2 ? AUGS.lowtide.v : k.tier >= 4 ? 0.85 : 1;   // 룰 브레이커 「하급 총공세」
   if (augV(g, 'allin')) m *= 1 + AUGS.allin.v;   // 룰 브레이커 「모 아니면 도」
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
@@ -1007,13 +1048,26 @@ function startWave(g) {
   g.spawnLeft = (wi.boss ? 1 : 0) + RULES.perWave; g.bossLeft = wi.boss ? 1 : 0; g.spawnT = 0;   // 2026-11-15 사용자 요청: 보스 웨이브에도 일반 적이 똑같이 나옴(보스 먼저)
 }
 export const riftAt = (w) => (w > (RULES.riftFrom ?? 999) ? Math.min(RULES.riftMax ?? 0, (RULES.riftPer ?? 0) * (w - RULES.riftFrom)) : 0);   // 그 웨이브 라인 적의 균열 저항
-function spawn(g) {
-  const w0 = waveInfo(g.wave), asBoss = w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
-  if (w0.boss) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
+// 보스 행동(2026-11-16 사용자 요청): 보스마다 셋 중 하나 — 방어막(10초마다 3초간 받는 피해 30%) · 부하 소환(8초마다 일반 적 2) · 돌진(7초마다 1.5초간 속도 ×2.5)
+export const BOSS_PAT = ['shield', 'summon', 'dash'];
+export const BOSS_PAT_INFO = { shield: { name: '방어막', desc: '10초마다 3초 동안 받는 피해 30%' }, summon: { name: '부하 소환', desc: '8초마다 일반 적 2마리를 부름' }, dash: { name: '돌진', desc: '7초마다 1.5초 동안 빠르게 달림' } };
+function bossTick(g, e) {
+  if (!e.bpat || g.t < (e.bt ?? 0) || e.hp <= 0) return;
+  if (e.bpat === 'shield') { e.shieldUntil = g.t + 3; e.bt = g.t + 10; }
+  else if (e.bpat === 'dash') { e.dashUntil = g.t + 1.5; e.bt = g.t + 7; }
+  else if (e.bpat === 'summon') {
+    e.bt = g.t + 8;
+    for (let i = 0; i < 2; i++) { spawn(g, true); const m = g.enemies[g.enemies.length - 1]; m.s = Math.max(0, e.s - 18 * (i + 1)); const p = pathPos(m.s); m.x = p.x; m.y = p.y; }
+    g.fx.push({ kind: 'summon', x: e.x, y: e.y, t: g.t });
+  }
+}
+function spawn(g, minion = false) {
+  const w0 = waveInfo(g.wave), asBoss = !minion && w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
+  if (w0.boss && !minion) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
   const wi = asBoss ? w0 : waveInfo(g.wave, true);
   const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
-  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor), mr: Math.round(wi.mr * df.mr), rift,
+  g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor * biasMul(g, 'armor')), mr: Math.round(wi.mr * df.mr * biasMul(g, 'mr')), rift, ...(wi.boss ? { bpat: BOSS_PAT[(Math.round(g.wave / RULES.bossEvery) - 1) % BOSS_PAT.length], bt: g.t + 6 } : {}),
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });
 }
 function rollWisp(g, skill) {
@@ -1040,7 +1094,8 @@ export function step(g, dt) {
     e.slow = 0;
     if (e.slows) { for (const id in e.slows) { const sl = e.slows[id]; if (g.t >= sl.until) delete e.slows[id]; else e.slow += sl.v; } }
     e.slow = Math.min(SLOW_MAX, e.slow * (1 + augV(g, 'slow')));   // 합계(화면에 보여 줌). 증강체 「끈끈한 바다」
-    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? 1 : 1 - augV(g, 'chrono')) * wsp;   // 증강체 「시간 왜곡」
+    if (e.boss) bossTick(g, e);
+    const v = g.t < e.stunUntil ? 0 : e.speed * slowMul(e.slow) * (e.boss ? (g.t < (e.dashUntil ?? 0) ? 2.5 : 1) : 1 - augV(g, 'chrono')) * wsp;   // 증강체 「시간 왜곡」
     e.s += v * dt;
     const p = pathPos(e.s); e.x = p.x; e.y = p.y;
     if (e.poisons && g.t < e.poisonUntil) {   // 독: 센 것부터 poisonStack겹(방어 무시)
