@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=2b33eb9b96cf';
+import * as E from './engine.js?v=3be99a070507';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -504,7 +504,7 @@ function drawBossWarn() {
     const bi = E.BIAS[G.bias]; if (!bi) return;
     ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
     ctx.globalAlpha = fade;
-    const bw = W - 60, bh = 92, bx = 30, by = 330, cl = G.bias === 'armor' ? '143,183,255' : '255,178,122';
+    const bw = W - 60, bh = 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
     box(bx, by, bw, bh, 'rgba(10,26,40,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
     fitText(`이번 판은 ${bi.name}!`, W / 2, by + 38, bw - 30, 24, `rgb(${cl})`, 'center');
     fitText(bi.desc, W / 2, by + 68, bw - 30, 15, '#e3eef5', 'center');
@@ -573,7 +573,7 @@ function drawBossWarn() {
   box(bx, by, bw, bh, 'rgba(60,8,10,.9)', `rgba(255,107,107,${0.6 + 0.4 * pulse})`, 12, 3);
   fitText('⚠ 보스 등장!', W / 2, by + 34, bw - 30, 30, '#ff6b6b', 'center');
   { const bp = E.BOSS_PAT_INFO[E.BOSS_PAT[(Math.round(bossWarn.wave / E.RULES.bossEvery) - 1) % E.BOSS_PAT.length]];
-    fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
+    fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}${bossWarn.wave >= (E.RULES.lateBossFrom ?? 999) ? ` · ${{ armor: '갑옷 보스(방어 ×2.2) — 마법으로', mr: '결계 보스(마방 ×2.2) — 물리로', split: '철벽 보스(방어·마방 ×2.2) — 독으로' }[G.bias] ?? ''}` : ''}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
   ctx.restore();
 }
 // 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
@@ -1494,7 +1494,7 @@ function drawFieldInner() {
   }
   // 적
   for (const e of G.enemies) {
-    const sz = e.boss ? 84 : 44, sh = enemyImg(e.look);
+    const sz = e.boss ? 84 : 44 * Math.pow(0.8, e.gen ?? 0), sh = enemyImg(e.look);   // 분열한 적은 작게
     // 맞는 표현(2026-11-16 사용자 요청: 더 액션감 있게 → 「약하다」로 한 번 더 세게): 때린 쪽 반대로 크게 튕겼다 돌아옴(등급 높을수록 멀리, 보스는 조금)
     // + 처음 0.05초 멈칫 흔들림 + 크게 납작해졌다 펴짐 + 진한 번쩍임 + 테두리 있는 금빛 타격 불꽃·충격 고리
     const ha = G.t - (e.hitT ?? -9), HT = 0.22, hq = !fxLite && ha < HT ? 1 - ha / HT : 0, bm = e.boss ? 0.4 : 1;
@@ -1827,7 +1827,7 @@ function drawHud() {
   ctx.font = `12px ${FONT}`;
   const sx = 150 + cw + 8, maxW = W - 224 - sx;
   if (maxW > 40) {
-    const t1 = `깎기 물${Math.round(shSum)}`, t2 = ` · 마${Math.round(mshSum)}`;
+    const t1 = `깎인 방어 ${armorNow}→${Math.max(0, Math.round(armorNow - shSum))}`, t2 = ` · 마방 ${mrNow}→${Math.max(0, Math.round(mrNow - mshSum))}`;   // 2026-11-19 사용자 요청: 깎은 뒤 남는 방어 수치로
     const tw = ctx.measureText(t1 + t2).width, sc2 = Math.min(1, maxW / tw), fs = Math.max(10, Math.floor(12 * sc2));
     text(t1, sx, 28, fs, okCol(shSum));
     ctx.font = `${fs}px ${FONT}`;
@@ -2025,6 +2025,8 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-team', '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`],
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
+    ['menu/currency-shrimp', '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', `새우 ${fmtN(G.gold)}`],   // 2026-11-19: 세로 화면에서도
+    ...(E.skillOn(G) ? [['ui/icon-goldenstrike', '갈매미맨 폭격', () => { if (E.useSkill(G)) { sfx('boss'); modal = null; } else say(E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤에 쓸 수 있어요` : `새우 ${fmtN(E.skillCost(G))}이(가) 필요해요`); }, E.skillLeft(G) <= 0 && G.gold >= E.skillCost(G) ? 'primary' : 'normal', E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤` : `새우 ${fmtN(E.skillCost(G))}`]] : []),
   ];
   // 맨 위: 미뤄 둔 증강체·보상 고르기, 가진 증강체(2026-11-15)
   let cy0 = 0;
@@ -2032,7 +2034,7 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
   else if (G.augs?.length) { fitText(`증강체: ${G.augs.map((id) => E.AUGS[id].name).join(' · ')}`, x + 18, y + 72, w - 36, 14, C.goldEdge); cy0 += 24; }
   if (G.choice) button(x + 12, y + 64 + cy0, w - 24, 64, `${E.REGIONS[G.choice.k].ch}장 보상 고르기`, () => { modal = { kind: 'choice' }; }, 'primary', true, '초월 갈매미맨 · 전설 위습 1 · 에픽 선택 위습 2 중 하나');
   if (G.choice) cy0 += 76;
-  const gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12 - cy0) / 2);
+  const rowsN = Math.ceil(items.length / 2), gw = (w - 36) / 2, gh = Math.min(96, (h - 80 - 12 * (rowsN - 1) - cy0) / rowsN);
   items.forEach(([icon, nm, fn, style, sub], i) => menuButton(x + 12 + (i % 2) * (gw + 12), y + 64 + cy0 + Math.floor(i / 2) * (gh + 12), gw, gh, icon, nm, fn, style, sub));
 }
 // 지금 조합할 수 있는 조합법 수(0.5초마다 다시 셈)
@@ -2932,7 +2934,7 @@ function drawSideTop() {
   // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 에픽 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
   text('시너지', 22, 28, 17, C.gold);
   const bi = E.BIAS[G.bias];
-  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : '물리'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', G.bias === 'armor' ? '#8fb7ff' : '#ffb27a', 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, G.bias === 'armor' ? '#bcd3ff' : '#ffd0a8', 'center'); }
+  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
   const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
   if (!list.length) fitText('에픽 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
   list.forEach((el, i) => {
@@ -2958,11 +2960,14 @@ function drawSideTop() {
     box(56, y + 22, (W - 56 - 110) * r.d / top, 7, col, null, 4);
     fitText(fmtN(r.d), W - 24, y + 18, 84, 13, C.text, 'right');
   });
-  // ③ 갈매미맨 폭격(2026-11-16) · 새우 상점
-  const by = 560, left = E.skillLeft(G), ready = left <= 0 && !G.over;
-  button(16, by, W - 32 - 150, 92, ready ? '갈매미맨 폭격!' : '갈매미맨 폭격', () => { if (E.useSkill(G)) sfx('boss'); }, ready ? 'primary' : 'normal', ready, ready ? `일반 적 체력 ${Math.round(E.RULES.skillPct * 100)}% · 보스 ${Math.round(E.RULES.skillBossPct * 100)}%` : `${Math.ceil(left)}초 뒤에 쓸 수 있어요`);
-  if (!ready) box(16, by + 86, (W - 32 - 150) * (1 - left / E.RULES.skillCd), 6, C.gold, null, 3);
-  button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)}`);
+  // ③ 갈매미맨 폭격(증강체 「갈매미맨 호출」이 있을 때만, 새우를 냄) · 새우 상점
+  const by = 560;
+  if (E.skillOn(G)) {
+    const left = E.skillLeft(G), cost = E.skillCost(G), ready = left <= 0 && !G.over && G.gold >= cost;
+    button(16, by, W - 32 - 150, 92, '갈매미맨 폭격', () => { if (E.useSkill(G)) sfx('boss'); }, ready ? 'primary' : 'normal', ready, left > 0 ? `${Math.ceil(left)}초 뒤 · 새우 ${fmtN(cost)}` : `새우 ${fmtN(cost)} · 일반 적 체력 ${Math.round(E.RULES.skillPct * 100)}%`);
+    if (left > 0) box(16, by + 86, (W - 32 - 150) * (1 - left / E.RULES.skillCd), 6, C.gold, null, 3);
+    button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)}`);
+  } else button(16, by, W - 32, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)} · 무작위 위습·리롤권`);
 }
 // 새우 상점(2026-11-16): 무작위 위습·리롤권. 살 때마다 값이 오름. 판이 끝나면 남은 새우는 저금(첫 화면 꾸미기에서 포인트로)
 function drawShop() {
@@ -3273,8 +3278,9 @@ function drawAug() {
   const { x, y, w, h } = modalRect(), o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
   box(x, y, w, h, C.panel, col, 14, 2.5);
   text(`${o.wave}웨이브 돌파! 증강체 고르기`, x + 18, y + 30, 22, C.text);
-  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
+  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요 · 다시 뽑기 1번${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
   button(x + w - 110, y + 10, 96, 40, '나중에', () => { G.augLater = true; modal = null; say('증강체는 아래 「더보기」에서 언제든 고를 수 있어요.'); }, 'quiet');
+  button(x + w - 214, y + 10, 96, 40, o.rerolled ? '리롤 끝' : '다시 뽑기', () => { if (E.rerollAug(G)) sfx('wisp'); }, 'normal', !o.rerolled);   // 2026-11-19: 제시마다 1번
   const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
   o.opts.forEach((id, i) => {
     const a = E.AUGS[id], cy = y + 84 + i * (ch + 12), rb = !!a.rb;
