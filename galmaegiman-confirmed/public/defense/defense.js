@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=b5ff8549f9db';
+import * as E from './engine.js?v=2fafe245b18e';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2067,14 +2067,20 @@ function drawUnitPanel(y0, u) {
     button(W - 222, y0 + 10, 104, 40, u.rerolled ? '리롤 끝' : `리롤 (${G.rerolls ?? 0})`, () => { if (u.rerolled) return say('한 번 리롤한 갈매미는 다시 리롤할 수 없어요.'); const was = info.name, nu = E.rerollUnit(G, u.uid); if (nu) say(`리롤: ${was} → ${E.UNIT[nu.id].name}`); else say('리롤권이 없어요. 10웨이브 보스마다 1개 받아요.'); }, ok ? 'primary' : 'normal');   // 누르면 다른 에픽으로(리롤권 1개)
   }
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
-  text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
+  const sgOn = !list.length && E.tierOf(u.id) >= E.TOP_TIER && E.SIGNATURE[u.id];   // 2026-11-19: 최상위는 조합법 자리에 고유 기술 버튼
+  text(sgOn ? '고유 기술 직접 쓰기' : list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
   // 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 휴대폰에서 작음), 조합법 줄은 남는 높이만큼
   const ex = Math.max(0, PBOT - H), BH = Math.min(70, 44 + ex * 0.15), b6 = (W - 44 - 12) / 3;
   const by2 = PBOT - 16 - BH, by1 = by2 - 6 - BH, rowsN = Math.max(1, Math.min(4, Math.floor((by1 - 6 - (y0 + 112)) / 50)));
   // 2026-11-11 사용자 지적(태초가 들어가는 마딜이 없다고 보임 — 칸이 한 줄뿐이라 둘째 조합법이 「조합법 +1」 뒤에 숨음):
   // 줄 수보다 조합법이 많으면 작은 카드(그림·이름·물딜/마딜)로 나란히 보여 줌. 누르면 그 조합법 자리로 조합법 창을 엶
-  const shown = list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
+  if (sgOn) {
+    const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), bw3 = W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
+    button(18, yy, bw3, bh3, `「${sg.name}」 쓰기`, () => { const r = E.castSig(G, u.uid); if (r === true) sfx('boss'); else if (r === 'none') say('사거리 안에 적이 없어요.'); else if (left > 0) say(`${Math.ceil(left)}초 뒤에 쓸 수 있어요.`); }, ok ? 'primary' : 'normal', ok, left > 0 ? `${Math.ceil(left)}초 뒤에 다시 쓸 수 있어요` : `지금 쓰면 위력 ×${E.RULES.sigCastMul} · 쿨타임 ${E.RULES.sigCastCd}초(갈매미마다 따로)`);
+    if (left > 0) box(18, yy + bh3 - 6, bw3 * (1 - left / E.RULES.sigCastCd), 6, C.gold, null, 3);
+  }
+  const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
     : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);
   const bx = (i) => 22 + (i % 3) * (b6 + 6), byOf = (i) => (i < 3 ? by1 : by2);
   button(bx(0), byOf(0), b6, BH, list.length > shown ? `조합법 +${list.length - shown}` : '조합법', () => openBook(null, u.id), 'normal');

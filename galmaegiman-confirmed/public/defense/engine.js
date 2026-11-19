@@ -63,6 +63,7 @@ export const RULES = {
   skillCd: 180, skillFirst: 0, skillPct: 0.3, skillBossPct: 0.03, skillGoldBase: 1500,   // 갈매미맨 폭격: 증강체 「갈매미맨 호출」이 있어야, 쓸 때 새우(1500×(1+웨이브/10)), 3분마다
   lateBossFrom: 40,   // 이 웨이브부터 보스는 판 성향 보스
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
+  sigCastMul: 2, sigCastCd: 30,   // 최상위 고유 기술 직접 쓰기: 배율·쿨타임(초)
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -1018,6 +1019,27 @@ function applyAuras(g) {
       if (k.slow && e.speed) { (e.slows ??= {})[u.uid] = { v: k.slow, until: now + AURA_HOLD }; e.slowUntil = now + AURA_HOLD; }
     }
   }
+}
+// 고유 기술 직접 쓰기(2026-11-19 사용자 요청: 최상위는 정보 창에서 눌러 씀, 갈매미마다 쿨타임): 사거리 안 대상에게 그 기술 ×sigCastMul
+export const sigCastLeft = (g, u) => Math.max(0, (u?.castAt ?? 0) - g.t);
+export const canCast = (g, u) => !!u && !!SIGNATURE[u.id] && tierOf(u.id) >= TOP_TIER && !u.away && !u.stored && !u.held && !g.over && sigCastLeft(g, u) <= 0;
+export function castSig(g, uid) {
+  const u = unitById(g, uid); if (!canCast(g, u)) return false;
+  const k = kit(u.id), s0 = SIGNATURE[u.id], best = pickTarget(g, u, k); if (!best) return 'none';
+  signature(g, u, k, best, { ...s0, mul: s0.mul * (RULES.sigCastMul ?? 2) });
+  u.castAt = g.t + (RULES.sigCastCd ?? 30);
+  return true;
+}
+function pickTarget(g, u, k) {
+  let best = null, bestD = Infinity;
+  const rgw = k.range * (weatherOf(g).range ?? 1), rg2 = rgw * rgw;
+  for (const e of g.enemies) {
+    if (e.hp <= 0) continue;
+    const d2 = (e.x - u.x) ** 2 + (e.y - u.y) ** 2; if (d2 > rg2) continue;
+    if (!k.line) { if (best?.boss && !e.boss) continue; if (d2 >= bestD && !(e.boss && !best?.boss)) continue; } else if (d2 >= bestD) continue;
+    best = e; bestD = d2;
+  }
+  return best;
 }
 function attack(g, u, k) {
   // 공격 대상: 사거리 안에서 가장 가까운 적 먼저(사용자 요청 2026-11-08)
