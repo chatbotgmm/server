@@ -532,7 +532,7 @@ export const AUGS = {
   storm: { name: '연쇄 번개', desc: '공격의 15%가 가까운 적 하나에게 60% 피해로 튕김', v: 0.15 },
   legend: { name: '전설의 부름', desc: '지금 전설 위습 1개 + 에픽 위습 2개', v: 1 },
   supply: { name: '보급선', desc: '지금 모집권 6개 + 리롤권 2개', v: 1 },
-  bomb: { name: '갈매미맨 호출', desc: '폭격 버튼 열림: 새우를 내고 일반 적 체력 30%·보스 3% (3분마다)', v: 1 },
+  bomb: { name: '갈매미맨 호출', desc: '폭격 버튼: 새우로 적 체력 30% 깎기(3분마다)', v: 1 },
   allin: { name: '모 아니면 도', desc: '모든 피해 +50% · 즉시 패배 50 → 40마리', v: 0.5, rb: true },
 };
 export const AUG_POOL = { 20: ['phys', 'mag', 'haste', 'shred', 'slow', 'stun', 'boss', 'explore', 'gold', 'upg', 'wisp', 'warn', 'lowtide', 'rush', 'bomb'], 40: ['fury', 'chrono', 'exec', 'rift', 'storm', 'legend', 'supply', 'allin', 'bomb'] }
