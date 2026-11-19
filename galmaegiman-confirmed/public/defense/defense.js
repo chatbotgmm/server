@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=84432eb9cd27';
+import * as E from './engine.js?v=b5ff8549f9db';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2064,7 +2064,7 @@ function drawUnitPanel(y0, u) {
   // 에픽 리롤(2026-11-12): 보상으로 받은 에픽만, 리롤권이 있을 때
   if (E.tierOf(u.id) >= 3 && u.got && info.role !== E.SPECIAL_ROLE) {   // 에픽 이상(2026-11-12)
     const ok = E.canReroll(G, u);
-    button(W - 222, y0 + 10, 104, 40, `리롤 (${G.rerolls ?? 0})`, () => { const was = info.name, nu = E.rerollUnit(G, u.uid); if (nu) say(`리롤: ${was} → ${E.UNIT[nu.id].name}`); else say('리롤권이 없어요. 10웨이브 보스마다 1개 받아요.'); }, ok ? 'primary' : 'normal');   // 누르면 다른 에픽으로(리롤권 1개)
+    button(W - 222, y0 + 10, 104, 40, u.rerolled ? '리롤 끝' : `리롤 (${G.rerolls ?? 0})`, () => { if (u.rerolled) return say('한 번 리롤한 갈매미는 다시 리롤할 수 없어요.'); const was = info.name, nu = E.rerollUnit(G, u.uid); if (nu) say(`리롤: ${was} → ${E.UNIT[nu.id].name}`); else say('리롤권이 없어요. 10웨이브 보스마다 1개 받아요.'); }, ok ? 'primary' : 'normal');   // 누르면 다른 에픽으로(리롤권 1개)
   }
   const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
   text(list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);

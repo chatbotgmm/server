@@ -802,13 +802,13 @@ export function recruit(g) {
 }
 // 에픽 리롤(2026-11-12 사용자 요청): 보상으로 받은 에픽(위습·선택 위습·용병모집, got 표시)만 리롤권 1개로 다른 에픽으로 바꿈. 조합으로 만든 에픽은 안 됨
 // 2026-11-12: 에픽 이상(전설·히든 등)도 — 같은 등급의 다른 갈매미로. 초월 갈매미맨(재료)은 제외
-export const canReroll = (g, u) => !!u && !!u.got && tierOf(u.id) >= 3 && UNIT[u.id]?.role !== SPECIAL_ROLE && !u.away && (g.rerolls ?? 0) > 0 && !g.over;
+export const canReroll = (g, u) => !!u && !!u.got && !u.rerolled && tierOf(u.id) >= 3 && UNIT[u.id]?.role !== SPECIAL_ROLE && !u.away && (g.rerolls ?? 0) > 0 && !g.over;
 export function rerollUnit(g, uid) {
   const u = unitById(g, uid);
   if (!canReroll(g, u)) return null;
   const pool = (BY_GRADE[UNIT[u.id].grade] ?? []).filter((id) => id !== u.id && UNIT[id].role !== SPECIAL_ROLE);
   if (!pool.length) return null;
-  const was = u.id; u.id = pool[Math.floor(g.rand() * pool.length)]; u.cd = 0.3; u.sigN = 0; g.rerolls--;
+  const was = u.id; u.id = pool[Math.floor(g.rand() * pool.length)]; u.cd = 0.3; u.sigN = 0; g.rerolls--; u.rerolled = true;   // 2026-11-19 사용자 요청: 한 번 리롤한 갈매미는 다시 리롤 못 함
   g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t });
   news(g, `리롤: ${UNIT[was].name} → ${UNIT[u.id].name}`);
   return u;
