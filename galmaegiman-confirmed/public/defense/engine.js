@@ -623,17 +623,28 @@ export const fieldUnits = (g) => g.units.filter((u) => !u.away && !u.stored);
 // 시너지(2026-11-16 사용자 요청, TFT처럼): 판에 있는 에픽 이상 갈매미를 속성별로 「종류」 수로 셈. 2·4·6종이면 그 속성 피해 +10·22·36%
 export const SYN_ELEMS = ['FIRE', 'WATER', 'ICE', 'LIGHTNING', 'NATURE', 'HOLY', 'DARK', 'NORMAL'];
 export const SYN_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '빛', DARK: '어둠', NORMAL: '보통' };
-export const SYN_STEPS = [2, 4, 6], SYN_BONUS = [0.1, 0.22, 0.36];
+export const SYN_STEPS = [2, 3, 4];
+// 2026-11-16 사용자 의견(시너지가 밸런스에 영향을 줘야): 속성마다 다른 효과(TFT처럼), 단계 2·3·4종
+export const SYN_FX = {
+  FIRE: { v: [0.35, 0.7, 1.2], text: (v) => `불 속성 피해 +${Math.round(v * 100)}%` },
+  WATER: { v: [0.12, 0.22, 0.32], text: (v) => `모든 적 이동속도 −${Math.round(v * 100)}%` },
+  ICE: { v: [0.5, 1, 1.6], text: (v) => `스턴 확률 +${Math.round(v * 100)}%` },
+  LIGHTNING: { v: [0.12, 0.25, 0.4], text: (v) => `모든 갈매미 공격 속도 +${Math.round(v * 100)}%` },
+  NATURE: { v: [0.6, 1.2, 2], text: (v) => `독 피해 +${Math.round(v * 100)}%` },
+  HOLY: { v: [0.3, 0.6, 1], text: (v) => `보스에게 주는 피해 +${Math.round(v * 100)}%` },
+  DARK: { v: [0.15, 0.28, 0.42], text: (v) => `적 방어·마방 −${Math.round(v * 100)}%` },
+  NORMAL: { v: [0.1, 0.2, 0.32], text: (v) => `모든 피해 +${Math.round(v * 100)}%` },
+};
 export function synergyOf(g) {
   if (g._syn?.t === g.t && g._syn.n === g.units.length) return g._syn.v;
   const kinds = {};
   for (const u of g.units) { if (u.away || u.stored || UNIT[u.id]?.role === SPECIAL_ROLE || tierOf(u.id) < 3) continue; const el = kit(u.id).elem; (kinds[el] ??= new Set()).add(u.id); }
   const v = {};
-  for (const el of SYN_ELEMS) { const n = kinds[el]?.size ?? 0; const lv = SYN_STEPS.filter((x) => n >= x).length; v[el] = { n, lv, bonus: lv ? SYN_BONUS[lv - 1] : 0 }; }
+  for (const el of SYN_ELEMS) { const n = kinds[el]?.size ?? 0; const lv = RULES.synergy ? SYN_STEPS.filter((x) => n >= x).length : 0; v[el] = { n, lv, bonus: lv ? SYN_FX[el].v[lv - 1] : 0 }; }
   g._syn = { t: g.t, n: g.units.length, v };
   return v;
 }
-const synBonus = (g, el) => (RULES.synergy && el ? synergyOf(g)[el]?.bonus ?? 0 : 0);
+export const synV = (g, el) => (RULES.synergy ? synergyOf(g)[el]?.bonus ?? 0 : 0);   // 그 속성 시너지 효과 값(꺼져 있으면 0)
 // 갈매미맨 폭격(2026-11-16 사용자 요청): skillCd초마다. 일반 적은 최대 체력의 skillPct, 보스는 skillBossPct만큼(방어 무시)
 export const skillLeft = (g) => Math.max(0, (g.skillAt ?? 0) - g.t);
 export function useSkill(g) {
@@ -816,7 +827,7 @@ export const upgGroup = (tier) => [0, 0, 1, 2, 3, 3, 4, 5, 6, 7][tier];
 export const upgradeCost = (g, gi) => Math.round((1 - augV(g, 'upg')) * (RULES.upgBase[gi] * Math.pow(RULES.upgGrowth ?? 1, g.upg[gi]) + (RULES.upgGrowth ? 0 : RULES.upgStep[gi] * g.upg[gi])));   // 증강체 「단골 대장간」
 export const upgMul = (g, tier) => 1 + RULES.upgPct * g.upg[upgGroup(tier)];
 export const upgSpdMul = (g, tier) => 1 + (RULES.upgSpd ?? 0) * g.upg[upgGroup(tier)];
-export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier) / (1 + augV(g, 'haste')) / (weatherOf(g).atk ?? 1);   // 날씨 「순풍」   // 증강체 「날갯짓 가속」   // 강화하면 공격 간격이 짧아짐
+export const gapOf = (g, k) => k.gap / upgSpdMul(g, k.tier) / (1 + augV(g, 'haste')) / (weatherOf(g).atk ?? 1) / (1 + synV(g, 'LIGHTNING'));   // 시너지 「번개」   // 날씨 「순풍」   // 증강체 「날갯짓 가속」   // 강화하면 공격 간격이 짧아짐
 export const upgMaxed = (g, gi) => g.upg[gi] >= RULES.upgMax;
 export function upgrade(g, gi) {
   const cost = upgradeCost(g, gi);
@@ -936,13 +947,13 @@ function hurt(g, e, raw, k, uid) {
   const now = g.t;
   let m;
   const sh = 1 + augV(g, 'shred');   // 증강체 「부식」: 방깍·마방깍 효과
-  const wd = weatherOf(g).def ?? 1;   // 날씨 「소금 결계」: 방어·마방 ×
+  const wd = (weatherOf(g).def ?? 1) * (1 - synV(g, 'DARK'));   // 날씨 「소금 결계」·시너지 「어둠」: 방어·마방 ×
   if (k.pierce) m = upgMul(g, k.tier);   // 독: 방어·마방 무시
   else if (k.type === 'phys') m = defMul(e.armor * wd - effSum(e, 'shreds', now) * sh) * upgMul(g, k.tier);
   else m = defMul(e.mr * wd - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (e.shieldUntil > now) m *= 0.3;   // 보스 방어막
-  m *= 1 + synBonus(g, k.elem);   // 시너지
+  if (g.units) { if (k.elem === 'FIRE') m *= 1 + synV(g, 'FIRE'); m *= 1 + synV(g, 'NORMAL'); if (e.boss) m *= 1 + synV(g, 'HOLY'); if (k.pierce && k.poison) m *= 1 + synV(g, 'NATURE'); }   // 시너지: 불·보통·빛·자연
   if (augV(g, 'lowtide')) m *= k.tier <= 2 ? AUGS.lowtide.v : k.tier >= 4 ? 0.85 : 1;   // 룰 브레이커 「하급 총공세」
   if (augV(g, 'allin')) m *= 1 + AUGS.allin.v;   // 룰 브레이커 「모 아니면 도」
   if (e.boss) { if (k.holy) m *= k.holy; m *= k.bossMul ?? 1; }   // 보스·외부탐사 대장: 단일 공격형은 더 세게, 라인 정리형은 약하게
@@ -963,7 +974,7 @@ function debuff(g, e, k, uid = 0, aura = false) {   // aura: 이감·마방깍�
     e.slowUntil = now + 1.5;
   }
   const st = k.stunTime ?? 1;
-  const stx = 1 + augV(g, 'stun');   // 증강체 「천둥 부리」
+  const stx = (1 + augV(g, 'stun')) * (1 + synV(g, 'ICE'));   // 증강체 「천둥 부리」·시너지 「얼음」
   if (k.stun && e.speed && g.rand() < k.stun * stx) e.stunUntil = Math.max(e.stunUntil, now + st * (e.boss ? BOSS_STUN : 1));
   if (k.astun && e.speed && g.rand() < k.astun * stx) for (const o of g.enemies) if (o.hp > 0 && Math.hypot(o.x - e.x, o.y - e.y) <= 70) o.stunUntil = Math.max(o.stunUntil, now + st * (o.boss ? BOSS_STUN : 1));
   // 독(2026-11-16 사용자 요청: 독 조합으로도 깰 수 있게): 다른 갈매미의 독은 poisonStack겹까지 더해지고(같은 갈매미는 시간만 늘어남), 방어·마방을 무시함
@@ -1016,7 +1027,7 @@ function attack(g, u, k) {
   for (const e of hits) { e.hsx = u.x; e.hsy = u.y; }   // 화면: 때린 갈매미 반대쪽으로 밀려나는 방향(규칙에는 안 쓰임)
   hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
   // 2026-11-15 사용자 요청(스턴 20%·1초 유닛 한 마리 + 이감 100%면 한 마리도 스턴 없이 못 지나가게): 스턴은 이감처럼 사거리 안 적 모두가 공격마다 굴림
-  if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')), r2 = rg2;
+  if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')) * (1 + synV(g, 'ICE')), r2 = rg2;
     for (const e of g.enemies) { if (e.hp <= 0 || !e.speed || hits.includes(e) || (e.x - u.x) ** 2 + (e.y - u.y) ** 2 > r2) continue; if (g.rand() < p) e.stunUntil = Math.max(e.stunUntil, g.t + st * (e.boss ? BOSS_STUN : 1)); } }
   // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
   if (best.boss && k.tier >= 4 && d0 > 0 && g.fx.filter((f) => f.kind === 'num').length < 4) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
@@ -1088,7 +1099,7 @@ export function step(g, dt) {
     if (g.spawnT <= 0) { spawn(g); g.spawnLeft--; g.spawnT = RULES.spawnGap; }
   }
   applyAuras(g);
-  const wsp = (weatherOf(g).spd ?? 1) * (1 + augV(g, 'rush'));   // 날씨 「만조」 · 룰 브레이커 「빠른 물살」
+  const wsp = (weatherOf(g).spd ?? 1) * (1 + augV(g, 'rush')) * (1 - synV(g, 'WATER'));   // 시너지 「물」   // 날씨 「만조」 · 룰 브레이커 「빠른 물살」
   for (const e of g.enemies) {
     if (e.hp <= 0) continue;
     e.slow = 0;

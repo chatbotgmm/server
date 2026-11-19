@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=fa4d1d24391f';
+import * as E from './engine.js?v=2b33eb9b96cf';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2934,7 +2934,7 @@ function drawSideTop() {
   const bi = E.BIAS[G.bias];
   if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : '물리'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', G.bias === 'armor' ? '#8fb7ff' : '#ffb27a', 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, G.bias === 'armor' ? '#bcd3ff' : '#ffd0a8', 'center'); }
   const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
-  if (!list.length) fitText('에픽 이상 같은 속성을 2종 모으면 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
+  if (!list.length) fitText('에픽 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
   list.forEach((el, i) => {
     const sv = syn[el], y = 44 + i * 40, col = `rgb(${ELEM_COL[el] ?? '220,220,220'})`, on = sv.lv > 0, nx = E.SYN_STEPS.find((x) => sv.n < x);
     box(16, y, W - 32, 36, on ? 'rgba(11,30,42,.95)' : 'rgba(11,30,42,.5)', on ? col : 'rgba(145,122,76,.35)', 8, on ? 2 : 1);
@@ -2942,7 +2942,7 @@ function drawSideTop() {
     ctx.fillStyle = on ? col : 'rgba(80,90,100,.8)'; ctx.fill(); text(String(sv.n), 38, y + 19, 14, on ? '#10202c' : '#cfd6da', 'center');
     text(E.SYN_NAME[el], 62, y + 18, 15, on ? col : '#9aa9b0');
     E.SYN_STEPS.forEach((st, k) => { const px = 120 + k * 52; box(px, y + 10, 44, 16, sv.n >= st ? col : 'rgba(0,0,0,.4)', 'rgba(255,255,255,.15)', 5, 1); text(`${st}종`, px + 22, y + 18, 11, sv.n >= st ? '#10202c' : '#7d8c94', 'center'); });
-    fitText(on ? `피해 +${Math.round(sv.bonus * 100)}%${nx ? ` · ${nx}종이면 +${Math.round(E.SYN_BONUS[E.SYN_STEPS.indexOf(nx)] * 100)}%` : ''}` : `${nx}종이면 피해 +${Math.round(E.SYN_BONUS[0] * 100)}%`, 284, y + 18, W - 300, 12, on ? C.text : '#8b9aa3');
+    { const fx = E.SYN_FX[el]; fitText(on ? `${fx.text(sv.bonus)}${nx ? ` · ${nx}종이면 ${fx.text(fx.v[sv.lv]).replace(/^.*?([+−]\d+%)$/, '$1')}` : ''}` : `${nx}종이면 ${fx.text(fx.v[0])}`, 284, y + 18, W - 300, 12, on ? C.text : '#8b9aa3'); }
   });
   // ② 이번 웨이브 피해(줄여서 위 4)
   const my = 44 + Math.max(1, list.length) * 40 + 14;

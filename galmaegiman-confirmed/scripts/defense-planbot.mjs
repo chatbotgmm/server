@@ -33,7 +33,7 @@ if (process.env.BOTWISH === 'poison') for (const style of ['mag', 'phys']) {
 }
 // 전설 환산(2026-11-15 사용자 기준 「전설 10마리 정도면 클리어」): 전설·히든 1, 최상위 2.5(재료 전설 2~3마리)
 const legEq = (g) => E.fieldUnits(g).concat(E.awayUnits(g)).reduce((a, u) => { const t = E.tierOf(u.id); return a + (E.UNIT[u.id].role === E.SPECIAL_ROLE ? 0 : t >= 6 ? 2.5 : t >= 4 ? 1 : 0); }, 0);
-const eqLog = [], compLog = [];
+const eqLog = [], compLog = [], synLog = [], synEl = {};
 // 조합 조화도(2026-11-16 사용자 기준: 이감·스턴·깎기 조건이 맞는 팀인지). 주력 공격 쪽(초당 피해가 큰 쪽) 깎기 합 ÷ 그 웨이브 방어, 이감 합(1까지), 스턴 가진 유닛 수
 const harmony = (g) => { const f = E.fieldUnits(g); let pd = 0, md = 0, sh = 0, msh = 0, sl = 0, st = 0;
   for (const u of f) { const k = E.kit(u.id); const d = k.dmg / k.gap * E.upgMul(g, k.tier); if (k.type === 'phys') pd += d; else md += d; sh += k.shred ?? 0; msh += k.mshred ?? 0; sl += k.slow ?? 0; if (k.stun || k.astun) st++; }
@@ -130,10 +130,16 @@ for (let s = SEED0 + 1; s <= SEED0 + N; s++) {
     const base = WISH[style].filter((id) => E.tierOf(id) < 6);
     wish = [...base.slice(0, 3), ...tops.slice(0, 2), ...base.slice(3)];
   }
+  if (process.env.SYNBOT === '1') {   // 2026-11-16: 판마다 속성 하나를 정해 그 속성 에픽·전설을 먼저 노림(시너지 확인용)
+    const els = ['FIRE', 'WATER', 'ICE', 'LIGHTNING', 'NATURE', 'HOLY', 'DARK', 'NORMAL'], el = els[s % els.length];
+    const mine = E.UNITS.filter((u) => u.role !== E.SPECIAL_ROLE && E.tierOf(u.id) >= 3 && E.tierOf(u.id) <= 5 && E.kit(u.id).elem === el).sort((a, b) => E.tierOf(a.id) - E.tierOf(b.id)).map((u) => u.id);
+    wish = [...mine.slice(0, 5), ...wish.filter((id) => !mine.slice(0, 5).includes(id))];
+  }
   const st = { n: 0, style, wish: wish.filter((id) => E.UNIT[id]) }; let acc = 0;
   let eq40 = null, eq55 = null, hm55 = null;
   while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; if (eq40 == null && g.wave >= 40) eq40 = legEq(g); if (eq55 == null && g.wave >= 55) { eq55 = legEq(g); hm55 = harmony(g); } }
   compLog.push({ win: g.over === 'win', wave: g.over === 'win' ? 61 : g.wave, left: g.leftover ?? null, ids: [...new Set(E.fieldUnits(g).concat(E.awayUnits(g)).filter((u) => E.tierOf(u.id) >= 4 && E.UNIT[u.id].role !== E.SPECIAL_ROLE).map((u) => u.id))] });
+  if (process.env.SYN === '1') { const sv = E.synergyOf(g); synLog.push(E.SYN_ELEMS.map((el) => sv[el].lv).reduce((a, b) => Math.max(a, b), 0) + ':' + E.SYN_ELEMS.filter((el) => sv[el].lv).length); const el = ['FIRE', 'WATER', 'ICE', 'LIGHTNING', 'NATURE', 'HOLY', 'DARK', 'NORMAL'][s % 8]; (synEl[el] ??= []).push([sv[el].lv, g.over === 'win' ? 61 : g.wave]); }
   eqLog.push({ eq40, eqEnd: legEq(g), eq55, hm55, win: g.over === 'win', wave: g.wave, left: g.leftover ?? null });
   ch6s.push(ch6); ends.push(end);
   res.push(g.over === 'win' ? 61 : g.wave);
@@ -167,3 +173,6 @@ if (process.env.COMP === '1') {   // 2026-11-16 사용자 제안: 판 끝 조합
   for (const r of rows) console.log(`COMP ${r.tier >= 6 ? '최상위' : '전설'} ${r.name}(${r.id}) 들어간 판 ${r.n} · 깬 비율 ${(r.wr * 100).toFixed(0)}% · 평균 끝 웨이브 ${r.wv.toFixed(1)}`);
   if (process.env.LOSECOMP === '1') for (const r of compLog.filter((r) => !r.win)) console.log(`LOSE ${r.wave} | ${r.ids.map((id) => E.UNIT[id].name).join(',')}`);
 }
+
+if (process.env.SYN === '1') { const c = {}; for (const k of synLog) c[k] = (c[k] ?? 0) + 1; console.log('시너지(최고 단계:켜진 속성 수) ' + JSON.stringify(c)); }
+if (process.env.SYN === '1') for (const [el, a] of Object.entries(synEl)) console.log(`SYNEL ${el} 단계 [${a.map((x) => x[0]).join(',')}] 끝 웨이브 평균 ${(a.reduce((t, x) => t + x[1], 0) / a.length).toFixed(1)} 깸 ${a.filter((x) => x[1] === 61).length}/${a.length}`);
