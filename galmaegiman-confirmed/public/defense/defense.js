@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=780ce2f3a16f';
+import * as E from './engine.js?v=84432eb9cd27';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -3278,8 +3278,8 @@ function drawAug() {
   const { x, y, w, h } = modalRect(), o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
   box(x, y, w, h, C.panel, col, 14, 2.5);
   text(`${o.wave}웨이브 돌파! 증강체 고르기`, x + 18, y + 30, 22, C.text);
-  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요 · 다시 뽑기 1번${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
-  button(x + w - 110, y + 10, 96, 40, '나중에', () => { G.augLater = true; modal = null; say('증강체는 아래 「더보기」에서 언제든 고를 수 있어요.'); }, 'quiet');
+  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요 · 다시 뽑기 1번 · 시간이 지나면 자동으로 골라져요${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
+  { const left = Math.max(0, Math.ceil((o.until ?? G.t) - G.t)); box(x + w - 110, y + 10, 96, 40, 'rgba(7,19,28,.85)', left <= 5 ? C.bad : C.edge, 10, 1.5); text(`${left}초`, x + w - 62, y + 30, 18, left <= 5 ? C.bad : C.goldEdge, 'center'); }   // 남은 시간(지나면 자동 선택)
   button(x + w - 214, y + 10, 96, 40, o.rerolled ? '리롤 끝' : '다시 뽑기', () => { if (E.rerollAug(G)) sfx('wisp'); }, 'normal', !o.rerolled);   // 2026-11-19: 제시마다 1번
   const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
   o.opts.forEach((id, i) => {
@@ -3290,7 +3290,7 @@ function drawAug() {
     text(a.name.slice(0, 1), x + 62, cy + ch / 2 + 1, 26, col, 'center');   // 첫 글자를 문장처럼(기호 글꼴이 없는 기기에서도 보이게)
     fitText(a.name, x + 108, cy + ch / 2 - 14, w - 108 - 24 - 112, 19, col);
     fitText(a.desc, x + 108, cy + ch / 2 + 14, w - 108 - 24 - 112, 14, C.text, 'left', 10);
-    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { G.augLater = false; modal = null; augAlarm(id); sfx('story'); } }, 'primary');
+    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); } }, 'primary');
   });
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
@@ -3698,7 +3698,7 @@ function frame(now) {
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
   else if (scene === 'play' && G?.choice && !G.choiceLater && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
-  else if (scene === 'play' && G?.augOffer && !G.augLater && !G.over && modal?.kind !== 'aug' && (!modal || modal.kind === 'mission')) { modal = { kind: 'aug' }; info = null; }   // 증강체 고르기(다른 창을 보고 있으면 닫은 뒤에)
+  else if (scene === 'play' && G?.augOffer && !G.over && modal?.kind !== 'aug' && (!modal || modal.kind === 'mission')) { modal = { kind: 'aug' }; info = null; }   // 증강체 고르기(다른 창을 보고 있으면 닫은 뒤에)
   // 설명 창이 열린 채 다른 창(선택위습·강화 …)을 열면 설명 창을 닫는다(사용자 지적 2026-11-08: 새 창이 설명 창 뒤에 열렸음)
   if (modal !== seenModal) { if (info && modal) info = null; seenModal = modal; }
   const wantStrip = coop() && scene === 'play';

@@ -62,6 +62,7 @@ export const RULES = {
   synergy: true,   // 시너지 켬
   skillCd: 180, skillFirst: 0, skillPct: 0.3, skillBossPct: 0.03, skillGoldBase: 1500,   // 갈매미맨 폭격: 증강체 「갈매미맨 호출」이 있어야, 쓸 때 새우(1500×(1+웨이브/10)), 3분마다
   lateBossFrom: 40,   // 이 웨이브부터 보스는 판 성향 보스
+  augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -557,7 +558,7 @@ function offerAug(g) {
   const pool = AUG_POOL[g.wave].filter((id) => !(g.augs ?? []).includes(id));
   const r = rng(((g.seed >>> 0) ^ Math.imul(g.wave, 2654435761)) >>> 0);   // 판의 난수 흐름과 따로(증강체 제시가 다른 운에 영향을 주지 않게)
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  g.augOffer = { wave: g.wave, opts: pool.slice(0, 3) };
+  g.augOffer = { wave: g.wave, opts: pool.slice(0, 3), until: g.t + (RULES.augPickSec ?? 20) };   // 2026-11-19 사용자 요청: 미루기 없음, 시간이 지나면 자동 선택
   news(g, `${g.wave}웨이브 돌파! 증강체 하나를 고르세요`);
 }
 export function rerollAug(g) {   // 2026-11-19 사용자 요청: 증강체 다시 뽑기(제시마다 1번 무료)
@@ -566,7 +567,7 @@ export function rerollAug(g) {   // 2026-11-19 사용자 요청: 증강체 다�
   const r = rng(((g.seed >>> 0) ^ Math.imul(o.wave + 977, 2654435761)) >>> 0);
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
   if (pool.length < 3) return false;
-  g.augOffer = { wave: o.wave, opts: pool.slice(0, 3), rerolled: true };
+  g.augOffer = { wave: o.wave, opts: pool.slice(0, 3), rerolled: true, until: o.until };
   return true;
 }
 export function chooseAug(g, i) {
@@ -621,7 +622,7 @@ export function loadGame(text) {
     const g = o.g, s = g.rand >>> 0;
     if (o.v === 1 && (g.missionDone ?? 0) >= OLD_STORY_LEN) { g.missionDone = REGIONS.length; g.mission = null; }
     g.rand = rng(0); g.rand.s = s;
-    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null; g.skillAt ??= 0; g.shopN ??= {};
+    g.fx = []; g.dmg ??= {}; g.dmgWave ??= {}; g.autoGrades ??= {}; g.missionDmg ??= []; g.tickets ??= 0; g.diff ??= 'master'; g.zones ??= []; g.rerolls ??= 0; g.augs ??= []; g.augOffer ??= null; if (g.augOffer && g.augOffer.until == null) g.augOffer.until = g.t + (RULES.augPickSec ?? 20); g.skillAt ??= 0; g.shopN ??= {};
     for (const u of g.units) u.held = false;   // 들고 있던 중에 저장된 판
     return g;
   } catch { return null; }
@@ -1141,6 +1142,7 @@ export function step(g, dt) {
     }
   }
   const byUid = new Map(g.units.map((u) => [u.uid, u]));
+  if (g.augOffer && g.t >= (g.augOffer.until ?? Infinity)) { const o = g.augOffer, i = Math.floor(rng(((g.seed >>> 0) ^ Math.imul(o.wave + 31, 2654435761)) >>> 0)() * o.opts.length); chooseAug(g, i); news(g, `증강체를 고르지 않아 「${AUGS[g.augs[g.augs.length - 1]].name}」이(가) 자동으로 골라졌어요`); }   // 시간이 지나면 셋 중 무작위로
   if (g.peerDmg || g.units.some((u) => u.away)) ensureMission(g);   // 같이하기 친구 피해 · 2026-11-19 버그: 장을 깬 뒤 다음 장 대장이 탐사 창을 열어야 생겨, 창을 안 열면 남은 탐사 갈매미가 놀던 것
   const ms = g.mission && missionOpen(g) && g.mission.k === g.missionDone ? g.mission : null;
   const buffs = buffsOf(g);   // 주변 버프·패널티(이번 걸음)
