@@ -46,6 +46,7 @@ export const RULES = {
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
+  topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
   splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
@@ -622,7 +623,29 @@ export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마
 const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
 export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
 export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul(g, 'mr'));            // 마법방어
+// 판마다 열리는 최상위(2026-11-21 사용자 요청: 갑옷형·결계형은 최상위를 늘 같은 것으로 쉽게 만들어 깸 → 랜덤성).
+// 갑옷형·결계형 판은 등급(제한·초월·불멸·영원)마다 조합법의 topOpen 비율(반올림)만 무작위로 열림. 열린 것 전체에 물딜·마딜이 각각 3종 이상 되게 다시 뽑음.
+// 분열형은 따로 어려움이 있어 모두 열림(null = 모두 열림, 예전 저장본도 null)
+export function topOpenFor(seed, bias) {
+  if (bias === 'split' || !(RULES.topOpen > 0 && RULES.topOpen < 1)) return null;
+  const r = rng((seed ^ 0x70f3a1) >>> 0), byG = {};
+  for (const rc of RECIPES) { const t = tierOf(rc.out); if (t >= TOP_TIER) (byG[t] ??= new Set()).add(rc.out); }
+  for (let tries = 0; tries < 50; tries++) {
+    const open = [];
+    for (const ids of Object.values(byG)) {
+      const a = [...ids]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+      open.push(...a.slice(0, Math.max(1, Math.round(a.length * RULES.topOpen))));
+    }
+    const ph = open.filter((id) => kit(id).type === 'phys').length;
+    if (ph >= 3 && open.length - ph >= 3) return open.sort();
+  }
+  return null;
+}
+export const topIsOpen = (g, id) => !g.topOpen || tierOf(id) < TOP_TIER || g.topOpen.includes(id);
 export function newGame(seed = (Math.random() * 2 ** 32) >>> 0, mode = 'normal', diff = 'master') {
+  const g = newGame0(seed, mode, diff); g.topOpen = topOpenFor(seed, g.bias); return g;
+}
+function newGame0(seed, mode, diff) {
   return {
     seed, mode: MODES[mode] ? mode : 'normal', diff: DIFFS[diff] ? diff : 'master', rand: rng(seed), dmg: {}, dmgWave: {}, tickets: 0, rerolls: 0, t: 0, gold: RULES.startGold ?? 0, kills: 0, upg: Array(8).fill(0),
     wave: 0, waveT: 0, spawnLeft: 0, spawnT: 0,
@@ -907,6 +930,7 @@ export const topCount = (g) => g.units.filter((u) => tierOf(u.id) >= TOP_TIER).l
 export const eternalCount = (g) => g.units.filter((u) => tierOf(u.id) === 9).length;
 export function topBlockWhy(g, r) {
   const t = tierOf(r.out); if (t < TOP_TIER) return '';
+  if (!topIsOpen(g, r.out)) return '이번 판에는 닫힌 최상위예요';
   if (RULES.topCap > 0 && topCount(g) >= RULES.topCap) return `상위(제한~영원)는 ${RULES.topCap}마리까지예요`;
   if (t === 9 && g.wave < (RULES.eternalFrom ?? 0)) return `영원은 ${RULES.eternalFrom}웨이브부터 만들 수 있어요`;
   if (t === 9 && eternalCount(g) >= (RULES.eternalCap ?? 99)) return `영원은 ${RULES.eternalCap}마리까지예요`;

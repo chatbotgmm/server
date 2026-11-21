@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=8de2e693ce2b';
+import * as E from './engine.js?v=dc4d1ab559a2';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -521,10 +521,11 @@ function drawBossWarn() {
     const bi = E.BIAS[G.bias]; if (!bi) return;
     ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
     ctx.globalAlpha = fade;
-    const bw = W - 60, bh = 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
+    const bw = W - 60, bh = G.topOpen ? 116 : 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
     box(bx, by, bw, bh, 'rgba(10,26,40,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
     fitText(`이번 판은 ${bi.name}!`, W / 2, by + 38, bw - 30, 24, `rgb(${cl})`, 'center');
     fitText(bi.desc, W / 2, by + 68, bw - 30, 15, '#e3eef5', 'center');
+    if (G.topOpen) fitText(`이번 판 열린 최상위 ${G.topOpen.length}종(등급마다 절반) — 조합법 창에서 확인`, W / 2, by + 94, bw - 30, 14, '#ffd76a', 'center');   // 2026-11-21
     ctx.restore(); return;
   }
   if (bossWarn.kind === 'weather') {   // 날씨 바뀜: 하늘색 띠(가장자리 빛 없이 — 자주 뜨므로 가볍게)
@@ -2213,7 +2214,7 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
     let cx = x; const cy = y + row * (h + 4);
     while (n < list.length) {
       const { r, ok } = list[n], out = E.UNIT[r.out], k = E.kit(r.out);
-      const sub = `${k.type === 'phys' ? '물딜' : '마딜'} · ${ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
+      const shut = !E.topIsOpen(G, r.out), sub = `${k.type === 'phys' ? '물딜' : '마딜'} · ${shut ? '이번 판 닫힘' : ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
       ctx.font = `14px ${FONT}`; const nw = ctx.measureText(out.name).width; ctx.font = `12px ${FONT}`;
       const cw = Math.min(190, Math.max(96, h + 12 + Math.max(nw, ctx.measureText(sub).width)));
       if (cx + cw > x + w + 0.5 && cx > x) break;
@@ -2221,7 +2222,8 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
       box(cx, cy, ww, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', ok ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok ? 2 : 1.5);
       drawFit(unitImg(r.out), cx + 3, cy + 3, h - 6, h - 6);
       fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
-      fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
+      fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
+      if (shut) box(cx, cy, ww, h, 'rgba(7,19,28,.45)', null, 8);
       hit(cx, cy, ww, h, () => openBook(r.out, using));
       cx += ww + 6; n++;
     }
@@ -2238,7 +2240,8 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   fitText(out.name, x + 50, ny, 92, 16, GRADE_COLOR[out.grade]);
   const gn = goalNeed();
   if (gn[r.out]) { ctx.font = `16px ${FONT}`; goalDots(gn[r.out], x + 50 + Math.min(92, ctx.measureText(out.name).width) + 8 + (gn[r.out].length - 1) * 12, ny, 5); }   // 이름 바로 옆   // 목표에 필요한 중간 재료를 만드는 줄
-  if (tall) fitText(`${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, C.muted);
+  const shut = !E.topIsOpen(G, r.out);   // 2026-11-21: 이번 판에 닫힌 최상위
+  if (tall) fitText(shut ? '이번 판 닫힘' : `${E.GRADE_NAME[out.grade]}${r.hidden ? ' · 히든 조합' : ''}`, x + 50, y + 31, 92, 12, shut ? C.bad : C.muted);
   // 재료 모인 정도 게이지(사용자 요청 2026-11-15): 금빛 = 진행(색 규칙), 다 모이면 초록
   // 기본 재료 기준(아래 재료까지). 기본 재료가 다 모이면 100%·초록(2026-11-15 사용자 요청) — 「조합」이 중간 재료부터 한 번에 만듦
   { const pg = progOf(r, cnt), direct = have(r, cnt) === r.in.length, n = pg.got;
@@ -2269,7 +2272,8 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('웨이브부터') ? `${E.RULES.eternalFrom}웨~` : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
+  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('웨이브부터') ? `${E.RULES.eternalFrom}웨~` : E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
+  if (shut) box(x, y, w - 112, h, 'rgba(7,19,28,.45)', null, 8);   // 닫힌 최상위는 흐리게
 }
 
 // ── 모달 ──
@@ -2354,7 +2358,7 @@ function drawBook() {
     rows.sort((a, b) => (b.frac - a.frac) || (E.tierOf(b.r.out) - E.tierOf(a.r.out)));
     items.push(...rows);
   } else {
-    rows.sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (b.ok - a.ok));
+    rows.sort((a, b) => (E.tierOf(a.r.out) - E.tierOf(b.r.out)) || (E.topIsOpen(G, b.r.out) - E.topIsOpen(G, a.r.out)) || (b.ok - a.ok));   // 닫힌 최상위는 그 등급 맨 아래
     let lastG = '';
     for (const it of rows) { const g = E.UNIT[it.r.out].grade; if (g !== lastG) { items.push({ head: g }); lastG = g; } items.push(it); }
   }
