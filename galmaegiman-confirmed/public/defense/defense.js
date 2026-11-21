@@ -2617,8 +2617,12 @@ function drawTitleBack() {   // 화면 전체 너비
   // 2026-11-11 사용자 의견(첫 화면이 너무 어둡고 칙칙함): 밝은 하늘·바다(먼 바다 그림) 위에 마을. 같이하기 대기실은 글자가 많아 조금 어둡게
   const sky = ctx.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, '#6fbdf0'); sky.addColorStop(0.45, '#bfe6fb'); sky.addColorStop(1, '#2f9fd6');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, VH);
-  const sea = img(`${ART}/village/10-distant-bay.webp`);
+  // 2026-11-21 사용자 제공 그림: 항구 마을과 갈매미들(가로 화면은 넓은 그림, 세로 화면은 세로 그림). 화면을 꽉 채우고 아래(갈매미)가 보이게
+  const sea = img(`${ART}/village/${VW >= VH ? 'title-harbor-wide' : 'title-harbor-tall'}.webp`) ?? img(`${ART}/village/10-distant-bay.webp`);
   if (sea) { const s = Math.max(VW / sea.naturalWidth, VH / sea.naturalHeight); ctx.drawImage(sea, (VW - sea.naturalWidth * s) / 2, VH - sea.naturalHeight * s, sea.naturalWidth * s, sea.naturalHeight * s); }
+  if (scene === 'title') {   // 위쪽 제목·아래 기록 글이 밝은 그림에 묻히지 않게 아주 옅은 그늘
+    const g1 = ctx.createLinearGradient(0, 0, 0, VH * 0.3); g1.addColorStop(0, 'rgba(7,19,28,.45)'); g1.addColorStop(1, 'rgba(7,19,28,0)'); ctx.fillStyle = g1; ctx.fillRect(0, 0, VW, VH * 0.3);
+  }
   // 마을 그림은 뺌(2026-11-11 사용자 의견: 바다 위에 떠 있는 것처럼 보여 어색함)
   if (scene === 'lobby') { ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, VW, VH); }
   // 떠오르는 빛 알갱이(2026-11-10 사용자 의견: 첫 화면이 허전함). 효과 줄이기면 움직이지 않음
@@ -2681,8 +2685,7 @@ function drawTitle() {
   // 제목 아래 장식 줄(가운데 마름모)
   ctx.strokeStyle = 'rgba(243,216,158,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - 150, 172); ctx.lineTo(W / 2 - 12, 172); ctx.moveTo(W / 2 + 12, 172); ctx.lineTo(W / 2 + 150, 172); ctx.stroke();
   ctx.save(); ctx.translate(W / 2, 172); ctx.rotate(Math.PI / 4); ctx.fillStyle = C.goldEdge; ctx.fillRect(-4.5, -4.5, 9, 9); ctx.restore();
-  box(28, 566, W - 56, 126, 'rgba(255,250,235,.82)', '#e9cf8f', 16, 2);   // 갈매미 행렬 받침(밝은 배경에 묻히지 않게)
-  drawTitleParade();
+  // 2026-11-21: 새 배경 그림에 갈매미들이 있어 갈매미 행렬은 뺌. 버튼은 가운데(난이도 아래)로 올려 그림 아래쪽 갈매미가 가려지지 않게
   // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
   box(28, 196, W - 56, 156, 'rgba(11,30,42,.9)', C.edge, 12);
   text('난이도', 44, 222, 17, C.gold);
@@ -2692,15 +2695,16 @@ function drawTitle() {
   fitText(`라인 체력 ×${dd.line} · 보스 체력 ×${dd.boss} · 방어 ×${dd.armor} · 마법방어 ×${dd.mr}`, W / 2, 312, W - 80, 15, C.text, 'center');
   fitText(dd.legend40 ? '40웨이브에 전설 위습 1개' : '40웨이브 전설 위습 보상 없음', W / 2, 336, W - 80, 14, dd.legend40 ? C.goldEdge : C.muted, 'center');
   // 2026-11-11 유저 피드백(버튼이 너무 많음): 규칙 6줄·음악 안내 띠는 빼고(메뉴 「게임 방법」으로), 도전 모드는 메뉴로, 이어하기는 이어할 판이 있을 때만
-  if (resumeMeta) button(40, 708, W - 80, 44, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'normal');
-  button(40, 764, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
-  button(52 + (W - 92) / 2, 764, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
-  box(28, 848, W - 56, 32, 'rgba(9,26,40,.78)', null, 16);   // 밝은 바다 위에서 읽히게
-  if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 864, W - 40, 14, C.good, 'center');
-  else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 864, W - 40, 14, C.muted, 'center');
+  if (resumeMeta) button(40, 372, W - 80, 44, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'normal');
+  const sy = resumeMeta ? 426 : 372;
+  button(40, sy, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
+  button(52 + (W - 92) / 2, sy, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
+  box(28, 914, W - 56, 32, 'rgba(9,26,40,.78)', null, 16);   // 밝은 그림 위에서 읽히게(맨 아래로 — 갈매미가 보이게)
+  if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 930, W - 40, 14, C.good, 'center');
+  else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
   else {
-    fitText(`최고 기록 ${bestText(best)} · 로그인하면 다른 기기에서도 이어할 수 있어요 ›`, W / 2, 864, W - 40, 14, C.goldEdge, 'center');
-    hit(20, 846, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
+    fitText(`최고 기록 ${bestText(best)} · 로그인하면 다른 기기에서도 이어할 수 있어요 ›`, W / 2, 930, W - 40, 14, C.goldEdge, 'center');
+    hit(20, 912, W - 40, 36, () => { saveNow(); location.href = '/login?next=/defense'; });
   }
   musicButton(W - 62, 14);
   button(14, 14, 92, 40, '≡ 메뉴', () => { modal = { kind: 'tmenu' }; }, 'normal');   // 기록·꾸미기·도전 모드·조합식·게임 방법(2026-11-11 버튼 줄이기)
@@ -4047,7 +4051,7 @@ function frame(now) {
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 그림 줄일 때 고품질(기본은 낮음이라 거칠었음)
   if (scene === 'title' || scene === 'lobby') {
     drawTitleBack();
-    const tx = (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
+    const tx = landscape && scene === 'title' && VW - W > 240 ? Math.round(Math.max(24, VW * 0.05)) : (VW - W) / 2, ty = landscape ? 0 : Math.round((VH - H) / 2);   // 2026-11-21: 가로 첫 화면은 왼쪽 칸(오른쪽 그림 속 갈매미가 보이게)   // 가로 배치면 가로 가운데, 세로가 길면 세로 가운데
     ctx.save(); ctx.translate(tx, ty); OX = tx; OY = ty;
     if (scene === 'title') { drawTitle(); if (modal?.kind === 'sound') drawSound(); else if (modal?.kind === 'modes') drawModes(); else if (modal?.kind === 'records') drawRecords(); else if (modal?.kind === 'tops') drawTopClears(); else if (modal?.kind === 'cosmetic') drawCustomize(); else if (modal?.kind === 'tmenu') drawTitleMenu(); else if (modal?.kind === 'rules') drawRules(); } else drawLobby();
     ctx.restore(); OX = 0; OY = 0;
