@@ -1487,6 +1487,43 @@ function drawField() {
   drawFieldInner();
   if (sh) ctx.restore();
 }
+// 판 위 목표 창(2026-11-21 사용자 요청: 남은 재료를 판 위에서 알기 쉽게). 판 안쪽 왼쪽 위에 반투명, 제목을 누르면 접고 펴기
+let goalFold = false;
+function drawGoalBoard() {
+  if (!G?.goals?.length || G.over) return;
+  const x = E.LOOP.x0 + 22, y = E.LOOP.y0 + 22, w = 236, cnt = E.countOnField(G);
+  const rows = G.goals.map((gid, k) => { const r = E.recipeFor(gid); if (!r) return null; const left = { ...cnt }, miss = [];
+    for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(id); }
+    return { gid, k, r, miss, ok: canMake(r) }; }).filter(Boolean);
+  const hh = goalFold ? 24 : 24 + rows.reduce((a, q) => a + (q.miss.length > 3 ? 46 : 32), 0) + 4;
+  box(x, y, w, hh, 'rgba(7,19,28,.78)', 'rgba(243,216,158,.55)', 8, 1.5);
+  text(`목표 ${goalFold ? '▸' : '▾'}`, x + 8, y + 12, 12, C.gold);
+  const nOk = rows.filter((q) => q.ok).length;
+  text(nOk ? `조합 가능 ${nOk}` : '남은 재료', x + w - 8, y + 12, 11, nOk ? C.good : C.muted, 'right');
+  hit(x, y, w, 24, () => { goalFold = !goalFold; });
+  if (goalFold) return;
+  let yy = y + 26;
+  for (const q of rows) {
+    const out = E.UNIT[q.gid], gc = GOAL_COLOR[q.k], bh = q.miss.length > 3 ? 44 : 30;
+    ctx.beginPath(); ctx.arc(x + 12, yy + 9, 4.5, 0, Math.PI * 2); ctx.fillStyle = gc; ctx.fill();
+    fitText(out.name, x + 22, yy + 9, 90, 12, GRADE_COLOR[out.grade]);
+    if (q.ok) { text('재료 다 모임 · 조합!', x + w - 8, yy + 9, 11, C.good, 'right'); }
+    else {
+      // 남은 재료 칩(등급 색 테두리) — 줄이 넘치면 둘째 줄
+      let cx = x + 22, cy = yy + 23; ctx.font = `11px ${FONT}`;
+      for (const id of q.miss) {
+        const nm = E.UNIT[id].name, cw = Math.min(70, ctx.measureText(nm).width + 10);
+        if (cx + cw > x + w - 6) { cx = x + 22; cy += 14; }
+        box(cx, cy - 6, cw, 13, 'rgba(0,0,0,.35)', GRADE_COLOR[E.UNIT[id].grade], 4, 1);
+        fitText(nm, cx + cw / 2, cy + 0.5, cw - 4, 10, GRADE_COLOR[E.UNIT[id].grade], 'center');
+        cx += cw + 3;
+      }
+      text(`${q.r.in.length - q.miss.length}/${q.r.in.length}`, x + w - 8, yy + 9, 11, C.text, 'right');
+    }
+    hit(x, yy, w, bh, () => openBook(q.gid, null, { sel: [...selected] }));
+    yy += bh + 2;
+  }
+}
 function drawFieldInner() {
   drawLanes(); drawWater(); drawWeather();
   // 고른 갈매미 사거리(한 마리일 때)
@@ -2014,19 +2051,7 @@ function drawMainPanel(y0) {
   // 위습
   const ws = E.WISP_GRADES, bw = (W - 44 - 4 * 6) / 5, PL = panelLayout(y0);
   text('위습', 22, PL.labelY, 14, C.gold);
-  if (!landscape && G.goals.length) {   // 세로 화면: 위습 제목 줄 오른쪽에 목표를 작게(2026-11-21 사용자 지적: 목표가 판에서 안 보임). 누르면 그 조합법
-    const cnt = E.countOnField(G), pw = 76, ph = 26; let px = W - 22 - G.goals.length * (pw + 6) + 6;
-    text('목표', px - 8, PL.labelY, 12, C.muted, 'right');
-    G.goals.forEach((gid, k) => {
-      const r = E.recipeFor(gid); if (!r) return;
-      const ok = canMake(r), pg = progOf(r, cnt), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total, py = PL.labelY - ph / 2;
-      box(px, py, pw, ph, ok ? 'rgba(43,122,98,.45)' : 'rgba(11,30,42,.9)', GOAL_COLOR[k], 8, 2);
-      drawFit(unitImg(gid), px + 2, py + 1, ph - 2, ph - 2);
-      text(ok ? '조합!' : `${Math.min(99, Math.floor(fr * 100))}%`, px + ph + (pw - ph) / 2, py + ph / 2 + 1, 13, ok ? C.good : C.text, 'center');
-      hit(px, py, pw, ph, () => openBook(gid, null, { sel: [...selected] }));
-      px += pw + 6;
-    });
-  }
+
   ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
     const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
     box(x, y, bw, h, n ? 'rgba(11,30,42,.92)' : 'rgba(11,30,42,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
@@ -3072,7 +3097,6 @@ function drawSideTop() {
   });
   // ①½ 목표(퀘스트 창, 2026-11-21 사용자 요청) — 세로 화면은 「더보기 → 목표」
   let qy = 44 + Math.max(1, list.length) * 40 + 8;
-  if (G.goals.length) qy = drawGoals(16, qy, W - 32) + 4;
   // ② 이번 웨이브 피해(줄여서 위 4)
   const my = qy + 6;
   if (548 - my - 16 >= 38) text('이번 웨이브 피해', 22, my, 15, C.gold);
@@ -3920,7 +3944,7 @@ function frame(now) {
     if (landscape) {
       // 왼쪽: 위 정보 줄 + 판을 크게
       ctx.save(); ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X;
-      drawField(); drawHud(); drawSignalBanner(); drawToast();
+      drawField(); drawGoalBoard(); drawHud(); drawSignalBanner(); drawToast();
       const bm = BOARD_MODAL.has(modal?.kind) ? modal : null; if (bm) drawBoardModal();
       ctx.restore(); OS = 1; OX = 0;
       if (bm) modal = null;   // 오른쪽 칸은 평소 모습(아래에서 어둡게 덮고 누르기 막음)
@@ -3941,7 +3965,7 @@ function frame(now) {
       ctx.restore(); OX = 0;
       if (bm) { modal = bm; ctx.fillStyle = 'rgba(3,9,14,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       }
-    } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
+    } else { drawField(); drawGoalBoard(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
   if (scene === 'play' && !BOARD_MODAL.has(modal?.kind)) drawBossWarn();   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
