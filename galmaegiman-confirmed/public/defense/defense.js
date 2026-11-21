@@ -1487,42 +1487,46 @@ function drawField() {
   drawFieldInner();
   if (sh) ctx.restore();
 }
-// 판 위 목표 창(2026-11-21 사용자 요청: 남은 재료를 판 위에서 알기 쉽게). 판 안쪽 왼쪽 위에 반투명, 제목을 누르면 접고 펴기
-let goalFold = false;
+// 판 위 목표(2026-11-21 사용자 요청): 판 안쪽 왼쪽 위에 목표마다 동그라미 버튼(목표 갈매미 그림 + 진행 고리).
+// 누르면 그 아래로 창이 미끄러져 나오며 재료를 그림으로 — 가진 것은 밝게·✓, 없는 것은 흐리게·빨간 테두리. 다시 누르면 닫힘
+const goalOpen = { k: -1, at: 0 };
 function drawGoalBoard() {
-  if (!G?.goals?.length || G.over) return;
-  const x = E.LOOP.x0 + 22, y = E.LOOP.y0 + 22, w = 236, cnt = E.countOnField(G);
-  const rows = G.goals.map((gid, k) => { const r = E.recipeFor(gid); if (!r) return null; const left = { ...cnt }, miss = [];
-    for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(id); }
-    return { gid, k, r, miss, ok: canMake(r) }; }).filter(Boolean);
-  const hh = goalFold ? 24 : 24 + rows.reduce((a, q) => a + (q.miss.length > 3 ? 46 : 32), 0) + 4;
-  box(x, y, w, hh, 'rgba(7,19,28,.78)', 'rgba(243,216,158,.55)', 8, 1.5);
-  text(`목표 ${goalFold ? '▸' : '▾'}`, x + 8, y + 12, 12, C.gold);
-  const nOk = rows.filter((q) => q.ok).length;
-  text(nOk ? `조합 가능 ${nOk}` : '남은 재료', x + w - 8, y + 12, 11, nOk ? C.good : C.muted, 'right');
-  hit(x, y, w, 24, () => { goalFold = !goalFold; });
-  if (goalFold) return;
-  let yy = y + 26;
-  for (const q of rows) {
-    const out = E.UNIT[q.gid], gc = GOAL_COLOR[q.k], bh = q.miss.length > 3 ? 44 : 30;
-    ctx.beginPath(); ctx.arc(x + 12, yy + 9, 4.5, 0, Math.PI * 2); ctx.fillStyle = gc; ctx.fill();
-    fitText(out.name, x + 22, yy + 9, 90, 12, GRADE_COLOR[out.grade]);
-    if (q.ok) { text('재료 다 모임 · 조합!', x + w - 8, yy + 9, 11, C.good, 'right'); }
-    else {
-      // 남은 재료 칩(등급 색 테두리) — 줄이 넘치면 둘째 줄
-      let cx = x + 22, cy = yy + 23; ctx.font = `11px ${FONT}`;
-      for (const id of q.miss) {
-        const nm = E.UNIT[id].name, cw = Math.min(70, ctx.measureText(nm).width + 10);
-        if (cx + cw > x + w - 6) { cx = x + 22; cy += 14; }
-        box(cx, cy - 6, cw, 13, 'rgba(0,0,0,.35)', GRADE_COLOR[E.UNIT[id].grade], 4, 1);
-        fitText(nm, cx + cw / 2, cy + 0.5, cw - 4, 10, GRADE_COLOR[E.UNIT[id].grade], 'center');
-        cx += cw + 3;
-      }
-      text(`${q.r.in.length - q.miss.length}/${q.r.in.length}`, x + w - 8, yy + 9, 11, C.text, 'right');
-    }
-    hit(x, yy, w, bh, () => openBook(q.gid, null, { sel: [...selected] }));
-    yy += bh + 2;
-  }
+  if (!G?.goals?.length || G.over) { goalOpen.k = -1; return; }
+  if (goalOpen.k >= G.goals.length) goalOpen.k = -1;
+  const cnt = E.countOnField(G), R0 = 21, x0 = E.LOOP.x0 + 30 + R0, y0 = E.LOOP.y0 + 32 + R0;   // 길(적이 다니는 곳) 안쪽
+  G.goals.forEach((gid, k) => {
+    const r = E.recipeFor(gid); if (!r) return;
+    const cx = x0 + k * (R0 * 2 + 10), cy = y0, gc = GOAL_COLOR[k], ok = canMake(r), pg = progOf(r, cnt), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total, on = goalOpen.k === k;
+    ctx.beginPath(); ctx.arc(cx, cy, R0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.88)'; ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R0 - 3, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(gid), cx - R0 + 2, cy - R0 + 1, R0 * 2 - 4, R0 * 2 - 2); ctx.restore();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(cx, cy, R0, 0, Math.PI * 2); ctx.stroke();   // 진행 고리
+    ctx.strokeStyle = ok ? C.good : gc; ctx.beginPath(); ctx.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, fr)); ctx.stroke();
+    if (on) { ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, R0 + 4, 0, Math.PI * 2); ctx.stroke(); }
+    if (ok) { box(cx - 18, cy + R0 - 6, 36, 13, C.good, null, 6); text('조합!', cx, cy + R0 + 0.5, 10, '#07131c', 'center'); }
+    hit(cx - R0 - 4, cy - R0 - 4, R0 * 2 + 8, R0 * 2 + 8, () => { if (goalOpen.k === k) goalOpen.k = -1; else { goalOpen.k = k; goalOpen.at = performance.now(); } });
+  });
+  // 미끄러져 나오는 재료 창
+  const k = goalOpen.k; if (k < 0) return;
+  const gid = G.goals[k], r = E.recipeFor(gid); if (!r) return;
+  const left = { ...cnt }, mats = r.in.map((id) => { const h = (left[id] ?? 0) > 0; if (h) left[id]--; return { id, h }; });
+  const n = mats.length, ts = 40, gap = 6, per = Math.min(n, 5), rows = Math.ceil(n / per), pw = Math.max(200, per * (ts + gap) + 16), ph = 40 + rows * (ts + 18) + 34;
+  const px = E.LOOP.x0 + 30, py = y0 + R0 + 10, t = Math.min(1, (performance.now() - goalOpen.at) / 180), ease = 1 - Math.pow(1 - t, 3), shown = ph * ease;
+  hit(px, py, pw, shown, () => {});   // 창 위를 눌러도 판이 반응하지 않게(버튼은 뒤에 넣어 먼저 잡힘)
+  ctx.save(); ctx.beginPath(); ctx.rect(px - 2, py - 2, pw + 4, shown + 4); ctx.clip();
+  const oy = py - (ph - shown);   // 위에서 아래로 내려옴
+  box(px, oy, pw, ph, 'rgba(7,19,28,.92)', GOAL_COLOR[k], 10, 2);
+  const out = E.UNIT[gid], got = mats.filter((m) => m.h).length;
+  fitText(out.name, px + 10, oy + 16, pw - 80, 14, GRADE_COLOR[out.grade]);
+  text(`${got}/${n} 확보`, px + pw - 10, oy + 16, 12, got === n ? C.good : C.text, 'right');
+  mats.forEach((m, i) => {
+    const tx = px + 8 + (i % per) * (ts + gap), ty = oy + 34 + Math.floor(i / per) * (ts + 18), gc = GRADE_COLOR[E.UNIT[m.id].grade];
+    box(tx, ty, ts, ts, m.h ? 'rgba(43,122,98,.35)' : 'rgba(0,0,0,.45)', m.h ? gc : '#ff6b6b', 7, m.h ? 1.5 : 2);
+    ctx.globalAlpha = m.h ? 1 : 0.35; drawFit(unitImg(m.id), tx + 2, ty + 2, ts - 4, ts - 4); ctx.globalAlpha = 1;
+    if (m.h) { ctx.beginPath(); ctx.arc(tx + ts - 7, ty + 7, 6, 0, Math.PI * 2); ctx.fillStyle = C.good; ctx.fill(); text('✓', tx + ts - 7, ty + 7.5, 9, '#07131c', 'center'); }
+    fitText(E.UNIT[m.id].name, tx + ts / 2, ty + ts + 8, ts + gap, 10, m.h ? gc : '#ff9a8a', 'center');
+  });
+  button(px + 8, oy + ph - 30, pw - 16, 24, got === n || canMake(r) ? '조합법 열기 · 조합!' : '조합법 열기', () => openBook(gid, null, { sel: [...selected] }), canMake(r) ? 'primary' : 'quiet');
+  ctx.restore();
 }
 function drawFieldInner() {
   drawLanes(); drawWater(); drawWeather();
@@ -3997,3 +4001,4 @@ function frame(now) {
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
 window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
+window.__defense.goalOpen = goalOpen;   // 시험용(판 위 목표 창 열기)
