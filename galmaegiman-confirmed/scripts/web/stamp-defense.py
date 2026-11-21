@@ -29,6 +29,8 @@ def stamp(path, pattern, ver):
 
 stamp(D / 'engine.js', r"(from '\./data\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'data.js'))
 stamp(D / 'defense.js', r"(from '\./engine\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'engine.js'))
+if (D / 'fxart.js').exists():
+    stamp(D / 'defense.js', r"(import\('\./fxart\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'fxart.js'))   # 효과 그림 묶음(2026-11-21, Kenney CC0)
 if (D / 'pixfx.js').exists():
     stamp(D / 'defense.js', r"(import\('\./pixfx\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'pixfx.js'))   # 화려한 효과 묶음(2026-11-15)
 if (D / 'bgm.mp3').exists():
@@ -39,5 +41,5 @@ if (D / 'recipes.html').exists():
     stamp(D / 'recipes.js', r"(from '\./engine\.js)(?:\?v=[0-9a-f]+)?(?=')", h(D / 'engine.js'))
     stamp(D / 'recipes.html', r'(/defense/recipes\.js)(?:\?v=[0-9a-f]+)?(?=")', h(D / 'recipes.js'))
     stamp(D / 'recipes.html', r'(/defense/recipes\.css)(?:\?v=[0-9a-f]+)?(?=")', h(D / 'recipes.css'))
-for f in ['data.js', 'engine.js'] + (['pixfx.js'] if (D / 'pixfx.js').exists() else []) + ['defense.js', 'defense.css', 'index.html'] + [f for f in ['recipes.js', 'recipes.css', 'recipes.html'] if (D / f).exists()]:
+for f in ['data.js', 'engine.js'] + (['pixfx.js'] if (D / 'pixfx.js').exists() else []) + (['fxart.js'] if (D / 'fxart.js').exists() else []) + ['defense.js', 'defense.css', 'index.html'] + [f for f in ['recipes.js', 'recipes.css', 'recipes.html'] if (D / f).exists()]:
     print(f'{h(D / f)}  {f}')

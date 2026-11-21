@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=746f2a92cde2';
+import * as E from './engine.js?v=8de2e693ce2b';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -102,6 +102,23 @@ function img(src) {
   if (!imgs[src]) { const i = new Image(); i.decoding = 'async'; i.src = src; imgs[src] = i; }
   const i = imgs[src];
   return i.complete && i.naturalWidth ? i : null;
+}
+// 무료 효과 그림(2026-11-21 사용자 허락: 무료 에셋 다듬어 쓰기): Kenney Particle Pack(CC0) → 흰색+투명도로 줄인 것(assets-src/defense-fx/LICENSE.txt).
+// 색을 입힌 사본을 한 번만 만들어 두고(이름·색마다) 'lighter'로 겹쳐 빛나게 그림
+let FXART = null; import('./fxart.js?v=8134389ddc0c').then((m) => { FXART = m.FX; }).catch(() => { /* 그림 없이 진행 */ });
+const fxTintC = new Map();
+const hexRGB = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h ?? ''); if (!m) return '255,255,255'; const n = parseInt(m[1], 16); return `${n >> 16},${(n >> 8) & 255},${n & 255}`; };
+function fxImg(name, rgb) {
+  const key = name + '|' + rgb; let c = fxTintC.get(key); if (c) return c;
+  const src = FXART?.[name]; if (!src) return null; const im = img(src); if (!im) return null;
+  c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d');
+  x.drawImage(im, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = `rgb(${rgb})`; x.fillRect(0, 0, c.width, c.height);
+  fxTintC.set(key, c); return c;
+}
+function fxSprite(name, x, y, size, rgb, alpha = 1, rot = 0, sy = 1, add = true) {
+  const c = fxImg(name, rgb); if (!c || alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = Math.min(1, alpha); if (add) ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(x, y); ctx.scale(1, sy); if (rot) ctx.rotate(rot); ctx.drawImage(c, -size / 2, -size / 2, size, size); ctx.restore();
 }
 const unitImg = (id) => img(`${ART}/units/${E.UNIT[id]?.form ?? id}-front.webp`);   // 변신 폼은 원래 그림
 // 적 그림(사용자 요청 2026-11-08: 끼룩단·쭈매미·흑화 갈매미맨, 색 입히지 않음). e:v1 → enemies/v1, b:u01 → black/u01, 예전 저장의 갈매미 id는 그림자 색
@@ -1534,6 +1551,14 @@ function drawFieldInner() {
       const m = f.near ? Math.min(14, d * 0.25) : -3;
       ox = dx / d * m * w; oy = dy / d * m * w; zm = 1 + 0.07 * w;
     }
+    // 시너지 장판(2026-11-21 사용자 요청: 더 간단하게 — 바닥에 기호): 시너지가 켜진 속성 갈매미 발밑에 그 속성 색 마법진. 1단계 오각, 2단계 이상 팔각, 3단계는 바깥 고리
+    if (synAll && E.tierOf(u.id) >= 3 && info.role !== E.SPECIAL_ROLE) {
+      const el = E.kit(u.id).elem, sv = synAll[el];
+      if (sv?.lv > 0) { const rgb = ELEM_COL[el] ?? '220,220,220', rt = fxLite ? 0 : G.t * 0.6, sz = 100 * z, pl = fxLite ? 1 : 0.85 + 0.15 * Math.sin(G.t * 3 + u.uid), nm = sv.lv >= 2 ? 'magic_02' : 'magic_01';
+        ctx.beginPath(); ctx.ellipse(u.x, u.y + 2, sz * 0.42, sz * 0.42 * FLAT, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${rgb},.18)`; ctx.fill();   // 바닥 물들임
+        fxSprite(nm, u.x, u.y + 2, sz, rgb, pl, rt, FLAT, false); fxSprite(nm, u.x, u.y + 2, sz, rgb, 0.6 * pl, rt, FLAT);   // 또렷하게 + 빛
+        if (sv.lv >= 3) fxSprite('circle_02', u.x, u.y + 2, sz * 1.15, rgb, 0.8 * pl, 0, FLAT); }
+    }
     const cos = fxLite ? null : cosById[u.id];   // 화려한 효과 끔이면 꾸밈도 숨김(가볍게)
     if (cos) cosBack(cos, u.x + ox, u.y + oy, z * zm, u.uid);
     // 공격 방향 보기(2026-11-15 사용자 요청): 기본은 왼쪽, 오른쪽 적을 치면 오른쪽을 봤다가 공격이 끊기면 돌아옴(공격 기록이 0.8초 남으므로 0.8초 뒤)
@@ -1554,9 +1579,6 @@ function drawFieldInner() {
       if (na > 0) { const fs = top ? 13 : 11, ny = u.y + 8 * z + (top ? 9 : 8); ctx.font = `${fs}px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
         ctx.globalAlpha = na; box(u.x - nw / 2, ny - fs * 0.7, nw, fs * 1.4, 'rgba(7,19,28,.72)', null, 7); text(info.name, u.x, ny, fs, col, 'center'); ctx.globalAlpha = 1; } }
     // 시너지 표시(2026-11-21 사용자 요청): 시너지에 세는 갈매미(에픽 이상)에 속성 배지. 켜진 속성은 색을 채우고 단계 점, 안 켜진 속성은 흐린 테두리만
-    if (synAll && E.tierOf(u.id) >= 3 && info.role !== E.SPECIAL_ROLE) {
-      const el = E.kit(u.id).elem; synBadge(u.x - 20 * z - 4, u.y - 30 * z, el, synAll[el], 1);
-    }
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
@@ -1604,7 +1626,7 @@ function drawFieldInner() {
       if (fxLite) { if (age < 0.14) {   // 줄인 효과: 예전 직선
         ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
         ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
-      else drawShot(f, age);
+      else { drawShot(f, age); if (f.near && f.type === 'phys' && age < 0.15) fxSprite('slash_02', f.x1, f.y1 - 14, f.tier >= 6 ? 70 : 50, '255,226,180', 1 - age / 0.15, Math.atan2(f.y1 - f.y0, f.x1 - f.x0) - Math.PI / 2); }   // 근접 물리: 베기 자국
     } else if (f.kind === 'num' && age < 0.75 && !fxLite) {   // 보스 피해 숫자(전설 이상)
       // 2026-11-21: 모든 레어 이상 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
       const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
@@ -1614,6 +1636,7 @@ function drawFieldInner() {
       text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx + 1.5, ny + 1.5, fs, 'rgba(7,19,28,.9)', 'center');
       text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
       if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
+      if (cr && age < 0.25) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
       ctx.globalAlpha = 1;
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
@@ -1621,26 +1644,36 @@ function drawFieldInner() {
       ctx.beginPath(); ctx.ellipse(f.x, f.y, rr2, rr2 * FLAT, 0, 0, Math.PI * 2);   // 2.5D: 바닥에 납작하게
       ctx.fillStyle = `rgba(${col},${(f.area ? 0.26 : 0.14) * a})`; ctx.fill();
       ctx.lineWidth = f.area ? 2.5 : 2; ctx.strokeStyle = `rgba(${col},${0.85 * a})`; ctx.stroke();
+      if (!fxLite && f.area) fxSprite('scorch_02', f.x, f.y, rr2 * 2.3, col, 0.7 * a, f.x, FLAT);   // 범위 공격: 폭발 자국
     } else if (f.kind === 'bomb' && age < 0.8) {   // 갈매미맨 폭격: 판 전체 섬광 + 적마다 폭발 고리
       const a = 1 - age / 0.8;
       if (age < 0.25) { ctx.fillStyle = `rgba(255,236,190,${0.55 * (1 - age / 0.25)})`; ctx.fillRect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); }
       for (const e of G.enemies) { const r = (12 + age * 70) * (e.boss ? 1.6 : 1); ctx.beginPath(); ctx.arc(e.x, e.y - 14, r, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,150,60,${0.35 * a})`; ctx.fill(); ctx.strokeStyle = `rgba(255,230,160,${0.9 * a})`; ctx.lineWidth = 3; ctx.stroke(); }
+      if (!fxLite) { let q = 0; for (const e of G.enemies) { if (q++ > 30) break; fxSprite('smoke_10', e.x, e.y - 14, (40 + age * 110) * (e.boss ? 1.6 : 1), '255,170,90', 0.8 * a, q); if (age < 0.3) fxSprite('scorch_02', e.x, e.y - 14, 70 * (e.boss ? 1.6 : 1), '255,230,160', 1 - age / 0.3, q * 2); } }
       if (age < 0.5) { ctx.globalAlpha = 1 - age / 0.5; text('갈매미맨 폭격!', W / 2, FIELD.y + 120 - age * 40, 34, '#ffd76a', 'center'); ctx.globalAlpha = 1; }
     } else if (f.kind === 'summon' && age < 0.6) {   // 보스가 부하를 부름: 보라 고리
       const a = 1 - age / 0.6; groundRing(f.x, f.y, 20 + age * 60, '186,120,255', 0.9 * a, 3, 0.2);
     } else if (f.kind === 'kill' && age < 0.6) {   // 쓰러짐(모든 적) + 꾸민 갈매미가 쓰러뜨리면 처치 효과
       if (!fxLite && age < 0.42) drawEnemyDeath(f, age / 0.42);
+      if (!fxLite && age < 0.45) fxSprite('smoke_05', f.x, f.y - (f.boss ? 30 : 14), (f.boss ? 90 : 46) + age * 80, f.boss ? '255,200,140' : '230,236,240', 0.45 * (1 - age / 0.45), f.x, 1, false);   // 연기 한 줌
       const cc = cosUid.get(f.uid); if (cc?.kill) drawKillFx(cc, f, age);
     } else if (f.kind === 'sig' && age < 0.75) {
       drawSig(f, age);
     } else if (f.kind === 'zap' && age < 0.2) {
-      ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke();
+      if (fxLite) { ctx.strokeStyle = '#ffe14a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 10); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); }
+      else {   // 번개 연쇄: 번개 줄기 그림을 두 점 사이로 늘려 그림
+        const dx = f.x1 - f.x0, dy = f.y1 - f.y0, d = Math.hypot(dx, dy) || 1, c = fxImg('spark_05', '255,232,120');
+        if (c) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - age / 0.2; ctx.translate((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2 - 10); ctx.rotate(Math.atan2(dy, dx) + Math.PI / 2); ctx.drawImage(c, -22, -d / 2 - 8, 44, d + 16); ctx.restore(); }
+      }
     } else if (f.kind === 'combine' || f.kind === 'move') {
       const a = Math.max(0, 1 - age / 0.6); ctx.globalAlpha = a;
       const rm = (f.kind === 'move' ? 8 : 20) + (1 - a) * 30; ctx.beginPath(); if (f.kind === 'move') ctx.ellipse(f.x, f.y, rm, rm * FLAT, 0, 0, Math.PI * 2); else ctx.arc(f.x, f.y - 20, rm, 0, Math.PI * 2);   // 옮긴 자리는 바닥 타원
       ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+      if (f.kind === 'combine' && !fxLite && age < 0.6) { fxSprite('circle_03', f.x, f.y - 20, 40 + age * 180, '255,215,130', 1 - age / 0.6); fxSprite('light_01', f.x, f.y - 20, 90, '255,235,180', 0.8 * (1 - age / 0.6)); }   // 조합: 빛 고리
     } else if (f.kind === 'wisp') {
-      const a = Math.max(0, 1 - age / 0.8); ctx.globalAlpha = a;
+      const a = Math.max(0, 1 - age / 0.8);
+      if (!fxLite && a > 0) { const gc2 = hexRGB(GRADE_COLOR[f.grade]); fxSprite('twirl_01', f.x, f.y - 20 - (1 - a) * 30, 54 + age * 30, gc2, a, -age * 9); fxSprite('star_06', f.x, f.y - 20 - (1 - a) * 30, 40, gc2, a * 0.8); }   // 위습: 소용돌이 + 별빛
+      ctx.globalAlpha = a;
       text('✦', f.x, f.y - 20 - (1 - a) * 30, 22, GRADE_COLOR[f.grade], 'center'); ctx.globalAlpha = 1;
     }
   }

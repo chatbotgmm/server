@@ -3,7 +3,7 @@
 //   위습 등급은 커먼·언커먼·레어·에픽(보스·외부탐사 보상), 전설은 일부 갈매미의 「위습 찾기」 재주로만.
 // - 물딜(타격수)·마딜(술사). 고체력·기습은 딜이 낮은 대신 방깍·스턴·이속감소 / 마방깍·마딜증폭.
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
-// - 웨이브마다 35마리. 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
+// - 웨이브마다 35마리(분열형 판의 갈라진 적은 안 셈). 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
 import { UNITS, RECIPES } from './data.js?v=47b73634cac1';
 
@@ -46,6 +46,7 @@ export const RULES = {
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
+  splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
   // 균열 저항(2026-11-11 사용자 요청: 40웨이브 뒤에 초불영제 없이 전설 2마리로 라인이 버텨지면 안 됨): 41웨이브부터 라인 적은
@@ -617,7 +618,7 @@ export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
 export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
 // 판 성향(2026-11-16 사용자 요청): 판을 시작할 때 무작위로 갑옷형(방어↑ 마방↓) 또는 결계형(반대). 그 판 내내 모든 적에
 export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마방 ×0.75 — 마법이 유리', armor: 1.4, mr: 0.75 }, mr: { name: '결계형', desc: '적 마방 ×1.4 · 방어 ×0.75 — 물리가 유리', armor: 0.75, mr: 1.4 },
-  split: { name: '분열형', desc: '쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 즉시 패배 한도 70', armor: 1, mr: 1 } };   // 2026-11-19
+  split: { name: '분열형', desc: '쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 갈라진 적은 적 수에 안 셈', armor: 1, mr: 1 } };   // 2026-11-19
 const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
 export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
 export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul(g, 'mr'));            // 마법방어
@@ -1320,5 +1321,5 @@ export function enemyCount(g) {
   const w = RULES.splitKidW ?? 1; if (w === 1) return g.enemies.length;
   let n = 0; for (const e of g.enemies) n += e.gen ? w : 1; return Math.ceil(n);
 }
-export const hardLimitOf = (g) => (g.bias === 'split' ? RULES.splitHard ?? 70 : RULES.hardLimit) - (augV(g, 'allin') ? 10 : 0);   // 분열형 판은 70   // 「모 아니면 도」: 50 → 40   // 45웨이브부터 즉시 패배 한도
+export const hardLimitOf = (g) => (g.bias === 'split' ? RULES.splitHard ?? RULES.hardLimit : RULES.hardLimit) - (augV(g, 'allin') ? 10 : 0);   // 분열형 판도 같은 한도(갈라진 적은 enemyCount에서 안 셈)   // 「모 아니면 도」: 50 → 40   // 45웨이브부터 즉시 패배 한도
 export const nextWaveIn = (g) => Math.max(0, waveLenOf(g.wave) - g.waveT);
