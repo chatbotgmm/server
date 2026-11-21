@@ -52,6 +52,7 @@ export const RULES = {
   coopMissionHp: 2,   // 같이하기 협동(PvE): 외부탐사 대장 체력 ×2(둘이 같이 때리므로)
   shopFrom: 20,   // 2026-11-21 사용자 요청(최상위를 이론상 가장 빨리 만드는 웨이브 13 → 20쯤, 수입 줄이기): 새우 상점은 20웨이브부터
   topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
+  regenRate: 0.015, regenBoss: 0.004, regenPoisonCut: 0.5, regenLateBoss: 2,   // 재생형 판: 초당 회복(일반·보스), 독이면 ×0.5, 40웨이브부터 성향 보스는 회복 ×2
   splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
@@ -636,6 +637,7 @@ export const DIFF_ORDER = ['intro', 'mid', 'high', 'master', 'artisan'];
 export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
 // 판 성향(2026-11-16 사용자 요청): 판을 시작할 때 무작위로 갑옷형(방어↑ 마방↓) 또는 결계형(반대). 그 판 내내 모든 적에
 export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마방 ×0.75 — 마법이 유리', armor: 1.4, mr: 0.75 }, mr: { name: '결계형', desc: '적 마방 ×1.4 · 방어 ×0.75 — 물리가 유리', armor: 0.75, mr: 1.4 },
+  regen: { name: '재생형', desc: '적이 체력을 계속 되찾음(초당 1.5%, 보스 0.4%) — 독이 유리 · 독에 걸리면 회복 절반', armor: 1, mr: 1 },   // 2026-11-21 사용자 요청: 체력회복형
   split: { name: '분열형', desc: '쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 갈라진 적은 적 수에 안 셈', armor: 1, mr: 1 } };   // 2026-11-19
 const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
 export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
@@ -644,7 +646,7 @@ export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul
 // 갑옷형·결계형 판은 등급(제한·초월·불멸·영원)마다 조합법의 topOpen 비율(반올림)만 무작위로 열림. 열린 것 전체에 물딜·마딜이 각각 3종 이상 되게 다시 뽑음.
 // 분열형은 따로 어려움이 있어 모두 열림(null = 모두 열림, 예전 저장본도 null)
 export function topOpenFor(seed, bias) {
-  if (bias === 'split' || !(RULES.topOpen > 0 && RULES.topOpen < 1)) return null;
+  if (bias === 'split' || bias === 'regen' || !(RULES.topOpen > 0 && RULES.topOpen < 1)) return null;
   const r = rng((seed ^ 0x70f3a1) >>> 0), byG = {};
   for (const rc of RECIPES) { const t = tierOf(rc.out); if (t >= TOP_TIER) (byG[t] ??= new Set()).add(rc.out); }
   for (let tries = 0; tries < 50; tries++) {
@@ -672,7 +674,7 @@ function newGame0(seed, mode, diff) {
     enemies: [], units: [], nextId: 1, nextUid: 1,
     goals: [], mission: null, missionDone: 0, autoStore: false, autoGrades: {}, missionDmg: [], peerDmg: null,
     over: null, reason: '', fx: [], news: [], zones: [], augs: [], augOffer: null,
-    bias: ['armor', 'mr', 'split'][Math.floor(rng((seed ^ 0xb1a5) >>> 0)() * 3)],   // 판 성향(판의 난수 흐름과 따로)
+    bias: ['armor', 'mr', 'split', 'regen'][Math.floor(rng((seed ^ 0xb1a5) >>> 0)() * 4)],   // 판 성향(판의 난수 흐름과 따로)
     skillAt: RULES.skillFirst ?? 30, shopN: {},
   };
 }
@@ -1268,6 +1270,10 @@ export function step(g, dt) {
       const list = []; for (const id in e.poisons) { const ps = e.poisons[id]; if (g.t >= ps.until) delete e.poisons[id]; else list.push([id, ps]); }
       list.sort((a, b) => b[1].v - a[1].v); e.poison = 0;
       for (const [id, ps] of list.slice(0, RULES.poisonStack ?? 1)) { e.poison += ps.v; hurt(g, e, ps.v * dt, { ...ps.k, pierce: true }, +id); }
+    }
+    if (g.bias === 'regen' && e.hp > 0 && e.hp < e.max) {   // 재생형: 초당 최대 체력의 일정 비율 회복, 독에 걸려 있으면 절반(2026-11-21)
+      const rate = (e.boss ? RULES.regenBoss : RULES.regenRate) * (e.lateBoss === 'regen' ? RULES.regenLateBoss : 1) * (g.t < e.poisonUntil ? RULES.regenPoisonCut : 1);
+      e.hp = Math.min(e.max, e.hp + e.max * rate * dt);
     }
   }
   const byUid = new Map(g.units.map((u) => [u.uid, u]));

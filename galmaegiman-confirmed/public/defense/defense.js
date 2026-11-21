@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=145328dc4beb';
+import * as E from './engine.js?v=6631322afd78';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -521,7 +521,7 @@ function drawBossWarn() {
     const bi = E.BIAS[G.bias]; if (!bi) return;
     ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
     ctx.globalAlpha = fade;
-    const bw = W - 60, bh = G.topOpen ? 116 : 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
+    const bw = W - 60, bh = G.topOpen ? 116 : 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138', regen: '255,150,190' }[G.bias] ?? '220,220,220';
     box(bx, by, bw, bh, 'rgba(10,26,40,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
     fitText(`이번 판은 ${bi.name}!`, W / 2, by + 38, bw - 30, 24, `rgb(${cl})`, 'center');
     fitText(bi.desc, W / 2, by + 68, bw - 30, 15, '#e3eef5', 'center');
@@ -591,7 +591,7 @@ function drawBossWarn() {
   box(bx, by, bw, bh, 'rgba(60,8,10,.9)', `rgba(255,107,107,${0.6 + 0.4 * pulse})`, 12, 3);
   fitText('⚠ 보스 등장!', W / 2, by + 34, bw - 30, 30, '#ff6b6b', 'center');
   { const bp = E.BOSS_PAT_INFO[E.BOSS_PAT[(Math.round(bossWarn.wave / E.RULES.bossEvery) - 1) % E.BOSS_PAT.length]];
-    fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}${bossWarn.wave >= (E.RULES.lateBossFrom ?? 999) ? ` · ${{ armor: '갑옷 보스(방어 ×2.2) — 마법으로', mr: '결계 보스(마방 ×2.2) — 물리로', split: '철벽 보스(방어·마방 ×2.2) — 독으로' }[G.bias] ?? ''}` : ''}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
+    fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}${bossWarn.wave >= (E.RULES.lateBossFrom ?? 999) ? ` · ${{ armor: '갑옷 보스(방어 ×2.2) — 마법으로', mr: '결계 보스(마방 ×2.2) — 물리로', split: '철벽 보스(방어·마방 ×2.2) — 독으로', regen: '불사 보스(방어·마방 ×2.2, 회복 ×2) — 독으로' }[G.bias] ?? ''}` : ''}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
   ctx.restore();
 }
 // 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
@@ -3105,7 +3105,7 @@ function drawSideTop() {
   // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 전설·히든 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
   text('시너지', 22, 28, 17, C.gold);
   const bi = E.BIAS[G.bias];
-  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
+  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'], regen: ['#ff96be', '#ffc8dc'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
   const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
   if (!list.length) fitText('전설·히든 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
   list.forEach((el, i) => {
@@ -3463,7 +3463,7 @@ function blackMask(im, key) {
 }
 // 이번 판 소개(2026-11-21 사용자 요청): 판 성향 · 닫힌(밴) 최상위 그림 · 후반 「???」 보스 검은 그림자 · 시작 버튼
 function drawIntro() {
-  const x = FIELD.x + 6, w = FIELD.w - 12, y = FIELD.y - 24, h = FIELD.h + 24, bi = E.BIAS[G.bias], cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
+  const x = FIELD.x + 6, w = FIELD.w - 12, y = FIELD.y - 24, h = FIELD.h + 24, bi = E.BIAS[G.bias], cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138', regen: '255,150,190' }[G.bias] ?? '220,220,220';
   const age = (performance.now() - (modal.t ?? 0)) / 1000, ap = Math.min(1, age / 0.35);
   ctx.globalAlpha = ap;
   box(x, y, w, h, 'rgba(10,26,40,.96)', C.goldEdge, 16, 2.5);
@@ -3497,7 +3497,7 @@ function drawIntro() {
     ctx.save(); ctx.shadowColor = `rgba(${cl},${0.5 + 0.4 * pulse})`; ctx.shadowBlur = 18; drawFit(mk, x + 24, yy + 10, bh + 10, bh + 10); ctx.restore(); }
   text('???', tx, yy + 34, 30, '#ff8a7a');
   fitText(`${E.RULES.lateBossFrom}웨이브부터 이 판 성향에 맞춘`, tx, yy + 66, tw, 13, C.text); fitText('강한 보스가 나타나요', tx, yy + 86, tw, 13, C.text);
-  fitText({ armor: '단단한 갑옷 — 마법을 준비하세요', mr: '두꺼운 결계 — 물리를 준비하세요', split: '철벽 — 독을 준비하세요' }[G.bias] ?? '', tx, yy + 114, tw, 13, '#ffb3a8');
+  fitText({ armor: '단단한 갑옷 — 마법을 준비하세요', mr: '두꺼운 결계 — 물리를 준비하세요', split: '철벽 — 독을 준비하세요', regen: '빠르게 되살아나는 몸 — 독을 준비하세요' }[G.bias] ?? '', tx, yy + 114, tw, 13, '#ffb3a8');
   // 시작
   button(x + w / 2 - 110, y + h - 66, 220, 52, '시작하기', () => { modal = null; G.biasShown = true; biasAlarm(); sfx('story'); }, 'primary');
   ctx.globalAlpha = 1;
