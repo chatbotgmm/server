@@ -154,7 +154,7 @@ export const WISP_SKILL = {
 // 누르면 성공 확률 ok로 위습 1개(실패도 있음), 성공하면 거의 에픽·전설은 아주 드묾. 쿨타임 cd초(갈매미마다 따로, 실패해도 돎)
 export const WISP_ACTIVE = {
   u49: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },   // 가루다(초월)
-  u57: { cd: 90, ok: 0.45, table: { EPIC: 0.97, LEGEND: 0.03 } },   // 여명(영원)
+  u57: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },   // 여명(영원) — 2026-11-21 사용자 요청: 가루다와 같은 확률
 };
 // 2026-11-21 사용자 요청: 리치는 적을 쓰러뜨리면 낮은 확률로 모집권 1개(위습 찾기 대신)
 export const TICKET_SKILL = { u56: { p: 0.01 } };
