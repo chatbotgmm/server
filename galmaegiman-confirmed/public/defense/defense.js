@@ -1490,10 +1490,21 @@ function drawField() {
 // 판 위 목표(2026-11-21 사용자 요청): 판 안쪽 왼쪽 위에 목표마다 동그라미 버튼(목표 갈매미 그림 + 진행 고리).
 // 누르면 그 아래로 창이 미끄러져 나오며 재료를 그림으로 — 가진 것은 밝게·✓, 없는 것은 흐리게·빨간 테두리. 다시 누르면 닫힘
 const goalOpen = { k: -1, at: 0 };
+// 2026-11-21 사용자 요청: 동그라미 버튼을 끌어서 옮길 수 있게(버튼 무리 통째로, 자리는 기기에 기억). 짧게 누르면 열고 닫기
+const GOAL_POS_KEY = 'gmm-defense-goalpos';
+let goalPos = null; try { goalPos = JSON.parse(localStorage.getItem(GOAL_POS_KEY) || 'null'); } catch { goalPos = null; }
+let goalDrag = null;
+window.addEventListener('pointerup', () => {
+  if (!goalDrag) return; const d = goalDrag; goalDrag = null;
+  if (!d.moved) { if (goalOpen.k === d.k) goalOpen.k = -1; else { goalOpen.k = d.k; goalOpen.at = performance.now(); } }
+  else try { localStorage.setItem(GOAL_POS_KEY, JSON.stringify(goalPos)); } catch { /* 기억 못 해도 진행 */ }
+});
 function drawGoalBoard() {
   if (!G?.goals?.length || G.over) { goalOpen.k = -1; return; }
   if (goalOpen.k >= G.goals.length) goalOpen.k = -1;
-  const cnt = E.countOnField(G), R0 = 21, x0 = E.LOOP.x0 + 30 + R0, y0 = E.LOOP.y0 + 32 + R0;   // 길(적이 다니는 곳) 안쪽
+  const cnt = E.countOnField(G), R0 = 21, nG = G.goals.length, gw = nG * (R0 * 2 + 10) - 10;
+  const bx = Math.max(FIELD.x + 2, Math.min(FIELD.x + FIELD.w - gw - 2, goalPos?.x ?? E.LOOP.x0 + 30)), by = Math.max(FIELD.y + 2, Math.min(FIELD.y + FIELD.h - R0 * 2 - 2, goalPos?.y ?? E.LOOP.y0 + 32));   // 기본은 길 안쪽 왼쪽 위
+  const x0 = bx + R0, y0 = by + R0;
   G.goals.forEach((gid, k) => {
     const r = E.recipeFor(gid); if (!r) return;
     const cx = x0 + k * (R0 * 2 + 10), cy = y0, gc = GOAL_COLOR[k], ok = canMake(r), pg = progOf(r, cnt), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total, on = goalOpen.k === k;
@@ -1503,14 +1514,20 @@ function drawGoalBoard() {
     ctx.strokeStyle = ok ? C.good : gc; ctx.beginPath(); ctx.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, fr)); ctx.stroke();
     if (on) { ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, R0 + 4, 0, Math.PI * 2); ctx.stroke(); }
     if (ok) { box(cx - 18, cy + R0 - 6, 36, 13, C.good, null, 6); text('조합!', cx, cy + R0 + 0.5, 10, '#07131c', 'center'); }
-    hit(cx - R0 - 4, cy - R0 - 4, R0 * 2 + 8, R0 * 2 + 8, () => { if (goalOpen.k === k) goalOpen.k = -1; else { goalOpen.k = k; goalOpen.at = performance.now(); } });
+    hit(cx - R0 - 4, cy - R0 - 4, R0 * 2 + 8, R0 * 2 + 8, (p) => {   // 끌기(누름·움직임·뗌 모두 여기로) — 뗄 때 판정은 위 pointerup
+      if (!goalDrag) { goalDrag = { k, sx: p.x, sy: p.y, ox: bx, oy: by, moved: false }; return; }
+      const dx = p.x - goalDrag.sx, dy = p.y - goalDrag.sy;
+      if (!goalDrag.moved && Math.hypot(dx, dy) > 8) { goalDrag.moved = true; goalOpen.k = -1; }
+      if (goalDrag.moved) goalPos = { x: Math.round(goalDrag.ox + dx), y: Math.round(goalDrag.oy + dy) };
+    }, true);
   });
   // 미끄러져 나오는 재료 창
   const k = goalOpen.k; if (k < 0) return;
   const gid = G.goals[k], r = E.recipeFor(gid); if (!r) return;
   const left = { ...cnt }, mats = r.in.map((id) => { const h = (left[id] ?? 0) > 0; if (h) left[id]--; return { id, h }; });
   const n = mats.length, ts = 40, gap = 6, per = Math.min(n, 5), rows = Math.ceil(n / per), pw = Math.max(200, per * (ts + gap) + 16), ph = 40 + rows * (ts + 18) + 34;
-  const px = E.LOOP.x0 + 30, py = y0 + R0 + 10, t = Math.min(1, (performance.now() - goalOpen.at) / 180), ease = 1 - Math.pow(1 - t, 3), shown = ph * ease;
+  // 재료 창: 버튼 아래(아래 자리가 없으면 위로)
+  const px = Math.max(FIELD.x + 2, Math.min(FIELD.x + FIELD.w - pw - 2, bx)), py = y0 + R0 + 10 + ph > FIELD.y + FIELD.h ? by - 10 - ph : y0 + R0 + 10, t = Math.min(1, (performance.now() - goalOpen.at) / 180), ease = 1 - Math.pow(1 - t, 3), shown = ph * ease;
   hit(px, py, pw, shown, () => {});   // 창 위를 눌러도 판이 반응하지 않게(버튼은 뒤에 넣어 먼저 잡힘)
   ctx.save(); ctx.beginPath(); ctx.rect(px - 2, py - 2, pw + 4, shown + 4); ctx.clip();
   const oy = py - (ph - shown);   // 위에서 아래로 내려옴
