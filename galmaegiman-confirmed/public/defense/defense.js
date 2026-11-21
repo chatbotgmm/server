@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=1bfebf470284';
+import * as E from './engine.js?v=09c448161333';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2146,7 +2146,7 @@ function drawUnitPanel(y0, u) {
   const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
     : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);
   const bx = (i) => 22 + (i % 3) * (b6 + 6), byOf = (i) => (i < 3 ? by1 : by2);
-  button(bx(0), byOf(0), b6, BH, list.length > shown ? `조합법 +${list.length - shown}` : '조합법', () => openBook(null, u.id), 'normal');
+  button(bx(0), byOf(0), b6, BH, list.length > shown ? `조합법 +${list.length - shown}` : '조합법', () => openBook(null, u.id, { sel: [u.uid] }), 'normal');
   button(bx(1), byOf(1), b6, BH, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요(고정한 것은 그 자리).`); }, 'normal');
   button(bx(2), byOf(2), b6, BH, u.lock ? '고정 풀기' : '위치 고정', () => { E.setLock(G, [u.uid], !u.lock); say(u.lock ? '위치를 고정했어요. 끌어도 안 움직여요.' : '고정을 풀었어요.'); }, u.lock ? 'primary' : 'normal');
   button(bx(3), byOf(3), b6, BH, '창고로', () => { E.store(G, [u.uid]); selected = []; say(`${E.UNIT[u.id].name}을(를) 창고에 넣었어요(조합 재료로는 쓰여요).`); }, 'normal');
@@ -2226,7 +2226,7 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
       fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
       fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
       if (shut) box(cx, cy, ww, h, 'rgba(7,19,28,.45)', null, 8);
-      hit(cx, cy, ww, h, () => openBook(r.out, using));
+      hit(cx, cy, ww, h, () => openBook(r.out, using, { sel: [...selected] }));
       cx += ww + 6; n++;
     }
   }
@@ -2307,7 +2307,8 @@ function placeSearch() {   // 매 장면: 조합법 창이 열려 있을 때만 
   const c = cv.getBoundingClientRect(), k = c.width / VW;
   Object.assign(searchEl.style, { display: 'block', left: `${c.left + R.x * k}px`, top: `${c.top + R.y * k}px`, width: `${R.w * k}px`, height: `${R.h * k}px`, fontSize: `${Math.max(12, 15 * k * (R.k ?? 1))}px` });
 }
-function openBook(focus = null, using = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using }; }
+function openBook(focus = null, using = null, back = null) { modal = { kind: 'book', scroll: 0, scrollable: true, focus, using, back }; }   // back: 「돌아가기」로 돌아갈 곳(2026-11-21 사용자 요청)
+function bookBack() { const b = modal?.back; modal = b?.modal ?? null; if (b?.info) info = b.info; if (b?.sel) selected = b.sel.filter((uid) => E.unitById(G, uid)); }
 // 가로 화면: 창은 오른쪽 위(「이번 웨이브 피해」 자리, 0~664)에 열고 아래 메뉴는 그대로 보이게(사용자 요청 2026-11-08).
 // 일시정지·결과·친구 판 크게 보기만 오른쪽 열 전체
 const FULL_MODAL = new Set(['pause', 'over', 'peer']);
@@ -2330,7 +2331,8 @@ function drawBook() {
   shadeAll(0.35);   // 게임은 계속 흐름(위 정보 줄이 보이게)
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  fitText(modal.using ? `${E.UNIT[modal.using].name} 재료` : '조합법', x + 18, y + 30, 120, 20, C.text);
+  if (modal.back) button(x + 12, y + 10, 124, 40, '← 돌아가기', bookBack, 'normal');   // 열기 전 화면(갈매미 정보·설명)으로
+  else fitText(modal.using ? `${E.UNIT[modal.using].name} 재료` : '조합법', x + 18, y + 30, 120, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   bookSearchRect = { x: OX + (x + 144) * OS, y: OY + (y + 12) * OS, w: (w - 144 - 108) * OS, h: 36 * OS, k: OS };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
   box(x + 144, y + 12, w - 144 - 108, 36, '#0b1e2a', C.edge, 8, 1.5);
@@ -3018,12 +3020,34 @@ function drawSideTop() {
     E.SYN_STEPS.forEach((st, k) => { const px = 120 + k * 52; box(px, y + 10, 44, 16, sv.n >= st ? col : 'rgba(0,0,0,.4)', 'rgba(255,255,255,.15)', 5, 1); text(`${st}종`, px + 22, y + 18, 11, sv.n >= st ? '#10202c' : '#7d8c94', 'center'); });
     { const fx = E.SYN_FX[el]; fitText(on ? `${fx.text(sv.bonus)}${nx ? ` · ${nx}종이면 ${fx.text(fx.v[sv.lv]).replace(/^.*?([+−]\d+%)$/, '$1')}` : ''}` : `${nx}종이면 ${fx.text(fx.v[0])}`, 284, y + 18, W - 300, 12, on ? C.text : '#8b9aa3'); }
   });
+  // ①½ 목표(퀘스트 창, 2026-11-21 사용자 요청): 조합법에서 ☆로 고른 목표마다 진행도와 남은 재료. 누르면 그 조합법으로
+  let qy = 44 + Math.max(1, list.length) * 40 + 8;
+  if (G.goals.length) {
+    text('목표', 22, qy + 10, 15, C.gold); fitText('조합법 ☆로 정해요 · 판의 재료에 같은 색 고리', 70, qy + 10, W - 92, 11, C.muted);
+    qy += 22;
+    const cnt = E.countOnField(G);
+    G.goals.forEach((gid, k) => {
+      const r = E.recipeFor(gid); if (!r) return;
+      const out = E.UNIT[gid], gc = GOAL_COLOR[k], pg = progOf(r, cnt), ok = canMake(r), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total;
+      const left = { ...cnt }, miss = [];
+      for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(E.UNIT[id].name); }
+      box(16, qy, W - 32, 46, ok ? 'rgba(43,122,98,.3)' : 'rgba(11,30,42,.9)', gc, 8, 2);
+      drawFit(unitImg(gid), 20, qy + 3, 40, 40);
+      fitText(out.name, 66, qy + 13, 150, 14, GRADE_COLOR[out.grade]);
+      box(220, qy + 8, W - 220 - 70, 8, 'rgba(0,0,0,.5)', null, 4); if (fr > 0) box(220, qy + 8, Math.max(8, (W - 220 - 70) * fr), 8, fr >= 1 ? C.good : gc, null, 4);
+      text(ok ? '조합 가능' : `${Math.min(99, Math.floor(fr * 100))}%`, W - 26, qy + 12, 12, ok ? C.good : C.text, 'right');
+      fitText(ok ? '재료가 모두 모였어요 — 눌러서 조합' : `남은 재료: ${miss.join(', ')}`, 66, qy + 33, W - 66 - 26, 12, ok ? C.good : C.muted);
+      hit(16, qy, W - 32, 46, () => openBook(gid, null, { sel: [...selected] }));
+      qy += 50;
+    });
+    qy += 4;
+  }
   // ② 이번 웨이브 피해(줄여서 위 4)
-  const my = 44 + Math.max(1, list.length) * 40 + 14;
-  text('이번 웨이브 피해', 22, my, 15, C.gold);
-  const rows = E.fieldUnits(G).concat(E.awayUnits(G)).map((u) => ({ u, d: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d).slice(0, Math.max(2, Math.floor((548 - my - 16) / 38)));
+  const my = qy + 6;
+  if (548 - my - 16 >= 38) text('이번 웨이브 피해', 22, my, 15, C.gold);
+  const rows = E.fieldUnits(G).concat(E.awayUnits(G)).map((u) => ({ u, d: G.dmgWave?.[u.uid] ?? 0 })).filter((r) => r.d > 0).sort((a, b) => b.d - a.d).slice(0, Math.max(0, Math.floor((548 - my - 16) / 38)));   // 목표가 많으면 줄이고, 자리가 없으면 안 보임
   const top = rows[0]?.d ?? 1;
-  if (!rows.length) fitText('아직 이번 웨이브에 피해를 준 갈매미가 없어요', 22, my + 28, W - 44, 13, C.muted);
+  if (!rows.length && 548 - my - 16 >= 38) fitText('아직 이번 웨이브에 피해를 준 갈매미가 없어요', 22, my + 28, W - 44, 13, C.muted);
   rows.forEach((r, i) => {
     const y = my + 14 + i * 38, col = GRADE_COLOR[E.UNIT[r.u.id].grade];
     drawFit(unitImg(r.u.id), 18, y, 32, 34);
@@ -3159,7 +3183,7 @@ function drawInfo() {
   text('유틸·특수', x + 16, y + 124, 15, C.gold);
   // 이 갈매미로 만들 수 있는 것(2026-11-12 사용자 요청): 누르면 조합법 창을 「○○ 재료」로 열어 줌
   const usedIn = E.RECIPES.filter((q) => q.in.includes(id)).length;
-  if (usedIn) button(x + w - 186, y + 100, 172, 32, `이걸로 만드는 것 ${usedIn}`, () => { info = null; openBook(null, id); }, 'normal');
+  if (usedIn) button(x + w - 186, y + 100, 172, 32, `이걸로 만드는 것 ${usedIn}`, () => { const prev = info; info = null; openBook(null, id, { info: prev }); }, 'normal');
   const tips = E.kitTips(k);
   let tipEnd = y + 170;
   if (tips.length) tipEnd = chipRow(tips.map((t) => [t, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag]), x + 16, y + 138, x + w - 12, tips.length > 6 ? 12 : 14);
@@ -3424,10 +3448,10 @@ function drawAug() {
     fitText(a.name, ix, cy + 140, cw - 16, 17, ec, 'center');
     wrapCenter(a.desc, ix, cy + 168, cw - 18, 13, C.text, 6);
     box(cx + 12, cy + ch - 50, cw - 24, 38, 'rgba(243,216,158,.14)', C.goldEdge, 10, 1.5); text('고르기', ix, cy + ch - 31, 15, C.gold, 'center');
+    const done = !!(o.rr?.[i] ?? o.rerolled);   // 2026-11-21 사용자 요청: 카드마다 다시 뽑기 1번
+    button(cx, cy + ch + 8, cw, 40, done ? '다시 뽑기 끝' : '다시 뽑기', () => { if (E.rerollAug(G, i)) sfx('wisp'); }, 'normal', !done);
   });
-  const by = cy + ch + 14;
-  button(W / 2 - 170, by, 160, 46, o.rerolled ? '리롤 끝' : '다시 뽑기', () => { if (E.rerollAug(G)) sfx('wisp'); }, 'normal', !o.rerolled);
-  button(W / 2 + 10, by, 160, 46, '판 보기', () => { modal.peek = true; }, 'quiet');
+  button(W / 2 - 80, cy + ch + 58, 160, 44, '판 보기', () => { modal.peek = true; }, 'quiet');
 }
 // 가운데 맞춤 줄바꿈(글자 단위, 최대 줄 수)
 function wrapCenter(s, cx, y, maxW, size, color, maxLines = 4) {

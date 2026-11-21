@@ -589,14 +589,23 @@ function offerAug(g) {
   g.augOffer = { wave: g.wave, opts: pool.slice(0, 3), until: g.t + (RULES.augPickSec ?? 20) };   // 2026-11-19 사용자 요청: 미루기 없음, 시간이 지나면 자동 선택
   news(g, `${g.wave}웨이브 돌파! 증강체 하나를 고르세요`);
 }
-export function rerollAug(g) {   // 2026-11-19 사용자 요청: 증강체 다시 뽑기(제시마다 1번 무료)
-  const o = g.augOffer; if (!o || o.rerolled) return false;
-  const pool = AUG_POOL[o.wave].filter((id) => !(g.augs ?? []).includes(id) && !o.opts.includes(id));
-  const r = rng(((g.seed >>> 0) ^ Math.imul(o.wave + 977, 2654435761)) >>> 0);
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  if (pool.length < 3) return false;
-  g.augOffer = { wave: o.wave, opts: pool.slice(0, 3), rerolled: true, until: o.until };
-  return true;
+export function rerollAug(g, k = -1) {   // 2026-11-21 사용자 요청: 증강체마다 다시 뽑기 1번(k = 카드 번호). k가 없으면 아직 안 뽑은 카드 모두
+  const o = g.augOffer; if (!o) return false;
+  o.rr ??= o.rerolled ? o.opts.map(() => true) : o.opts.map(() => false);
+  const ks = k >= 0 ? [k] : o.opts.map((_, i) => i).filter((i) => !o.rr[i]);
+  let done = false;
+  for (const i of ks) {
+    if (o.rr[i] || i >= o.opts.length) continue;
+    o.seen ??= [...o.opts];
+    const pool = AUG_POOL[o.wave].filter((id) => !(g.augs ?? []).includes(id) && !o.opts.includes(id) && !o.seen.includes(id));
+    const pool2 = pool.length ? pool : AUG_POOL[o.wave].filter((id) => !(g.augs ?? []).includes(id) && !o.opts.includes(id));
+    if (!pool2.length) continue;
+    const r = rng(((g.seed >>> 0) ^ Math.imul(o.wave * 7 + i + 977, 2654435761)) >>> 0);
+    const id = pool2[Math.floor(r() * pool2.length)];
+    o.opts[i] = id; o.seen.push(id); o.rr[i] = true; done = true;
+  }
+  o.rerolled = o.rr.every(Boolean);
+  return done;
 }
 export function chooseAug(g, i) {
   const o = g.augOffer, id = o?.opts?.[i];
