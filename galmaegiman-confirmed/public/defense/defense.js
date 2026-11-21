@@ -5,9 +5,10 @@ import * as E from './engine.js?v=d1c10b78b5a1';
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
 const C = {
-  bg: '#07131c', panel: 'rgba(16,36,51,.95)', header: '#132c3b', text: '#f5ead0', muted: '#b0bec4',
-  gold: '#d9bb7f', goldEdge: '#f3d89e', edge: '#917a4c', line: '#5b675d', ink: '#192e39', bad: '#ff9a8a', good: '#9fe3a8',
-  lane: 'rgba(214,190,140,.22)', laneEdge: 'rgba(243,216,158,.35)', phys: '#ffb36b', mag: '#8fc8ff',
+  // 2026-11-21 Color Hunt 팔레트 #293681 · #4274D9 · #95CCDD · #D0E7E6 (gold·goldEdge는 이름만 남은 강조색 — 연청·옅은 청록)
+  bg: '#10163a', panel: 'rgba(30,40,100,.95)', header: '#1e2a6a', text: '#eef6f6', muted: '#a9bfd0',
+  gold: '#95ccdd', goldEdge: '#d0e7e6', edge: '#4f6fc0', line: '#4a5a8a', ink: '#1a2258', bad: '#ff9a8a', good: '#9fe3a8',
+  lane: 'rgba(149,204,221,.22)', laneEdge: 'rgba(208,231,230,.35)', phys: '#ffb36b', mag: '#8fc8ff',
 };
 const GRADE_COLOR = { COMMON: '#9aa5ad', UNCOMMON: '#62c370', RARE: '#4d9de0', EPIC: '#a77be8', LEGEND: '#f0a03c', HIDDEN: '#3fd0c0', LIMITED: '#ef5a5a', TRANSCEND: '#ff8fc7', IMMORTAL: '#f3d36b', ETERNAL: '#ffffff' };
 const GOAL_COLOR = ['#4fd1e8', '#f07ad8', '#a6e05a'];
@@ -208,14 +209,17 @@ const hitAt = (p) => { for (let k = hits.length - 1; k >= 0; k--) { const h = hi
 // 버튼 색(2026-11-21 사용자 선택 「남색 깃발 + 금테」, 게임 전체): 주요 = 깃발 남색 그라데이션·금테·흰 글자,
 // 보조 = 반투명 크림·남색 글자·금빛 테두리, 조용한 = 반투명 남색, 위험 = 붉은색. 크림 위 부가 글은 밝은 색을 짙게 바꿔 읽히게
 const BTN = {
-  primary: { top: '#2d5bc2', bot: '#1b3a88', edge: '#f0c35a', text: '#ffffff', sub: '#ffe3a3', lw: 2.2 },
-  normal: { top: 'rgba(255,248,230,.94)', bot: 'rgba(240,228,198,.94)', edge: '#c9a04e', text: '#1d2f5c', sub: '#4d5870', lw: 1.6 },
-  quiet: { top: 'rgba(28,48,96,.62)', bot: 'rgba(20,36,74,.62)', edge: 'rgba(240,195,90,.55)', text: '#e6edfb', sub: '#c3cde3', lw: 1.4 },
+  // 2026-11-21 Color Hunt 팔레트 colorhunt.co/palette/2936814274d995ccddd0e7e6 (#293681 · #4274D9 · #95CCDD · #D0E7E6)
+  primary: { top: '#4f82e0', bot: '#3a63c4', edge: '#95ccdd', text: '#ffffff', sub: '#d0e7e6', lw: 2.2 },
+  normal: { top: 'rgba(208,231,230,.95)', bot: 'rgba(186,218,224,.95)', edge: '#95ccdd', text: '#293681', sub: '#3f5592', lw: 1.6 },
+  quiet: { top: 'rgba(41,54,129,.66)', bot: 'rgba(30,40,100,.66)', edge: 'rgba(149,204,221,.6)', text: '#e8f3f3', sub: '#bcd6e0', lw: 1.4 },
   danger: { top: '#c23a30', bot: '#8e2620', edge: '#ffc2b0', text: '#ffffff', sub: '#ffe0d6', lw: 1.8 },
 };
-const CREAM_SUB = { '#9fe3a8': '#1f7a3c', '#ff9a8a': '#b3392a', '#f3d89e': '#8a5a10', '#d9bb7f': '#8a5a10', '#b0bec4': '#4d5870', '#ffb36b': '#a5520f', '#8fc8ff': '#1f5fa8' };
+const CREAM_SUB = { '#9fe3a8': '#1f7a3c', '#ff9a8a': '#b3392a', '#d0e7e6': '#293681', '#95ccdd': '#2b4f9a', '#a9bfd0': '#3f5592', '#a9bfd0': '#3f5592', '#ffb36b': '#a5520f', '#8fc8ff': '#1f5fa8' };
 const subOn = (style, c, d) => (c == null ? d : style === 'normal' ? (CREAM_SUB[String(c).toLowerCase()] ?? (String(c).startsWith('#') && parseInt(String(c).slice(1, 3), 16) > 200 ? '#4d5870' : c)) : c);
 function btnFace(x, y, w, h, st, r) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, st.top); g.addColorStop(1, st.bot); box(x, y, w, h, g, st.edge, r, st.lw); }
+// 고르기 칸·켜고 끄는 칩(탭)도 같은 규칙: 켜짐 = 주요(남색·금테), 꺼짐 = 보조(크림) — 글자색이 의미(등급 색)인 칸은 꺼짐을 조용한(반투명 남색)으로
+function tabFace(x, y, w, h, on, dark = false, r = 8) { btnFace(x, y, w, h, on ? BTN.primary : dark ? BTN.quiet : BTN.normal, r); return on ? BTN.primary.text : dark ? BTN.quiet.text : BTN.normal.text; }
 function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '', subColor = null) {
   const st = BTN[style] ?? BTN.normal;
   if (enabled) btnFace(x, y, w, h, st, 10);
@@ -452,7 +456,7 @@ function drawTalk() {
     const z = usz(u.id), tw = Math.min(200, ctx.measureText(b.msg).width) + 16, bh = 24;
     const bx = Math.max(FIELD.x + 4, Math.min(FIELD.x + FIELD.w - tw - 4, u.x - tw / 2)), by = Math.max(FIELD.y + 4, u.y - 58 * z - bh - 8 - (1 - Math.min(1, age / 0.15)) * 6);
     ctx.globalAlpha = a;
-    box(bx, by, tw, bh, 'rgba(250,244,228,.96)', 'rgba(145,122,76,.9)', 10, 1.5);
+    box(bx, by, tw, bh, 'rgba(250,244,228,.96)', 'rgba(149,204,221,.9)', 10, 1.5);
     ctx.beginPath(); const tx = Math.max(bx + 10, Math.min(bx + tw - 10, u.x)); ctx.moveTo(tx - 5, by + bh - 1); ctx.lineTo(tx + 5, by + bh - 1); ctx.lineTo(tx, by + bh + 6); ctx.closePath(); ctx.fillStyle = 'rgba(250,244,228,.96)'; ctx.fill();   // 꼬리
     fitText(b.msg, bx + tw / 2, by + bh / 2, tw - 12, 13, '#3b2614', 'center');
     ctx.globalAlpha = 1;
@@ -528,7 +532,7 @@ function drawBossWarn() {
     ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
     ctx.globalAlpha = fade;
     const bw = W - 60, bh = G.topOpen ? 116 : 92, bx = 30, by = 330, cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138', regen: '255,150,190' }[G.bias] ?? '220,220,220';
-    box(bx, by, bw, bh, 'rgba(10,26,40,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
+    box(bx, by, bw, bh, 'rgba(20,28,70,.93)', `rgba(${cl},${0.55 + 0.35 * pulse})`, 12, 3);
     fitText(`이번 판은 ${bi.name}!`, W / 2, by + 38, bw - 30, 24, `rgb(${cl})`, 'center');
     fitText(bi.desc, W / 2, by + 68, bw - 30, 15, '#e3eef5', 'center');
     if (G.topOpen) fitText(`이번 판 열린 최상위 ${G.topOpen.length}종(등급마다 절반) — 조합법 창에서 확인`, W / 2, by + 94, bw - 30, 14, '#ffd76a', 'center');   // 2026-11-21
@@ -558,7 +562,7 @@ function drawBossWarn() {
     if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); }
     ctx.globalAlpha = fade;
     const bw = W - 60, bh = 96, bx = 30, by = 328;
-    box(bx, by, bw, bh, 'rgba(48,32,8,.93)', `rgba(243,216,158,${0.6 + 0.4 * pulse})`, 12, 3);
+    box(bx, by, bw, bh, 'rgba(48,32,8,.93)', `rgba(208,231,230,${0.6 + 0.4 * pulse})`, 12, 3);
     fitText(`✦ 증강체 「${a.name}」`, W / 2, by + 34, bw - 30, 28, C.goldEdge, 'center');
     fitText(a.desc, W / 2, by + 70, bw - 30, 15, '#fff1d0', 'center');
     ctx.restore();
@@ -754,10 +758,10 @@ function drawCompStrip(comp, x, y, w, sz = 34) {   // 조합 유닛 그림 줄(�
   const shown = comp.length > fit ? comp.slice(0, fit - 1) : comp;
   shown.forEach(([id, n], i) => {
     const cx = x + i * step + sz / 2, cy = y + sz / 2, u = E.UNIT[id]; if (!u) return;
-    ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(11,30,42,.9)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(24,32,78,.9)'; ctx.fill();
     ctx.lineWidth = E.tierOf(id) >= 6 ? 2.5 : 1.6; ctx.strokeStyle = GRADE_COLOR[u.grade]; ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, sz / 2 - 1.5, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(id), cx - sz / 2, cy - sz / 2, sz, sz); ctx.restore();
-    if (n > 1) { box(cx + sz / 2 - 16, cy + sz / 2 - 12, 18, 13, 'rgba(7,19,28,.92)', null, 4); text(`×${n}`, cx + sz / 2 - 7, cy + sz / 2 - 5.5, 10, C.goldEdge, 'center'); }
+    if (n > 1) { box(cx + sz / 2 - 16, cy + sz / 2 - 12, 18, 13, 'rgba(16,22,56,.92)', null, 4); text(`×${n}`, cx + sz / 2 - 7, cy + sz / 2 - 5.5, 10, C.goldEdge, 'center'); }
   });
   if (comp.length > shown.length) text(`+${comp.length - shown.length}`, x + shown.length * step + sz / 2, y + sz / 2, 13, C.muted, 'center');
 }
@@ -1054,7 +1058,7 @@ function goalNeed() {
   return map;
 }
 function goalDots(cols, x, y, r = 4.5) {   // 목표 색 동그라미(여러 목표면 나란히)
-  cols.forEach((c, i) => { ctx.beginPath(); ctx.arc(x - i * (r * 2 + 2), y, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#07131c'; ctx.stroke(); });
+  cols.forEach((c, i) => { ctx.beginPath(); ctx.arc(x - i * (r * 2 + 2), y, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#10163a'; ctx.stroke(); });
 }
 // 재료 피라미드: 가진 갈매미(판·창고·탐사)를 쓰고, 없는 재료는 그 재료의 조합법으로 내려가며 펼친다
 // 재료 모인 정도(2026-11-15 사용자 요청: 바로 아래 재료만 세면 드라이어드가 40%로 나와 실제보다 낮음).
@@ -1128,9 +1132,9 @@ function drawLanesRaw() {
   const ix0 = L.x0 + lane / 2, iy0 = L.y0 + lane / 2, ix1 = L.x1 - lane / 2, iy1 = L.y1 - lane / 2;   // 섬(물길 안쪽 가장자리)
   ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y, F.w, F.h); ctx.clip();
   // 깊은 바다(판 전체)
-  let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, '#0b2a3a'); g.addColorStop(1, '#114055'); ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
+  let g = ctx.createLinearGradient(0, F.y, 0, F.y + F.h); g.addColorStop(0, '#22307a'); g.addColorStop(1, '#2b3f96'); ctx.fillStyle = g; ctx.fillRect(F.x, F.y, F.w, F.h);
   // 얕은 물길(적이 지나는 고리): 바깥 둥근 사각형 − 섬
-  rr(ox0, oy0, ox1 - ox0, oy1 - oy0, 18); g = ctx.createLinearGradient(0, oy0, 0, oy1); g.addColorStop(0, '#1d5f8a'); g.addColorStop(1, '#2c86b0'); ctx.fillStyle = g; ctx.fill();
+  rr(ox0, oy0, ox1 - ox0, oy1 - oy0, 18); g = ctx.createLinearGradient(0, oy0, 0, oy1); g.addColorStop(0, '#4274d9'); g.addColorStop(1, '#5a8ee0'); ctx.fillStyle = g; ctx.fill();
   // 물결 반짝임(짧은 흰 호, 자리 고정)
   let sn = 0; const rnd = () => { sn++; const v = Math.sin(sn * 12.9898) * 43758.5453; return v - Math.floor(v); };   // 장식 자리(늘 같게)
   ctx.lineWidth = 1.2;
@@ -1138,39 +1142,39 @@ function drawLanesRaw() {
   for (let x = ox0 + 10; x < ox1 - 6; x += 22) { ripple(x + rnd() * 8, L.y0 + (rnd() - 0.5) * 22); ripple(x + rnd() * 8, L.y1 + (rnd() - 0.5) * 22); }
   for (let y = oy0 + 24; y < oy1 - 10; y += 22) { ripple(L.x0 + (rnd() - 0.5) * 22, y + rnd() * 8); ripple(L.x1 + (rnd() - 0.5) * 22, y + rnd() * 8); }
   // 바깥 물가: 모래 띠 + 하얀 거품선(물길 바깥 가장자리)
-  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(120,132,140,.7)'; rr(ox0 - 3, oy0 - 3, ox1 - ox0 + 6, oy1 - oy0 + 6, 20); ctx.stroke();   // 바깥 방파제 돌 띠
+  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(208,231,230,.85)'; rr(ox0 - 3, oy0 - 3, ox1 - ox0 + 6, oy1 - oy0 + 6, 20); ctx.stroke();   // 바깥 방파제 돌 띠
   ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(235,250,255,.45)'; ctx.setLineDash([7, 5]); rr(ox0 + 2, oy0 + 2, ox1 - ox0 - 4, oy1 - oy0 - 4, 16); ctx.stroke(); ctx.setLineDash([]);
   // 섬 = 돌 부두(2026-11-15 사용자 참고 그림: 해안 초소·방파제): 절벽 앞면(아래로 CL) → 그림자 → 돌 테두리 → 돌 바닥 타일
   ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(ix0 + 3, iy0 + CL + 4, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 물에 비친 그림자
-  ctx.fillStyle = '#3c454d'; rr(ix0, iy0 + CL, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 옹벽 앞면
+  ctx.fillStyle = '#3a4478'; rr(ix0, iy0 + CL, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 옹벽 앞면
   ctx.fillStyle = 'rgba(0,0,0,.25)'; for (let x = ix0 + 14; x < ix1 - 8; x += 22) ctx.fillRect(x, iy1 + 1, 1.5, CL - 1);   // 옹벽 돌 이음
-  ctx.fillStyle = '#7d8890'; rr(ix0, iy0, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 테두리(연석)
+  ctx.fillStyle = '#d0e7e6'; rr(ix0, iy0, ix1 - ix0, iy1 - iy0, 10); ctx.fill();   // 돌 테두리(연석, 크림 돌)
   const gx0 = ix0 + 8, gy0 = iy0 + 8, gx1 = ix1 - 8, gy1 = iy1 - 8, TS = 46;
-  g = ctx.createLinearGradient(0, gy0, 0, gy1); g.addColorStop(0, '#4a545c'); g.addColorStop(1, '#5f6a72');   // 돌 바닥(갈매미가 잘 보이게 차분한 회색)
+  g = ctx.createLinearGradient(0, gy0, 0, gy1); g.addColorStop(0, '#7d889e'); g.addColorStop(1, '#8e99ae');   // 돌 바닥(2026-11-21 항구 색: 모래빛 돌, 흰 갈매미가 보이게 한 톤 어둡게)
   ctx.fillStyle = g; ctx.fillRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
   ctx.save(); ctx.beginPath(); ctx.rect(gx0, gy0, gx1 - gx0, gy1 - gy0); ctx.clip();
   for (let y = gy0, row = 0; y < gy1; y += TS, row++) for (let x = gx0 - (row % 2 ? TS / 2 : 0); x < gx1; x += TS) {   // 엇갈린 큰 돌판: 위·왼쪽 밝은 모서리, 아래·오른쪽 어두운 줄눈
     const v = rnd();
     ctx.fillStyle = v > 0.66 ? 'rgba(255,255,255,.035)' : v < 0.33 ? 'rgba(0,0,0,.06)' : 'rgba(0,0,0,0)'; ctx.fillRect(x + 1, y + 1, TS - 2, TS - 2);
     ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(x + 1, y + 1, TS - 2, 1.5); ctx.fillRect(x + 1, y + 1, 1.5, TS - 2);
-    ctx.fillStyle = 'rgba(10,15,20,.4)'; ctx.fillRect(x, y + TS - 1.5, TS, 1.5); ctx.fillRect(x + TS - 1.5, y, 1.5, TS);
-    if (rnd() > 0.8) { ctx.strokeStyle = 'rgba(10,15,20,.25)'; ctx.lineWidth = 1; ctx.beginPath(); const cx = x + 8 + rnd() * (TS - 16), cy = y + 8 + rnd() * (TS - 16); ctx.moveTo(cx, cy); ctx.lineTo(cx + 6, cy + 4); ctx.lineTo(cx + 9, cy + 2); ctx.stroke(); }   // 금
+    ctx.fillStyle = 'rgba(25,32,70,.38)'; ctx.fillRect(x, y + TS - 1.5, TS, 1.5); ctx.fillRect(x + TS - 1.5, y, 1.5, TS);
+    if (rnd() > 0.8) { ctx.strokeStyle = 'rgba(25,32,70,.25)'; ctx.lineWidth = 1; ctx.beginPath(); const cx = x + 8 + rnd() * (TS - 16), cy = y + 8 + rnd() * (TS - 16); ctx.moveTo(cx, cy); ctx.lineTo(cx + 6, cy + 4); ctx.lineTo(cx + 9, cy + 2); ctx.stroke(); }   // 금
   }
   g = ctx.createLinearGradient(0, gy0, 0, gy0 + 18); g.addColorStop(0, 'rgba(0,0,0,.22)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(gx0, gy0, gx1 - gx0, 18);   // 먼 쪽(위) 그늘
   ctx.restore();
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(220,230,235,.3)'; rr(ix0 + 0.75, iy0 + 0.75, ix1 - ix0 - 1.5, iy1 - iy0 - 1.5, 10); ctx.stroke();   // 연석 위 빛
-  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(10,15,20,.45)'; ctx.strokeRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(235,248,248,.6)'; rr(ix0 + 0.75, iy0 + 0.75, ix1 - ix0 - 1.5, iy1 - iy0 - 1.5, 10); ctx.stroke();   // 연석 위 빛
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(30,40,90,.5)'; ctx.strokeRect(gx0, gy0, gx1 - gx0, gy1 - gy0);
   // ── 방범대 장식(2026-11-15 사용자 요청: 캔버스로, 어색하지 않게). 갈매미를 가리지 않게 낮은 것·바닥 칠만, 오른쪽 커먼 자리(x 445)는 비움 ──
   // 바닥 칠: 흐린 스텐실 글씨
-  ctx.save(); ctx.globalAlpha = 0.16; ctx.font = `bold 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = '#e8d9a8'; ctx.fillText('제3초소 · 방범 구역', (gx0 + gx1) / 2 - 30, gy1 - 34); ctx.restore();
+  ctx.save(); ctx.globalAlpha = 0.16; ctx.font = `bold 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = '#293681'; ctx.fillText('제3초소 · 방범 구역', (gx0 + gx1) / 2 - 30, gy1 - 34); ctx.restore();
   // 연석 네 모서리 경고 칠(노랑/검정)
   ctx.save(); rr(ix0, iy0, ix1 - ix0, iy1 - iy0, 10); ctx.clip();
-  ctx.fillStyle = stripe('#d4a017', '#1e293b', 5, -1);
+  ctx.fillStyle = stripe('#95ccdd', '#293681', 5, -1);
   for (const [cx, cy] of [[ix0, iy0], [ix1, iy0], [ix0, iy1], [ix1, iy1]]) { ctx.fillRect(cx - 34, cy - 8, 68, 16); ctx.fillRect(cx - 8, cy - 34, 16, 68); }
   ctx.restore();
   // 계류 말뚝(연석 위, 쇠기둥 + 노란 머리) + 앞쪽 연석엔 늘어진 밧줄
   const bollard = (x, y) => { ctx.beginPath(); ctx.ellipse(x + 1, y + 3, 5, 2, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
-    ctx.fillStyle = '#2b3238'; ctx.fillRect(x - 3, y - 7, 6, 9); ctx.beginPath(); ctx.ellipse(x, y - 7, 4, 2, 0, 0, Math.PI * 2); ctx.fillStyle = '#e0b030'; ctx.fill(); };
+    ctx.fillStyle = '#293681'; ctx.fillRect(x - 3, y - 7, 6, 9); ctx.beginPath(); ctx.ellipse(x, y - 7, 4, 2, 0, 0, Math.PI * 2); ctx.fillStyle = '#95ccdd'; ctx.fill(); };
   const bx = [ix0 + 60, ix0 + 140, ix0 + 220, ix0 + 300], posts = [];
   for (const x of bx) { posts.push([x, iy1 - 3]); bollard(x, iy0 + 4); }
   for (const y of [iy0 + 90, iy0 + 210, iy0 + 330]) bollard(ix0 + 4, y);
@@ -1183,14 +1187,14 @@ function drawLanesRaw() {
   crate(gx0 + 30, gy0 + 6, 16, 14); crate(gx0 + 46, gy0 + 9, 14, 12); crate(gx0 + 36, gy0 - 4, 14, 11);
   { const tx = gx0 + 12, ty = gy0 + 24;   // 신호탑: 철골 다리 + 등
     ctx.beginPath(); ctx.ellipse(tx + 2, ty + 2, 8, 3, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill();
-    ctx.strokeStyle = '#3a434a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx - 6, ty); ctx.lineTo(tx - 2, ty - 24); ctx.moveTo(tx + 6, ty); ctx.lineTo(tx + 2, ty - 24); ctx.stroke();
+    ctx.strokeStyle = '#293681'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx - 6, ty); ctx.lineTo(tx - 2, ty - 24); ctx.moveTo(tx + 6, ty); ctx.lineTo(tx + 2, ty - 24); ctx.stroke();
     ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(tx - 5, ty - 6); ctx.lineTo(tx + 4, ty - 14); ctx.moveTo(tx + 5, ty - 6); ctx.lineTo(tx - 4, ty - 14); ctx.stroke();
-    ctx.fillStyle = '#2b3238'; ctx.fillRect(tx - 5, ty - 30, 10, 6); }
+    ctx.fillStyle = '#293681'; ctx.fillRect(tx - 5, ty - 30, 10, 6); }
   // 왼쪽 아래 구석: 모래주머니 벽 + 빈 철제 표지판
   for (let r = 0; r < 2; r++) for (let k = 0; k < 4 - r; k++) { const x = gx0 + 8 + k * 11 + r * 5.5, y = gy1 - 14 - r * 6; ctx.beginPath(); ctx.ellipse(x, y, 6.5, 4, 0, 0, Math.PI * 2); ctx.fillStyle = r ? '#a18b5c' : '#8f7a4f'; ctx.fill(); ctx.strokeStyle = 'rgba(60,45,25,.6)'; ctx.lineWidth = 1; ctx.stroke(); }
-  { const sx = gx0 + 62, sy = gy1 - 30; ctx.fillStyle = '#2b3238'; ctx.fillRect(sx + 12, sy + 12, 2.5, 14); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(sx + 2, sy + 26, 26, 3);
-    ctx.fillStyle = '#334155'; ctx.fillRect(sx, sy, 28, 14); ctx.fillStyle = '#64748b'; ctx.fillRect(sx, sy, 28, 2); ctx.fillStyle = '#0f172a'; ctx.fillRect(sx, sy + 12, 28, 2);
-    ctx.font = `bold 8px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f59e0b'; ctx.fillText('제3초소', sx + 14, sy + 7); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+  { const sx = gx0 + 62, sy = gy1 - 30; ctx.fillStyle = '#293681'; ctx.fillRect(sx + 12, sy + 12, 2.5, 14); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(sx + 2, sy + 26, 26, 3);
+    ctx.fillStyle = '#293681'; ctx.fillRect(sx, sy, 28, 14); ctx.fillStyle = '#95ccdd'; ctx.fillRect(sx, sy, 28, 2); ctx.fillStyle = '#1a2258'; ctx.fillRect(sx, sy + 12, 28, 2);
+    ctx.font = `bold 8px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#d0e7e6'; ctx.fillText('제3초소', sx + 14, sy + 7); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
   // 물가 바위(바깥 가장자리 몇 곳)
   const rock = (x, y, r) => { ctx.beginPath(); ctx.ellipse(x + 2, y + r * 0.5, r * 1.2, r * 0.45, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fill();
     ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.75, 0, 0, Math.PI * 2); ctx.fillStyle = '#5d676e'; ctx.fill(); ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.55, r * 0.35, 0, 0, Math.PI * 2); ctx.fillStyle = '#8b959b'; ctx.fill();
@@ -1478,7 +1482,7 @@ function glow(id) {   // 빛 테두리 그림을 한 번만 만들어 둠
   return glows[id];
 }
 function drawLockMark(x, y) {   // 위치 고정 자물쇠(어두운 동그라미 위에)
-  ctx.beginPath(); ctx.arc(x, y - 2, 11, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.92)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = C.goldEdge; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y - 2, 11, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16,22,56,.92)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = C.goldEdge; ctx.stroke();
   ctx.beginPath(); ctx.arc(x, y - 5, 3.6, Math.PI, 0); ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 2; ctx.stroke();
   box(x - 5.5, y - 5, 11, 8.5, C.goldEdge, null, 2);
 }
@@ -1514,12 +1518,12 @@ function drawGoalBoard() {
   G.goals.forEach((gid, k) => {
     const r = E.recipeFor(gid); if (!r) return;
     const cx = x0 + k * (R0 * 2 + 10), cy = y0, gc = GOAL_COLOR[k], ok = canMake(r), pg = progOf(r, cnt), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total, on = goalOpen.k === k;
-    ctx.beginPath(); ctx.arc(cx, cy, R0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.88)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, R0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16,22,56,.88)'; ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R0 - 3, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(gid), cx - R0 + 2, cy - R0 + 1, R0 * 2 - 4, R0 * 2 - 2); ctx.restore();
     ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(cx, cy, R0, 0, Math.PI * 2); ctx.stroke();   // 진행 고리
     ctx.strokeStyle = ok ? C.good : gc; ctx.beginPath(); ctx.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, fr)); ctx.stroke();
     if (on) { ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, R0 + 4, 0, Math.PI * 2); ctx.stroke(); }
-    if (ok) { box(cx - 18, cy + R0 - 6, 36, 13, C.good, null, 6); text('조합!', cx, cy + R0 + 0.5, 10, '#07131c', 'center'); }
+    if (ok) { box(cx - 18, cy + R0 - 6, 36, 13, C.good, null, 6); text('조합!', cx, cy + R0 + 0.5, 10, '#10163a', 'center'); }
     hit(cx - R0 - 4, cy - R0 - 4, R0 * 2 + 8, R0 * 2 + 8, (p) => {   // 끌기(누름·움직임·뗌 모두 여기로) — 뗄 때 판정은 위 pointerup
       if (!goalDrag) { goalDrag = { k, sx: p.x, sy: p.y, ox: bx, oy: by, moved: false }; return; }
       const dx = p.x - goalDrag.sx, dy = p.y - goalDrag.sy;
@@ -1537,7 +1541,7 @@ function drawGoalBoard() {
   hit(px, py, pw, shown, () => {});   // 창 위를 눌러도 판이 반응하지 않게(버튼은 뒤에 넣어 먼저 잡힘)
   ctx.save(); ctx.beginPath(); ctx.rect(px - 2, py - 2, pw + 4, shown + 4); ctx.clip();
   const oy = py - (ph - shown);   // 위에서 아래로 내려옴
-  box(px, oy, pw, ph, 'rgba(7,19,28,.92)', GOAL_COLOR[k], 10, 2);
+  box(px, oy, pw, ph, 'rgba(16,22,56,.92)', GOAL_COLOR[k], 10, 2);
   const out = E.UNIT[gid], got = mats.filter((m) => m.h).length;
   fitText(out.name, px + 10, oy + 16, pw - 80, 14, GRADE_COLOR[out.grade]);
   text(`${got}/${n} 확보`, px + pw - 10, oy + 16, 12, got === n ? C.good : C.text, 'right');
@@ -1545,7 +1549,7 @@ function drawGoalBoard() {
     const tx = px + 8 + (i % per) * (ts + gap), ty = oy + 34 + Math.floor(i / per) * (ts + 18), gc = GRADE_COLOR[E.UNIT[m.id].grade];
     box(tx, ty, ts, ts, m.h ? 'rgba(43,122,98,.35)' : 'rgba(0,0,0,.45)', m.h ? gc : '#ff6b6b', 7, m.h ? 1.5 : 2);
     ctx.globalAlpha = m.h ? 1 : 0.35; drawFit(unitImg(m.id), tx + 2, ty + 2, ts - 4, ts - 4); ctx.globalAlpha = 1;
-    if (m.h) { ctx.beginPath(); ctx.arc(tx + ts - 7, ty + 7, 6, 0, Math.PI * 2); ctx.fillStyle = C.good; ctx.fill(); text('✓', tx + ts - 7, ty + 7.5, 9, '#07131c', 'center'); }
+    if (m.h) { ctx.beginPath(); ctx.arc(tx + ts - 7, ty + 7, 6, 0, Math.PI * 2); ctx.fillStyle = C.good; ctx.fill(); text('✓', tx + ts - 7, ty + 7.5, 9, '#10163a', 'center'); }
     fitText(E.UNIT[m.id].name, tx + ts / 2, ty + ts + 8, ts + gap, 10, m.h ? gc : '#ff9a8a', 'center');
   });
   button(px + 8, oy + ph - 30, pw - 16, 24, got === n || canMake(r) ? '조합법 열기 · 조합!' : '조합법 열기', () => openBook(gid, null, { sel: [...selected] }), canMake(r) ? 'primary' : 'quiet');
@@ -1558,7 +1562,7 @@ function drawFieldInner() {
   if (sel.length === 1) {
     const k = E.kit(sel[0].id);
     ctx.beginPath(); ctx.arc(sel[0].x, sel[0].y - 14, k.range, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(243,216,158,.07)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(243,216,158,.55)'; ctx.stroke();
+    ctx.fillStyle = 'rgba(208,231,230,.07)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(208,231,230,.55)'; ctx.stroke();
   }
   // 이감·마방깍 갈매미 범위(범위 안 적 모두에게 걸림, 옅게)
   if (!fxLite) {   // 갈매미가 움직일 때만 새로 그림(점선 원 수십 개를 매 프레임 그리던 것)
@@ -1644,10 +1648,10 @@ function drawFieldInner() {
     // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)
     { const t = E.tierOf(u.id), top = t >= E.TOP_TIER, end = [10, 15, 20, 25, 30, 30][t] ?? 30, na = top ? 1 : Math.max(0, Math.min(1, (end - G.wave) / 5));
       if (na > 0) { const fs = top ? 13 : 11, ny = u.y + 8 * z + (top ? 9 : 8); ctx.font = `${fs}px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
-        ctx.globalAlpha = na; box(u.x - nw / 2, ny - fs * 0.7, nw, fs * 1.4, 'rgba(7,19,28,.72)', null, 7); text(info.name, u.x, ny, fs, col, 'center'); ctx.globalAlpha = 1; } }
+        ctx.globalAlpha = na; box(u.x - nw / 2, ny - fs * 0.7, nw, fs * 1.4, 'rgba(16,22,56,.72)', null, 7); text(info.name, u.x, ny, fs, col, 'center'); ctx.globalAlpha = 1; } }
     // 시너지 표시(2026-11-21 사용자 요청): 시너지에 세는 갈매미(에픽 이상)에 속성 배지. 켜진 속성은 색을 채우고 단계 점, 안 켜진 속성은 흐린 테두리만
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
-    if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
+    if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(208,231,230,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
   // 적 체력 칸·▼·★: 갈매미보다 위에 그림(2026-11-10 사용자 지적: 윗줄 적 체력 칸이 가려짐). 늘 적 위쪽에 두고(사용자: 아래로 가면 헷갈림),
   // 위쪽 정보 줄에 가릴 만큼 올라가면 판 맨 위에 붙임
@@ -1669,13 +1673,13 @@ function drawFieldInner() {
   // 겹친 갈매미 수(같은 자리 14px 안)
   const stacks = [];
   for (const u of list) { const z = usz(u.id), st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; st.z = Math.max(st.z, z); } else stacks.push({ x: u.x, y: u.y, n: 1, z }); }
-  for (const st of stacks) if (st.n > 1) { const by = st.y - 50 * st.z - 4; box(st.x + 10 * st.z, by, 30, 20, 'rgba(7,19,28,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 10 * st.z + 15, by + 10.5, 13, C.goldEdge, 'center'); }
+  for (const st of stacks) if (st.n > 1) { const by = st.y - 50 * st.z - 4; box(st.x + 10 * st.z, by, 30, 20, 'rgba(16,22,56,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 10 * st.z + 15, by + 10.5, 13, C.goldEdge, 'center'); }
   // 끌기 표시
   if (down?.moved && down.field) {
     if (down.unit) {
       // 끌기 실시간(2026-11-12): 갈매미가 직접 따라오므로 반투명 미리 보기는 그리지 않음
     } else {
-      box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(243,216,158,.08)', C.goldEdge, 2, 1.5);
+      box(Math.min(down.x0, down.x), Math.min(down.y0, down.y), Math.abs(down.x - down.x0), Math.abs(down.y - down.y0), 'rgba(208,231,230,.08)', C.goldEdge, 2, 1.5);
     }
   }
   // 장판(초불영제 고유 기술): 남은 시간 동안 바닥에 깔림
@@ -1700,7 +1704,7 @@ function drawFieldInner() {
       ctx.globalAlpha = Math.min(1, a * 1.6);
       const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;
       const fs = Math.round((cr ? 21 : big ? 18 : 15) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
-      ctx.font = `${fs}px ${FONT}`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(7,19,28,.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny);   // 테두리(읽기 쉽게, 2026-11-21: 13→15px)
+      ctx.font = `${fs}px ${FONT}`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(16,22,56,.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny);   // 테두리(읽기 쉽게, 2026-11-21: 13→15px)
       text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
       if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
       if (cr && age < 0.25 && !fxLite) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
@@ -1793,7 +1797,7 @@ function drawSig(f, age) {
       const ty = base - k * 18, r = { x: f.x0 - tw / 2, y: ty - 9, w: tw, h: 18 };
       if (sigLabels.some((q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h)) continue;
       sigLabels.push(r); ctx.globalAlpha = Math.min(1, (0.75 - age) / 0.25);
-      text(f.name, f.x0 + 1.5, ty + 1.5, 14, 'rgba(7,19,28,.95)', 'center'); text(f.name, f.x0, ty, 14, '#ffe9a8', 'center');
+      text(f.name, f.x0 + 1.5, ty + 1.5, 14, 'rgba(16,22,56,.95)', 'center'); text(f.name, f.x0, ty, 14, '#ffe9a8', 'center');
       break;
     }
   }
@@ -1978,7 +1982,7 @@ function drawHud() {
   if (nw && G.t - nw.t < 3.5) {
     ctx.font = `15px ${FONT}`;
     const tw = Math.min(W - 40, ctx.measureText(nw.msg).width + 28);
-    box((W - tw) / 2, FIELD.y + 6, tw, 32, 'rgba(19,44,59,.95)', C.goldEdge, 8, 1.5);
+    box((W - tw) / 2, FIELD.y + 6, tw, 32, 'rgba(41,54,129,.95)', C.goldEdge, 8, 1.5);
     fitText(nw.msg, W / 2, FIELD.y + 22, tw - 16, 15, C.goldEdge, 'center');
   }
 }
@@ -2008,32 +2012,39 @@ function stripe(a, b, sz, dir = 1) {   // 빗금 무늬(45°·−45°), 크기 s
   return p;
 }
 function fenceBox(x, y, w, h) {   // 상단 상황판: 빗금 강판 + 철제 테두리 4 + 안쪽 2·4 + 아래 그림자 4
-  ctx.fillStyle = '#0d1117'; ctx.fillRect(x, y + 4, w, h);
-  ctx.fillStyle = stripe('#1e293b', '#0f172a', 10); ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = 'rgba(15,23,42,.55)'; ctx.fillRect(x, y, w, h);   // 글자가 읽히게 빗금을 눌러 줌
-  ctx.lineWidth = 4; ctx.strokeStyle = '#2a3439'; ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.lineWidth = 2; ctx.strokeStyle = '#4a5568'; ctx.strokeRect(x + 5, y + 5, w - 10, h - 10);
-  ctx.lineWidth = 2; ctx.strokeStyle = '#1a202c'; ctx.strokeRect(x + 7, y + 7, w - 14, h - 14);
+  // 2026-11-21 항구 색(남색 깃발 + 금테): 빗금 강판 대신 남색 판 + 금 이중 테두리
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x, y + 4, w, h);
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#34479c'); g.addColorStop(1, '#1f2a6a'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.lineWidth = 3; ctx.strokeStyle = '#95ccdd'; ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(149,204,221,.45)'; ctx.strokeRect(x + 6.5, y + 6.5, w - 13, h - 13);
 }
 function siren(x, y, s = 10) {   // 초소 경고등: 1.2초에 켜짐·꺼짐 두 단계(부드럽게 바뀌지 않음)
   const on = Math.floor(performance.now() / 600) % 2 === 0;
-  if (on) { ctx.save(); ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 8; ctx.fillStyle = '#ef4444'; ctx.fillRect(x, y, s, s); ctx.restore(); ctx.fillStyle = 'rgba(252,165,165,.7)'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
-  else { ctx.fillStyle = '#7f1d1d'; ctx.fillRect(x, y, s, s); ctx.fillStyle = '#991b1b'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
-  ctx.lineWidth = 1; ctx.strokeStyle = '#0f172a'; ctx.strokeRect(x - 0.5, y - 0.5, s + 1, s + 1);
+  if (on) { ctx.save(); ctx.shadowColor = '#bfe6f0'; ctx.shadowBlur = 8; ctx.fillStyle = '#95ccdd'; ctx.fillRect(x, y, s, s); ctx.restore(); ctx.fillStyle = 'rgba(230,248,250,.85)'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
+  else { ctx.fillStyle = '#3a5a9a'; ctx.fillRect(x, y, s, s); ctx.fillStyle = '#4a70b0'; ctx.fillRect(x + 2, y + 2, s - 4, s - 4); }
+  ctx.lineWidth = 1; ctx.strokeStyle = '#1a2258'; ctx.strokeRect(x - 0.5, y - 0.5, s + 1, s + 1);
 }
 function steelFrame(x, y, w, h, t = 3) {   // 철제 컨테이너 테두리(안은 그대로): 위·왼쪽 #64748b, 아래·오른쪽 #0f172a, 아래 그림자, 네 모서리 리벳
   ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(x, y + h, w, 4);
-  ctx.fillStyle = '#64748b'; ctx.fillRect(x, y, w, t); ctx.fillRect(x, y, t, h);
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(x, y + h - t, w, t); ctx.fillRect(x + w - t, y, t, h);
-  ctx.fillStyle = '#94a3b8'; for (const [rx, ry] of [[x + 5, y + 5], [x + w - 11, y + 5], [x + 5, y + h - 11], [x + w - 11, y + h - 11]]) { ctx.fillRect(rx, ry, 6, 6); ctx.fillStyle = '#475569'; ctx.fillRect(rx + 3, ry + 3, 3, 3); ctx.fillStyle = '#94a3b8'; }
+  ctx.fillStyle = '#95ccdd'; ctx.fillRect(x, y, w, t); ctx.fillRect(x, y, t, h);   // 2026-11-21 항구 색: 위·왼쪽 금, 아래·오른쪽 짙은 금, 금 리벳
+  ctx.fillStyle = '#293681'; ctx.fillRect(x, y + h - t, w, t); ctx.fillRect(x + w - t, y, t, h);
+  ctx.fillStyle = '#d0e7e6'; for (const [rx, ry] of [[x + 5, y + 5], [x + w - 11, y + 5], [x + 5, y + h - 11], [x + w - 11, y + h - 11]]) { ctx.fillRect(rx, ry, 6, 6); ctx.fillStyle = '#293681'; ctx.fillRect(rx + 3, ry + 3, 3, 3); ctx.fillStyle = '#d0e7e6'; }
 }
 function hazard(x, y, w, h = 10) {   // 경고 테이프: 노랑/검정 −45° 빗금 12 + 위아래 검은 선 2
-  ctx.fillStyle = stripe('#f59e0b', '#1e293b', 12, -1); ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(x, y - 2, w, 2); ctx.fillRect(x, y + h, w, 2);
+  ctx.fillStyle = stripe('#95ccdd', '#293681', 12, -1); ctx.fillRect(x, y, w, h);   // 2026-11-21 항구 색: 남색·금 띠
+  ctx.fillStyle = '#1a2258'; ctx.fillRect(x, y - 2, w, 2); ctx.fillRect(x, y + h, w, 2);
 }
 // 판 테두리 장식(게임 UI 모서리 그림)
+const tintCache = {};
+function tinted(im, key, col) {   // 2026-11-21 금색 장식 그림을 팔레트 색(연청)으로 물들여 한 번만 만들어 둠
+  if (!im) return null; if (tintCache[key]) return tintCache[key];
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d');
+  x.drawImage(im, 0, 0); x.globalCompositeOperation = 'color'; x.fillStyle = col; x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in'; x.drawImage(im, 0, 0);
+  return (tintCache[key] = c);
+}
 function decorCorners(x, y, w, h, s = 46) {
-  const im = (n) => img(`${ART}/ui/decor-corner-${n}.webp`), r = 216 / 256;
+  const im = (n) => tinted(img(`${ART}/ui/decor-corner-${n}.webp`), 'corner-' + n, '#95ccdd'), r = 216 / 256;
   ctx.globalAlpha = 0.85;
   const tl = im('tl'), tr = im('tr'), bl = im('bl'), br = im('br');
   if (tl) ctx.drawImage(tl, x - 4, y - 4, s, s * r);
@@ -2080,7 +2091,7 @@ function drawMainPanel(y0) {
 
   ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
     const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
-    box(x, y, bw, h, n ? 'rgba(11,30,42,.92)' : 'rgba(11,30,42,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
+    box(x, y, bw, h, n ? 'rgba(24,32,78,.92)' : 'rgba(24,32,78,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
     if (n && h < 90) {
       const cx = x + bw * 0.3, cy = y + h / 2, rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, h * 0.42);
       rg.addColorStop(0, col + '99'); rg.addColorStop(1, col + '00');
@@ -2117,7 +2128,7 @@ function drawMainPanel(y0) {
   btn(3, 'menu/icon-draw', '더보기', () => { modal = { kind: 'more' }; }, mc ? 'primary' : 'normal', moreSub(), mc ? '#3d2f1a' : null);
   if (mc) badge(bx(3) + b2 - 6, PL.by2 + 6, mc);
 }
-function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#07131c'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
+function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#10163a'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
 const moreCount = () => (pickCount() ? 1 : 0) + ((G.tickets ?? 0) >= E.RULES.recruitCost ? 1 : 0) + (G.choice ? 1 : 0) + (G.augOffer ? 1 : 0);   // 할 수 있는 것 수(빨간 점)
 const moreSub = () => [G.augOffer && '증강체 고르기', G.choice && '보상 고르기', (G.rerolls ?? 0) > 0 && `리롤권 ${G.rerolls}`, pickCount() && `선택위습 ${pickCount()}`, (G.tickets ?? 0) >= E.RULES.recruitCost && '모집 가능'].filter(Boolean).join(' · ') || `창고 ${E.storedUnits(G).length}마리`;
@@ -2157,9 +2168,9 @@ function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.i
 // 시너지 배지(2026-11-21): 속성 첫 글자 동그라미. 켜진 속성은 색을 채우고 아래에 단계 점, 안 켜지면 흐린 테두리만
 function synBadge(bx, by, el, sv, sc = 1) {
   const on = sv?.lv > 0, rgb = ELEM_COL[el] ?? '220,220,220', r = (on ? 9 : 7) * sc;
-  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = on ? `rgb(${rgb})` : 'rgba(7,19,28,.7)'; ctx.fill();
-  ctx.lineWidth = on ? 2 : 1.5; ctx.strokeStyle = on ? '#07131c' : `rgba(${rgb},.75)`; ctx.stroke();
-  text(E.SYN_NAME[el].slice(0, 1), bx, by + 0.5, (on ? 11 : 9) * sc, on ? '#07131c' : `rgba(${rgb},.9)`, 'center');
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = on ? `rgb(${rgb})` : 'rgba(16,22,56,.7)'; ctx.fill();
+  ctx.lineWidth = on ? 2 : 1.5; ctx.strokeStyle = on ? '#10163a' : `rgba(${rgb},.75)`; ctx.stroke();
+  text(E.SYN_NAME[el].slice(0, 1), bx, by + 0.5, (on ? 11 : 9) * sc, on ? '#10163a' : `rgba(${rgb},.9)`, 'center');
   if (on) for (let q = 0; q < sv.lv; q++) { ctx.beginPath(); ctx.arc(bx - (sv.lv - 1) * 3.5 * sc + q * 7 * sc, by + r + 4 * sc, 2.2 * sc, 0, Math.PI * 2); ctx.fillStyle = `rgb(${rgb})`; ctx.fill(); }
 }
 function drawUnitPanel(y0, u) {
@@ -2207,7 +2218,7 @@ function drawUnitPanel(y0, u) {
     } else if (E.FORM_OF[u.id]) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18 + bw3 + 8, yy, W - 36 - bw3 - 8, bh3, '각성 변신', () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번 · 마법→물리`); }   // 2026-11-21
     else if (pas) {   // 패시브(2026-11-21: 가로 화면에 자리가 없어 기술 버튼 옆 정보 칸으로) — 리치 모집권 · 갈발 새우 비례 공격력
       const px = 18 + bw3 + 8, pw = W - 36 - bw3 - 8;
-      box(px, yy, pw, bh3, 'rgba(11,30,42,.85)', C.goldEdge, 10, 1.5);
+      box(px, yy, pw, bh3, 'rgba(24,32,78,.85)', C.goldEdge, 10, 1.5);
       fitText('패시브', px + pw / 2, yy + bh3 * 0.3, pw - 12, 13, C.gold, 'center');
       fitText(kk.ticket ? `처치 시 ${Math.round(kk.ticket.p * 1000) / 10}% 모집권` : `새우 1000당 공격 +1%`, px + pw / 2, yy + bh3 * 0.58, pw - 12, 12, C.text, 'center');
       fitText(kk.ticket ? `지금 모집권 ${G.tickets ?? 0}` : `지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, px + pw / 2, yy + bh3 * 0.82, pw - 12, 11, C.goldEdge, 'center');
@@ -2236,7 +2247,7 @@ function drawGroupPanel(y0, sel) {
   const per = Math.floor((W - 44 + 8) / (sz + 8)), rows = Math.max(1, Math.floor((avail + 8) / (sz + 8))), shown = per * rows;
   sel.slice(0, shown).forEach((u, i) => {
     const x = 22 + (i % per) * (sz + 8), y = y0 + 62 + Math.floor(i / per) * (sz + 8);
-    box(x, y, sz, sz, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5);
+    box(x, y, sz, sz, 'rgba(24,32,78,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5);
     drawFit(unitImg(u.id), x + 2, y + 2, sz - 4, sz - 4);
     hit(x, y, sz, sz, () => { selected = [u.uid]; });   // 누르면 그 갈매미만 고르기
   });
@@ -2291,11 +2302,11 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
       const cw = Math.min(190, Math.max(96, h + 12 + Math.max(nw, ctx.measureText(sub).width)));
       if (cx + cw > x + w + 0.5 && cx > x) break;
       const ww = Math.min(cw, x + w - cx);
-      box(cx, cy, ww, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', ok ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok ? 2 : 1.5);
+      box(cx, cy, ww, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(24,32,78,.7)', ok ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok ? 2 : 1.5);
       drawFit(unitImg(r.out), cx + 3, cy + 3, h - 6, h - 6);
       fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
       fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
-      if (shut) box(cx, cy, ww, h, 'rgba(7,19,28,.45)', null, 8);
+      if (shut) box(cx, cy, ww, h, 'rgba(16,22,56,.45)', null, 8);
       hit(cx, cy, ww, h, () => openBook(r.out, using, { sel: [...selected] }));
       cx += ww + 6; n++;
     }
@@ -2305,7 +2316,7 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
 function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const out = E.UNIT[r.out], gi = G.goals.indexOf(r.out);
   hit(x, y, w, h, () => showInfo(r.out));   // 조합 버튼 말고 줄을 누르면 간단 설명(사용자 요청 2026-11-08)
-  box(x, y, w, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(11,30,42,.7)', gi >= 0 ? GOAL_COLOR[gi] : ok ? '#2b7a62' : 'rgba(145,122,76,.4)', 8, gi >= 0 ? 2.5 : 1.5);
+  box(x, y, w, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(24,32,78,.7)', gi >= 0 ? GOAL_COLOR[gi] : ok ? '#2b7a62' : 'rgba(149,204,221,.4)', 8, gi >= 0 ? 2.5 : 1.5);
   drawFit(unitImg(r.out), x + 4, y + 2, 40, h - 4);
   // 줄 높이 52 이상(조합법 창): 이름·등급·게이지 세 줄. 낮은 줄(정보 창 목록): 이름·게이지 두 줄
   const tall = h >= 52, ny = tall ? y + 14 : y + 14;
@@ -2318,7 +2329,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   // 기본 재료 기준(아래 재료까지). 기본 재료가 다 모이면 100%·초록(2026-11-15 사용자 요청) — 「조합」이 중간 재료부터 한 번에 만듦
   { const pg = progOf(r, cnt), direct = have(r, cnt) === r.in.length, n = pg.got;
     const fr = direct ? 1 : pg.got / pg.total, gy = tall ? y + h - 13 : y + h - 15, gw = 54;
-    box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(145,122,76,.55)', 3.5, 1);
+    box(x + 50, gy, gw, 7, 'rgba(0,0,0,.5)', 'rgba(149,204,221,.55)', 3.5, 1);
     if (n > 0) box(x + 50, gy, Math.max(7, gw * fr), 7, fr >= 1 ? C.good : C.gold, null, 3.5);   // 다 모이면 초록(2026-11-15 사용자 요청)
     text(`${fr >= 1 ? 100 : Math.min(99, Math.floor(fr * 100))}%`, x + 142, gy + 4, 13, fr >= 1 ? C.good : n > 0 ? C.gold : C.muted, 'right'); }
   const left = { ...cnt };
@@ -2345,7 +2356,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
   button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
-  if (shut) box(x, y, w - 112, h, 'rgba(7,19,28,.45)', null, 8);   // 닫힌 최상위는 흐리게
+  if (shut) box(x, y, w - 112, h, 'rgba(16,22,56,.45)', null, 8);   // 닫힌 최상위는 흐리게
 }
 
 // ── 모달 ──
@@ -2368,7 +2379,7 @@ const bookOpt = { ready: false, near: false, q: '' };
 let bookSearchRect = null;
 const searchEl = document.createElement('input');
 searchEl.type = 'search'; searchEl.placeholder = '이름 검색'; searchEl.autocomplete = 'off'; searchEl.enterKeyHint = 'search';
-Object.assign(searchEl.style, { position: 'fixed', display: 'none', zIndex: 5, boxSizing: 'border-box', border: '1.5px solid #917a4c', borderRadius: '8px', background: '#0b1e2a', color: '#f5ead0', padding: '0 10px', outline: 'none', fontFamily: 'inherit' });
+Object.assign(searchEl.style, { position: 'fixed', display: 'none', zIndex: 5, boxSizing: 'border-box', border: '1.5px solid #95ccdd', borderRadius: '8px', background: '#1a2258', color: '#eef6f6', padding: '0 10px', outline: 'none', fontFamily: 'inherit' });
 searchEl.addEventListener('input', () => { bookOpt.q = searchEl.value.trim(); if (modal?.kind === 'book') modal.scroll = 0; });
 document.body.appendChild(searchEl);
 function placeSearch() {   // 매 장면: 조합법 창이 열려 있을 때만 입력칸을 그 자리에
@@ -2391,7 +2402,7 @@ function modalRect() {
 }
 function shadeAll(a = 0.72) {
   const y0 = topModal() && !landscape ? 96 : 0, hh = topModal() ? MENU_Y : landscape ? H : PBOT;
-  ctx.fillStyle = `rgba(3,9,14,${a})`;
+  ctx.fillStyle = `rgba(8,11,30,${a})`;
   if (wide && scene === 'play' && !topModal() && OS === 1 && OX > 0) { ctx.fillRect(SIDE_X - OX, 0, VW - SIDE_X, H); hit(SIDE_X - OX, 0, VW - SIDE_X, H, () => {}); return; }   // 넓은 화면의 일시정지·결과 창: 오른쪽 전체
   ctx.fillRect(0, y0, W, hh - y0); hit(0, y0, W, hh - y0, () => {});
 }
@@ -2405,21 +2416,21 @@ function drawBook() {
   else fitText(modal.using ? `${E.UNIT[modal.using].name} 재료` : '조합법', x + 18, y + 30, 120, 20, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
   bookSearchRect = { x: OX + (x + 144) * OS, y: OY + (y + 12) * OS, w: (w - 144 - 108) * OS, h: 36 * OS, k: OS };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
-  box(x + 144, y + 12, w - 144 - 108, 36, '#0b1e2a', C.edge, 8, 1.5);
+  box(x + 144, y + 12, w - 144 - 108, 36, '#1a2258', C.edge, 8, 1.5);
   // 보기 옵션 2개(「조합식 전체 보기」는 2026-11-12 사용자 요청으로 뺌)
   const tw2 = (w - 24 - 6) / 2;
   [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순']].forEach(([key, nm], i) => {
     const on = bookOpt[key], bx = x + 12 + i * (tw2 + 6);
-    box(bx, y + 90, tw2, 28, on ? 'rgba(111,208,138,.16)' : 'rgba(11,30,42,.8)', on ? '#6fd08a' : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
-    fitText(`${on ? '✓ ' : ''}${nm}`, bx + tw2 / 2, y + 104, tw2 - 8, 13, on ? C.good : C.muted, 'center');
+    const tc = tabFace(bx, y + 90, tw2, 28, on);
+    fitText(`${on ? '✓ ' : ''}${nm}`, bx + tw2 / 2, y + 104, tw2 - 8, 13, tc, 'center');
     hit(bx, y + 90, tw2, 28, () => { bookOpt[key] = !bookOpt[key]; modal.scroll = 0; });
   });
   // 역할 칩: 누르면 켜고 끔(여러 개면 모두 가진 결과만), 「전체」는 모두 끔
   const cw = (w - 24 - (ROLES.length - 1) * 4) / ROLES.length;
   ROLES.forEach(([key, nm], i) => {
     const on = key === 'all' ? !bookRoles.size : bookRoles.has(key), bx = x + 12 + i * (cw + 4);
-    box(bx, y + 54, cw, 30, on ? 'rgba(243,216,158,.18)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : 'rgba(145,122,76,.45)', 8, on ? 2 : 1);
-    fitText(nm, bx + cw / 2, y + 69, cw - 6, 13, on ? C.goldEdge : C.muted, 'center');
+    const tc = tabFace(bx, y + 54, cw, 30, on);
+    fitText(nm, bx + cw / 2, y + 69, cw - 6, 13, tc, 'center');
     hit(bx, y + 54, cw, 30, () => { if (key === 'all') bookRoles.clear(); else if (bookRoles.has(key)) bookRoles.delete(key); else bookRoles.add(key); modal.scroll = 0; });
   });
   const top = y + 126, viewH = h - 136, cnt = E.countOnField(G), q = bookOpt.q;
@@ -2447,14 +2458,14 @@ function drawBook() {
   for (const it of items) {
     const rh = rowH(it);
     if (yy + rh >= top && yy <= top + viewH) {
-      if (it.head) { text(E.GRADE_NAME[it.head], x + 20, yy + 17, 15, GRADE_COLOR[it.head]); ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(x + 80, yy + 17, w - 110, 1); }
+      if (it.head) { text(E.GRADE_NAME[it.head], x + 20, yy + 17, 15, GRADE_COLOR[it.head]); ctx.fillStyle = 'rgba(149,204,221,.35)'; ctx.fillRect(x + 80, yy + 17, w - 110, 1); }
       else recipeRow(it.r, it.ok, x + 12, yy + 3, w - 24, rh - 6, cnt);
     }
     yy += rh;
   }
   ctx.restore();
   hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));
-  if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
+  if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(208,231,230,.5)', null, 2); }
 }
 function drawMission() {
   shadeAll(0.35);
@@ -2472,7 +2483,7 @@ function drawMission() {
   shown.forEach((k, i) => {
     const r = E.REGIONS[k];
     const yy = ly + i * lh, done = k < G.missionDone, cur = k === G.missionDone, open = cur && E.missionOpen(G);
-    box(x + 12, yy, w - 24, lh - 6, cur ? 'rgba(43,122,98,.2)' : 'rgba(11,30,42,.6)', cur ? (open ? '#2b7a62' : C.edge) : 'rgba(145,122,76,.3)', 6, cur ? 2 : 1);
+    box(x + 12, yy, w - 24, lh - 6, cur ? 'rgba(43,122,98,.2)' : 'rgba(24,32,78,.6)', cur ? (open ? '#2b7a62' : C.edge) : 'rgba(149,204,221,.3)', 6, cur ? 2 : 1);
     const my = yy + (lh - 6) / 2;
     fitText(`${r.ch}장 ${r.name}`, x + 24, my, 220, cmp ? 14 : 15, done ? C.muted : C.text);
     fitText(done ? '완료 ✓' : open ? '진행 가능' : '잠김', x + 250, my, 80, 13, done ? C.good : open ? C.goldEdge : '#6f7f88');
@@ -2484,18 +2495,18 @@ function drawMission() {
   if (G.missionDone >= E.REGIONS.length) { text('모든 지역을 되찾았어요!', W / 2, cy + 80, 20, C.goldEdge, 'center'); return; }
   const r = E.REGIONS[G.missionDone], open = E.missionOpen(G);
   const place = img(`${ART}/village/${r.img}.webp`);
-  box(x + 12, cy, w - 24, PB, 'rgba(7,19,28,.8)', C.edge, 10);
+  box(x + 12, cy, w - 24, PB, 'rgba(16,22,56,.8)', C.edge, 10);
   if (place) { ctx.save(); rr(x + 12, cy, w - 24, PB, 10); ctx.clip(); drawFit(place, x + 12, cy - 30, w - 24, PB, 0.28); ctx.restore(); }
-  box(x + 18, cy + 6, 230, 26, 'rgba(7,19,28,.85)', null, 6);
+  box(x + 18, cy + 6, 230, 26, 'rgba(16,22,56,.85)', null, 6);
   fitText(`${r.ch}장 · ${r.place}`, x + 26, cy + 19, 216, 15, C.goldEdge);
   const rwAll = [E.wispText(r.reward), r.pick ? E.pickText(r.pick) : '', r.ticket ? `모집권 ${r.ticket}` : '', r.gold ? `새우 ${r.gold}` : '', r.choice ? '+ 골라 받기(초월 갈매미맨·전설 위습 1·에픽 선택 2)' : r.unit ? E.UNIT[r.unit].name : ''].filter(Boolean).join(' · ');
-  box(x + 18, cy + q(40), w - 36, 24, 'rgba(7,19,28,.85)', null, 6);
+  box(x + 18, cy + q(40), w - 36, 24, 'rgba(16,22,56,.85)', null, 6);
   clipText(`보상: ${rwAll}`, x + 26, cy + q(40) + 12, w - 52, 13, C.gold);   // 길면 줄이고 그래도 넘치면 「…」(검토에서 넘침 찾음)
   const t = E.missionTarget(G), sh = enemyImg(r.look);
   if (sh) drawFit(sh, W / 2 - q(50), cy + q(68), q(100), q(94));
   box(x + 40, cy + q(166), w - 80, 12, 'rgba(0,0,0,.6)', C.line, 6, 1);
   box(x + 40, cy + q(166), (w - 80) * Math.max(0, t.hp / t.max), 12, '#ff6b6b', null, 6);
-  box(x + 24, cy + PB - 46, w - 48, 40, 'rgba(7,19,28,.88)', null, 8);
+  box(x + 24, cy + PB - 46, w - 48, 40, 'rgba(16,22,56,.88)', null, 8);
   fitText(`그림자 대장 체력 ${Math.max(0, Math.ceil(t.hp)).toLocaleString()} · 방어력 ${t.armor} · 마법방어 ${t.mr}`, W / 2, cy + PB - 34, w - 60, 14, C.text, 'center');
   const away = E.awayUnits(G);
   if (coop()) {
@@ -2507,7 +2518,7 @@ function drawMission() {
   const AS = 74, aper = Math.floor((w - 28 + 6) / (AS + 6));   // 그림 크게(누르기 쉽게)
   const arows = Math.max(1, Math.floor((y + h - 64 - 8 - ay) / (AS + 6)));   // 남는 높이만큼 여러 줄
   if (away.length > aper * arows) text(`외 ${away.length - aper * arows}마리`, x + w - 20, y + h - 76, 13, C.muted, 'right');
-  away.slice(0, aper * arows).forEach((u, i) => { const xx = x + 14 + (i % aper) * (AS + 6), yy = ay + Math.floor(i / aper) * (AS + 6); box(xx, yy, AS, AS, 'rgba(11,30,42,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, AS - 4, AS - 4); if (E.EXPLORE[u.id]) text('★', xx + AS - 8, yy + 10, 14, C.goldEdge, 'center');
+  away.slice(0, aper * arows).forEach((u, i) => { const xx = x + 14 + (i % aper) * (AS + 6), yy = ay + Math.floor(i / aper) * (AS + 6); box(xx, yy, AS, AS, 'rgba(24,32,78,.85)', GRADE_COLOR[E.UNIT[u.id].grade], 6, 1.5); drawFit(unitImg(u.id), xx + 2, yy + 2, AS - 4, AS - 4); if (E.EXPLORE[u.id]) text('★', xx + AS - 8, yy + 10, 14, C.goldEdge, 'center');
     hit(xx, yy, AS, AS, () => { if (E.recall(G, [u.uid])) say(`${E.UNIT[u.id].name}이(가) 판으로 돌아왔어요.`); });   // 누르면 그 갈매미만 불러오기
   });
   // 판에 있는 탐사 특기 갈매미 안내(보내면 좋은 것)
@@ -2537,7 +2548,7 @@ function drawUpgrade() {
   const rowH = Math.min(84, (h - 96) / E.UPG_COUNT), bh = rowH - 8;   // 창 높이에 맞춰 줄 높이
   for (let gi = 0; gi < E.UPG_COUNT; gi++) {
     const yy = y + 88 + gi * rowH, cost = E.upgradeCost(G, gi), col = GRADE_COLOR[color[gi]];
-    box(x + 14, yy, w - 28, bh, 'rgba(11,30,42,.85)', col, 10, 2);
+    box(x + 14, yy, w - 28, bh, 'rgba(24,32,78,.85)', col, 10, 2);
     text(E.UPG_NAME[gi], x + 30, yy + bh * 0.32, bh < 62 ? 17 : 19, col);
     const maxed = E.upgMaxed(G, gi);
     fitText(`${G.upg[gi]}/${E.RULES.upgMax}단계 · 공격력 +${Math.round(G.upg[gi] * E.RULES.upgPct * 100)}% · 공속 +${Math.round(G.upg[gi] * (E.RULES.upgSpd ?? 0) * 100)}% · 판에 ${have[gi]}마리`, x + 30, yy + bh * 0.72, w - 230, bh < 62 ? 13 : 15, maxed ? C.goldEdge : C.text);
@@ -2626,10 +2637,10 @@ function drawTitleBack() {   // 화면 전체 너비
   const sea = img(`${ART}/village/${VW >= VH ? 'title-harbor-wide' : 'title-harbor-tall'}.webp`) ?? img(`${ART}/village/10-distant-bay.webp`);
   if (sea) { const s = Math.max(VW / sea.naturalWidth, VH / sea.naturalHeight); ctx.drawImage(sea, (VW - sea.naturalWidth * s) / 2, VH - sea.naturalHeight * s, sea.naturalWidth * s, sea.naturalHeight * s); }
   if (scene === 'title') {   // 위쪽 제목·아래 기록 글이 밝은 그림에 묻히지 않게 아주 옅은 그늘
-    const g1 = ctx.createLinearGradient(0, 0, 0, VH * 0.3); g1.addColorStop(0, 'rgba(7,19,28,.45)'); g1.addColorStop(1, 'rgba(7,19,28,0)'); ctx.fillStyle = g1; ctx.fillRect(0, 0, VW, VH * 0.3);
+    const g1 = ctx.createLinearGradient(0, 0, 0, VH * 0.3); g1.addColorStop(0, 'rgba(16,22,56,.45)'); g1.addColorStop(1, 'rgba(16,22,56,0)'); ctx.fillStyle = g1; ctx.fillRect(0, 0, VW, VH * 0.3);
   }
   // 마을 그림은 뺌(2026-11-11 사용자 의견: 바다 위에 떠 있는 것처럼 보여 어색함)
-  if (scene === 'lobby') { ctx.fillStyle = 'rgba(7,19,28,.55)'; ctx.fillRect(0, 0, VW, VH); }
+  if (scene === 'lobby') { ctx.fillStyle = 'rgba(16,22,56,.55)'; ctx.fillRect(0, 0, VW, VH); }
   // 떠오르는 빛 알갱이(2026-11-10 사용자 의견: 첫 화면이 허전함). 효과 줄이기면 움직이지 않음
   const t = fxLite ? 0 : performance.now() / 1000;
   for (let k = 0; k < 28; k++) {
@@ -2652,7 +2663,7 @@ function drawTitleParade() {
     ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
     const c = cosById[id];
     if (c) cosBack(c, 0, 0, z, k);
-    drawUnitShape(id, 0, 0, 'rgba(243,216,158,.45)', 1.5);
+    drawUnitShape(id, 0, 0, 'rgba(208,231,230,.45)', 1.5);
     if (c) cosFront(c, 0, 0, z, k);
     ctx.restore();
   });
@@ -2680,7 +2691,7 @@ function drawOnline() {
   if (onlineN <= 0) return;
   ctx.font = `11px ${FONT}`; const t = `지금 ${onlineN.toLocaleString('ko-KR')}명`, tw = ctx.measureText(t).width;
   const x = VW - 12, y = VH - 12;   // 화면 전체의 오른쪽 아래 구석(가로 화면이면 가운데 메뉴 칸 밖)
-  box(x - tw - 18, y - 9, tw + 24, 18, 'rgba(9,26,40,.7)', null, 9);
+  box(x - tw - 18, y - 9, tw + 24, 18, 'rgba(20,28,70,.7)', null, 9);
   ctx.beginPath(); ctx.arc(x - tw - 8, y, 3, 0, Math.PI * 2); ctx.fillStyle = '#6fd08a'; ctx.fill();
   text(t, x, y, 11, '#dfe8ec', 'right');
 }
@@ -2688,11 +2699,11 @@ function drawTitle() {
   titleText('갈매미맨', W / 2, 86, 30, '#f7e3b0', '#c9a463');
   titleText('랜덤 디펜스', W / 2, 136, 50, '#fff6d8', '#e0b866');
   // 제목 아래 장식 줄(가운데 마름모)
-  ctx.strokeStyle = 'rgba(243,216,158,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - 150, 172); ctx.lineTo(W / 2 - 12, 172); ctx.moveTo(W / 2 + 12, 172); ctx.lineTo(W / 2 + 150, 172); ctx.stroke();
+  ctx.strokeStyle = 'rgba(208,231,230,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - 150, 172); ctx.lineTo(W / 2 - 12, 172); ctx.moveTo(W / 2 + 12, 172); ctx.lineTo(W / 2 + 150, 172); ctx.stroke();
   ctx.save(); ctx.translate(W / 2, 172); ctx.rotate(Math.PI / 4); ctx.fillStyle = C.goldEdge; ctx.fillRect(-4.5, -4.5, 9, 9); ctx.restore();
   // 2026-11-21: 새 배경 그림에 갈매미들이 있어 갈매미 행렬은 뺌. 버튼은 가운데(난이도 아래)로 올려 그림 아래쪽 갈매미가 가려지지 않게
   // 난이도(혼자 하기·도전 모드에 적용, 같이하기는 달인)
-  box(28, 196, W - 56, 156, 'rgba(11,30,42,.9)', C.edge, 12);
+  box(28, 196, W - 56, 156, 'rgba(24,32,78,.9)', C.edge, 12);
   text('난이도', 44, 222, 17, C.gold);
   const dd = E.DIFFS[selDiff];
   const dw = (W - 56 - 24 - 4 * 6) / 5;
@@ -2704,7 +2715,7 @@ function drawTitle() {
   const sy = resumeMeta ? 426 : 372;
   button(40, sy, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
   button(52 + (W - 92) / 2, sy, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
-  box(28, 914, W - 56, 32, 'rgba(9,26,40,.78)', null, 16);   // 밝은 그림 위에서 읽히게(맨 아래로 — 갈매미가 보이게)
+  box(28, 914, W - 56, 32, 'rgba(20,28,70,.78)', null, 16);   // 밝은 그림 위에서 읽히게(맨 아래로 — 갈매미가 보이게)
   if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 930, W - 40, 14, C.good, 'center');
   else if (!cloud.can) fitText(`최고 기록 ${bestText(best)} · 기록·이어하기는 이 기기에만`, W / 2, 930, W - 40, 14, C.muted, 'center');
   else {
@@ -2716,7 +2727,7 @@ function drawTitle() {
   const lg = cloud.can && !cloud.on;
   if (lg) button(112, 14, 84, 40, '로그인', () => { saveNow(); location.href = '/login?next=/defense'; }, 'primary');
   if (cosOpen() > (stats.seen ?? 0)) { ctx.beginPath(); ctx.arc(100, 18, 6, 0, Math.PI * 2); ctx.fillStyle = C.bad; ctx.fill(); }   // 꾸미기 새 칸이 열렸으면 메뉴에 빨간 점
-  box(W - 196, 22, 128, 24, 'rgba(9,26,40,.7)', null, 12); fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 76, 34, 112, 13, '#e6eef2', 'right');
+  box(W - 196, 22, 128, 24, 'rgba(20,28,70,.7)', null, 12); fitText(music.on ? `배경음악 ${Math.round(music.vol * 100)}%` : '배경음악 끔', W - 76, 34, 112, 13, '#e8f3f3', 'right');
 }
 // 소리 설정 창: 배경음악 켜기·끄기, 음량(막대를 누르거나 −/+)
 // 선택 위습 창: 등급 칸을 고르고, 그 등급 갈매미를 눌러 소환
@@ -2729,16 +2740,16 @@ function drawPick() {
   const tw = (w - 24 - 18) / 4;
   E.PICK_GRADES.forEach((gr, k) => {
     const tx = x + 12 + k * (tw + 6), on = modal.grade === gr, n = G.picks[gr] ?? 0;
-    box(tx, y + 82, tw, 52, on ? 'rgba(243,216,158,.14)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : GRADE_COLOR[gr], 8, on ? 2.5 : 1.5);
-    fitText(E.GRADE_NAME[gr], tx + tw / 2, y + 100, tw - 8, 15, GRADE_COLOR[gr], 'center');
-    text(`×${n}`, tx + tw / 2, y + 121, 15, n ? C.text : '#6f7f88', 'center');
+    tabFace(tx, y + 82, tw, 52, on, true); if (!on) box(tx + 2, y + 84, tw - 4, 3, GRADE_COLOR[gr], null, 2);   // 등급 색 줄
+    fitText(E.GRADE_NAME[gr], tx + tw / 2, y + 100, tw - 8, 15, on ? '#ffffff' : GRADE_COLOR[gr], 'center');
+    text(`×${n}`, tx + tw / 2, y + 121, 15, n ? (on ? '#d0e7e6' : C.text) : '#8d99a6', 'center');
     hit(tx, y + 82, tw, 52, () => { modal.grade = gr; });
   });
   const gr = modal.grade, n = G.picks[gr] ?? 0, list = E.unitsOfGrade(gr);
   const cw = (w - 24 - 18) / 4, ch = 168;
   list.forEach((id, i) => {
     const cx = x + 12 + (i % 4) * (cw + 6), cy = y + 148 + Math.floor(i / 4) * (ch + 8), u = E.UNIT[id], k = E.kit(id);
-    box(cx, cy, cw, ch, n ? 'rgba(11,30,42,.9)' : 'rgba(11,30,42,.5)', n ? GRADE_COLOR[gr] : '#33434d', 10, n ? 2 : 1);
+    box(cx, cy, cw, ch, n ? 'rgba(24,32,78,.9)' : 'rgba(24,32,78,.5)', n ? GRADE_COLOR[gr] : '#33434d', 10, n ? 2 : 1);
     drawFit(unitImg(id), cx + 8, cy + 6, cw - 16, 96, n ? 1 : 0.45);
     fitText(u.name, cx + cw / 2, cy + 116, cw - 10, 16, n ? C.text : '#6f7f88', 'center');
     fitText(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx + cw / 2, cy + 138, cw - 10, 13, k.type === 'phys' ? C.phys : C.mag, 'center');
@@ -2777,7 +2788,7 @@ function drawStorage() {
     const yy = top + i * rowH - modal.scroll;
     if (yy + rowH < top || yy > top + viewH) return;
     const u = E.UNIT[gr.id], k = E.kit(gr.id);
-    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(11,30,42,.85)', GRADE_COLOR[u.grade], 8, 1.5);
+    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(24,32,78,.85)', GRADE_COLOR[u.grade], 8, 1.5);
     drawFit(unitImg(gr.id), x + 16, yy + 6, 46, rowH - 12);
     fitText(`${u.name} ×${gr.uids.length}`, x + 68, yy + 22, 150, 16, C.text);
     const noSell = k.special || k.tier >= E.TOP_TIER;   // 초월 갈매미맨·초불영제는 팔 수 없음
@@ -2790,7 +2801,7 @@ function drawStorage() {
   });
   ctx.restore();
   hits = hits.filter((hh, k) => k < before || (hh.y >= top && hh.y + hh.h <= top + viewH));
-  if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(243,216,158,.5)', null, 2); }
+  if (modal.maxScroll > 0) { const bh = Math.max(40, viewH * viewH / total), by2 = top + (viewH - bh) * (modal.scroll / modal.maxScroll); box(x + w - 8, by2, 4, bh, 'rgba(208,231,230,.5)', null, 2); }
   button(x + 18, y + h - 52, w - 36, 42, '모두 꺼내기', () => { const n = E.unstore(G, list.map((u) => u.uid)); say(`${n}마리를 꺼냈어요.`); }, 'normal', list.length > 0);
 }
 // 도전 모드 고르기(첫 화면)
@@ -2806,7 +2817,7 @@ function drawRecords() {   // 난이도별 최고 기록(그때 조합) + 최근
   text('난이도별 최고 기록 · 그때 조합', x + 18, yy, 15, C.gold); yy += 14;
   for (const d of E.DIFF_ORDER) {
     const r = bestComp[recKey('normal', d)];
-    box(x + 12, yy, w - 24, 62, 'rgba(11,30,42,.8)', 'rgba(145,122,76,.35)', 8, 1);
+    box(x + 12, yy, w - 24, 62, 'rgba(24,32,78,.8)', 'rgba(149,204,221,.35)', 8, 1);
     text(diffName(d), x + 24, yy + 18, 15, C.text);
     clipText(r ? `${res(r)} · ${day(r.at)}` : '아직 없음', x + 24, yy + 42, 72, 12, r ? C.goldEdge : C.muted);
     if (r) drawCompStrip(r.comp, x + 100, yy + 13, w - 124, 36);
@@ -2816,7 +2827,7 @@ function drawRecords() {   // 난이도별 최고 기록(그때 조합) + 최근
   const room = Math.max(0, Math.floor((y + h - 12 - yy) / 62));
   if (!hist.length) text('끝난 판이 아직 없어요', x + 24, yy + 24, 14, C.muted);
   hist.slice(0, room).forEach((r) => {
-    box(x + 12, yy, w - 24, 56, 'rgba(11,30,42,.6)', 'rgba(145,122,76,.25)', 8, 1);
+    box(x + 12, yy, w - 24, 56, 'rgba(24,32,78,.6)', 'rgba(149,204,221,.25)', 8, 1);
     clipText(`${day(r.at)} ${diffName(r.diff)}${r.mode !== 'normal' ? `·${E.MODES[r.mode]?.name ?? ''}` : ''}${r.coop ? '·같이' : ''}`, x + 24, yy + 18, 72, 12, C.text);
     text(res(r), x + 24, yy + 38, 13, r.win ? C.good : C.muted);
     drawCompStrip(r.comp, x + 100, yy + 11, w - 124, 34);
@@ -2835,13 +2846,15 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('꾸미기', x + 18, y + 32, 24, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`달인·장인 클리어 ${clearCount()}번 · 보상 ${pts}번(장인은 2번) · 칸 ${open}/${COS_SLOTS.length}${next ? ` · 다음 칸 ${next}번` : ''} · 포인트 ${pointsLeft()}점 · 모은 새우 ${fmtN(stats.bank ?? 0)}`, x + 18, y + 66, w - 36 - 190, 14, C.muted);
-  button(x + w - 18 - 180, y + 50, 180, 34, `새우 ${fmtN(BANK_PER_PT)} → 1점`, () => { if ((stats.bank ?? 0) < BANK_PER_PT) return say(`모은 새우가 ${fmtN(BANK_PER_PT)} 있어야 해요(지금 ${fmtN(stats.bank ?? 0)}). 판이 끝날 때 남은 새우가 모여요.`); stats.bank -= BANK_PER_PT; stats.earned = (stats.earned ?? 0) + 1; ls.set(STATS_KEY, JSON.stringify(stats)); cloudSaveExtra(); say(`꾸미기 포인트 +1(지금 ${pointsLeft()}점)`); }, 'normal', (stats.bank ?? 0) >= BANK_PER_PT);   // 2026-11-16 새우 저금 → 포인트
+  // 2026-11-21 디자인 검토: 한 줄이 「새우 → 1점」 버튼 밑으로 넘쳐 겹쳐서 두 줄로 나눔
+  fitText(`클리어 ${clearCount()}번 · 보상 ${pts}번(장인 2번) · 칸 ${open}/${COS_SLOTS.length}`, x + 18, y + 58, w - 36 - 146, 13, C.muted);
+  fitText(`${next ? `다음 칸 ${next}번 · ` : ''}포인트 ${pointsLeft()}점 · 새우 ${fmtN(stats.bank ?? 0)}`, x + 18, y + 75, w - 36 - 146, 13, C.muted);
+  button(x + w - 14 - 136, y + 46, 136, 32, `새우 ${fmtN(BANK_PER_PT)}→1점`, () => { if ((stats.bank ?? 0) < BANK_PER_PT) return say(`모은 새우가 ${fmtN(BANK_PER_PT)} 있어야 해요(지금 ${fmtN(stats.bank ?? 0)}). 판이 끝날 때 남은 새우가 모여요.`); stats.bank -= BANK_PER_PT; stats.earned = (stats.earned ?? 0) + 1; ls.set(STATS_KEY, JSON.stringify(stats)); cloudSaveExtra(); say(`꾸미기 포인트 +1(지금 ${pointsLeft()}점)`); }, 'normal', (stats.bank ?? 0) >= BANK_PER_PT);   // 2026-11-16 새우 저금 → 포인트
   // 칸 8개
   const sw = (w - 24 - 7 * 6) / 8;
   COS_SLOTS.forEach((need, i) => {
     const sx = x + 12 + i * (sw + 6), sy = y + 82, on = i < open, cur = modal.slot === i, c = cosmetic.slots[i];
-    box(sx, sy, sw, 62, on ? (cur ? 'rgba(243,216,158,.16)' : 'rgba(11,30,42,.85)') : 'rgba(11,30,42,.45)', cur ? C.goldEdge : on ? C.edge : '#33434d', 8, cur ? 2.5 : 1.2);
+    if (on) tabFace(sx, sy, sw, 62, cur, true); else box(sx, sy, sw, 62, 'rgba(40,52,66,.78)', 'rgba(120,132,146,.55)', 8, 1.2);   // 잠긴 칸은 못 누름 회색
     if (!on) {   // 잠긴 칸: 클리어로 열거나, 첫 잠긴 칸은 포인트로 열기(누르면)
       drawLockMark(sx + sw / 2, sy + 22); fitText(`${need}번`, sx + sw / 2, sy + 42, sw - 6, 11, '#7d8c94', 'center');
       if (i === open) { fitText(`${COS_COST.slot}점`, sx + sw / 2, sy + 55, sw - 6, 11, pointsLeft() >= COS_COST.slot ? C.good : '#7d8c94', 'center'); hit(sx, sy, sw, 62, () => buyCos('slot')); }
@@ -2859,7 +2872,7 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   const pv = modal.prev, pvCost = pv ? COS_ITEM_COST[`${pv.pre}:${pv.v}`] : 0;
   if (pv && itemOpen(`${pv.pre}:${pv.v}`)) modal.prev = null;
   const thPrev = pv?.pre === 'theme' ? THEMES[pv.v] : null;
-  box(px, py, pw, ph, thPrev ? thPrev.bg : 'rgba(7,19,28,.85)', C.edge, 10, 1.2);
+  box(px, py, pw, ph, thPrev ? thPrev.bg : 'rgba(16,22,56,.85)', C.edge, 10, 1.2);
   if (thPrev) {   // 판 테마 미리 보기: 길 한 토막
     ctx.save(); ctx.beginPath(); ctx.rect(px + 2, py + 2, pw - 4, ph - 4); ctx.clip();
     ctx.lineWidth = 40; ctx.strokeStyle = thPrev.lane; ctx.strokeRect(px + 30, py + 40, pw - 60, ph - 80); ctx.lineWidth = 1.5; ctx.strokeStyle = thPrev.edge;
@@ -2941,8 +2954,8 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   const tw = (w - 24 - 2 * 6) / 3, ty = py + ph + 14;
   COS_TABS.forEach(([name, grades], i) => {
     const on = modal.tab === i;
-    box(x + 12 + i * (tw + 6), ty, tw, 36, on ? 'rgba(243,216,158,.14)' : 'rgba(11,30,42,.8)', on ? C.goldEdge : GRADE_COLOR[grades[0]], 8, on ? 2.5 : 1.2);
-    fitText(name, x + 12 + i * (tw + 6) + tw / 2, ty + 18, tw - 6, 14, GRADE_COLOR[grades[0]], 'center');
+    tabFace(x + 12 + i * (tw + 6), ty, tw, 36, on, true);
+    fitText(name, x + 12 + i * (tw + 6) + tw / 2, ty + 18, tw - 6, 14, on ? '#ffffff' : GRADE_COLOR[grades[0]], 'center');
     hit(x + 12 + i * (tw + 6), ty, tw, 36, () => { modal.tab = i; });
   });
   const ids = E.UNITS.filter((u) => COS_TABS[modal.tab][1].includes(u.grade) && u.role !== E.SPECIAL_ROLE).map((u) => u.id);
@@ -2950,9 +2963,9 @@ function drawCustomize() {   // 꾸미기: 칸 고르기 → 유닛 고르기 �
   ids.forEach((id, i) => {
     const cx = x + 12 + (i % 7) * (cw + 6), cy = gy + Math.floor(i / 7) * (ch + 6), mine = cur?.id === id;
     const other = cosmetic.slots.findIndex((c, k) => k !== slot && k < open && c?.id === id);
-    box(cx, cy, cw, ch, mine ? 'rgba(243,216,158,.2)' : 'rgba(11,30,42,.85)', mine ? C.goldEdge : GRADE_COLOR[E.UNIT[id].grade], 8, mine ? 2.5 : 1.2);
+    box(cx, cy, cw, ch, mine ? 'rgba(208,231,230,.2)' : 'rgba(24,32,78,.85)', mine ? C.goldEdge : GRADE_COLOR[E.UNIT[id].grade], 8, mine ? 2.5 : 1.2);
     drawFit(unitImg(id), cx + 4, cy + 3, cw - 8, ch - 6, slot >= 0 && other < 0 ? 1 : 0.45);
-    if (other >= 0) { box(cx + cw - 26, cy + 3, 23, 16, 'rgba(7,19,28,.92)', null, 4); text(`${other + 1}칸`, cx + cw - 14.5, cy + 11.5, 10, C.goldEdge, 'center'); }
+    if (other >= 0) { box(cx + cw - 26, cy + 3, 23, 16, 'rgba(16,22,56,.92)', null, 4); text(`${other + 1}칸`, cx + cw - 14.5, cy + 11.5, 10, C.goldEdge, 'center'); }
     hit(cx, cy, cw, ch, () => {
       if (slot < 0) { say(open ? '위에서 열린 칸을 먼저 골라요.' : '달인 이상을 처음 클리어하면 꾸미기 칸이 열려요.'); return; }
       if (other >= 0) { say(`${E.UNIT[id].name}은(는) ${other + 1}번째 칸에서 꾸미고 있어요.`); return; }
@@ -2998,7 +3011,7 @@ function drawTopClears() {   // 최상위 유닛별 클리어 횟수(난이도 �
   const cols = 2, cw = (w - 40) / cols, rh = 46, top0 = y + 144, rows = Math.ceil(tops.length / cols), max = Math.max(1, ...tops.map(cnt));
   tops.forEach((id, i) => {
     const cx = x + 20 + Math.floor(i / rows) * cw, cy = top0 + (i % rows) * rh, u = E.UNIT[id], n = cnt(id);
-    box(cx, cy, cw - 8, rh - 6, 'rgba(11,30,42,.85)', n ? GRADE_COLOR[u.grade] : C.line, 8, n ? 1.5 : 1);
+    box(cx, cy, cw - 8, rh - 6, 'rgba(24,32,78,.85)', n ? GRADE_COLOR[u.grade] : C.line, 8, n ? 1.5 : 1);
     ctx.save(); ctx.beginPath(); ctx.arc(cx + 22, cy + 20, 16, 0, Math.PI * 2); ctx.clip(); drawFit(unitImg(id), cx + 6, cy + 4, 32, 32); ctx.restore();
     fitText(u.name, cx + 44, cy + 16, cw - 120, 15, n ? C.text : C.muted);
     fitText(E.GRADE_NAME[u.grade], cx + 44, cy + 33, 60, 12, GRADE_COLOR[u.grade]);
@@ -3024,7 +3037,7 @@ function drawModes() {
   fitText(`난이도 ${diffName(selDiff)} · 규칙을 바꿔 도전해요 · 최고 기록은 모드·난이도마다 따로`, x + 20, y + 72, w - 40, 14, C.muted);
   keys.forEach((k, i) => {
     const m = E.MODES[k], yy = y + 96 + i * 104;
-    box(x + 14, yy, w - 28, 92, 'rgba(11,30,42,.85)', k === 'normal' ? C.edge : C.gold, 10, 1.5);
+    box(x + 14, yy, w - 28, 92, 'rgba(24,32,78,.85)', k === 'normal' ? C.edge : C.gold, 10, 1.5);
     text(m.name, x + 30, yy + 26, 19, k === 'normal' ? C.text : C.goldEdge);
     fitText(m.desc, x + 30, yy + 54, w - 200, 14, C.muted);
     fitText(`최고 기록 ${bestText(bestOf(k, selDiff))}`, x + 30, yy + 76, w - 200, 13, C.gold);
@@ -3074,7 +3087,7 @@ function drawToast() {   // 짧은 알림(판 아래쪽 가운데)
   if (!(performance.now() < toast.until && toast.msg)) return;
   ctx.font = `15px ${FONT}`;
   const tw = Math.min(W - 40, ctx.measureText(toast.msg).width + 32);
-  box((W - tw) / 2, 618, tw, 40, 'rgba(19,44,59,.96)', C.goldEdge, 10, 1.5);
+  box((W - tw) / 2, 618, tw, 40, 'rgba(41,54,129,.96)', C.goldEdge, 10, 1.5);
   fitText(toast.msg, W / 2, 638, tw - 20, 15, C.text, 'center');
 }
 // 가로 화면 오른쪽 위(창이 없을 때): 이번 웨이브 피해 순위 미니판 + 안내
@@ -3089,7 +3102,7 @@ function drawGoals(x0, qy, w0, head = true) {
     const out = E.UNIT[gid], gc = GOAL_COLOR[k], pg = progOf(r, cnt), ok = canMake(r), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total;
     const left = { ...cnt }, miss = [];
     for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(E.UNIT[id].name); }
-    box(x0, qy, w0, 46, ok ? 'rgba(43,122,98,.3)' : 'rgba(11,30,42,.9)', gc, 8, 2);
+    box(x0, qy, w0, 46, ok ? 'rgba(43,122,98,.3)' : 'rgba(24,32,78,.9)', gc, 8, 2);
     drawFit(unitImg(gid), x0 + 4, qy + 3, 40, 40);
     fitText(out.name, x0 + 50, qy + 13, 150, 14, GRADE_COLOR[out.grade]);
     box(bx0, qy + 8, bw0, 8, 'rgba(0,0,0,.5)', null, 4); if (fr > 0) box(bx0, qy + 8, Math.max(8, bw0 * fr), 8, fr >= 1 ? C.good : gc, null, 4);
@@ -3109,16 +3122,16 @@ function drawGoalsModal() {   // 세로 화면용 목표 창(2026-11-21 모바�
   drawGoals(x + 12, y + 56, w - 24, false);
 }
 function drawSideTop() {
-  box(8, 6, W - 16, 658, 'rgba(16,36,51,.82)', C.edge, 12);
+  box(8, 6, W - 16, 658, 'rgba(30,40,100,.82)', C.edge, 12);
   // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 전설·히든 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
   text('시너지', 22, 28, 17, C.gold);
   const bi = E.BIAS[G.bias];
-  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'], regen: ['#ff96be', '#ffc8dc'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
+  if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'], regen: ['#ff96be', '#ffc8dc'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(16,22,56,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
   const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
   if (!list.length) fitText('전설·히든 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
   list.forEach((el, i) => {
     const sv = syn[el], y = 44 + i * 40, col = `rgb(${ELEM_COL[el] ?? '220,220,220'})`, on = sv.lv > 0, nx = E.SYN_STEPS.find((x) => sv.n < x);
-    box(16, y, W - 32, 36, on ? 'rgba(11,30,42,.95)' : 'rgba(11,30,42,.5)', on ? col : 'rgba(145,122,76,.35)', 8, on ? 2 : 1);
+    box(16, y, W - 32, 36, on ? 'rgba(24,32,78,.95)' : 'rgba(24,32,78,.5)', on ? col : 'rgba(149,204,221,.35)', 8, on ? 2 : 1);
     ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; ctx.lineTo(38 + Math.cos(a) * 13, y + 18 + Math.sin(a) * 13); } ctx.closePath();   // 육각 표
     ctx.fillStyle = on ? col : 'rgba(80,90,100,.8)'; ctx.fill(); text(String(sv.n), 38, y + 19, 14, on ? '#10202c' : '#cfd6da', 'center');
     text(E.SYN_NAME[el], 62, y + 18, 15, on ? col : '#9aa9b0');
@@ -3175,7 +3188,7 @@ function drawShop() {
   yy += bh + 6;
   const L = modal.last;   // 방금 결과 한 줄
   if (L) {
-    box(x + 14, yy, w - 28, 40, 'rgba(11,30,42,.85)', L.fail || L.low ? C.edge : GRADE_COLOR[L.grade], 8, 1.5);
+    box(x + 14, yy, w - 28, 40, 'rgba(24,32,78,.85)', L.fail || L.low ? C.edge : GRADE_COLOR[L.grade], 8, 1.5);
     if (L.low) fitText('커먼 위습 1개를 받았어요(위습 칸에서 소환)', x + w / 2, yy + 20, w - 50, 14, C.text, 'center');
     else if (L.fail) fitText('상급 모집 실패…', x + w / 2, yy + 20, w - 50, 14, C.muted, 'center');
     else { drawFit(unitImg(L.id), x + 22, yy + 2, 36, 36); fitText(`${E.GRADE_NAME[L.grade]} ${E.UNIT[L.id].name}을(를) 모집했어요!`, x + 66, yy + 20, w - 90, 14, GRADE_COLOR[L.grade]); }
@@ -3188,14 +3201,14 @@ function drawShop() {
   const rh = Math.max(56, Math.min(80, (y + h - 12 - yy) / Object.keys(E.SHOP).length - 8));
   Object.entries(E.SHOP).forEach(([id, it], i) => {
     const ry = yy + i * (rh + 8), pr = E.shopPrice(G, id), op = E.shopOpen(G);
-    box(x + 14, ry, w - 28, rh, 'rgba(11,30,42,.85)', C.edge, 10, 1.5);
+    box(x + 14, ry, w - 28, rh, 'rgba(24,32,78,.85)', C.edge, 10, 1.5);
     text(it.name, x + 30, ry + rh * 0.36, 17, C.text);
     fitText(id === 'reroll' ? '에픽 한 마리를 다른 에픽으로 바꿔요 · 값 고정' : `산 횟수 ${G.shopN?.[id] ?? 0}번 · 살수록 비싸져요`, x + 30, ry + rh * 0.7, w - 230, 12, C.muted);
     button(x + w - 28 - 150, ry + 8, 150, rh - 16, op ? '사기' : `${E.RULES.shopFrom}웨이브부터`, () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', op && G.gold >= pr, `새우 ${fmtN(pr)}`);
   });
 }
 function drawSideEmpty() {
-  box(14, 100, W - 28, H - 108, 'rgba(11,30,42,.35)', 'rgba(145,122,76,.35)', 14, 1.5);
+  box(14, 100, W - 28, H - 108, 'rgba(24,32,78,.35)', 'rgba(149,204,221,.35)', 14, 1.5);
   text('열린 창 없음', W / 2, 430, 20, C.muted, 'center');
   fitText('아래 판의 선택위습·강화·외부탐사·창고·조합법을 누르면 여기에 열려요', W / 2, 470, W - 80, 14, '#8b9aa3', 'center');
   fitText('창을 연 채로도 판의 갈매미를 옮길 수 있어요', W / 2, 498, W - 80, 14, '#8b9aa3', 'center');
@@ -3223,11 +3236,11 @@ function treeLayout(root, availW) {
   return depth;
 }
 function drawCheck(cx, cy, r, fill, mark) {   // 동그란 작은 표시: ✓ · ! · +
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#07131c'; ctx.stroke();
-  ctx.strokeStyle = '#07131c'; ctx.lineWidth = 2.2; ctx.beginPath();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#10163a'; ctx.stroke();
+  ctx.strokeStyle = '#10163a'; ctx.lineWidth = 2.2; ctx.beginPath();
   if (mark === 'v') { ctx.moveTo(cx - r * 0.45, cy); ctx.lineTo(cx - r * 0.1, cy + r * 0.4); ctx.lineTo(cx + r * 0.5, cy - r * 0.4); ctx.stroke(); }
   else if (mark === '+') { ctx.moveTo(cx - r * 0.5, cy); ctx.lineTo(cx + r * 0.5, cy); ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.5); ctx.stroke(); }
-  else { ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.15); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy + r * 0.48, 1.4, 0, Math.PI * 2); ctx.fillStyle = '#07131c'; ctx.fill(); }
+  else { ctx.moveTo(cx, cy - r * 0.5); ctx.lineTo(cx, cy + r * 0.15); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy + r * 0.48, 1.4, 0, Math.PI * 2); ctx.fillStyle = '#10163a'; ctx.fill(); }
 }
 // 재료 나무 이름: 칸이 좁으면 9px까지 줄이고, 그래도 길면 띄어쓰기에서 두 줄, 띄어쓰기가 없으면 「…」(긴 이름끼리 겹치지 않게)
 function treeLabel(name, cx, y, maxW, size, color) {
@@ -3250,7 +3263,7 @@ function drawTree(root, x0, y0, w, h) {
   const lines = (n) => {   // 부모 아래 → 가로 → 자식 위
     const r = R[n.d], top = n.cy + r + 18, my = (top + n.cy + rowH - (R[n.d + 1] ?? 19)) / 2;
     for (const c of n.show) {
-      ctx.strokeStyle = c.have ? 'rgba(111,208,138,.55)' : 'rgba(243,216,158,.45)'; ctx.lineWidth = 1.8;
+      ctx.strokeStyle = c.have ? 'rgba(111,208,138,.55)' : 'rgba(208,231,230,.45)'; ctx.lineWidth = 1.8;
       ctx.beginPath(); ctx.moveTo(n.cx, top); ctx.lineTo(n.cx, my); ctx.lineTo(c.cx, my); ctx.lineTo(c.cx, c.cy - R[c.d]); ctx.stroke();
       lines(c);
     }
@@ -3259,7 +3272,7 @@ function drawTree(root, x0, y0, w, h) {
   const nodes = (n) => {
     const u = E.UNIT[n.id], col = GRADE_COLOR[u.grade], r = Math.min(R[n.d], n.span / 2 - 4);
     ctx.beginPath(); ctx.arc(n.cx, n.cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = n.have ? 'rgba(43,122,98,.45)' : 'rgba(11,30,42,.96)'; ctx.fill();
+    ctx.fillStyle = n.have ? 'rgba(43,122,98,.45)' : 'rgba(24,32,78,.96)'; ctx.fill();
     ctx.lineWidth = n.top ? 3 : 2.2; ctx.strokeStyle = n.top ? C.goldEdge : col; ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(n.cx, n.cy, r - 1.5, 0, Math.PI * 2); ctx.clip();
     drawFit(unitImg(n.id), n.cx - r * 0.95, n.cy - r * 0.95, r * 1.9, r * 1.85, n.have || n.top ? 1 : 0.75);
@@ -3267,7 +3280,7 @@ function drawTree(root, x0, y0, w, h) {
     const br = Math.max(6.5, r * 0.36), bx = n.cx + r * 0.72, by = n.cy - r * 0.72;
     if (n.have) drawCheck(bx, by, br, '#6fd08a', 'v');
     else if (n.more) drawCheck(bx, by, br, C.goldEdge, '+');
-    else if (E.UNIT[n.id].role === E.SPECIAL_ROLE) { ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fillStyle = GRADE_COLOR.TRANSCEND; ctx.fill(); text('6', bx, by + 0.5, Math.round(br * 1.5), '#07131c', 'center'); }   // 외부탐사 6장 보상
+    else if (E.UNIT[n.id].role === E.SPECIAL_ROLE) { ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fillStyle = GRADE_COLOR.TRANSCEND; ctx.fill(); text('6', bx, by + 0.5, Math.round(br * 1.5), '#10163a', 'center'); }   // 외부탐사 6장 보상
     else if (!n.top && !n.kids.length) drawCheck(bx, by, br, '#ff9a8a', '!');
     treeLabel(u.name, n.cx, n.cy + r + 10, n.d === 0 ? Math.max(60, n.span - 4) : n.span - 4, n.d === 0 ? 14 : 12, n.have ? C.good : n.top ? C.goldEdge : C.text);
     if (!n.top) hit(n.cx - n.span / 2, n.cy - r, n.span, r * 2 + 18, () => showInfo(n.id, true));
@@ -3278,7 +3291,7 @@ function drawTree(root, x0, y0, w, h) {
 function drawInfo() {
   const id = info.id, u = E.UNIT[id], k = E.kit(id), col = GRADE_COLOR[u.grade], r = E.recipeFor(id);
   const sh0 = landscape ? MENU_Y : PBOT;   // 가로 화면은 아래 메뉴를 가리지 않게
-  ctx.fillStyle = 'rgba(3,9,14,.62)'; ctx.fillRect(0, 0, W, sh0);
+  ctx.fillStyle = 'rgba(8,11,30,.62)'; ctx.fillRect(0, 0, W, sh0);
   hit(0, 0, W, sh0, () => { info = null; });   // 바깥을 누르면 닫힘
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, col, 14, 2);
@@ -3303,7 +3316,7 @@ function drawInfo() {
   else text('기본 공격만 해요', x + 16, y + 150, 14, C.muted);
   // 재료 피라미드(특성 칩이 여러 줄이면 그만큼 아래에서 시작)
   const py = Math.max(y + 200, tipEnd + 26);
-  ctx.fillStyle = 'rgba(145,122,76,.35)'; ctx.fillRect(x + 12, py - 14, w - 24, 1);
+  ctx.fillStyle = 'rgba(149,204,221,.35)'; ctx.fillRect(x + 12, py - 14, w - 24, 1);
   // 선택 위습으로 바로 소환(사용자 요청 2026-11-09): 그 등급 선택 위습으로 고를 수 있는 갈매미면 버튼
   const pickable = E.PICK_GRADES.includes(u.grade) && E.unitsOfGrade(u.grade).includes(id), pn = G.picks[u.grade] ?? 0;
   const pickBtn = (bx, bw) => button(bx, y + h - 76, bw, 56, '선택위습 사용', () => {
@@ -3324,7 +3337,7 @@ function drawInfo() {
     const walk = (n) => { if (!n.have && !n.kids.length && !n.top) base[n.id] = (base[n.id] ?? 0) + 1; n.kids.forEach(walk); };
     walk(needTree(id, E.countOnField(G)));
     const ready = canMake(r), miss = Object.entries(base).map(([b, n]) => `${E.UNIT[b].name}×${n}`).join(' · ');
-    box(x + 12, y + h - 132, w - 24, 50, 'rgba(243,216,158,.08)', 'rgba(243,216,158,.3)', 8, 1);
+    box(x + 12, y + h - 132, w - 24, 50, 'rgba(208,231,230,.08)', 'rgba(208,231,230,.3)', 8, 1);
     ctx.save(); ctx.beginPath(); ctx.rect(x + 12, y + h - 132, w - 24, 50); ctx.clip();
     if (ready) fitText('재료가 모두 있어요! 바로 조합할 수 있어요.', W / 2, y + h - 107, w - 40, 15, C.good, 'center');
     else if (E.topBlocked(G, r) && E.recipeUnits(G, r)) fitText(`재료는 모두 있지만 ${E.topBlockWhy(G, r)}.`, W / 2, y + h - 107, w - 40, 13, C.bad, 'center');
@@ -3357,7 +3370,7 @@ function drawMeter() {
     const yy = lt + i * rowH - modal.scroll;
     if (yy + rowH < lt || yy > lt + viewH) return;
     const info2 = E.UNIT[r.u.id], col = GRADE_COLOR[info2.grade];
-    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(11,30,42,.85)', i < 3 ? C.goldEdge : 'rgba(145,122,76,.35)', 8, i < 3 ? 2 : 1);
+    box(x + 12, yy + 3, w - 24, rowH - 6, 'rgba(24,32,78,.85)', i < 3 ? C.goldEdge : 'rgba(149,204,221,.35)', 8, i < 3 ? 2 : 1);
     text(`${i + 1}`, x + 30, yy + rowH / 2, 15, i < 3 ? C.goldEdge : C.muted, 'center');
     drawFit(unitImg(r.u.id), x + 42, yy + 6, 40, rowH - 12);
     fitText(`${info2.name}${r.u.away ? ' (탐사)' : r.u.stored ? ' (창고)' : ''}`, x + 88, yy + 18, 150, 15, col);
@@ -3392,7 +3405,7 @@ function drawTutorial() {
   if (landscape) {   // 가로 배치: 메뉴·조합법은 오른쪽 열, 갈매미 끌기는 왼쪽 큰 판
     if (tut.step === 1) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X; } else if (wide) { ctx.translate(BX, BYT); ctx.scale(WK, WK); OX = BX; OY = BYT; OS = WK; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
   }
-  box(bx, by, bw, bh, 'rgba(19,44,59,.97)', C.goldEdge, 12, 2);
+  box(bx, by, bw, bh, 'rgba(41,54,129,.97)', C.goldEdge, 12, 2);
   ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 6, bw - 120, bh - 12); ctx.clip(); wrap(st.msg, bx + 14, by + 12, bw - 130, 15, C.text, 22); ctx.restore();
   button(bx + bw - 100, by + 18, 88, 38, '안내 끄기', tutDone, 'quiet');
   if (st.tx != null) {   // 가리키는 화살표
@@ -3429,7 +3442,7 @@ function drawRecruit() {
   const L = modal.last, ry = y + 176 + bh + 24;
   if (L) {
     const fresh = performance.now() - L.t < 500 ? 1 + 0.15 * (1 - (performance.now() - L.t) / 500) : 1;
-    box(x + 40, ry, w - 80, Math.min(220, h - (ry - y) - 20), 'rgba(11,30,42,.85)', L.fail ? '#46555f' : GRADE_COLOR[L.grade], 12, 2);
+    box(x + 40, ry, w - 80, Math.min(220, h - (ry - y) - 20), 'rgba(24,32,78,.85)', L.fail ? '#46555f' : GRADE_COLOR[L.grade], 12, 2);
     if (L.fail) text('모집 실패…', W / 2, ry + 60, 22, C.muted, 'center');
     else {
       const s2 = 110 * fresh;
@@ -3473,9 +3486,9 @@ function drawChoice() {
   const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
   r.choice.forEach((c, i) => {
     const cy = y + 84 + i * (ch + 12), col = c.unit ? GRADE_COLOR.TRANSCEND : c.wisps ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
-    box(x + 12, cy, w - 24, ch, 'rgba(11,30,42,.9)', col, 12, 2);
+    box(x + 12, cy, w - 24, ch, 'rgba(24,32,78,.9)', col, 12, 2);
     if (c.unit) drawFit(unitImg(c.unit), x + 22, cy + 10, 100, ch - 20);
-    else { const g = c.wisps ? 'LEGEND' : 'EPIC', n = Object.values(c.wisps ?? c.picks)[0]; ctx.beginPath(); ctx.arc(x + 72, cy + ch / 2, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = GRADE_COLOR[g]; ctx.stroke(); text(c.wisps ? '위습' : '선택', x + 72, cy + ch / 2 - 8, 15, GRADE_COLOR[g], 'center'); text(`×${n}`, x + 72, cy + ch / 2 + 14, 17, C.text, 'center'); }
+    else { const g = c.wisps ? 'LEGEND' : 'EPIC', n = Object.values(c.wisps ?? c.picks)[0]; ctx.beginPath(); ctx.arc(x + 72, cy + ch / 2, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16,22,56,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = GRADE_COLOR[g]; ctx.stroke(); text(c.wisps ? '위습' : '선택', x + 72, cy + ch / 2 - 8, 15, GRADE_COLOR[g], 'center'); text(`×${n}`, x + 72, cy + ch / 2 + 14, 17, C.text, 'center'); }
     fitText(E.choiceText(c), x + 136, cy + 30, w - 136 - 24 - 110, 18, col);
     desc(c).forEach((l, k) => fitText(l, x + 136, cy + 60 + k * 22, w - 136 - 24 - 110, 13, C.muted));
     button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '받기', () => { if (E.chooseReward(G, i)) { G.choiceLater = false; modal = null; say(`${E.choiceText(c)}을(를) 받았어요.`); } }, 'primary');
@@ -3486,7 +3499,7 @@ function drawChoice() {
 function drawBoardModal() {
   const hh = Math.max(H, VH, PBOT);   // 세로 화면은 아래 메뉴까지(2026-11-21 모바일 검토)
   hit(0, 0, W, hh, () => {});   // 아래 판·메뉴 누르기 막음
-  ctx.fillStyle = 'rgba(3,9,14,.62)'; ctx.fillRect(0, 0, W, hh);
+  ctx.fillStyle = 'rgba(8,11,30,.62)'; ctx.fillRect(0, 0, W, hh);
   if (modal?.kind === 'intro') drawIntro(); else drawAug();
 }
 // 검은 그림자(보스 미리 보기): 그림을 검게 칠한 사본(한 번만 만듦)
@@ -3502,7 +3515,7 @@ function drawIntro() {
   const x = FIELD.x + 6, w = FIELD.w - 12, y = FIELD.y - 24, h = FIELD.h + 24, bi = E.BIAS[G.bias], cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138', regen: '255,150,190' }[G.bias] ?? '220,220,220';
   const age = (performance.now() - (modal.t ?? 0)) / 1000, ap = Math.min(1, age / 0.35);
   ctx.globalAlpha = ap;
-  box(x, y, w, h, 'rgba(10,26,40,.96)', C.goldEdge, 16, 2.5);
+  box(x, y, w, h, 'rgba(20,28,70,.96)', C.goldEdge, 16, 2.5);
   text('이번 판 소개', x + w / 2, y + 30, 24, C.gold, 'center');
   fitText(`${E.DIFFS[G.diff]?.name ?? ''} 난이도 · ${E.RULES.waves}웨이브`, x + w / 2, y + 56, w - 30, 13, C.muted, 'center');
   // ① 판 성향
@@ -3518,7 +3531,7 @@ function drawIntro() {
     const per = 7, cs = Math.floor((w - 28 - (per - 1) * 6) / per), rows = Math.ceil(shut.length / per);
     shut.forEach((u, i) => {
       const cx = x + 14 + (i % per) * (cs + 6), cy = yy + 24 + Math.floor(i / per) * (cs + 20);
-      box(cx, cy, cs, cs, 'rgba(7,19,28,.9)', GRADE_COLOR[u.grade], 8, 1.5);
+      box(cx, cy, cs, cs, 'rgba(16,22,56,.9)', GRADE_COLOR[u.grade], 8, 1.5);
       ctx.globalAlpha = ap * 0.55; drawFit(unitImg(u.id), cx + 3, cy + 3, cs - 6, cs - 6); ctx.globalAlpha = ap;
       ctx.strokeStyle = 'rgba(255,107,107,.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx + 8, cy + 8); ctx.lineTo(cx + cs - 8, cy + cs - 8); ctx.moveTo(cx + cs - 8, cy + 8); ctx.lineTo(cx + 8, cy + cs - 8); ctx.stroke();
       fitText(u.name, cx + cs / 2, cy + cs + 9, cs + 4, 11, GRADE_COLOR[u.grade], 'center');
@@ -3543,7 +3556,7 @@ function drawAug() {
   if (!G?.augOffer) { modal = null; return; }
   const o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
   if (modal.peek) {   // 판 보기: 위에 작은 띠만
-    ctx.fillStyle = 'rgba(3,9,14,.0)';
+    ctx.fillStyle = 'rgba(8,11,30,.0)';
     button(W / 2 - 120, FIELD.y + 8, 240, 50, '증강체 고르기로 돌아가기', () => { modal.peek = false; }, 'primary');
     return;
   }
@@ -3553,16 +3566,16 @@ function drawAug() {
   const n = o.opts.length, gap = 10, cw = Math.floor((FIELD.w - 8 - gap * (n - 1)) / n), ch = 300, cy = FIELD.y + 100;
   o.opts.forEach((id, i) => {
     const a = E.AUGS[id], cx = FIELD.x + 4 + i * (cw + gap), rb = !!a.rb, ec = rb ? '#ff7a6a' : col;
-    box(cx, cy, cw, ch, rb ? 'rgba(48,16,20,.96)' : 'rgba(11,30,42,.96)', ec, 14, 2.5);
+    box(cx, cy, cw, ch, rb ? 'rgba(48,16,20,.96)' : 'rgba(24,32,78,.96)', ec, 14, 2.5);
     hit(cx, cy, cw, ch, () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); } });
     if (rb) { box(cx + cw / 2 - 42, cy + 10, 84, 20, 'rgba(255,122,106,.18)', '#ff7a6a', 6, 1); text('룰 브레이커', cx + cw / 2, cy + 20, 12, '#ffb0a4', 'center'); }
     const ix = cx + cw / 2, iy = cy + 78;
     if (!fxLite) fxSprite('magic_02', ix, iy, 110, hexRGB(ec), 0.5, performance.now() / 1500);
-    ctx.beginPath(); ctx.arc(ix, iy, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.95)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = ec; ctx.stroke();
+    ctx.beginPath(); ctx.arc(ix, iy, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16,22,56,.95)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = ec; ctx.stroke();
     text(a.name.slice(0, 1), ix, iy + 1, 30, ec, 'center');
     fitText(a.name, ix, cy + 140, cw - 16, 17, ec, 'center');
     wrapCenter(a.desc, ix, cy + 168, cw - 18, 13, C.text, 6);
-    box(cx + 12, cy + ch - 50, cw - 24, 38, 'rgba(243,216,158,.14)', C.goldEdge, 10, 1.5); text('고르기', ix, cy + ch - 31, 15, C.gold, 'center');
+    btnFace(cx + 12, cy + ch - 50, cw - 24, 38, BTN.primary, 10); text('고르기', ix, cy + ch - 31, 15, BTN.primary.text, 'center');
     const done = !!(o.rr?.[i] ?? o.rerolled);   // 2026-11-21 사용자 요청: 카드마다 다시 뽑기 1번
     button(cx, cy + ch + 8, cw, 40, done ? '다시 뽑기 끝' : '다시 뽑기', () => { if (E.rerollAug(G, i)) sfx('wisp'); }, 'normal', !done);
   });
@@ -3710,7 +3723,7 @@ function drawPvpBanner() {   // 대결: 승패가 정해지면 판 위에 크게
   if (!pvpShow || performance.now() > pvpShow.until) return;
   const [t, col] = PVP_TXT[pvpShow.r], a = Math.min(1, (pvpShow.until - performance.now()) / 500), cy = FIELD.y + FIELD.h / 2;
   ctx.globalAlpha = a;
-  box(FIELD.x + 30, cy - 60, FIELD.w - 60, 120, 'rgba(7,19,28,.94)', col, 14, 3);
+  box(FIELD.x + 30, cy - 60, FIELD.w - 60, 120, 'rgba(16,22,56,.94)', col, 14, 3);
   text(`대결 ${t}`, W / 2, cy - 18, 34, col, 'center');
   fitText(pvpShow.r === 'win' ? (net.peer?.ov === 'lose' ? `상대가 ${num(net.peer.w)}웨이브에서 무너졌어요 · 판은 계속돼요` : '남은 적이 더 적어요') : pvpShow.r === 'lose' ? (G.over === 'lose' ? '먼저 무너졌어요' : '남은 적이 더 많아요') : '똑같이 버텼어요', W / 2, cy + 26, FIELD.w - 100, 15, C.text, 'center');
   ctx.globalAlpha = 1;
@@ -3833,7 +3846,7 @@ function codeBoxes(s, y) {
   const bw = 58, gap = 8, mid = 16, x0 = (W - (6 * bw + 5 * gap + mid)) / 2;
   for (let k = 0; k < 6; k++) {
     const x = x0 + k * (bw + gap) + (k >= 3 ? mid : 0);
-    box(x, y, bw, 72, 'rgba(11,30,42,.92)', s[k] ? C.goldEdge : C.edge, 10, 2);
+    box(x, y, bw, 72, 'rgba(24,32,78,.92)', s[k] ? C.goldEdge : C.edge, 10, 2);
     if (s[k]) text(s[k], x + bw / 2, y + 38, 38, C.goldEdge, 'center');
   }
 }
@@ -3916,7 +3929,7 @@ function drawPeerField(P) {
   }
   if (P.ov) {
     const win = P.ov === 'win', cy = FIELD.y + FIELD.h / 2;
-    box(FIELD.x + 60, cy - 46, FIELD.w - 120, 92, 'rgba(7,19,28,.92)', win ? C.goldEdge : '#b4482a', 12, 2);
+    box(FIELD.x + 60, cy - 46, FIELD.w - 120, 92, 'rgba(16,22,56,.92)', win ? C.goldEdge : '#b4482a', 12, 2);
     text(win ? '친구 방어 성공!' : '친구 방어 실패', W / 2, cy - 14, 26, win ? C.goldEdge : C.bad, 'center');
     text(win ? `${E.RULES.waves}웨이브 클리어` : `${num(P.w)}웨이브`, W / 2, cy + 22, 18, C.text, 'center');
   }
@@ -4076,7 +4089,7 @@ function frame(now) {
         else if (modal) { const fx = Math.round(SIDE_X + (VW - SIDE_X - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
         else { colA(drawSideTop); colB(drawBottom); }
         if (info) colA(drawInfo);
-        if (bm) { modal = bm; ctx.fillStyle = 'rgba(3,9,14,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
+        if (bm) { modal = bm; ctx.fillStyle = 'rgba(8,11,30,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       } else {
       ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
       if (topModal()) { drawModal(); drawBottom(); }
@@ -4085,7 +4098,7 @@ function frame(now) {
       else { if (coop()) drawPeerFull(true, true); else drawSideTop(); drawBottom(); }
       if (info) drawInfo();
       ctx.restore(); OX = 0;
-      if (bm) { modal = bm; ctx.fillStyle = 'rgba(3,9,14,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
+      if (bm) { modal = bm; ctx.fillStyle = 'rgba(8,11,30,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       }
     } else { drawField(); drawGoalBoard(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
