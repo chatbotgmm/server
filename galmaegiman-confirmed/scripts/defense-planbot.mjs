@@ -135,7 +135,7 @@ for (let s = SEED0 + 1; s <= SEED0 + N; s++) {
     const mine = E.UNITS.filter((u) => u.role !== E.SPECIAL_ROLE && E.tierOf(u.id) >= 3 && E.tierOf(u.id) <= 5 && E.kit(u.id).elem === el).sort((a, b) => E.tierOf(a.id) - E.tierOf(b.id)).map((u) => u.id);
     wish = [...mine.slice(0, 5), ...wish.filter((id) => !mine.slice(0, 5).includes(id))];
   }
-  const st = { n: 0, style, wish: wish.filter((id) => E.UNIT[id] && (!E.topIsOpen || E.topIsOpen(g, id))) };   // 2026-11-21: 이번 판에 닫힌 최상위는 노리지 않음 let acc = 0;
+  const st = { n: 0, style, wish: wish.filter((id) => E.UNIT[id] && (!E.topIsOpen || E.topIsOpen(g, id))) }; let acc = 0;   // 2026-11-21: 이번 판에 닫힌 최상위는 노리지 않음
   let eq40 = null, eq55 = null, hm55 = null;
   while (!g.over && g.t < 4000) { E.step(g, 0.05); acc += 0.05; if (acc >= 0.5) { acc = 0; bot(g, st); } if (!ch6 && g.missionDone >= 6) ch6 = g.wave; if (!end && g.missionDone >= E.REGIONS.length) end = g.wave; if (eq40 == null && g.wave >= 40) eq40 = legEq(g); if (eq55 == null && g.wave >= 55) { eq55 = legEq(g); hm55 = harmony(g); } }
   compLog.push({ win: g.over === 'win', wave: g.over === 'win' ? 61 : g.wave, left: g.leftover ?? null, ids: [...new Set(E.fieldUnits(g).concat(E.awayUnits(g)).filter((u) => E.tierOf(u.id) >= 4 && E.UNIT[u.id].role !== E.SPECIAL_ROLE).map((u) => u.id))] });
