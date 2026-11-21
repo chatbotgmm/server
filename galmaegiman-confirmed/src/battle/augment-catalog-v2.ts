@@ -1,5 +1,5 @@
 // Versioned opt-in catalog. Importing it never activates V2 in an existing battle.
-// V1 data/battle.yaml and its 24 IDs remain unchanged. Numeric semantics are implemented by ID.
+// V1 data/battle.yaml and its 24 IDs remain unchanged. 유닛 속성을 바꾸는 reverse(자유자재)·camo(보호색)는 새 전투에서 뺐다(retiredAugmentsV2). Numeric semantics are implemented by ID.
 export type CatalogTier='silver'|'gold'|'prismatic';
 export interface CatalogAugment {id:string;tier:CatalogTier;version:2;name:string;desc:string;p:Record<string,number>;effect?:'choose-own-attribute'}
 export interface AugmentCatalogV2 {version:2;augments:CatalogAugment[]}
@@ -222,15 +222,6 @@ export const augmentCatalogV2:AugmentCatalogV2={
       }
     },
     {
-      "id": "reverse",
-      "tier": "prismatic",
-      "effect": "choose-own-attribute",
-      "version": 2,
-      "name": "자유자재",
-      "desc": "상대 속성을 확인한 뒤 내 유닛의 속성을 선택",
-      "p": {}
-    },
-    {
       "id": "weakguard",
       "tier": "gold",
       "version": 2,
@@ -257,14 +248,6 @@ export const augmentCatalogV2:AugmentCatalogV2={
       "p": {
         "turns": 3
       }
-    },
-    {
-      "id": "camo",
-      "tier": "gold",
-      "version": 2,
-      "name": "보호색",
-      "desc": "선두 속성을 상대에게 강한 속성으로 변경",
-      "p": {}
     },
     {
       "id": "dual",
@@ -633,7 +616,17 @@ export const augmentCatalogV2:AugmentCatalogV2={
 // 기본 스키마를 외부 변경으로부터 보호해 ID·등급·허용 키 검증을 고정해요.
 for(const a of augmentCatalogV2.augments){Object.freeze(a.p);Object.freeze(a);}
 Object.freeze(augmentCatalogV2.augments);Object.freeze(augmentCatalogV2);
-export const battleAugIdsV2:readonly string[]=Object.freeze(augmentCatalogV2.augments.map(a=>a.id));
+// 새 전투에서 뺀 증강. 이미 저장된 전투의 규칙 스냅샷(이전 60종·59종)을 그대로 읽고 마무리하려고 정의만 남긴다.
+// 새 카탈로그(augmentCatalogV2)에는 없으므로 새 전투의 선택지로 나오지 않는다.
+// 유닛 속성을 바꾸는 증강은 공격 기술 속성은 그대로 둬서 상성 표시와 실제 피해가 달라지므로 뺐다.
+export const retiredAugmentsV2:readonly CatalogAugment[]=Object.freeze([
+  Object.freeze({id:'reverse',tier:'prismatic' as const,effect:'choose-own-attribute' as const,version:2 as const,name:'자유자재',desc:'상대 속성을 확인한 뒤 내 유닛의 속성을 선택',p:Object.freeze({})}),
+  Object.freeze({id:'camo',tier:'gold' as const,version:2 as const,name:'보호색',desc:'선두 속성을 상대에게 강한 속성으로 변경',p:Object.freeze({})}),
+]);
+const augmentTemplatesV2:readonly CatalogAugment[]=Object.freeze([...augmentCatalogV2.augments,...retiredAugmentsV2]);
+export const augmentTemplateV2=(id:string)=>augmentTemplatesV2.find(a=>a.id===id);
+// 엔진이 구현한(저장 전투에 나올 수 있는) 모든 V2 증강 ID.
+export const battleAugIdsV2:readonly string[]=Object.freeze(augmentTemplatesV2.map(a=>a.id));
 // Readable numeric restrictions: no unknown parameters; percentages 0–100,
 // priorities −3–3, multipliers 0.1–3, turn/count/level parameters bounded integers.
 export function parameterRange(key:string,id?:string):{min:number;max:number;integer?:boolean}{
@@ -657,11 +650,12 @@ function keys(value:Record<string,unknown>,allowed:string[],label:string){
 }
 export function parseAugmentCatalogV2(input:unknown):AugmentCatalogV2{
   const data=object(input,'카탈로그');keys(data,['version','augments'],'카탈로그');
-  if(data.version!==2||!Array.isArray(data.augments)||data.augments.length!==60)throw new Error('V2 증강은 버전 2, 정확히 60개여야 해요');
+  // 현재 카탈로그 증강은 모두 있어야 하고, 뺀 증강(retiredAugmentsV2)은 이전 스냅샷에만 있을 수 있다.
+  if(data.version!==2||!Array.isArray(data.augments)||data.augments.length<augmentCatalogV2.augments.length||data.augments.length>augmentTemplatesV2.length)throw new Error(`V2 증강은 버전 2, ${augmentCatalogV2.augments.length}~${augmentTemplatesV2.length}개여야 해요`);
   const seen=new Set<string>();
   const augments=data.augments.map((raw,index):CatalogAugment=>{
     const a=object(raw,`증강 ${index}`);keys(a,['id','tier','version','name','desc','p','effect'],'증강');
-    const template=augmentCatalogV2.augments.find(t=>t.id===a.id);
+    const template=augmentTemplateV2(a.id as string);
     if(!template||seen.has(template.id))throw new Error('알 수 없거나 중복된 증강 ID');seen.add(template.id);
     if(a.version!==2||!['silver','gold','prismatic'].includes(a.tier as string))throw new Error(`${template.id}: 버전 또는 등급 오류`);
     if(typeof a.name!=='string'||a.name.length<1||a.name.length>30||typeof a.desc!=='string'||a.desc.length<1||a.desc.length>160)throw new Error(`${template.id}: 이름/설명 오류`);
@@ -674,6 +668,7 @@ export function parseAugmentCatalogV2(input:unknown):AugmentCatalogV2{
     if(a.effect!==undefined&&(a.id!=='reverse'||a.effect!=='choose-own-attribute'))throw new Error('알 수 없는 증강 효과');
     return {id:template.id,tier:a.tier as CatalogTier,version:2,name:a.name,desc:a.desc,p:{...p} as Record<string,number>,...(a.effect===undefined?{}:{effect:'choose-own-attribute' as const})};
   });
+  if(augmentCatalogV2.augments.some(t=>!seen.has(t.id)))throw new Error('현재 V2 증강이 빠졌어요');
   return {version:2,augments};
 }
 // Weights deliberately required: no unapproved probability defaults or automatic activation.

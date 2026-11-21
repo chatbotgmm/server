@@ -1,0 +1,39 @@
+{
+  "version": "roster60-recruit-20261025-pools-v2",
+  "note": "모집 비용 2/6/10, 새로고침 1/3/5. 등급 내 균등, 천장 없음. 최신 모집풀과 확률 적용. 지급 레벨: 커먼/언커먼1, 레어10, 에픽15, 전설/히든20.",
+  "halfRounding": null,
+  "pity": "none",
+  "offers": [
+    {
+      "kind": "LOW",
+      "label": "하급",
+      "cost": 2,
+      "weights": {
+        "COMMON": 70,
+        "UNCOMMON": 28,
+        "RARE": 2
+      }
+    },
+    {
+      "kind": "MID",
+      "label": "중급",
+      "cost": 6,
+      "weights": {
+        "UNCOMMON": 70,
+        "RARE": 28,
+        "EPIC": 2
+      }
+    },
+    {
+      "kind": "HIGH",
+      "label": "고급",
+      "cost": 10,
+      "weights": {
+        "RARE": 90,
+        "EPIC": 9,
+        "LEGEND": 0.5,
+        "HIDDEN": 0.5
+      }
+    }
+  ]
+}

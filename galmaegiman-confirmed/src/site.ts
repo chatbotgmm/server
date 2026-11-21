@@ -1,8 +1,11 @@
 // 공개 홈페이지(웹 설계 「공개 홈페이지 보충 설계 v1」): 소개 홈 · 게임 소개 · 캐릭터 소개 · 공지사항 · 다운로드 · 로그인 진입 · 웹 게임(/game)
+// 2026-11-06: 게임이 60종(roster60) 규칙으로 바뀌어, 소개·캐릭터·모집 확률·세계관을 서버의 실제 60종 자료로 만들고
+//   예전 145종 페이지(도감·조합법·히든 단서·랭킹·수다방·이벤트·검색·프로필)는 닫는다(첫 화면으로 이동).
 // - 공개 페이지는 로그인 없이 읽고, 로그인은 「게임 시작」·「내 계정」을 고른 때만 요청한다. 로그인돼 있어도 게임으로 자동 이동하지 않는다.
 // - 세계관(/world)은 기존 페이지(쿠폰 조각 포함)를 그대로 쓰고 머리줄에서 연결만 한다.
 // - 공지(data/notices.json)·다운로드(data/downloads.json)는 실제로 확인된 내용만 넣는다. 비어 있으면 「없음」·「연결 대기」로 보인다.
 // - 공개 캐릭터는 기존 공개 도감 정책과 같게 히든·최상위(제한~불멸)를 뺀다.
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -15,51 +18,55 @@ export interface Notice{id:string;title:string;date:string;category?:string;body
 export interface DownloadInfo{label:string;version:string;url:string;note?:string;sha256?:string;requirement?:string}
 export interface SiteOptions{root:string;version:string;kakao:boolean}
 // 로그인 뒤 갈 곳·취소하면 돌아갈 곳: 사이트 안의 정해진 경로만(바깥 주소·//·\\ 거부)
-const NEXT=new Set(['/game','/account']);
+const NEXT=new Set(['/game','/game60','/account','/defense']);   // /defense: 디펜스 계정 저장(로그인 뒤 돌아옴)
 const FROM=/^\/(?:about|world|characters|notices(?:\/[A-Za-z0-9_-]{1,40})?|download|dex(?:\/[A-Za-z0-9_-]{1,12})?|recipes|hidden|rank|event|talk|odds|privacy)?$/;
-export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?v:'/game';
+// 로그인 뒤 기본으로 가는 곳은 지금 게임(60종) 웹게임. 예전 /game은 /game60으로 보낸다(2026-11-07)
+export const safeNext=(v:unknown)=>typeof v==='string'&&NEXT.has(v)?(v==='/game'?'/game60':v):'/game60';
 export const safeFrom=(v:unknown)=>typeof v==='string'&&FROM.test(v)?v:'/';
 
 // 공개 페이지 공통 틀(머리줄·메뉴·바닥). 새 공개 페이지(site.ts)와 예전 공개 페이지(web.ts: 도감·조합법·랭킹·이벤트 등)가 같이 쓴다
 export interface ShellOptions{path:string;title:string;desc:string;body:string;bare?:boolean;script?:string;noindex?:boolean;image?:string;legacy?:boolean;canonical?:boolean}
 // 예전부터 있던 공개 페이지(내용·기능 그대로, 새 디자인 틀): 메뉴의 「둘러보기」와 바닥에 연결
-const MORE:[string,string][]=[['/dex','도감'],['/recipes','조합법'],['/hidden','히든 단서'],['/rank','랭킹'],['/talk','수다방'],['/event','이벤트'],['/search','검색']];
+const MORE:[string,string][]=[['/odds','모집 확률'],['/defense/recipes','디펜스 조합식']];
 // 파일 수정 시각을 주소 뒤에 붙여, 파일이 바뀌면 브라우저가 새로 받게 한다
-export const stampFor=(root:string)=>(p:string)=>{try{return `/${p}?v=${Math.floor(statSync(resolve(root,'public',p)).mtimeMs)}`;}catch{return `/${p}`;}};
+// 2026-11-07: 수정 시각 대신 파일 내용 지문(sha256 앞 12자)을 붙인다. 배포 묶음은 수정 시각이 같을 수 있어
+// 내용이 바뀌어도 주소가 같으면 브라우저·Cloudflare가 예전 파일을 계속 보여 줬다. 파일 번호(inode)·크기·시각이 같으면 다시 계산하지 않는다(배포 묶음은 파일을 새로 만들어 번호가 바뀜, 재시작하면 새로 계산)
+export const stampFor=(root:string)=>{const stampCache=new Map<string,{key:string;v:string}>();return (p:string)=>{try{const f=resolve(root,'public',p),st=statSync(f),key=`${st.ino}:${st.mtimeMs}:${st.size}`;let c=stampCache.get(f);
+  if(!c||c.key!==key){c={key,v:createHash('sha256').update(readFileSync(f)).digest('hex').slice(0,12)};stampCache.set(f,c);}return `/${p}?v=${c.v}`;}catch{return `/${p}`;}};};
 export function siteShell(root:string,version:string,content:Content){
   const site=(content.economy.homepage??'').replace(/\/$/,'');
   const channel=content.economy.kakaoChannel;
   const stamp=stampFor(root);
-  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터 소개'],['/notices','공지사항'],['/download','다운로드']];
-  const logo='<img src="/images/logo.png" alt="" width="123" height="40">';
+  // 첫 화면(home-v4)과 같은 메뉴·문장(머리줄이 화면마다 달라 보이지 않게)
+  const NAV:[string,string][]=[['/about','게임 소개'],['/world','세계관'],['/characters','캐릭터'],['/notices','공지사항'],['/download','다운로드'],['/village','마을 둘러보기'],['/defense','랜덤 디펜스']];
+  const logo='<span class="crest" aria-hidden="true">✦</span><span class="brand-name">갈매미맨 <small>방 범 대</small></span>';
   return (o:ShellOptions)=>`<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${o.path==='/'?'갈매미맨':`${esc(o.title)} · 갈매미맨`}</title>
 <meta name="description" content="${esc(o.desc)}">${o.noindex?'<meta name="robots" content="noindex">':''}
 <meta property="og:type" content="website"><meta property="og:site_name" content="갈매미맨"><meta property="og:title" content="${esc(o.path==='/'?'갈매미맨':o.title)}"><meta property="og:description" content="${esc(o.desc)}">${site?`<meta property="og:image" content="${site}${o.image??'/images/C1.png'}">${o.canonical===false?'':`<link rel="canonical" href="${esc(site+o.path)}">`}`:''}
-<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#1d3550">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#10263c">
 ${o.path==='/'&&site?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'갈매미맨',alternateName:['갈매미맨 수비대'],url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:''}
-<link rel="preload" href="/site/a/jua.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${stamp('site/site.css')}">${o.legacy?`<link rel="stylesheet" href="${stamp('site/legacy.css')}">`:''}
-</head><body class="site">
+<link rel="stylesheet" href="${stamp('site/site.css')}">${o.legacy?`<link rel="stylesheet" href="${stamp('site/legacy.css')}">`:''}<link rel="stylesheet" href="${stamp('site/harbor.css')}">
+</head><body class="site harbor">
 <a class="skip" href="#main">본문 바로가기</a>
 <header class="top"><div class="wrap">
-<a class="brand" href="/" aria-label="갈매미맨 홈">${logo}</a>
+<a class="brand" href="/" aria-label="갈매미맨 방범대 홈">${logo}</a>
 ${o.bare?`<a class="toplink" href="/" data-back>홈페이지로</a>`:`<nav class="nav" aria-label="공개 메뉴">${NAV.map(([h,t])=>`<a href="${h}"${o.path===h||o.path.startsWith(h+'/')?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
-<div class="acts"><a class="btn ghost sm" href="/login?next=/account" data-auth="account">로그인</a><a class="btn primary sm" href="/game" data-start>게임 시작</a></div>
+<div class="acts"><a class="gold-cta" href="/download">앱 다운로드</a></div>
 <button class="menu-btn" type="button" aria-expanded="false" aria-controls="drawer" aria-label="메뉴 열기"><span aria-hidden="true"></span></button>`}
 </div></header>
 ${o.bare?'':`<div class="drawer" id="drawer" hidden><div class="drawer-in" role="dialog" aria-modal="true" aria-label="메뉴">
-<div class="drawer-top">${logo}<button class="close" type="button" aria-label="메뉴 닫기">×</button></div>
+<div class="drawer-top"><span class="brand">${logo}</span><button class="close" type="button" aria-label="메뉴 닫기">×</button></div>
 <nav aria-label="공개 메뉴">${NAV.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
 <nav class="drawer-more" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}"${o.path===h?' aria-current="page"':''}>${t}</a>`).join('')}</nav>
-<a class="btn primary wide" href="/game" data-start>게임 시작</a><a class="btn ghost wide" href="/login?next=/account" data-auth="account">로그인 / 내 계정</a>
+<a class="btn primary wide" href="/download">앱 다운로드</a>
 </div></div>`}
 <main id="main">${o.body}</main>
 <footer class="foot"><div class="wrap">
-<b class="foot-name">갈매미맨</b>
-<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널(문의)</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a></p>
-<p class="foot-links sub"><a href="/notices">공지사항</a><a href="/download">다운로드</a><span>v${esc(version)}</span></p>
-<p class="foot-links sub" aria-label="둘러보기">${MORE.map(([h,t])=>`<a href="${h}">${t}</a>`).join('')}</p>
+<div class="foot-head"><a class="brand" href="/" aria-label="갈매미맨 방범대 홈">${logo}</a><p>우리의 항구에서, 다음 모험을.</p></div>
+<p class="foot-links">${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>`:''}<a href="/privacy" class="privacy"><b>개인정보 처리방침</b></a><a href="/account/delete">계정 삭제 안내</a><a href="/odds">모집 확률</a><a href="/notices">공지사항</a><a href="/download">다운로드</a><a href="/defense">랜덤 디펜스</a><a href="/defense/recipes">디펜스 조합식</a></p>
+<div class="foot-bottom"><span>GALMAEMIMAN · v${esc(version)}</span><a href="#main">맨 위로 ↑</a></div>
 </div></footer>
 <script src="${stamp('site/site.js')}" defer></script>${o.script??''}
 </body></html>`;
@@ -73,6 +80,18 @@ export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions
   const downloads=()=>readJson<{official:DownloadInfo|null;test:DownloadInfo|null}>('downloads.json',{official:null,test:null});
   const shell=siteShell(opt.root,opt.version,content);
   const stamp=stampFor(opt.root);
+  const r60=roster60Reader(opt.root);
+
+  // ── 예전 145종(카톡 챗봇) 공개 페이지는 닫는다: 첫 화면으로 영구 이동. 모집 확률·세계관·사이트맵은 60종 기준 새 페이지로 ──
+  app.addHook('onRequest',async(req,reply)=>{
+    const path=(req.url.split('?')[0]??'').replace(/\/+$/,'')||'/';
+    if(req.method!=='GET'&&req.method!=='HEAD')return;   // 페이지를 닫는 것이라 읽기 요청만 돌린다
+    if(LEGACY_PAGE.test(path)||LEGACY_API.test(path))return reply.redirect('/',301);
+    if(path==='/odds')return send(reply,oddsPage());
+    if(path==='/world')return send(reply,worldPage());
+    if(path==='/account/delete')return send(reply,deletePage());
+    if(path==='/sitemap.xml')return reply.type('application/xml; charset=utf-8').header('Cache-Control','public, max-age=3600').send(sitemap());
+  });
   const send=(reply:FastifyReply,html:string,cache='public, max-age=300')=>reply.type('text/html; charset=utf-8').header('Cache-Control',cache).send(html);
   const limit={config:{rateLimit:{max:300,timeWindow:'1 minute',keyGenerator:(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`site:${ip}`:'site';}}}};
   const pub=()=>content.characters.filter(c=>c.rarity!=='HIDDEN'&&!topTiers.has(c.rarity));
@@ -81,66 +100,122 @@ export function registerSite(app:FastifyInstance,content:Content,opt:SiteOptions
   const apkButton=(big=false)=>{const d=downloads().official;
     return d?`<a class="btn ghost${big?' lg':''}" href="/download">APK 다운로드</a>`:`<span class="btn ghost${big?' lg':''}" aria-disabled="true" title="공식 배포 링크 확인 전">APK 다운로드<small>공식 배포 확인 전</small></span>`;};
 
-  // ── 소개 홈 ──
+  // 승인된 공개 홈 시안. 공지·이벤트·인증 경로는 기존 운영 자료를 그대로 쓴다.
   app.get('/',limit,async(_req,reply)=>{
     const latest=notices().slice(0,3);
-    // 진행 중인 쿠폰 이벤트(economy.yaml): 이름만 알리고 자세한 내용은 기존 /event에서
-    const at=new Date(),ev=content.economy.coupons.find(c=>c.pieces.length&&(!c.from||new Date(c.from)<=at)&&(!c.to||at<new Date(c.to)));
-    return send(reply,shell({path:'/',title:'갈매미맨',desc:'돌로 된 갈매미들이 항구 수비대에 출근하는 섬, 갈매미 섬 이야기',body:`
-<section class="hero"><div class="hero-bg" aria-hidden="true"></div><div class="wrap hero-in">
-<div class="hero-card">
-<p class="eyebrow">갈매미맨</p>
-<h1>돌로 된 갈매미들이<br>항구 수비대에 출근하는 섬</h1>
-<p class="lead">갈매미 섬의 이야기와 수비대원들을 만나 보세요.</p>
-<div class="hero-acts"><a class="btn primary lg" href="/game" data-start>게임 시작</a>${apkButton(true)}</div>
-</div></div></section>
-<section class="band"><div class="wrap">
-<h2 class="sec-title">항구와 수비대를 만나 보세요</h2>
-<div class="cards3">
-<a class="card c-about" href="/about"><b>게임 소개</b><span>모집·조합·탐험·전투, 갈매미맨을 즐기는 방법</span><em>살펴보기 ›</em></a>
-<a class="card c-world" href="/world"><b>세계관</b><span>갈매미 섬의 일곱 동네와 수비대 이야기</span><em>살펴보기 ›</em></a>
-<a class="card c-char" href="/characters"><b>캐릭터 소개</b><span>수비대의 대원들을 만나 보기</span><em>살펴보기 ›</em></a>
-</div>
-${ev?`<a class="event-strip" href="/event"><b>진행 중 이벤트</b><span>${esc(ev.label)}</span><em>자세히 ›</em></a>`:''}
-<div class="notice-strip"><h2>공지사항</h2>${latest.length?`<ul class="nlist">${latest.map(noticeRow).join('')}</ul>`:'<p class="muted">아직 게시된 공지가 없어요.</p>'}<a class="more" href="/notices">더 보기 ›</a></div>
-</div></section>`}));
+    const values:Record<string,string>={
+      GMM_STYLE:esc(stamp('site/home-v4/home.css')),
+      GMM_SCRIPT:esc(stamp('site/site.js')),
+      GMM_CANONICAL:esc(site?site+'/':'/'),
+      // 예전 홈에 있던 검색엔진용 사이트 정보(WebSite)를 새 홈에도 그대로 넣는다
+      GMM_JSONLD:site?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'갈매미맨',alternateName:['갈매미맨 수비대','갈매미맨 방범대'],url:`${site}/`}).replace(/</g,'\\u003c')}</script>`:'',
+      GMM_VERSION:esc(opt.version),
+      GMM_NOTICES:latest.length?'<ul class="nlist home-notices">'+latest.map(noticeRow).join('')+'</ul>':'<p class="empty-notices">아직 게시된 공지가 없어요.</p>',
+      // 예전 챗봇 쿠폰 이벤트(/event)는 닫혀 홈에 띄우지 않는다
+      GMM_EVENT:'',
+      GMM_CONTACT:channel?'<a href="'+esc(channel)+'" target="_blank" rel="noopener">카카오톡 채널 · 문의</a>':'',
+    };
+    const html=readFileSync(resolve(opt.root,'public/site/home-v4/index.html'),'utf8').replace(/\{\{(GMM_[A-Z]+)\}\}/g,(_match,key:string)=>values[key]??'');
+    return send(reply,html);
   });
 
-  // ── 게임 소개: 저장소의 실제 자료(대원 수·조합법 수)에서 숫자를 계산한다 ──
+  // 실제 /game과 별도로 제공하는 공개 마을 시각탐색 초안.
+  app.get('/village',limit,async(_req,reply)=>send(reply,readFileSync(resolve(opt.root,'public/site/village-v4/index.html'),'utf8')));
+
+  // ── 게임 소개: 서버의 60종 자료(도감·모집 정책·스토리)에서 숫자를 계산한다. 규칙 문장은 앱 안내 문구와 서버 정책을 따른다 ──
   app.get('/about',limit,async(_req,reply)=>{
-    const tiers=['COMMON','UNCOMMON','SPECIAL','RARE','LEGEND','HIDDEN','LIMITED','TRANSCEND','ETERNAL','IMMORTAL','NEUTRAL'].filter(t=>count(t));
-    return send(reply,shell({path:'/about',title:'게임 소개',desc:'갈매미맨을 즐기는 방법: 모집, 조합, 탐험, 전투',body:`
+    const d=r60(),chapters=d.story?.chapters.length;
+    return send(reply,shell({path:'/about',title:'게임 소개',desc:'갈매미맨 방범대를 즐기는 방법: 모집, 조합, 탐험, 스토리, 모험, 대전',body:`
 <div class="wrap page"><h1>게임 소개</h1>
-<p class="lead">갈매미 섬 항구 수비대의 대원을 모으고, 조합하고, 함께 전투에 나서는 게임이에요.</p>
+<p class="lead">갈매미를 모집해 나만의 방범대를 꾸리고, 스토리와 대전에 나서는 Android 수집형 전투 게임이에요.</p>
 <ol class="steps">
-<li><b>모집</b><span>지원서로 하급·중급·고급 모집을 해요. 어떤 대원이 올지는 무작위예요(<a href="/odds">모집 확률</a>).</span></li>
-<li><b>조합</b><span>대원을 조합해 더 높은 등급의 대원을 만나요. 조합법은 ${content.recipes.length}가지예요(<a href="/recipes">조합법</a>).</span></li>
-<li><b>탐험</b><span>대원을 탐험에 보내 보상을 받아요.</span></li>
-<li><b>전투</b><span>대원 3명을 편성해 스토리 전투와 실시간 대전(일반전·랭크전)에 나가요.</span></li>
+<li><b>모집</b><span>지원서로 ${d.recruit?d.recruit.offers.map(o=>`${esc(o.label)}(${o.cost}장)`).join('·'):'하급·중급·고급'} 모집을 해요. 등급은 정해진 확률로 나오고, 같은 등급 안에서는 모두 같은 확률이에요(<a href="/odds">모집 확률</a>). 매일 출석하면 지원서를 받아요.</span></li>
+<li><b>조합</b><span>재료 갈매미가 모이면 조합으로 새 갈매미를 깨워요.</span></li>
+<li><b>탐험</b><span>갈매미를 탐험에 보내면 시간이 지난 뒤 보상을 가지고 돌아와요.</span></li>
+<li><b>스토리</b><span>${chapters?`${chapters}개 챕터`:'챕터'}를 따라 마을 주민의 의뢰를 해결하며 갈매미의 이야기를 찾아가요(<a href="/world">세계관</a>).</span></li>
+<li><b>모험</b><span>모험 전투를 이어 가며 보상을 모아요. 정상 복귀하면 보상을 받고, 전멸하면 그 모험의 받지 않은 보상을 잃어요.</span></li>
+<li><b>대전</b><span>일반 게임·랭크게임·연습 중에서 골라요. 실시간 대전에는 3마리 편성이 필요하고, 랭크게임은 출전 대원이 모두 Lv.60 이상이어야 해요.</span></li>
 </ol>
-<h2>대원 ${content.characters.length}종</h2>
-<ul class="tiers">${tiers.map(t=>`<li><b>${esc(rarityNames[t]??t)}</b><span>${count(t)}종</span></li>`).join('')}</ul>
-<p class="muted">히든 대원은 단서로 찾고, 제한·초월·영원·불멸 대원의 모습은 직접 만나면 열려요.</p>
+<h2>전투 규칙</h2>
+<ul class="plain">
+<li><b>속성 상성</b>: 속성마다 강한 상대 2개, 약한 상대 2개가 있어요. 유리한 기술은 1.5배, 불리한 기술은 0.67배예요.</li>
+<li><b>증강체</b>: 전투를 시작할 때 증강체를 골라요. 30초 안에 정하지 않으면 무작위로 정해져요.</li>
+<li><b>경험치</b>: 이긴 전투에서 마지막에 나와 있던 갈매미는 보상 전부, 편성된 나머지 갈매미는 절반을 받아요. 진 전투는 받지 않아요. 보상 크기는 그 전투에 나온 모든 갈매미의 평균 레벨로 정해져요.</li>
+<li><b>성장</b>: 레벨은 60까지 올라요. 제한·초월·불멸·영원 갈매미는 환생하면 99까지 올라요.</li>
+</ul>
+<h2>갈매미 ${d.units.length}종</h2>
+<ul class="tiers">${R60_GRADES.filter(([g])=>d.units.some(u=>u.rarity===g)).map(([g,n])=>`<li><b>${n}</b><span>${d.units.filter(u=>u.rarity===g).length}종</span></li>`).join('')}</ul>
+<p class="muted">히든과 제한·초월·불멸·영원 갈매미는 홈페이지에 공개하지 않아요. 게임에서 직접 만나 보세요.</p>
 <h2>어디서 하나요</h2>
 <ul class="plain">
-<li>웹: 이 사이트의 <a href="/game" data-start>게임 시작</a></li>
-${channel?`<li>카카오톡 채널: <a href="${esc(channel)}" target="_blank" rel="noopener">갈매미맨 채널</a></li>`:''}
 <li>Android 앱: <a href="/download">다운로드</a> 페이지에서 배포 상태를 확인해 주세요.</li>
+${channel?`<li>문의: <a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널</a></li>`:''}
 </ul></div>`}));
   });
 
-  // ── 캐릭터 소개: 공개 대원만, 페이지 그리드 + 같은 화면 상세 ──
+  // ── 캐릭터 소개: 공개 등급(커먼~전설) 갈매미만, 방범대 등록증(registration-v10) 그림 ──
   app.get('/characters',limit,async(_req,reply)=>{
-    const list=pub().map(c=>({id:c.id,n:c.name,t:rarityNames[c.rarity]??c.rarity,r:c.rarity,q:c.quote??'',g:c.tagline??''}));
-    return send(reply,shell({path:'/characters',title:'캐릭터 소개',desc:'갈매미 섬 항구 수비대의 대원들',body:`
+    const list=r60().units.filter(u=>R60_PUBLIC.has(u.rarity)).map(u=>({id:u.id,n:u.name,t:R60_GRADE_NAME[u.rarity]??u.rarity,role:u.role??'',img:`/site/units/${u.id}.webp`}));
+    return send(reply,shell({path:'/characters',title:'캐릭터 소개',desc:'갈매미맨 방범대의 갈매미들',image:list[0]?list[0].img:undefined,body:`
 <div class="wrap page"><h1>캐릭터 소개</h1>
-<p class="lead">공개된 대원 ${list.length}명이에요. 히든과 최상위 대원은 게임에서 직접 만나 보세요. 전체 목록은 <a href="/dex">도감</a>에 있어요.</p>
-<div class="chars" data-chars><div class="char-grid" role="listbox" aria-label="대원 목록"></div>
+<p class="lead">공개된 갈매미 ${list.length}종이에요. 히든과 제한·초월·불멸·영원 갈매미는 게임에서 직접 만나 보세요.</p>
+<div class="chars" data-chars><div class="char-grid" role="listbox" aria-label="갈매미 목록"></div>
 <div class="pager"><button class="btn ghost icon" type="button" data-prev aria-label="이전 페이지">‹</button><span data-page aria-live="polite"></span><button class="btn ghost icon" type="button" data-next aria-label="다음 페이지">›</button></div>
 <section class="char-detail" aria-live="polite"></section></div>
 <script type="application/json" id="chars-data">${JSON.stringify(list).replace(/</g,'\\u003c')}</script>
 </div>`}));
   });
+
+  // ── 모집 확률: 서버가 실제로 쓰는 모집 정책 파일(data/roster60-recruit-policy.json)과 도감에서 계산 ──
+  const pct=(n:number)=>`${Number(n.toFixed(4))}%`;
+  const oddsPage=()=>{const d=r60(),p=d.recruit;
+    const body=!p?'<p class="empty">모집 확률 정보를 불러오지 못했어요. 잠시 뒤 다시 확인해 주세요.</p>':`
+<p class="lead">지원서로 하는 모집의 확률이에요. 먼저 등급이 정해지고, 같은 등급 안의 갈매미는 모두 같은 확률로 나와요.</p>
+${p.offers.map(o=>`<section class="panel odds"><h2>${esc(o.label)} 모집 <small>지원서 ${o.cost}장 · 다시 뽑기 ${o.cost/2}장</small></h2>
+<table><thead><tr><th scope="col">등급</th><th scope="col">등급 확률</th><th scope="col">해당 갈매미</th><th scope="col">1종당 확률</th></tr></thead><tbody>
+${Object.entries(o.weights).map(([g,w])=>{const n=d.units.filter(u=>u.rarity===g).length;return `<tr><th scope="row">${R60_GRADE_NAME[g]??esc(g)}</th><td>${pct(w)}</td><td>${n}종</td><td>${n?pct(w/n):'-'}</td></tr>`;}).join('')}
+</tbody></table></section>`).join('')}
+<ul class="plain">
+<li>다시 뽑기는 처음 나온 갈매미와 같은 등급 안에서 다시 뽑아요.</li>
+<li>${p.pity==='none'?'모집 횟수에 따른 보장(천장)은 없어요.':'모집 횟수에 따른 보장 규칙은 게임 안내를 확인해 주세요.'}</li>
+<li>제한·초월·불멸·영원 갈매미는 모집으로 나오지 않아요.</li>
+<li>확률은 서버 설정(${esc(p.version)})에서 바로 계산해 보여 줘요. 바뀌면 이 페이지도 함께 바뀌어요.</li>
+</ul>`;
+    return shell({path:'/odds',title:'모집 확률',desc:'갈매미맨 방범대 모집 확률',body:`<div class="wrap page"><h1>모집 확률</h1>${body}</div>`});};
+
+  // ── 세계관: 스토리모드 자료(data/story/story-mode-v1.json)의 첫 장면·챕터·마을 주민 ──
+  const worldPage=()=>{const st=r60().story;
+    const intro=st?.scenes.find(x=>x.id==='STORY_01_intro');
+    const body=!st?'<p class="empty">세계관 정보를 불러오지 못했어요.</p>':`
+<p class="lead">마을 사람들이 태어나기 전부터 지켜 온 석상 터. 왜 지키는지 아는 이가 없는 그 석상의 조각과 이유를 찾아 갈매미맨이 길을 나서요.</p>
+${intro?`<section class="story-scene" aria-label="이야기의 시작"><h2>이야기의 시작</h2>${intro.lines.map(l=>l.speakerId==='narrator'?`<p class="narr">${esc(l.text)}</p>`:`<p class="line">“${esc(l.text)}”</p>`).join('')}</section>`:''}
+<h2>스토리 챕터</h2>
+<ol class="steps">${st.chapters.map(c=>`<li><b>${esc(c.title)}</b><span>${Array.isArray(c.recommendedLevel)&&c.recommendedLevel.length===2?`권장 레벨 ${c.recommendedLevel[0]}~${c.recommendedLevel[1]}`:''}</span></li>`).join('')}</ol>
+<h2>마을 사람들</h2>
+<ul class="residents">${st.residents.map(r=>`<li><b>${esc(r.name)}</b><span class="role">${esc(r.role)}</span><q>${esc(r.dailyDialogue)}</q></li>`).join('')}</ul>
+<p class="muted">이야기의 나머지는 앱의 스토리모드에서 이어져요.</p>`;
+    return shell({path:'/world',title:'세계관',desc:'갈매미맨 방범대의 세계와 스토리',body:`<div class="wrap page"><h1>세계관</h1>${body}</div>`});};
+
+  // ── 계정 삭제 안내: 지금 앱(설정 → 계정 삭제)의 실제 순서. 지워지는 범위 문장은 앱 확인 창 문구를 따른다 ──
+  const deletePage=()=>shell({path:'/account/delete',title:'계정 삭제',desc:'갈매미맨 방범대 계정 삭제(탈퇴) 안내',body:`
+<div class="wrap page"><h1>계정 삭제(탈퇴) 안내</h1>
+<p class="lead">앱에서 언제든 계정과 게임 데이터를 지울 수 있어요.</p>
+<ol class="steps">
+<li><b>설정 열기</b><span>앱의 마을 메뉴에서 설정을 열어요.</span></li>
+<li><b>확인 문구 적기</b><span>「계정 삭제」를 펼치고 확인 칸에 <b>탈퇴</b>라고 적어요.</span></li>
+<li><b>계정 삭제</b><span>「계정 삭제」 버튼을 누르면 바로 지워져요. 되돌릴 수 없어요.</span></li>
+</ol>
+<ul class="plain">
+<li><b>지워지는 것</b>: 갈매미·도감·재화·아이템·탐험·스토리 진행.</li>
+<li><b>남는 것</b>: 매일 만드는 서버 백업에 최대 약 7일 동안 남았다가 자동으로 사라져요.</li>
+<li>진행 중인 대전이나 매칭이 있으면 마친 뒤 탈퇴해 주세요.</li>
+</ul>
+<p>앱을 지웠다면 다시 설치해 같은 계정으로 로그인한 뒤 위 순서로 지울 수 있어요. 도움이 필요하면 ${channel?`<a href="${esc(channel)}" target="_blank" rel="noopener">카카오톡 채널</a>로 문의해 주세요`:'문의해 주세요'}. 자세한 내용은 <a href="/privacy">개인정보 처리방침</a>을 봐 주세요.</p>
+</div>`});
+
+  // ── 사이트맵: 지금 열려 있는 공개 페이지만 ──
+  const sitemap=()=>{const base=site||'';const pages=['/','/about','/world','/characters','/notices','/download','/village','/odds','/privacy','/account/delete',...notices().map(n=>`/notices/${n.id}`)];
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${pages.map(p=>`<url><loc>${esc(base+p)}</loc></url>`).join('')}</urlset>\n`;};
 
   // ── 공지사항: 실제 게시된 글만(data/notices.json) ──
   const noticeList=(page:number)=>{const all=notices(),per=8,pages=Math.max(1,Math.ceil(all.length/per)),p=Math.min(Math.max(1,page),pages);return {all,pages,p,rows:all.slice((p-1)*per,p*per)};};
@@ -192,26 +267,166 @@ ${opt.kakao&&k!=='link'?'<a class="btn kakao wide" href="/my/kakao" data-kakao-s
 </div></section>`}),'no-store');
   });
 
-  // ── 웹 게임: 화면은 public/game. 로그인 판단은 화면이 /my/api/who로(세션 쿠키가 Path=/my라 여기서는 모름) ──
-  const gameFile=()=>readFileSync(resolve(opt.root,'public/game/index.html'),'utf8').replace(/\{\{([a-z]+\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game/${f}`));
-  app.get('/game',limit,async(_req,reply)=>send(reply,gameFile(),'no-cache'));
-  app.get('/account',limit,async(_req,reply)=>reply.redirect('/game#account'));
+  // ── 예전 웹게임(/game, 60종 이전 규칙)은 내리고 지금 게임 웹게임으로 보낸다(2026-11-07 사용자 지적: 로그인하면 옛날 게임이 나옴).
+  // 카카오 로그인 뒤 /my 화면·즐겨찾기·예전 링크가 /game·/account로 와도 새 웹게임으로 간다. 정적 파일(/game/*)은 그대로 둔다.
+  app.get('/game',limit,async(_req,reply)=>reply.redirect('/game60'));
+  app.get('/account',limit,async(_req,reply)=>reply.redirect('/game60'));
+  // ── PC 웹게임(60종, 앱과 같은 서버 기능). 1단계: 로그인·마을·내 갈매미·모집·스토리. 화면은 public/game60 ──
+  const game60File=()=>readFileSync(resolve(opt.root,'public/game60/index.html'),'utf8').replace(/\{\{(game\.(?:css|js))\}\}/g,(_m,f:string)=>stamp(`game60/${f}`));
+  app.get('/game60',limit,async(_req,reply)=>send(reply,game60File(),'no-cache'));
 
-  // ── 입사 등록증 카드(art/gpt/registration-v1, 145종 완성 WebP). 기존 /images·/thumbs와 같이 명단에 있는 ID만.
-  // 미발견·히든·최상위를 가리는 것은 지금처럼 화면이 한다(서버가 실제 그림을 준 대원에게만 카드를 붙임)
-  app.get<{Params:{file:string}}>('/site/reg/cards/:file',limit,async(req,reply)=>{
-    const id=/^([A-Z]\d{1,2})\.webp$/.exec(req.params.file)?.[1];
-    if(!id||!content.map.has(id))return reply.code(404).send({error:'not found'});
-    try{return reply.type('image/webp').header('Cache-Control','public, max-age=86400').send(readFileSync(resolve(opt.root,'art/gpt/registration-v1/resources/cards',`${id}.webp`)));}
-    catch{return reply.code(404).send({error:'image missing'});}
-  });
   // ── 정적 파일: public/site, public/game 아래 정해진 확장자만 ──
-  const types:Record<string,string>={css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',webp:'image/webp',png:'image/png',woff2:'font/woff2',txt:'text/plain; charset=utf-8',svg:'image/svg+xml'};
-  for(const dir of ['site','game'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{
+  const types:Record<string,string>={css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8',webp:'image/webp',png:'image/png',woff2:'font/woff2',otf:'font/otf',txt:'text/plain; charset=utf-8',svg:'image/svg+xml'};
+  for(const dir of ['site','game','game60'])app.get<{Params:{'*':string}}>(`/${dir}/*`,limit,async(req,reply)=>{
     const rel=req.params['*'],ext=/^[a-z0-9/_-]+\.([a-z0-9]+)$/.exec(rel)?.[1];
     if(!ext||!types[ext]||rel.includes('..'))return reply.code(404).send({error:'not found'});
     // 파일을 먼저 읽고 형식을 정한다(없는 파일에 형식을 먼저 정하면 404 대신 500이 남)
     let body:Buffer;try{body=readFileSync(resolve(opt.root,'public',dir,rel));}catch{return reply.code(404).send({error:'not found'});}
     return reply.type(types[ext]).header('Cache-Control',ext==='css'||ext==='js'?'public, max-age=300':'public, max-age=86400').send(body);
   });
+  // ── 갈매미맨 랜덤 디펜스(로그인 없는 미니 게임, public/defense). 그림·글꼴은 /game60/assets를 같이 쓴다 ──
+  // 모듈 파일(defense.js → engine.js → data.js)이 서로 다른 판으로 섞이지 않게 매번 새로 받게 한다(no-cache)
+  app.get('/defense',limit,async(_req,reply)=>{
+    let body:string;try{body=readFileSync(resolve(opt.root,'public/defense/index.html'),'utf8');}catch{return reply.code(404).send({error:'not found'});}
+    return send(reply,body,'no-cache');
+  });
+  // 상위 조합식 페이지(2026-11-10 사용자 요청). 게임과 같은 자료(engine.js·data.js)를 읽어 그린다
+  app.get('/defense/recipes',limit,async(_req,reply)=>{
+    let body:string;try{body=readFileSync(resolve(opt.root,'public/defense/recipes.html'),'utf8');}catch{return reply.code(404).send({error:'not found'});}
+    return send(reply,body,'no-cache');
+  });
+  app.get<{Params:{'*':string}}>('/defense/*',limit,async(req,reply)=>{
+    const rel=req.params['*'],ext=/^[a-z0-9_-]+\.(js|css|mp3)$/.exec(rel)?.[1];
+    if(!ext)return reply.code(404).send({error:'not found'});
+    let body:Buffer;try{body=readFileSync(resolve(opt.root,'public/defense',rel));}catch{return reply.code(404).send({error:'not found'});}
+    // 배경음악: 브라우저(특히 사파리)가 부분 요청(Range)으로 받으므로 206 응답을 지원한다
+    if(ext==='mp3'){
+      reply.type('audio/mpeg').header('Accept-Ranges','bytes').header('Cache-Control','public, max-age=86400');
+      const m=/^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range??''));
+      if(m&&(m[1]||m[2])){
+        const size=body.length,start=m[1]?Number(m[1]):Math.max(0,size-Number(m[2])),end=m[1]&&m[2]?Math.min(Number(m[2]),size-1):size-1;
+        if(start>=size||start>end)return reply.code(416).header('Content-Range',`bytes */${size}`).send();
+        return reply.code(206).header('Content-Range',`bytes ${start}-${end}/${size}`).send(body.subarray(start,end+1));
+      }
+      return reply.send(body);
+    }
+    return reply.type(types[ext]).header('Cache-Control','no-cache').send(body);
+  });
+  // ── 랜덤 디펜스 「친구랑 같이하기」 방(아래 defenseRooms). 화면이 0.25초마다 자기 판 모습을 보내고 친구 판 모습을 받는다 ──
+  const rooms=defenseRooms();
+  const roomKey=(p:string)=>(req:FastifyRequest)=>{const ip=req.headers['cf-connecting-ip'];return typeof ip==='string'&&ip.length<=45?`${p}:${ip}`:p;};
+  const roomLimit=(max:number,p:string)=>({config:{rateLimit:{max,timeWindow:'1 minute',keyGenerator:roomKey(p)}}});
+  const roomReply=(reply:FastifyReply,r:DefenseRoomResult)=>{reply.header('Cache-Control','no-store');return 'error' in r?reply.code(DEFENSE_ROOM_ERROR[r.error][0]).send({error:DEFENSE_ROOM_ERROR[r.error][1]}):reply.send(r);};
+  type RoomBody={Body:{code?:unknown;token?:unknown;snap?:unknown;ctl?:unknown}|undefined};
+  app.post('/defense/room',roomLimit(30,'droom-make'),async(_req,reply)=>roomReply(reply,rooms.create()));
+  app.post<RoomBody>('/defense/room/join',roomLimit(30,'droom-join'),async(req,reply)=>roomReply(reply,rooms.join(req.body?.code)));
+  app.post<RoomBody>('/defense/room/sync',roomLimit(900,'droom-sync'),async(req,reply)=>roomReply(reply,rooms.sync(req.body?.code,req.body?.token,req.body?.snap,req.body?.ctl)));
+  app.post<RoomBody>('/defense/room/leave',roomLimit(60,'droom-leave'),async(req,reply)=>{rooms.leave(req.body?.code,req.body?.token);return reply.header('Cache-Control','no-store').send({ok:true});});
+  // 지금 이용자 수(2026-11-11 사용자 요청: 첫 화면 오른쪽 아래에 아주 작게). 화면이 30초마다 무작위 번호로 신호, 서버는 최근 75초 번호 수만 메모리에 셈
+  const presence=defensePresence();
+  app.post<{Body:{id?:unknown}|undefined}>('/defense/online',roomLimit(20,'donline'),async(req,reply)=>{
+    const n=presence.ping(req.body?.id);
+    if(n===null)return reply.code(400).header('Cache-Control','no-store').send({error:'bad'});
+    return reply.header('Cache-Control','no-store').send({online:n});
+  });
+}
+
+// ── 랜덤 디펜스 지금 이용자 수: 화면마다 무작위 번호(16~32자리 16진수)로 신호. 이름·계정·IP는 저장하지 않음, 서버를 다시 켜면 0부터 ──
+export const DEFENSE_ONLINE={window:75_000,max:20_000,sweepEvery:5_000};
+export function defensePresence(clock:()=>number=Date.now){
+  const seen=new Map<string,number>();let swept=0;
+  const sweep=(force=false)=>{const t=clock();if(!force&&t-swept<DEFENSE_ONLINE.sweepEvery)return;swept=t;for(const [id,at] of seen)if(t-at>DEFENSE_ONLINE.window)seen.delete(id);};
+  return{
+    ping(id:unknown):number|null{
+      if(typeof id!=='string'||!/^[0-9a-f]{16,32}$/.test(id))return null;
+      sweep();
+      if(!seen.has(id)&&seen.size>=DEFENSE_ONLINE.max)sweep(true);
+      if(seen.has(id)||seen.size<DEFENSE_ONLINE.max)seen.set(id,clock());
+      return seen.size;
+    },
+    count(){sweep(true);return seen.size;},
+  };
+}
+
+// ── 랜덤 디펜스 「친구랑 같이하기」 방(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
+// 6자리 숫자 코드로 두 사람이 한 방에 들어가 각자 자기 판을 하고, 서로의 판 모습(화면이 만든 짧은 상태 글)을 주고받는다.
+// 서버는 방·자리·상태 글을 메모리에만 잠깐 들고 있다 전해 줄 뿐이다(DB·로그인 없음, 서버를 다시 켜면 방이 사라짐). 게임 판정은 하지 않는다.
+// 함께 바뀌는 것: 시작(방장만, 친구가 접속해 있을 때), 게임 속도, 일시정지. ver는 이것들이 바뀔 때마다 1씩 오른다.
+export interface DefenseCtl{ver:number;round:number;seed:number;speed:number;paused:boolean}
+interface DefenseSeat{token:string;seen:number;snap:string|null;snapAt:number}
+interface DefenseRoom{code:string;made:number;seats:[DefenseSeat|null,DefenseSeat|null];ctl:DefenseCtl}
+export const DEFENSE_ROOM={max:500,online:8_000,idle:120_000,life:6*3600_000,snapMax:24_000};
+type DefenseRoomError='bad'|'missing'|'started'|'taken'|'busy';
+export const DEFENSE_ROOM_ERROR:Record<DefenseRoomError,[number,string]>={
+  bad:[400,'코드는 숫자 6자리예요.'],missing:[404,'방을 찾을 수 없어요. 코드를 확인하거나 새 방을 만들어 주세요.'],
+  started:[409,'이미 게임을 시작한 방이에요. 새 방을 만들어 주세요.'],taken:[409,'방이 꽉 찼어요(2명까지).'],busy:[503,'지금 방이 너무 많아요. 잠시 뒤에 다시 해 주세요.'],
+};
+export type DefenseRoomResult={error:DefenseRoomError}|{code:string;token:string;seat:number}|{seat:number;peer:{on:boolean;snap:string|null;age:number|null}|null;ctl:DefenseCtl};
+export function defenseRooms(clock:()=>number=Date.now){
+  const rooms=new Map<string,DefenseRoom>();
+  const online=(s:DefenseSeat|null)=>!!s&&clock()-s.seen<=DEFENSE_ROOM.online;
+  const sweep=()=>{const t=clock();for(const [c,r] of rooms){const last=Math.max(r.made,r.seats[0]?.seen??0,r.seats[1]?.seen??0);if(t-last>DEFENSE_ROOM.idle||t-r.made>DEFENSE_ROOM.life)rooms.delete(c);}};
+  const seat=():DefenseSeat=>({token:randomBytes(16).toString('hex'),seen:clock(),snap:null,snapAt:0});
+  const find=(code:unknown,token:unknown)=>{
+    if(typeof code!=='string'||typeof token!=='string')return null;
+    const r=rooms.get(code);if(!r)return null;
+    const i=r.seats.findIndex(s=>s?.token===token);return i<0?null:{r,i};
+  };
+  return {
+    get size(){return rooms.size;},
+    create():DefenseRoomResult{
+      sweep();if(rooms.size>=DEFENSE_ROOM.max)return {error:'busy'};
+      let code='';do code=String(randomInt(100000,1000000));while(rooms.has(code));
+      const s=seat();rooms.set(code,{code,made:clock(),seats:[s,null],ctl:{ver:0,round:0,seed:0,speed:1,paused:false}});
+      return {code,token:s.token,seat:0};
+    },
+    join(code:unknown):DefenseRoomResult{
+      sweep();if(typeof code!=='string'||!/^\d{6}$/.test(code))return {error:'bad'};
+      const r=rooms.get(code);if(!r)return {error:'missing'};
+      if(r.ctl.round>0)return {error:'started'};
+      if(online(r.seats[1]))return {error:'taken'};
+      const s=seat();r.seats[1]=s;return {code,token:s.token,seat:1};
+    },
+    sync(code:unknown,token:unknown,snap:unknown,ctl:unknown):DefenseRoomResult{
+      const f=find(code,token);if(!f)return {error:'missing'};
+      const {r,i}=f,me=r.seats[i]!;me.seen=clock();
+      if(typeof snap==='string'&&snap.length<=DEFENSE_ROOM.snapMax){me.snap=snap;me.snapAt=clock();}
+      if(ctl&&typeof ctl==='object'){
+        const c=ctl as Record<string,unknown>;let changed=false;
+        if(c.start===true&&i===0&&online(r.seats[1])){r.ctl.round++;r.ctl.seed=randomInt(0,2**32);r.ctl.speed=1;r.ctl.paused=false;for(const s of r.seats)if(s){s.snap=null;s.snapAt=0;}changed=true;}
+        if((c.speed===1||c.speed===2||c.speed===3)&&r.ctl.speed!==c.speed){r.ctl.speed=c.speed;changed=true;}
+        if(typeof c.paused==='boolean'&&r.ctl.round>0&&r.ctl.paused!==c.paused){r.ctl.paused=c.paused;changed=true;}
+        if(changed)r.ctl.ver++;
+      }
+      const p=r.seats[1-i];
+      return {seat:i,peer:p?{on:online(p),snap:p.snap,age:p.snap?clock()-p.snapAt:null}:null,ctl:{...r.ctl}};
+    },
+    leave(code:unknown,token:unknown){
+      const f=find(code,token);if(!f)return false;
+      if(f.i===0)rooms.delete(f.r.code);else f.r.seats[1]=null;   // 방장이 나가면 방이 닫힌다
+      return true;
+    },
+  };
+}
+
+// ── 지금 게임(60종, roster60) 자료 읽기: 서버에 있는 실제 파일을 읽고, 파일이 바뀌면 다시 읽는다 ──
+export const R60_GRADES:[string,string][]=[['COMMON','커먼'],['UNCOMMON','언커먼'],['RARE','레어'],['EPIC','에픽'],['LEGEND','전설'],['HIDDEN','히든'],['LIMITED','제한'],['TRANSCEND','초월'],['IMMORTAL','불멸'],['ETERNAL','영원']];
+export const R60_GRADE_NAME:Record<string,string>=Object.fromEntries(R60_GRADES);
+// 홈페이지에 보여 주는 등급(예전 공개 정책과 같게 히든·최상위는 뺀다)
+export const R60_PUBLIC=new Set(['COMMON','UNCOMMON','RARE','EPIC','LEGEND']);
+// 닫는 예전 145종 페이지·자료 주소
+export const LEGACY_PAGE=/^\/(?:dex(?:\/[^/]+)?|recipes|hidden|rank|talk|event|search|p\/[^/]+)$/;
+export const LEGACY_API=/^\/(?:search-index\.json|api\/players)$/;
+interface R60Unit{id:string;name:string;rarity:string;role?:string}
+interface R60Recruit{version:string;pity:string|null;offers:{kind:string;label:string;cost:number;weights:Record<string,number>}[]}
+interface R60Story{chapters:{id:number;title:string;recommendedLevel?:number[]}[];residents:{name:string;role:string;dailyDialogue:string}[];scenes:{id:string;lines:{speakerId:string;text:string}[]}[]}
+export function roster60Reader(root:string){
+  const profile=process.env.ROSTER60_PROFILE||'five-stat-device-test-v1';
+  const files={catalog:`data/test-profiles/${profile}/catalog.json`,recruit:'data/roster60-recruit-policy.json',story:'data/story/story-mode-v1.json'};
+  const cache=new Map<string,{mtime:number;value:unknown}>();
+  const read=<T,>(rel:string):T|null=>{const file=resolve(root,rel);try{const mtime=statSync(file).mtimeMs,hit=cache.get(rel);if(hit&&hit.mtime===mtime)return hit.value as T;const value=JSON.parse(readFileSync(file,'utf8')) as T;cache.set(rel,{mtime,value});return value;}catch{return null;}};
+  return ()=>{
+    const catalog=read<{characters:R60Unit[]}>(files.catalog);
+    return {units:Array.isArray(catalog?.characters)?catalog!.characters:[],recruit:read<R60Recruit>(files.recruit),story:read<R60Story>(files.story)};
+  };
 }

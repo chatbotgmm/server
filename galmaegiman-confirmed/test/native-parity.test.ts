@@ -4,11 +4,15 @@ import * as crypto from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
 import {GameService} from '../src/game.js';
 import {loadContent} from '../src/content.js';
+import Fastify from 'fastify';
 import {buildApp} from '../src/app.js';
+import {registerNative} from '../src/native.js';
+import {RealtimePvpService} from '../src/pvp/service.js';
 import {loadBattleRules} from '../src/battle/load.js';
 import {loadStory} from '../src/battle/story.js';
-import {createBattle,choose,aiChoose} from '../src/battle/engine.js';
 import {learnChances,learnLeft,type UnitRecord} from '../src/battle/growth.js';
+import {V2_CLIENT_HEADERS} from './helpers/v2-client.js';
+import {createBattleService} from '../src/battle/service-factory.js';
 
 vi.mock('node:crypto',async importActual=>{
   const actual=await importActual<typeof import('node:crypto')>();
@@ -44,7 +48,7 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     app=await buildApp(db,game,{secret:'native-parity-review-secret'.repeat(3),baseUrl:async()=>'https://example.com'});
     const code=(await game.handle(identity,'웹 로그인')).text!.match(/\b\d{6}\b/)![0];
     const login=await app.inject({method:'POST',url:'/my/api/login',headers:{'x-gmm':'1','x-gmm-app':'1'},payload:{code}});
-    expect(login.statusCode,login.body).toBe(200);headers={'x-gmm':'1','x-gmm-s':login.json().token};
+    expect(login.statusCode,login.body).toBe(200);headers={'x-gmm':'1','x-gmm-s':login.json().token,...V2_CLIENT_HEADERS};
   });
   afterAll(async()=>{if(app)await app.close();await db.$disconnect();});
 
@@ -137,19 +141,33 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
     }finally{await app.close();}
   });
 
-  for(const augment of ['reverse','neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
+  for(const augment of ['reverse','camo'] as const)it(`새 V2 전투는 속성을 바꾸는 ${augment} 증강을 제시하지 않고 직접 골라도 거절한다`,async()=>{
+    try{
+      const battles=createBattleService(R);expect(battles.R.battleAug.has(augment)).toBe(false);
+      for(let seed=0;seed<500;seed++){const b=battles.create([record('D1')],[record('T1')],seed);expect(b.sides.flatMap(s=>s.offers??[])).not.toContain(augment);}
+      const b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:['T1'],level:15});
+      expect(b.teams[0].offers.map((o:any)=>o.id)).not.toContain(augment);
+      const r=await app.inject({method:'POST',url:'/my/api/native/battle/turn',headers,payload:{session:b.session,revision:b.revision,choose:{augment}}});
+      expect(r.statusCode).toBe(400);expect((await get('battle/current')).revision).toBe(b.revision);
+    }finally{await app.close();}
+  });
+
+  for(const augment of ['neutral'] as const)it(`네이티브 ${augment} 증강체의 실제 상성은 기술 미리보기와 같고 조회로 RNG가 진행되지 않는다`,async()=>{
     try{
       const enemy=[...R.units.keys()].find(id=>R.typeMult(R.unitDef('D1')!.attr,R.unitDef(id)!.attr)>1)!;
-      const mine=record('D1'),foe=record(enemy);let seed=0;
-      for(;seed<2000;seed++){const b=createBattle(R,[mine],[foe],seed);if(!b.sides[0].offers!.includes(augment))continue;choose(b,0,{augment});if(b.phase==='choose')aiChoose(b,1);if(augment==='neutral'||b.sides[0].neutral===0)break;}
+      // V2 선택지는 유닛이 배운 기술(증강 자격)에 따라 달라지므로, 실제 서버 연습 전투로 해당 증강이 나오는 시드를 찾는다.
+      let b:any,seed=0;
+      for(;seed<2000;seed++){
+        vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
+        b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
+        if(b.teams[0].offers.some((o:any)=>o.id===augment))break;
+        await post('battle/turn',{session:b.session,revision:b.revision,leave:true});
+      }
       expect(seed).toBeLessThan(2000);
-      vi.mocked(crypto.randomInt).mockImplementation((max:number)=>max===2**31-1?seed:0);
-      let b=await post('battle/start',{mode:'practice',roster:['D1'],enemyRoster:[enemy],level:15});
       b=await post('battle/turn',{session:b.session,revision:b.revision,choose:{augment}});
       const me=b.teams[0].fighters[0],basic=me.skills.find((sk:any)=>sk.id.startsWith('basic'));
       expect(me.matchup.attack.multiplier).toBe(basic.preview.multiplier);
-      if(augment==='neutral')expect(me.matchup.attack.multiplier).toBe(1);
-      else expect(me.matchup.attack.multiplier).toBe(R.data.multipliers.weak);
+      expect(me.matchup.attack.multiplier).toBe(1);
       const first=await get('battle/current'),second=await get('battle/current');expect(first.teams).toEqual(second.teams);expect(first.displayEvents).toEqual(second.displayEvents);expect(first.revision).toBe(second.revision);
     }finally{await app.close();}
   });
@@ -168,23 +186,31 @@ suite('네이티브 게임 기능 복원 API (격리 DB)',()=>{
       const rejected=await raw('battle/start',{mode:'rank'});
       expect(rejected.statusCode).toBe(400);expect(rejected.json().error).toContain('실시간 유저 랭크전');
       expect(await stats()).toEqual(before);
-      // Test-only bypass simulates an already pre-debited legacy session.
-      const oldSession=async()=>{
-        const guard=vi.spyOn(game,'assertLegacyPvpAllowed').mockImplementation(()=>{});
-        try{return await post('battle/start',{mode:'rank'});}finally{guard.mockRestore();}
-      };
-      await oldSession();const debited=await stats();
-      expect(debited[0]).toBe(before[0]-content.economy.pvp.lose);
-      const current=await get('battle/current');
-      expect(current.session).toBeNull();expect(current.notice).toContain('실시간 유저 랭크전');
-      expect(await stats()).toEqual(debited);
-      const old=await oldSession(),secondDebit=await stats();
-      const stopped=await raw('battle/turn',{session:old.session,revision:old.revision,leave:true});
-      expect(stopped.statusCode).toBe(400);expect(stopped.json().error).toContain('실시간 유저 랭크전');
-      expect((await get('battle/current')).session).toBeNull();expect(await stats()).toEqual(secondDebit);
-      const normal=await post('battle/start',{mode:'normal'});
-      await post('battle/turn',{session:normal.session,revision:normal.revision,leave:true});
-      expect(await stats()).toEqual(secondDebit);
+      const bypass=()=>vi.spyOn(game,'assertLegacyPvpAllowed').mockImplementation(()=>{});
+      // V2(운영 기본): 옛 랭크 차단을 우회해도 네이티브 normal/rank 전투는 만들지 않고 점수도 건드리지 않는다.
+      {const guard=bypass();try{for(const mode of ['rank','normal']){const r=await raw('battle/start',{mode});expect(r.statusCode).toBe(400);expect(r.json().error).toContain('실시간 대전에서 시작');}}finally{guard.mockRestore();}}
+      expect(await stats()).toEqual(before);expect((await get('battle/current')).session).toBeNull();
+      // V2 이전(V1)에 이미 시작해 점수를 먼저 뺀 네이티브 세션은 V1 규칙 API에서만 생길 수 있으므로 그 설정으로 재현한다.
+      const realtime=new RealtimePvpService(db,content,process.cwd(),'native-parity-review-secret'.repeat(3),()=>Date.now(),{version:1});
+      const legacy=Fastify();registerNative(legacy,game,process.cwd(),()=>playerId,()=>true,realtime,{version:1});
+      const legacyCall=(method:'GET'|'POST',path:string,payload?:object)=>legacy.inject({method,url:`/my/api/native/${path}`,headers:{'x-gmm':'1'},...(payload?{payload}:{})});
+      const legacyOk=async(method:'GET'|'POST',path:string,payload?:object)=>{const r=await legacyCall(method,path,payload);expect(r.statusCode,r.body).toBe(200);return r.json();};
+      try{
+        // Test-only bypass simulates an already pre-debited legacy session.
+        const oldSession=async()=>{const guard=bypass();try{return await legacyOk('POST','battle/start',{mode:'rank'});}finally{guard.mockRestore();}};
+        await oldSession();const debited=await stats();
+        expect(debited[0]).toBe(before[0]-content.economy.pvp.lose);
+        const current=await legacyOk('GET','battle/current');
+        expect(current.session).toBeNull();expect(current.notice).toContain('실시간 유저 랭크전');
+        expect(await stats()).toEqual(debited);
+        const old=await oldSession(),secondDebit=await stats();
+        const stopped=await legacyCall('POST','battle/turn',{session:old.session,revision:old.revision,leave:true});
+        expect(stopped.statusCode).toBe(400);expect(stopped.json().error).toContain('실시간 유저 랭크전');
+        expect((await legacyOk('GET','battle/current')).session).toBeNull();expect(await stats()).toEqual(secondDebit);
+        const normal=await legacyOk('POST','battle/start',{mode:'normal'});
+        await legacyOk('POST','battle/turn',{session:normal.session,revision:normal.revision,leave:true});
+        expect(await stats()).toEqual(secondDebit);
+      }finally{await legacy.close();await realtime.stop();}
     }finally{await app.close();}
   });
 });

@@ -88,13 +88,13 @@
     let page = 0, sel = 0;
     const show = i => {
       const c = list[i]; sel = i;
-      detail.innerHTML = `<img src="/site/reg/cards/${encodeURIComponent(c.id)}.webp" alt="${esc(c.n)} 입사 등록증" width="300" height="400" loading="lazy"><h2>${esc(c.n)}</h2><span class="tier">${esc(c.t)}</span>${c.q ? `<q>${esc(c.q)}</q>` : ''}${c.g ? `<p>${esc(c.g)}</p>` : ''}<p><a href="/dex/${encodeURIComponent(c.id)}">도감에서 자세히 ›</a></p>`;
+      detail.innerHTML = `<img src="${esc(c.img)}" alt="${esc(c.n)} 방범대 등록증" width="360" height="480" loading="lazy"><h2>${esc(c.n)}</h2><span class="tier">${esc(c.t)}</span>${c.role ? `<p>${esc(c.role)}</p>` : ''}`;
       $$('.ccard', grid).forEach(b => b.setAttribute('aria-selected', String(Number(b.dataset.i) === i)));
     };
     const render = () => {
       const n = per(), pages = Math.max(1, Math.ceil(list.length / n));
       page = Math.min(page, pages - 1);
-      grid.innerHTML = list.slice(page * n, page * n + n).map((c, k) => { const i = page * n + k; return `<button type="button" class="ccard reg-card" data-card="registration" role="option" data-i="${i}" aria-selected="${i === sel}"><img src="/site/reg/cards/${encodeURIComponent(c.id)}.webp" alt="" width="150" height="200" loading="lazy"><span class="sr">${esc(c.n)}</span></button>`; }).join('');
+      grid.innerHTML = list.slice(page * n, page * n + n).map((c, k) => { const i = page * n + k; return `<button type="button" class="ccard reg-card" data-card="registration" role="option" data-i="${i}" aria-selected="${i === sel}"><img src="${esc(c.img)}" alt="" width="150" height="200" loading="lazy"><span class="sr">${esc(c.n)}</span></button>`; }).join('');
       label.textContent = `${page + 1} / ${pages}`;
       $('[data-prev]', chars).disabled = page === 0; $('[data-next]', chars).disabled = page >= pages - 1;
     };
