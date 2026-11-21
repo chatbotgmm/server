@@ -74,7 +74,8 @@ export const RULES = {
   poisonMul: 0.15,   // 독 세기(자연 주력). 2026-11-16: 중첩·방어 무시를 넣으며 0.25 → 0.15(스턴 없는 이감+독 봇 달인 12/60, 일반 봇 9/60)
   poisonStack: 3,   // 독은 다른 갈매미 것 3겹까지 더해짐(2026-11-16)
   synergy: true, synFrom: 4,   // 시너지에 세는 최소 등급(4 = 전설·히든)   // 시너지 켬
-  skillCd: 180, skillFirst: 0, skillPct: 0.3, skillBossPct: 0.03, skillGoldBase: 1500,   // 갈매미맨 폭격: 증강체 「갈매미맨 호출」이 있어야, 쓸 때 새우(1500×(1+웨이브/10)), 3분마다
+  skillCd: 120, skillDmgMul: 0.4,   // 2026-11-21 사용자 요청: 쿨 180 → 120초, 피해는 그 웨이브 일반 적 체력 ×0.4(정해진 양)
+  skillFirst: 0, skillPct: 0.3, skillBossPct: 0.03, skillGoldBase: 1500,   // 갈매미맨 폭격: 증강체 「갈매미맨 호출」이 있어야, 쓸 때 새우(1500×(1+웨이브/10)), 3분마다
   lateBossFrom: 40,   // 이 웨이브부터 보스는 판 성향 보스
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
   sigCastMul: 2, sigCastCd: 30,   // 최상위 고유 기술 직접 쓰기: 배율·쿨타임(초)
@@ -571,7 +572,7 @@ export const AUGS = {
   storm: { name: '연쇄 번개', desc: '공격의 15%가 가까운 적 하나에게 60% 피해로 튕김', v: 0.15 },
   legend: { name: '전설의 부름', desc: '지금 전설 위습 1개 + 에픽 위습 2개', v: 1 },
   supply: { name: '보급선', desc: '지금 모집권 6개 + 리롤권 2개', v: 1 },
-  bomb: { name: '갈매미맨 호출', desc: '폭격 버튼: 새우로 적 체력 30% 깎기(3분마다)', v: 1 },
+  bomb: { name: '갈매미맨 호출', desc: '폭격 버튼: 새우로 모든 적에게 정해진 피해(2분마다)', v: 1 },
   allin: { name: '모 아니면 도', desc: '모든 피해 +50% · 즉시 패배 50 → 40마리', v: 0.5, rb: true },
 };
 export const AUG_POOL = { 20: ['phys', 'mag', 'haste', 'shred', 'slow', 'stun', 'boss', 'explore', 'gold', 'upg', 'wisp', 'warn', 'lowtide', 'rush', 'bomb'], 40: ['fury', 'chrono', 'exec', 'rift', 'storm', 'legend', 'supply', 'allin', 'bomb'] }
@@ -734,16 +735,19 @@ export const synV = (g, el) => (RULES.synergy ? synergyOf(g)[el]?.bonus ?? 0 : 0
 // 갈매미맨 폭격(2026-11-16 사용자 요청): skillCd초마다. 일반 적은 최대 체력의 skillPct, 보스는 skillBossPct만큼(방어 무시)
 export const skillLeft = (g) => Math.max(0, (g.skillAt ?? 0) - g.t);
 export const skillOn = (g) => !!augV(g, 'bomb');
+export const skillDmg = (g) => Math.round(waveInfo(Math.max(1, g.wave), true).hp * (RULES.hpX ?? 1) * (RULES.skillDmgMul ?? 0.4) / 10) * 10;   // 그 웨이브 일반 적 체력의 skillDmgMul배
 export const skillCost = (g) => Math.round(RULES.skillGoldBase * (1 + g.wave / 10) / 100) * 100;   // 웨이브가 깊을수록 비쌈
 export function useSkill(g) {
   if (g.over || !skillOn(g) || skillLeft(g) > 0 || g.gold < skillCost(g)) return false;
   g.gold -= skillCost(g);
-  for (const e of g.enemies) { if (e.hp <= 0) continue; const d = e.max * (e.boss ? RULES.skillBossPct : RULES.skillPct); e.hp -= d; e.hitT = g.t; e.hitK = 6; e.hsx = e.x; e.hsy = e.y - 40; }
+  const d = skillDmg(g);   // 2026-11-21 사용자 요청: 체력 30%가 아니라 정해진 피해량(웨이브마다 정해짐, 보스도 같은 양)
+  for (const e of g.enemies) { if (e.hp <= 0) continue; e.hp -= d; e.hitT = g.t; e.hitK = 6; e.hsx = e.x; e.hsy = e.y - 40; }
   g.skillAt = g.t + RULES.skillCd; g.fx.push({ kind: 'bomb', t: g.t, n: g.enemies.length });
   return true;
 }
 // 새우 상점(2026-11-16 사용자 요청): 무작위 위습·리롤권. 살 때마다 값이 올라감
-export const SHOP = { rare: { name: '무작위 레어 위습', base: 1500, grow: 1.18, give: { RARE: 1 } }, epic: { name: '무작위 에픽 위습', base: 6000, grow: 1.25, give: { EPIC: 1 } }, reroll: { name: '에픽 리롤권', base: 4000, grow: 1.3 } };
+// 2026-11-21 사용자 요청: 무작위 에픽 위습은 팔지 않음, 에픽 리롤권 값은 고정(grow 1)
+export const SHOP = { rare: { name: '무작위 레어 위습', base: 1500, grow: 1.18, give: { RARE: 1 } }, reroll: { name: '에픽 리롤권', base: 4000, grow: 1 } };
 export const shopPrice = (g, id) => Math.round(SHOP[id].base * Math.pow(SHOP[id].grow, g.shopN?.[id] ?? 0) / 10) * 10;
 export const shopOpen = (g) => g.wave >= (RULES.shopFrom ?? 0);   // 2026-11-21 사용자 요청(최상위 이론상 최단 13 → 20웨이브쯤): 상점은 shopFrom웨이브부터
 export function shopBuy(g, id) {
