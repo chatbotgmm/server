@@ -205,20 +205,26 @@ let hits = [];
 // 2026-11-08: 전에는 화면 전체 좌표를 넘겨 가로 화면에서 볼륨 막대가 누른 곳과 다르게(늘 끝까지) 움직였음
 const hit = (x, y, w, h, fn, drag = false) => { const ox = OX, os = OS, oy = OY; hits.push({ x: x * os + ox, y: y * os + oy, w: w * os, h: h * os, fn: (p) => fn({ x: (p.x - ox) / os, y: (p.y - oy) / os }), drag }); };
 const hitAt = (p) => { for (let k = hits.length - 1; k >= 0; k--) { const h = hits[k]; if (p.x >= h.x && p.y >= h.y && p.x < h.x + h.w && p.y < h.y + h.h) return h; } return null; };
+// 버튼 색(2026-11-21 사용자 선택 「남색 깃발 + 금테」, 게임 전체): 주요 = 깃발 남색 그라데이션·금테·흰 글자,
+// 보조 = 반투명 크림·남색 글자·금빛 테두리, 조용한 = 반투명 남색, 위험 = 붉은색. 크림 위 부가 글은 밝은 색을 짙게 바꿔 읽히게
+const BTN = {
+  primary: { top: '#2d5bc2', bot: '#1b3a88', edge: '#f0c35a', text: '#ffffff', sub: '#ffe3a3', lw: 2.2 },
+  normal: { top: 'rgba(255,248,230,.94)', bot: 'rgba(240,228,198,.94)', edge: '#c9a04e', text: '#1d2f5c', sub: '#4d5870', lw: 1.6 },
+  quiet: { top: 'rgba(28,48,96,.62)', bot: 'rgba(20,36,74,.62)', edge: 'rgba(240,195,90,.55)', text: '#e6edfb', sub: '#c3cde3', lw: 1.4 },
+  danger: { top: '#c23a30', bot: '#8e2620', edge: '#ffc2b0', text: '#ffffff', sub: '#ffe0d6', lw: 1.8 },
+};
+const CREAM_SUB = { '#9fe3a8': '#1f7a3c', '#ff9a8a': '#b3392a', '#f3d89e': '#8a5a10', '#d9bb7f': '#8a5a10', '#b0bec4': '#4d5870', '#ffb36b': '#a5520f', '#8fc8ff': '#1f5fa8' };
+const subOn = (style, c, d) => (c == null ? d : style === 'normal' ? (CREAM_SUB[String(c).toLowerCase()] ?? (String(c).startsWith('#') && parseInt(String(c).slice(1, 3), 16) > 200 ? '#4d5870' : c)) : c);
+function btnFace(x, y, w, h, st, r) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, st.top); g.addColorStop(1, st.bot); box(x, y, w, h, g, st.edge, r, st.lw); }
 function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '', subColor = null) {
-  const S = {
-    primary: ['#f3d89e', '#c9a463', C.ink, '#fff3cf'],
-    normal: ['#163447', null, C.text, C.gold],
-    quiet: ['rgba(11,30,42,.6)', null, C.muted, C.line],
-    danger: ['#5a2418', null, '#ffd9cf', '#b4482a'],
-  }[style];
-  if (style === 'primary' && enabled) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, S[0]); g.addColorStop(1, S[1]); box(x, y, w, h, g, S[3], 10, 2); }
-  else box(x, y, w, h, enabled ? S[0] : '#1b2a33', enabled ? S[3] : '#33434d', 10, 1.5);
-  const col = enabled ? S[2] : '#6f7f88';
+  const st = BTN[style] ?? BTN.normal;
+  if (enabled) btnFace(x, y, w, h, st, 10);
+  else box(x, y, w, h, 'rgba(40,52,66,.78)', 'rgba(120,132,146,.55)', 10, 1.2);   // 못 누름: 흐린 회색
+  const col = enabled ? st.text : '#8d99a6', sc = enabled ? subOn(style, subColor, st.sub) : '#77838f';
   if (sub && h < 48) {   // 낮은 버튼: 이름과 부가 글을 한 줄에(글자가 칸 밖으로 넘치지 않게)
     fitText(label, x + w * 0.3, y + h / 2, w * 0.5, 16, col, 'center');
-    fitText(sub, x + w * 0.72, y + h / 2, w * 0.48, 13, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center');
-  } else if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, enabled ? (subColor ?? (style === 'primary' ? '#3d2f1a' : C.muted)) : '#5b6a73', 'center'); }
+    fitText(sub, x + w * 0.72, y + h / 2, w * 0.48, 13, sc, 'center');
+  } else if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, sc, 'center'); }
   else fitText(label, x + w / 2, y + h / 2, w - 12, 17, col, 'center');
   if (enabled) hit(x, y, w, h, fn);
 }
@@ -2052,9 +2058,8 @@ function drawBottom() {
 const MENU_ICON = ['menu/icon-draw', 'menu/icon-team', 'ui/icon-goldenstrike', 'menu/icon-explore', 'menu/icon-shop', 'menu/icon-combine'];
 function menuButton(x, y, w, h, icon, label, fn, style, sub, subCol) {
   const prim = style === 'primary';
-  if (prim) { const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#f3d89e'); g.addColorStop(1, '#c9a463'); box(x, y, w, h, g, '#fff3cf', 12, 2); }
-  else box(x, y, w, h, '#163447', C.gold, 12, 1.5);
-  const im = img(`${ART}/${icon}.webp`), tc = prim ? C.ink : C.text, sc = subCol ?? (prim ? '#3d2f1a' : C.muted);
+  const st = prim ? BTN.primary : BTN.normal; btnFace(x, y, w, h, st, 12);   // 2026-11-21: 남색 깃발 + 금테
+  const im = img(`${ART}/${icon}.webp`), tc = st.text, sc = subOn(prim ? 'primary' : 'normal', subCol, st.sub);
   if (h >= 96) {   // 세로로 큰 칸
     const is = Math.min(h * 0.46, w * 0.5, 64), gap = Math.max(4, (h - is - 52) / 3);
     drawFit(im, x + (w - is) / 2, y + gap, is, is);
