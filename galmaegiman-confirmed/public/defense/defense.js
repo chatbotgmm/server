@@ -913,7 +913,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
+const NONPAUSE = new Set(['goals', 'shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
 const BOARD_MODAL = new Set(['intro', 'aug']);   // 판 위에 뜨는 창(TFT처럼)   // 일시정지(Ⅱ)·결과 창만 멈춤
 const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
@@ -2068,6 +2068,7 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-team', '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`],
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
+    ['menu/icon-combine', '목표', () => { modal = { kind: 'goals' }; }, G.goals.some((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }) ? 'primary' : 'normal', G.goals.length ? `${G.goals.length}개 · 조합 가능 ${G.goals.filter((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }).length}` : '조합법 ☆로 정해요'],
     ['menu/currency-shrimp', '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', E.shopOpen(G) ? `새우 ${fmtN(G.gold)}` : `${E.RULES.shopFrom}웨이브부터`],   // 2026-11-19: 세로 화면에서도
     ...(E.skillOn(G) ? [['ui/icon-goldenstrike', '갈매미맨 폭격', () => { if (E.useSkill(G)) { sfx('boss'); modal = null; } else say(E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤에 쓸 수 있어요` : `새우 ${fmtN(E.skillCost(G))}이(가) 필요해요`); }, E.skillLeft(G) <= 0 && G.gold >= E.skillCost(G) ? 'primary' : 'normal', E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤` : `새우 ${fmtN(E.skillCost(G))}`]] : []),
   ];
@@ -3003,6 +3004,36 @@ function drawToast() {   // 짧은 알림(판 아래쪽 가운데)
   fitText(toast.msg, W / 2, 638, tw - 20, 15, C.text, 'center');
 }
 // 가로 화면 오른쪽 위(창이 없을 때): 이번 웨이브 피해 순위 미니판 + 안내
+// 목표(퀘스트) 줄들: 조합법 ☆목표마다 그림·이름·진행 막대·남은 재료. 누르면 그 조합법(돌아가기 있음). 끝 y를 돌려줌
+function drawGoals(x0, qy, w0, head = true) {
+  if (head) { text('목표', x0 + 6, qy + 10, 15, C.gold); fitText('조합법 ☆로 정해요 · 판의 재료에 같은 색 고리', x0 + 54, qy + 10, w0 - 60, 11, C.muted); }
+  else fitText('조합법 ☆로 정해요 · 누르면 그 조합법으로', x0 + 6, qy + 10, w0 - 12, 12, C.muted);
+  qy += 22;
+  const cnt = E.countOnField(G), bx0 = x0 + 204, bw0 = Math.max(40, w0 - 204 - 54);
+  G.goals.forEach((gid, k) => {
+    const r = E.recipeFor(gid); if (!r) return;
+    const out = E.UNIT[gid], gc = GOAL_COLOR[k], pg = progOf(r, cnt), ok = canMake(r), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total;
+    const left = { ...cnt }, miss = [];
+    for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(E.UNIT[id].name); }
+    box(x0, qy, w0, 46, ok ? 'rgba(43,122,98,.3)' : 'rgba(11,30,42,.9)', gc, 8, 2);
+    drawFit(unitImg(gid), x0 + 4, qy + 3, 40, 40);
+    fitText(out.name, x0 + 50, qy + 13, 150, 14, GRADE_COLOR[out.grade]);
+    box(bx0, qy + 8, bw0, 8, 'rgba(0,0,0,.5)', null, 4); if (fr > 0) box(bx0, qy + 8, Math.max(8, bw0 * fr), 8, fr >= 1 ? C.good : gc, null, 4);
+    text(ok ? '조합 가능' : `${Math.min(99, Math.floor(fr * 100))}%`, x0 + w0 - 10, qy + 12, 12, ok ? C.good : C.text, 'right');
+    fitText(ok ? '재료가 모두 모였어요 — 눌러서 조합' : `남은 재료: ${miss.join(', ')}`, x0 + 50, qy + 33, w0 - 60, 12, ok ? C.good : C.muted);
+    hit(x0, qy, w0, 46, () => openBook(gid, null, { sel: [...selected], modal: modal?.kind === 'goals' ? modal : null }));
+    qy += 50;
+  });
+  return qy;
+}
+function drawGoalsModal() {   // 세로 화면용 목표 창(2026-11-21 모바일 검토)
+  const { x, y, w, h } = modalRect();
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('목표', x + 18, y + 30, 20, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  if (!G.goals.length) { fitText('조합법 창에서 ☆를 누르면 목표가 돼요(3개까지)', x + w / 2, y + 120, w - 40, 15, C.muted, 'center'); button(x + w / 2 - 90, y + 150, 180, 50, '조합법 열기', () => openBook(null, null, { modal }), 'primary'); return; }
+  drawGoals(x + 12, y + 56, w - 24, false);
+}
 function drawSideTop() {
   box(8, 6, W - 16, 658, 'rgba(16,36,51,.82)', C.edge, 12);
   // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 에픽 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
@@ -3020,28 +3051,9 @@ function drawSideTop() {
     E.SYN_STEPS.forEach((st, k) => { const px = 120 + k * 52; box(px, y + 10, 44, 16, sv.n >= st ? col : 'rgba(0,0,0,.4)', 'rgba(255,255,255,.15)', 5, 1); text(`${st}종`, px + 22, y + 18, 11, sv.n >= st ? '#10202c' : '#7d8c94', 'center'); });
     { const fx = E.SYN_FX[el]; fitText(on ? `${fx.text(sv.bonus)}${nx ? ` · ${nx}종이면 ${fx.text(fx.v[sv.lv]).replace(/^.*?([+−]\d+%)$/, '$1')}` : ''}` : `${nx}종이면 ${fx.text(fx.v[0])}`, 284, y + 18, W - 300, 12, on ? C.text : '#8b9aa3'); }
   });
-  // ①½ 목표(퀘스트 창, 2026-11-21 사용자 요청): 조합법에서 ☆로 고른 목표마다 진행도와 남은 재료. 누르면 그 조합법으로
+  // ①½ 목표(퀘스트 창, 2026-11-21 사용자 요청) — 세로 화면은 「더보기 → 목표」
   let qy = 44 + Math.max(1, list.length) * 40 + 8;
-  if (G.goals.length) {
-    text('목표', 22, qy + 10, 15, C.gold); fitText('조합법 ☆로 정해요 · 판의 재료에 같은 색 고리', 70, qy + 10, W - 92, 11, C.muted);
-    qy += 22;
-    const cnt = E.countOnField(G);
-    G.goals.forEach((gid, k) => {
-      const r = E.recipeFor(gid); if (!r) return;
-      const out = E.UNIT[gid], gc = GOAL_COLOR[k], pg = progOf(r, cnt), ok = canMake(r), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total;
-      const left = { ...cnt }, miss = [];
-      for (const id of r.in) { if ((left[id] ?? 0) > 0) left[id]--; else miss.push(E.UNIT[id].name); }
-      box(16, qy, W - 32, 46, ok ? 'rgba(43,122,98,.3)' : 'rgba(11,30,42,.9)', gc, 8, 2);
-      drawFit(unitImg(gid), 20, qy + 3, 40, 40);
-      fitText(out.name, 66, qy + 13, 150, 14, GRADE_COLOR[out.grade]);
-      box(220, qy + 8, W - 220 - 70, 8, 'rgba(0,0,0,.5)', null, 4); if (fr > 0) box(220, qy + 8, Math.max(8, (W - 220 - 70) * fr), 8, fr >= 1 ? C.good : gc, null, 4);
-      text(ok ? '조합 가능' : `${Math.min(99, Math.floor(fr * 100))}%`, W - 26, qy + 12, 12, ok ? C.good : C.text, 'right');
-      fitText(ok ? '재료가 모두 모였어요 — 눌러서 조합' : `남은 재료: ${miss.join(', ')}`, 66, qy + 33, W - 66 - 26, 12, ok ? C.good : C.muted);
-      hit(16, qy, W - 32, 46, () => openBook(gid, null, { sel: [...selected] }));
-      qy += 50;
-    });
-    qy += 4;
-  }
+  if (G.goals.length) qy = drawGoals(16, qy, W - 32) + 4;
   // ② 이번 웨이브 피해(줄여서 위 4)
   const my = qy + 6;
   if (548 - my - 16 >= 38) text('이번 웨이브 피해', 22, my, 15, C.gold);
@@ -3343,6 +3355,7 @@ function drawModal() {
   else if (modal?.kind === 'signal') drawSignalPicker();
   else if (modal?.kind === 'choice') drawChoice();
   else if (modal?.kind === 'aug' || modal?.kind === 'intro') drawBoardModal();
+  else if (modal?.kind === 'goals') drawGoalsModal();
 }
 // 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 게임은 계속 흐름.
 // 2026-11-11 사용자 요청: 선택을 미룰 수 있게 — 「나중에」를 누르면 닫히고, 아래 「더보기」에서 언제든 다시 열어 받음
@@ -3370,8 +3383,9 @@ function drawChoice() {
 // 증강체 고르기(2026-11-15 사용자 요청: 흐름이 바뀌는 20·40웨이브 보스 처치 뒤 한 번씩). 게임은 계속 흐르고, 「나중에」로 미룰 수 있음
 // 판 위 창(2026-11-21 사용자 요청: TFT처럼 판 위에) — 판 소개·증강체 고르기. 판 좌표(FIELD)에 그림(가로는 판 확대 안, 세로는 그대로)
 function drawBoardModal() {
-  hit(0, 0, W, H, () => {});   // 아래 판·메뉴 누르기 막음
-  ctx.fillStyle = 'rgba(3,9,14,.62)'; ctx.fillRect(0, 0, W, H);
+  const hh = Math.max(H, VH, PBOT);   // 세로 화면은 아래 메뉴까지(2026-11-21 모바일 검토)
+  hit(0, 0, W, hh, () => {});   // 아래 판·메뉴 누르기 막음
+  ctx.fillStyle = 'rgba(3,9,14,.62)'; ctx.fillRect(0, 0, W, hh);
   if (modal?.kind === 'intro') drawIntro(); else drawAug();
 }
 // 검은 그림자(보스 미리 보기): 그림을 검게 칠한 사본(한 번만 만듦)
