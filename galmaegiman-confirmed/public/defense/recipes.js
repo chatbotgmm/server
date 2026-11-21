@@ -1,6 +1,6 @@
 // 상위 조합식 페이지(/defense/recipes, 2026-11-10 사용자 요청): 초불영제·전설·히든 조합식과, 전설·히든이 이어지는 물딜·마딜 초불영제
 // 게임과 같은 자료(engine.js → data.js)를 그대로 읽어 그려요. 글은 모두 textContent로 넣어요
-import * as E from './engine.js?v=b6f26b28ce99';
+import * as E from './engine.js?v=15b1dbb67c52';
 const ART = '/game60/assets';
 const GRADE_COLOR = { COMMON: '#9aa5ad', UNCOMMON: '#62c370', RARE: '#4d9de0', EPIC: '#a77be8', LEGEND: '#f0a03c', HIDDEN: '#3fd0c0', LIMITED: '#ef5a5a', TRANSCEND: '#ff8fc7', IMMORTAL: '#f3d36b', ETERNAL: '#ffffff' };
 const isMag = (id) => E.UNIT[id].role.endsWith('술사'), sideOf = (id) => (isMag(id) ? 'mag' : 'phys');

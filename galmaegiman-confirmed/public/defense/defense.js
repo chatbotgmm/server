@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=b6f26b28ce99';
+import * as E from './engine.js?v=15b1dbb67c52';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1613,7 +1613,7 @@ function drawFieldInner() {
       ox = dx / d * m * w; oy = dy / d * m * w; zm = 1 + 0.07 * w;
     }
     // 시너지 장판(2026-11-21 사용자 요청: 더 간단하게 — 바닥에 기호): 시너지가 켜진 속성 갈매미 발밑에 그 속성 색 마법진. 1단계 오각, 2단계 이상 팔각, 3단계는 바깥 고리
-    if (synAll && E.tierOf(u.id) >= 3 && info.role !== E.SPECIAL_ROLE) {
+    if (synAll && E.tierOf(u.id) >= (E.RULES.synFrom ?? 4) && info.role !== E.SPECIAL_ROLE) {
       const el = E.kit(u.id).elem, sv = synAll[el];
       if (sv?.lv > 0) { const rgb = ELEM_COL[el] ?? '220,220,220', rt = fxLite ? 0 : G.t * 0.6, sz = 100 * z, pl = fxLite ? 1 : 0.85 + 0.15 * Math.sin(G.t * 3 + u.uid), nm = sv.lv >= 2 ? 'magic_02' : 'magic_01';
         ctx.beginPath(); ctx.ellipse(u.x, u.y + 2, sz * 0.42, sz * 0.42 * FLAT, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(${rgb},.18)`; ctx.fill();   // 바닥 물들임
@@ -2169,9 +2169,9 @@ function drawUnitPanel(y0, u) {
   cx += chip(k.special ? '조합 재료' : `${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag) + 6;
   if (!k.special && E.RULES.synergy) {   // 2026-11-21: 시너지 칩(에픽 이상만 셈)
     const sv = E.synergyOf(G)[k.elem], nm = E.SYN_NAME[k.elem];
-    const st = k.tier < 3 ? `${nm} · 시너지 안 셈` : sv.lv ? `${nm} ${sv.lv}단계·${sv.n}종` : `${nm} ${sv.n}/2종`, lim = (E.tierOf(u.id) >= 3 && u.got ? W - 228 : W - 118);
-    if (k.tier >= 3) synBadge(78, y0 + 66, k.elem, sv, 1.15);   // 그림 오른쪽 아래(좁은 화면에서도 보이게)
-    ctx.font = `14px ${FONT}`; if (cx + ctx.measureText(st).width + 14 <= lim) chip(st, cx, y0 + 11, k.tier >= 3 && sv.lv ? `rgb(${ELEM_COL[k.elem]})` : C.muted);
+    const st = k.tier < (E.RULES.synFrom ?? 4) ? `${nm} · 시너지 안 셈` : sv.lv ? `${nm} ${sv.lv}단계·${sv.n}종` : `${nm} ${sv.n}/2종`, lim = (E.tierOf(u.id) >= 3 && u.got ? W - 228 : W - 118);
+    if (k.tier >= (E.RULES.synFrom ?? 4)) synBadge(78, y0 + 66, k.elem, sv, 1.15);   // 그림 오른쪽 아래(좁은 화면에서도 보이게)
+    ctx.font = `14px ${FONT}`; if (cx + ctx.measureText(st).width + 14 <= lim) chip(st, cx, y0 + 11, k.tier >= (E.RULES.synFrom ?? 4) && sv.lv ? `rgb(${ELEM_COL[k.elem]})` : C.muted);
   }
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
   if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
@@ -3101,12 +3101,12 @@ function drawGoalsModal() {   // 세로 화면용 목표 창(2026-11-21 모바�
 }
 function drawSideTop() {
   box(8, 6, W - 16, 658, 'rgba(16,36,51,.82)', C.edge, 12);
-  // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 에픽 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
+  // ① 시너지(2026-11-16 사용자 요청: TFT처럼 한눈에) — 판에 있는 전설·히든 이상을 속성별 종류 수로, 2·4·6종이면 그 속성 피해 +10·22·36%
   text('시너지', 22, 28, 17, C.gold);
   const bi = E.BIAS[G.bias];
   if (bi) { const bt = `이번 판 ${bi.name} · ${G.bias === 'armor' ? '마법' : G.bias === 'mr' ? '물리' : '독'} 유리`; ctx.font = `12px ${FONT}`; const bw2 = ctx.measureText(bt).width + 16; const bcl = { armor: ['#8fb7ff', '#bcd3ff'], mr: ['#ffb27a', '#ffd0a8'], split: ['#8fe08a', '#c8f5c0'] }[G.bias] ?? ['#aaa', '#ddd']; box(W - 22 - bw2, 16, bw2, 24, 'rgba(7,19,28,.8)', bcl[0], 8, 1.5); text(bt, W - 22 - bw2 / 2, 28, 12, bcl[1], 'center'); }
   const syn = E.synergyOf(G), list = E.SYN_ELEMS.filter((el) => syn[el].n > 0).sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n).slice(0, 6);
-  if (!list.length) fitText('에픽 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
+  if (!list.length) fitText('전설·히든 이상 같은 속성을 2종 모으면 속성마다 다른 시너지가 켜져요', 22, 60, W - 44, 13, C.muted);
   list.forEach((el, i) => {
     const sv = syn[el], y = 44 + i * 40, col = `rgb(${ELEM_COL[el] ?? '220,220,220'})`, on = sv.lv > 0, nx = E.SYN_STEPS.find((x) => sv.n < x);
     box(16, y, W - 32, 36, on ? 'rgba(11,30,42,.95)' : 'rgba(11,30,42,.5)', on ? col : 'rgba(145,122,76,.35)', 8, on ? 2 : 1);

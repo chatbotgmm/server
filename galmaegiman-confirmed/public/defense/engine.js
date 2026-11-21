@@ -66,7 +66,7 @@ export const RULES = {
   hpX: 0.8,   // 적 체력 전체 배율. 2026-11-16: 선택 위습을 무작위로 바꾸고 몰아주던 모집권을 줄이며 1 → 0.8(달인 봇 깬 비율을 예전과 비슷하게)
   poisonMul: 0.15,   // 독 세기(자연 주력). 2026-11-16: 중첩·방어 무시를 넣으며 0.25 → 0.15(스턴 없는 이감+독 봇 달인 12/60, 일반 봇 9/60)
   poisonStack: 3,   // 독은 다른 갈매미 것 3겹까지 더해짐(2026-11-16)
-  synergy: true,   // 시너지 켬
+  synergy: true, synFrom: 4,   // 시너지에 세는 최소 등급(4 = 전설·히든)   // 시너지 켬
   skillCd: 180, skillFirst: 0, skillPct: 0.3, skillBossPct: 0.03, skillGoldBase: 1500,   // 갈매미맨 폭격: 증강체 「갈매미맨 호출」이 있어야, 쓸 때 새우(1500×(1+웨이브/10)), 3분마다
   lateBossFrom: 40,   // 이 웨이브부터 보스는 판 성향 보스
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
@@ -698,7 +698,7 @@ export const unitsOfGrade = (grade) => BY_GRADE[grade] ?? [];
 
 // 판에서 싸우는 갈매미(탐사 중·창고 제외)
 export const fieldUnits = (g) => g.units.filter((u) => !u.away && !u.stored);
-// 시너지(2026-11-16 사용자 요청, TFT처럼): 판에 있는 에픽 이상 갈매미를 속성별로 「종류」 수로 셈. 2·4·6종이면 그 속성 피해 +10·22·36%
+// 시너지(2026-11-16 사용자 요청, TFT처럼): 판에 있는 전설·히든 이상(2026-11-21부터, 예전 에픽 이상, RULES.synFrom) 갈매미를 속성별로 「종류」 수로 셈. 2·4·6종이면 그 속성 피해 +10·22·36%
 export const SYN_ELEMS = ['FIRE', 'WATER', 'ICE', 'LIGHTNING', 'NATURE', 'HOLY', 'DARK', 'NORMAL'];
 export const SYN_NAME = { FIRE: '불', WATER: '물', ICE: '얼음', LIGHTNING: '번개', NATURE: '자연', HOLY: '빛', DARK: '어둠', NORMAL: '보통' };
 export const SYN_STEPS = [2, 3, 4];
@@ -716,7 +716,7 @@ export const SYN_FX = {
 export function synergyOf(g) {
   if (g._syn?.t === g.t && g._syn.n === g.units.length) return g._syn.v;
   const kinds = {};
-  for (const u of g.units) { if (u.away || u.stored || UNIT[u.id]?.role === SPECIAL_ROLE || tierOf(u.id) < 3) continue; const el = kit(u.id).elem; (kinds[el] ??= new Set()).add(u.id); }
+  for (const u of g.units) { if (u.away || u.stored || UNIT[u.id]?.role === SPECIAL_ROLE || tierOf(u.id) < (RULES.synFrom ?? 4)) continue; const el = kit(u.id).elem; (kinds[el] ??= new Set()).add(u.id); }
   const v = {};
   for (const el of SYN_ELEMS) { const n = kinds[el]?.size ?? 0; const lv = RULES.synergy ? SYN_STEPS.filter((x) => n >= x).length : 0; v[el] = { n, lv, bonus: lv ? SYN_FX[el].v[lv - 1] : 0 }; }
   g._syn = { t: g.t, n: g.units.length, v };
