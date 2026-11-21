@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=fd3f21ea5c2d';
+import * as E from './engine.js?v=b89139c4690a';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -103,7 +103,7 @@ function img(src) {
   const i = imgs[src];
   return i.complete && i.naturalWidth ? i : null;
 }
-const unitImg = (id) => img(`${ART}/units/${id}-front.webp`);
+const unitImg = (id) => img(`${ART}/units/${E.UNIT[id]?.form ?? id}-front.webp`);   // 변신 폼은 원래 그림
 // 적 그림(사용자 요청 2026-11-08: 끼룩단·쭈매미·흑화 갈매미맨, 색 입히지 않음). e:v1 → enemies/v1, b:u01 → black/u01, 예전 저장의 갈매미 id는 그림자 색
 const LOOK_RE = /^(e|b):([a-z0-9]{1,6})$/;
 function enemyImg(look) {
@@ -632,7 +632,7 @@ function pfxTick(dt) {   // 판 상태가 바뀐 것을 보고 효과를 띄움
       else if (f.sk === 'bounce') pts.slice(0, 3).forEach(([x, y]) => pfx('zap', x, y - 8, { dur: 0.7, elem: el }));
       else if (f.sk === 'pierce') pfx('zap', f.x1, f.y1 - 8, { dur: 0.7, elem: el });
     } else if (f.kind === 'wisp') pfx('collect', f.x, f.y - 16, { dur: 1.2 });
-    else if (f.kind === 'num') pfx('spark', f.x, f.y - 14, { dur: 0.5 });
+    else if (f.kind === 'num' && (f.crit || f.tier >= 6)) pfx('spark', f.x, f.y - 14, { dur: 0.5 });   // 반짝임은 치명타·최상위만(숫자가 많아져 가볍게)
   }
   if (running()) pfxLayer.update(dt);
 }
@@ -1602,11 +1602,14 @@ function drawFieldInner() {
         ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
       else drawShot(f, age);
     } else if (f.kind === 'num' && age < 0.75 && !fxLite) {   // 보스 피해 숫자(전설 이상)
-      const a = 1 - age / 0.75, big = f.tier >= 6;
+      // 2026-11-21: 모든 레어 이상 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
+      const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
       ctx.globalAlpha = Math.min(1, a * 1.6);
-      const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 60) - 30)), ny = f.y - 92 - (sq % 4) * 15 - age * 40;   // 겹치지 않게 흩어 뜨리고 체력 칸 위에서
-      text(fmtN(f.v), nx + 1.5, ny + 1.5, big ? 19 : 15, 'rgba(7,19,28,.9)', 'center');
-      text(fmtN(f.v), nx, ny, big ? 19 : 15, big ? '#ffd76a' : '#fff1d6', 'center');
+      const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;
+      const fs = Math.round((cr ? 20 : big ? 17 : 13) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
+      text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx + 1.5, ny + 1.5, fs, 'rgba(7,19,28,.9)', 'center');
+      text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
+      if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
       ctx.globalAlpha = 1;
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
@@ -2079,6 +2082,8 @@ function drawUnitPanel(y0, u) {
     const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), bw3 = W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
     button(18, yy, bw3, bh3, `「${sg.name}」 쓰기`, () => { const r = E.castSig(G, u.uid); if (r === true) sfx('boss'); else if (r === 'none') say('사거리 안에 적이 없어요.'); else if (left > 0) say(`${Math.ceil(left)}초 뒤에 쓸 수 있어요.`); }, ok ? 'primary' : 'normal', ok, left > 0 ? `${Math.ceil(left)}초 뒤에 다시 쓸 수 있어요` : `지금 쓰면 위력 ×${E.RULES.sigCastMul} · 쿨타임 ${E.RULES.sigCastCd}초(갈매미마다 따로)`);
     if (left > 0) box(18, yy + bh3 - 6, bw3 * (1 - left / E.RULES.sigCastCd), 6, C.gold, null, 3);
+    if (E.FORM_OF[u.id] && by1 - 8 - (yy + bh3 + 6) >= 40) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18, yy + bh3 + 6, bw3, Math.min(56, by1 - 8 - (yy + bh3 + 6)), `${to.name}(으)로 변신`, () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번만 · 마법 → 물리`); }   // 2026-11-21
+    else if (E.kit(u.id).goldScale) fitText(`패시브: 가진 새우 1000마다 공격력 +1% · 지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, 22, yy + bh3 + 22, W - 44, 14, C.goldEdge);
   }
   const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
     : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);

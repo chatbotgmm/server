@@ -14,6 +14,9 @@ export const WISP_GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND'];
 const ROLE_FIX = { u57: '성 타격수', u60: '물 타격수' };
 for (const u of UNITS) if (ROLE_FIX[u.id]) u.role = ROLE_FIX[u.id];
 export const UNIT = Object.fromEntries(UNITS.map((u) => [u.id, u]));
+// 변신 폼(2026-11-21 사용자 요청: 최상위 하나는 새우를 내고 한 번 변신, 마딜 → 물딜): 목록(UNITS)에는 넣지 않음(소환·조합·도감에 안 나옴)
+UNIT.u87x = { id: 'u87x', name: '귀해(각성)', grade: 'ETERNAL', role: '물 타격수', form: 'u87' };
+export const FORM_OF = { u87: 'u87x' };
 export { UNITS, RECIPES };
 export const gradeTier = (g) => GRADES.indexOf(g);
 export const tierOf = (id) => gradeTier(UNIT[id].grade);
@@ -65,6 +68,8 @@ export const RULES = {
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
   sigCastMul: 2, sigCastCd: 30,   // 최상위 고유 기술 직접 쓰기: 배율·쿨타임(초)
   eternalFrom: 35, eternalCap: 2,   // 영원: 35웨이브부터, 2마리까지
+  critChance: 0.1, critMul: 2, numMax: 14,   // 치명타 10% ×2 · 피해 숫자 동시 최대
+  goldScaleCap: 1, transformCost: 20000,   // 갈발 패시브 한도 · 귀해 변신 새우
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -108,7 +113,7 @@ export const RULES = {
   // 3·4장: 에픽으로 3웨이브쯤 · 5·6장: 전설이 있어야 · 7장: 상위(히든 이상) 1마리는 있어야(사용자 요청)
   // 2026-11-11 보상 검토: 5장이 6장보다 높던 것(300만·250만)을 맞바꿈.
   // 2026-11-11 사용자 요청: 외부탐사 13장(마감은 그대로 50웨이브) → 7장부터 대장을 약하게 쪼개 촘촘히(예전 7·8장 600만·800만)
-  guardHp: [20000, 150000, 400000, 600000, 2500000, 3000000, 3200000, 3600000, 4000000, 4500000, 5000000, 5600000, 6500000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
+  guardHp: [50000, 400000, 1000000, 1500000, 3500000, 4000000, 4200000, 4600000, 4000000, 4500000, 5000000, 5600000, 6500000],   // 2026-11-08 상위 피해를 줄여 다시 맞춤: 5·6장 전설 둘+에픽(특기)으로 약 2웨이브, 7·8장 상위 하나+전설 둘로 약 2~3웨이브
   guardMul: 12,   // 외부탐사 대장 체력 = (지역 level+2 웨이브)의 적 체력 × 이 값
 };
 
@@ -242,6 +247,7 @@ export const SIGNATURE = {
   u85: { name: '깁스 고정', kind: 'bind', every: 5, mul: 1.2, r: 55, sec: 1.75 },
   u86: { name: '쫄쫄이 튕기기', kind: 'bounce', every: 5, mul: 0.75, n: 5 },
   u87: { name: '밀물', kind: 'nova', every: 5, mul: 1, r: 125 },
+  u87x: { name: '해일 강타', kind: 'smash', every: 4, mul: 2.2, r: 60 },   // 귀해 각성 폼
   u88: { name: '발도장', kind: 'smash', every: 4, mul: 1.8, r: 46 },
   u89: { name: '후끈 내복', kind: 'field', every: 5, mul: 0.35, r: 80, sec: 3, slow: 0.1 },
   u90: { name: '다섯 번째 목소리', kind: 'storm', every: 5, mul: 1, n: 5, r: 55 },
@@ -371,6 +377,7 @@ function kitRaw(id) {
   if (out.shred && out.mshred) { if (out.type === 'phys') delete out.mshred; else delete out.shred; }
   // 스턴: 맞힐 때 스턴 확률로 그 적이 stunTimeOf초 멈춤(1~2초, 위 설명). 보스는 그 1/4
   if (out.stun || out.astun) out.stunTime = stunTimeOf(out, t);
+  if (id === 'u88') out.goldScale = true;   // 2026-11-21: 갈발 — 가진 새우 1000마다 공격력 +1%(최대 +100%)
   // 2026-11-15 사용자 요청(기준값): 스턴 1초면 20%, 2초면 10% → 한 번 칠 때 확률 = stunBase ÷ 스턴 시간(확률×시간 = 0.2초로 같음)
   if (out.stun) out.stun = RULES.stunBase / out.stunTime;
   if (out.astun) out.astun = RULES.stunBase / out.stunTime;
@@ -983,6 +990,7 @@ function hurt(g, e, raw, k, uid) {
   else m = defMul(e.mr * wd - (RULES.simNoMshred ? 0 : effSum(e, 'mshreds', now) * sh)) * (1 + (now < e.ampUntil ? e.amp : 0)) * upgMul(g, k.tier);
   if (g.augs?.length) { m *= 1 + augV(g, k.type === 'phys' ? 'phys' : 'mag') + augV(g, 'fury'); if (e.boss) m *= 1 + augV(g, 'boss'); }   // 증강체: 물리·마법·광폭화·사냥꾼의 눈   // simNoMshred: 밸런스 시험용(마방깍 없이 보스를 잡는지)
   if (e.shieldUntil > now) m *= 0.3;   // 보스 방어막
+  if (k.goldScale) m *= 1 + Math.min(RULES.goldScaleCap ?? 1, (g.gold ?? 0) / 1000 * 0.01);   // 갈발 패시브
   if (g.units) { if (k.elem === 'FIRE') m *= 1 + synV(g, 'FIRE'); m *= 1 + synV(g, 'NORMAL'); if (e.boss) m *= 1 + synV(g, 'HOLY'); if (k.pierce && k.poison) m *= 1 + synV(g, 'NATURE'); }   // 시너지: 불·보통·빛·자연
   if (augV(g, 'lowtide')) m *= k.tier <= 2 ? AUGS.lowtide.v : k.tier >= 4 ? 0.85 : 1;   // 룰 브레이커 「하급 총공세」
   if (augV(g, 'allin')) m *= 1 + AUGS.allin.v;   // 룰 브레이커 「모 아니면 도」
@@ -1033,6 +1041,14 @@ function applyAuras(g) {
 // 고유 기술 직접 쓰기(2026-11-19 사용자 요청: 최상위는 정보 창에서 눌러 씀, 갈매미마다 쿨타임): 사거리 안 대상에게 그 기술 ×sigCastMul
 export const sigCastLeft = (g, u) => Math.max(0, (u?.castAt ?? 0) - g.t);
 export const canCast = (g, u) => !!u && !!SIGNATURE[u.id] && tierOf(u.id) >= TOP_TIER && !u.away && !u.stored && !u.held && !g.over && sigCastLeft(g, u) <= 0;
+export const transformCost = () => RULES.transformCost ?? 20000;
+export function transformUnit(g, uid) {   // 한 번만(되돌리기 없음)
+  const u = unitById(g, uid); const to = u && FORM_OF[u.id];
+  if (!to || g.over || u.away) return { ok: false, why: '변신할 수 없어요.' };
+  if (g.gold < transformCost()) return { ok: false, why: `새우 ${transformCost()}이(가) 필요해요.` };
+  g.gold -= transformCost(); u.id = to; u.sigN = 0; u.cd = 0.3; g.fx.push({ kind: 'combine', x: u.x, y: u.y, t: g.t }); news(g, `${UNIT[to].name}(으)로 변신!`);
+  return { ok: true };
+}
 export function castSig(g, uid) {
   const u = unitById(g, uid); if (!canCast(g, u)) return false;
   const k = kit(u.id), s0 = SIGNATURE[u.id], best = pickTarget(g, u, k); if (!best) return 'none';
@@ -1076,12 +1092,13 @@ function attack(g, u, k) {
   }
   let d0 = 0;
   for (const e of hits) { e.hsx = u.x; e.hsy = u.y; }   // 화면: 때린 갈매미 반대쪽으로 밀려나는 방향(규칙에는 안 쓰임)
-  hits.forEach((e, i) => { const d = hurt(g, e, i === 0 || k.area ? k.dmg : k.dmg * k.splash, k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
+  const crit = g.rand() < (RULES.critChance ?? 0);   // 2026-11-21 치명타: 대상(첫 적)에게만 ×critMul
+  hits.forEach((e, i) => { const d = hurt(g, e, (i === 0 || k.area ? k.dmg : k.dmg * k.splash) * (i === 0 && crit ? RULES.critMul : 1), k, u.uid); if (i === 0) d0 = d; debuff(g, e, k, u.uid, true); });
   // 2026-11-15 사용자 요청(스턴 20%·1초 유닛 한 마리 + 이감 100%면 한 마리도 스턴 없이 못 지나가게): 스턴은 이감처럼 사거리 안 적 모두가 공격마다 굴림
   if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')) * (1 + synV(g, 'ICE')), r2 = rg2;
     for (const e of g.enemies) { if (e.hp <= 0 || !e.speed || hits.includes(e) || (e.x - u.x) ** 2 + (e.y - u.y) ** 2 > r2) continue; if (g.rand() < p) e.stunUntil = Math.max(e.stunUntil, g.t + st * (e.boss ? BOSS_STUN : 1)); } }
   // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
-  if (best.boss && k.tier >= 4 && d0 > 0 && g.fx.filter((f) => f.kind === 'num').length < 4) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
+  if (d0 > 0 && (crit || k.tier >= 2 || best.boss) && g.fx.filter((f) => f.kind === 'num').length < (RULES.numMax ?? 14)) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, crit, boss: !!best.boss, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });   // 2026-11-21: 피해 숫자(레어 이상·치명타·보스, 동시에 14개까지)
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
