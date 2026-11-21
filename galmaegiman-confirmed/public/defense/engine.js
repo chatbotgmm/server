@@ -47,6 +47,9 @@ export const RULES = {
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
   earlyHp: [[1, 0.75], [20, 0.75], [40, 1]],   // 2026-11-21: 초반 수입을 줄인 만큼 1~20웨이브 적 체력 ×0.75, 40웨이브까지 서서히 1로. 봇(30판) 평균 끝 웨이브 갑옷형 35.8→43.9 · 결계형 38.1→40.7, 30웨이브 전 패배 10·8 → 1·5
+  // 같이하기 대결(PvP, 2026-11-21 사용자 요청): 새우로 상대 판을 괴롭힘. 값 = base × (1 + 웨이브/10), 종류마다 쿨타임(게임 초)
+  pvp: { hp: { base: 400, cd: 12, v: 0.3, dur: 25, max: 1.0 }, elite: { base: 700, cd: 15, hpMul: 6 } },
+  coopMissionHp: 2,   // 같이하기 협동(PvE): 외부탐사 대장 체력 ×2(둘이 같이 때리므로)
   shopFrom: 20,   // 2026-11-21 사용자 요청(최상위를 이론상 가장 빨리 만드는 웨이브 13 → 20쯤, 수입 줄이기): 새우 상점은 20웨이브부터
   topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
   splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
@@ -996,7 +999,7 @@ function ensureMission(g) {
   if (!missionOpen(g)) return null;
   if (!g.mission || g.mission.k !== g.missionDone) {
     const gd = regionGuard(g.missionDone);
-    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).boss);
+    const mhp = Math.round(gd.hp * (modeOf(g).hpMul ?? 1) * diffOf(g).boss * (g.coopPve ? RULES.coopMissionHp ?? 1 : 1));
     g.mission = { k: g.missionDone, hp: mhp, max: mhp, armor: Math.round(gd.armor * diffOf(g).armor), mr: Math.round(gd.mr * diffOf(g).mr), boss: true, shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, x: 0, y: 0 };
   }
   return g.mission;
@@ -1194,6 +1197,22 @@ function bossTick(g, e) {
     g.fx.push({ kind: 'summon', x: e.x, y: e.y, t: g.t });
   }
 }
+// ── 같이하기 대결(PvP) 괴롭히기 ──
+// 보내는 쪽: pvpCost만큼 새우를 내고 쿨타임. 받는 쪽: pvpApply — 'hp'는 dur초 동안 새로 나오는 적 체력 +v(겹치면 더함, 최대 max), 'elite'는 정예 1마리 바로 소환
+export const pvpCost = (g, kind) => Math.round(RULES.pvp[kind].base * (1 + Math.max(1, g.wave) / 10) / 10) * 10;
+export const pvpLeft = (g, kind) => Math.max(0, (g.pvpCd?.[kind] ?? 0) - g.t);
+export const pvpCan = (g, kind) => !!g.pvp && !g.over && g.wave >= 1 && pvpLeft(g, kind) <= 0 && g.gold >= pvpCost(g, kind);
+export function pvpPay(g, kind) { if (!pvpCan(g, kind)) return false; g.gold -= pvpCost(g, kind); (g.pvpCd ??= {})[kind] = g.t + RULES.pvp[kind].cd; return true; }
+export function pvpHpBuff(g) { if (!g.pvpHp?.length) return 0; g.pvpHp = g.pvpHp.filter((q) => q.until > g.t); return Math.min(RULES.pvp.hp.max, g.pvpHp.reduce((a, q) => a + q.v, 0)); }
+export function pvpApply(g, kind) {
+  if (g.over) return;
+  if (kind === 'hp') { (g.pvpHp ??= []).push({ until: g.t + RULES.pvp.hp.dur, v: RULES.pvp.hp.v }); news(g, `상대가 적 체력 강화를 보냈어요! ${RULES.pvp.hp.dur}초 동안 새 적 체력 +${Math.round(RULES.pvp.hp.v * 100)}%`); }
+  else if (kind === 'elite') {
+    spawn(g, true); const e = g.enemies[g.enemies.length - 1]; if (!e) return;
+    e.hp *= RULES.pvp.elite.hpMul; e.max = e.hp; e.elite = true; e.look = 'b:u31'; e.gold = Math.round(e.gold * 3);
+    news(g, '상대가 정예를 보냈어요!'); g.fx.push({ kind: 'summon', x: e.x, y: e.y, t: g.t });
+  }
+}
 // 초반 적 체력 낮추기(2026-11-21: 최상위 최단을 늦추려 초반 수입을 줄인 만큼 초반 적도 약하게). earlyHp = [[웨이브, 배율], ...] 사이는 직선으로 이음
 export function earlyEase(w) {
   const A = RULES.earlyHp; if (!A?.length) return 1;
@@ -1205,7 +1224,7 @@ function spawn(g, minion = false) {
   const w0 = waveInfo(g.wave), asBoss = !minion && w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
   if (w0.boss && !minion) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
   const wi = asBoss ? w0 : waveInfo(g.wave, true);
-  const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * earlyEase(g.wave) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
+  const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * earlyEase(g.wave) * (1 + pvpHpBuff(g)) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
   g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor * biasMul(g, 'armor')), mr: Math.round(wi.mr * df.mr * biasMul(g, 'mr')), rift, ...(wi.boss ? { bpat: BOSS_PAT[(Math.round(g.wave / RULES.bossEvery) - 1) % BOSS_PAT.length], bt: g.t + 6 } : {}),
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });

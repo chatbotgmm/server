@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=15b1dbb67c52';
+import * as E from './engine.js?v=145328dc4beb';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2599,11 +2599,12 @@ function drawOverCoop() {
   const x = 40, y = 230, w = W - 80, h = 470, win = G.over === 'win';
   box(x, y, w, h, C.panel, win ? C.goldEdge : '#b4482a', 14, 2);
   text(win ? '방어 성공!' : '방어 실패', W / 2, y + 46, 28, win ? C.goldEdge : C.bad, 'center');
-  ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 66, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 74, w - 60, 15, C.text); ctx.restore();
-  text(win ? `${E.RULES.waves}웨이브 클리어` : `${G.wave}웨이브`, W / 2, y + 150, 22, C.text, 'center');
+  if (!isPvp()) { ctx.save(); ctx.beginPath(); ctx.rect(x + 20, y + 66, w - 40, 64); ctx.clip(); wrap(G.reason, x + 30, y + 74, w - 60, 15, C.text); ctx.restore(); }   // 대결은 이 자리에 승패
+  text(win ? `${E.RULES.waves}웨이브 클리어${G.leftover != null ? ` · 남은 적 ${G.leftover}` : ''}` : `${G.wave}웨이브`, W / 2, y + 150, 22, C.text, 'center');
   const P = net.peer;
   const friend = !net.peerOn ? (net.peerGone ? '친구가 방을 나갔어요' : '친구 연결이 끊겼어요') : !P ? '친구 판을 받는 중…' : P.ov ? `친구: ${P.ov === 'win' ? '클리어' : `${num(P.w)}웨이브에서 끝`}` : `친구는 아직 ${num(P.w)}웨이브에서 버티는 중`;
   fitText(friend, W / 2, y + 186, w - 40, 16, P?.ov === 'win' ? C.goldEdge : C.gold, 'center');
+  if (isPvp()) { const pr = pvpResult(), [t, col] = pr ? PVP_TXT[pr] : ['상대가 아직 하는 중', C.muted]; text(pr ? `대결 ${t}` : t, W / 2, y + 116, pr ? 26 : 15, col, 'center'); }
   button(x + 30, y + 214, w - 60, 50, '친구 판 보기', () => { modal = { kind: 'peer' }; }, 'normal', !!P);
   if (net.seat === 0) {
     const ok = net.peerOn && !!P?.ov;
@@ -3553,7 +3554,11 @@ async function roomApi(path, body) {
   if (!r.ok) { const e = new Error(j.error || `연결 오류(${r.status})`); e.status = r.status; throw e; }
   return j;
 }
+// 같이하기 모드(2026-11-21 사용자 요청): 'pvp' 대결 · 'pve' 협동. 방장이 정하고 판 모습(m)에 실어 보냄(서버는 그대로)
+// 괴롭히기는 보낸 횟수 누적값(ha)을 실어 보내 받는 쪽이 늘어난 만큼 적용 — 패킷이 빠져도 다음 패킷에서 따라잡음(렉·싱크에 강함)
+const pvpNet = { mode: 'pvp', sent: { hp: 0, elite: 0 }, recv: { hp: 0, elite: 0 }, peerMode: '', decided: null };
 function resetNet() {
+  pvpNet.sent = { hp: 0, elite: 0 }; pvpNet.recv = { hp: 0, elite: 0 }; pvpNet.peerMode = ''; pvpNet.decided = null;
   Object.assign(net, { code: '', token: '', seat: -1, ver: -1, round: 0, peer: null, prev: null, prevMap: null, peerAt: 0, prevAt: 0, peerRaw: '', peerOn: false, peerEver: false, peerGone: false, verBad: false, pend: null, err: '', giftSent: 0, giftRecv: 0, sigSeq: 0, sigKind: 0, sigSeen: 0 });
 }
 async function makeRoom() {
@@ -3611,7 +3616,33 @@ function roomGone() {   // 방이 닫힘(방장이 나갔거나 오래 비어 �
 }
 // 새우 보내기(사용자 요청 2026-11-08): 보낸 합계를 내 판 모습에 실어 보내고, 친구 화면이 늘어난 만큼 받는다
 const GIFT = 50;
+const roomMode = () => (net.seat === 0 ? pvpNet.mode : pvpNet.peerMode || 'pvp');
+const isPvp = () => coop() && !!G?.pvp;
 const canGift = () => coop() && G && !G.over && G.gold >= GIFT && net.peerOn && net.peer && !net.peer.ov;
+function setRoomMode(g) { if (!g) return; const m = roomMode(); g.pvp = m === 'pvp'; g.coopPve = m === 'pve'; if (net.seat === 0 || pvpNet.peerMode) g.pvpLocked = true; }
+let pvpFlash = null;
+function sendPvp(kind) { if (!isPvp() || !E.pvpPay(G, kind)) return; pvpNet.sent[kind]++; sfx('boss'); say(kind === 'hp' ? '상대에게 적 체력 강화를 보냈어요!' : '상대에게 정예를 보냈어요!'); netTick(); }
+// 대결 승패(둘 다 같은 규칙으로 계산): 먼저 무너지면 짐(한 명이 지면 바로 결정, 판은 계속) · 둘 다 지면 더 오래 버틴 쪽(웨이브 → 게임 시간)
+// · 둘 다 깨면 남은 적이 적은 쪽 · 같으면 무승부. 반환: 'win' | 'lose' | 'draw' | null(아직)
+function pvpResult() {
+  const P = net.peer; if (!isPvp() || !P || !G) return null;
+  const me = G.over || '', pe = P.ov || '';
+  if (!me && !pe) return null;
+  if (me === 'lose' && !pe) return 'lose';
+  if (pe === 'lose' && !me) return 'win';
+  if (me === 'lose' && pe === 'lose') { const a = [G.wave, G.overT ?? 0], b = [num(P.w), num(P.ot)]; return a[0] !== b[0] ? (a[0] > b[0] ? 'win' : 'lose') : Math.abs(a[1] - b[1]) < 0.5 ? 'draw' : a[1] > b[1] ? 'win' : 'lose'; }
+  if (me === 'win' && pe === 'lose') return 'win';
+  if (pe === 'win' && me === 'lose') return 'lose';
+  if (me === 'win' && pe === 'win') { const a = G.leftover ?? 0, b = num(P.lo); return a === b ? 'draw' : a < b ? 'win' : 'lose'; }
+  return null;   // 한쪽만 깼고 다른 쪽은 아직 하는 중 → 끝날 때까지
+}
+function pvpButtons(x, y, w, h) {   // 괴롭히기 두 버튼(값·쿨타임)
+  const bw = (w - 6) / 2;
+  [['hp', '적 체력 강화'], ['elite', '정예 보내기']].forEach(([kind, nm], i) => {
+    const left = E.pvpLeft(G, kind), ok = E.pvpCan(G, kind) && !net.peer?.ov;
+    button(x + i * (bw + 6), y, bw, h, nm, () => sendPvp(kind), i ? 'danger' : 'normal', ok, left > 0 ? `${Math.ceil(left)}초` : `새우 ${fmtN(E.pvpCost(G, kind))}`);
+  });
+}
 function sendGift() { if (!canGift()) return; G.gold -= GIFT; net.giftSent += GIFT; say(`친구에게 새우 ${GIFT}을(를) 보냈어요.`); netTick(); }
 // 신호(사용자 요청 2026-11-08): 짧은 말을 친구 화면에 잠깐 띄움. 판 모습에 [번호, 종류]를 실어 보냄
 const SIGNALS = [['!', '도와줘!'], ['★', '보스 온다!'], ['➜', '탐사 보내자'], ['♥', '좋아요!']];
@@ -3631,8 +3662,25 @@ function drawVerWarn() {   // 같이하기 중 친구와 게임 판이 다름(�
   box(FIELD.x + 10, FIELD.y + 8, FIELD.w - 20, 34, 'rgba(110,30,24,.95)', '#ff9a85', 8, 2);
   fitText('친구와 게임 판이 달라요 · 둘 다 새로고침해 주세요', FIELD.x + FIELD.w / 2, FIELD.y + 25, FIELD.w - 40, 15, '#fff3cf', 'center');
 }
+let pvpShow = null;
+const PVP_TXT = { win: ['승리!', '#ffd76a'], lose: ['패배', '#ff8a7a'], draw: ['무승부', '#cfe3ee'] };
+function drawPvpBanner() {   // 대결: 승패가 정해지면 판 위에 크게(판은 계속), 받은 괴롭히기 알림
+  if (pvpFlash && performance.now() < pvpFlash.until) {
+    const a = Math.min(1, (pvpFlash.until - performance.now()) / 400); ctx.globalAlpha = a;
+    box(FIELD.x + 40, FIELD.y + 110, FIELD.w - 80, 44, 'rgba(90,20,24,.95)', '#ff7a6a', 10, 2);
+    fitText(pvpFlash.kind === 'hp' ? `상대가 적 체력 강화를 보냈어요! (+${Math.round(E.RULES.pvp.hp.v * 100)}% · ${E.RULES.pvp.hp.dur}초)` : '상대가 정예를 보냈어요!', W / 2, FIELD.y + 132, FIELD.w - 100, 16, '#ffe2d8', 'center');
+    ctx.globalAlpha = 1;
+  }
+  if (!pvpShow || performance.now() > pvpShow.until) return;
+  const [t, col] = PVP_TXT[pvpShow.r], a = Math.min(1, (pvpShow.until - performance.now()) / 500), cy = FIELD.y + FIELD.h / 2;
+  ctx.globalAlpha = a;
+  box(FIELD.x + 30, cy - 60, FIELD.w - 60, 120, 'rgba(7,19,28,.94)', col, 14, 3);
+  text(`대결 ${t}`, W / 2, cy - 18, 34, col, 'center');
+  fitText(pvpShow.r === 'win' ? (net.peer?.ov === 'lose' ? `상대가 ${num(net.peer.w)}웨이브에서 무너졌어요 · 판은 계속돼요` : '남은 적이 더 적어요') : pvpShow.r === 'lose' ? (G.over === 'lose' ? '먼저 무너졌어요' : '남은 적이 더 많아요') : '똑같이 버텼어요', W / 2, cy + 26, FIELD.w - 100, 15, C.text, 'center');
+  ctx.globalAlpha = 1;
+}
 function drawSignalBanner() {   // 받은 신호(판 위쪽 가운데)
-  drawVerWarn();
+  drawVerWarn(); drawPvpBanner();
   if (!sigShow || performance.now() > sigShow.until) return;
   const a = Math.min(1, (sigShow.until - performance.now()) / 400);
   ctx.globalAlpha = a;
@@ -3667,7 +3715,7 @@ function peerCos(P, id) {   // 친구가 보낸 꾸밈(받은 값은 목록에 �
 function snapOf(g) {
   const r = Math.round;
   return JSON.stringify({
-    v: GAME_VER, r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
+    v: GAME_VER, m: roomMode(), ha: [pvpNet.sent.hp, pvpNet.sent.elite], ot: g.overT ?? null, lo: g.leftover ?? null, r: net.round, w: g.wave, wn: g.warn, g: g.gold, k: g.kills, md: g.missionDone, ov: g.over || '', nx: Math.max(0, Math.ceil(E.nextWaveIn(g))),
     a: E.awayUnits(g).length, st: E.storedUnits(g).length, up: g.upg, gs: net.giftSent, sg: [net.sigSeq, net.sigKind], mdg: g.missionDmg.map((v) => Math.round(v ?? 0)),
     e: g.enemies.slice(0, 150).map((e) => [e.id, r(e.x), r(e.y), r(100 * Math.max(0, e.hp) / e.max), e.boss ? 1 : 0, e.look]),
     u: E.fieldUnits(g).slice(0, 160).map((u) => [r(u.x), r(u.y), u.id]),
@@ -3680,7 +3728,7 @@ async function netTick() {
   const tok = net.token, body = { code: net.code, token: tok };
   if (net.pend) { body.ctl = net.pend; net.pend = null; }
   if (scene === 'play' && G && coop()) body.snap = snapOf(G);
-  else body.snap = JSON.stringify({ v: GAME_VER, r: -1 });   // 대기실: 버전만
+  else body.snap = JSON.stringify({ v: GAME_VER, m: roomMode(), r: -1 });   // 대기실: 버전·모드
   try {
     const j = await roomApi('/sync', body);
     if (net.token === tok) { net.err = ''; onSync(j); }
@@ -3702,7 +3750,7 @@ function onSync(j) {
     net.peerRaw = p.snap;
     let s = null;
     try { s = JSON.parse(p.snap); } catch { s = null; }
-    if (s && typeof s === 'object') net.verBad = s.v !== GAME_VER;
+    if (s && typeof s === 'object') { net.verBad = s.v !== GAME_VER; if (net.seat === 1 && (s.m === 'pvp' || s.m === 'pve')) { pvpNet.peerMode = s.m; if (G && scene === 'play' && coop() && !G.pvpLocked) setRoomMode(G); } }
     if (s && typeof s === 'object' && s.r === net.round) {   // 지난 판 모습은 버림
       net.prev = net.peer; net.prevAt = net.peerAt; net.peer = s; net.peerAt = performance.now();
       net.prevMap = new Map((Array.isArray(net.prev?.e) ? net.prev.e : []).filter(Array.isArray).map((e) => [e[0], e]));
@@ -3711,6 +3759,11 @@ function onSync(j) {
         if (Array.isArray(s.sg) && num(s.sg[0]) > net.sigSeen) {   // 친구가 보낸 신호
           net.sigSeen = num(s.sg[0]); const k = SIGNALS[num(s.sg[1])];
           if (k) { sigShow = { msg: k[1], icon: k[0], until: performance.now() + 3500 }; sfx('signal'); }
+        }
+        if (G.pvp && Array.isArray(s.ha)) for (const [i, kind] of [[0, 'hp'], [1, 'elite']]) {   // 상대가 보낸 괴롭히기(늘어난 만큼, 한 번에 최대 5)
+          const d = Math.min(5, num(s.ha[i]) - pvpNet.recv[kind]);
+          if (d > 0) { pvpNet.recv[kind] += d; for (let q = 0; q < d; q++) E.pvpApply(G, kind); sfx('warn'); pvpFlash = { kind, until: performance.now() + 2200 }; }
+          else if (d < 0) pvpNet.recv[kind] = num(s.ha[i]);
         }
         const gift = Math.min(1e7, num(s.gs) - net.giftRecv);   // 친구가 보낸 새우(보낸 합계가 늘어난 만큼)
         if (gift > 0) { net.giftRecv += gift; if (!G.over) { G.gold += gift; say(`친구가 새우 ${gift}을(를) 보냈어요!`); } }
@@ -3721,7 +3774,8 @@ function onSync(j) {
 function applyCtl(c) {
   if (num(c.round) > net.round) {   // 방장이 시작함: 둘이 같은 씨앗으로 새 판
     net.round = num(c.round); net.peer = net.prev = net.prevMap = null; net.peerRaw = ''; net.giftSent = 0; net.giftRecv = 0; net.sigSeq = 0; net.sigSeen = 0;
-    start(num(c.seed)); lobby.mode = net.seat === 0 ? 'host' : 'guest';
+    pvpNet.sent = { hp: 0, elite: 0 }; pvpNet.recv = { hp: 0, elite: 0 }; pvpNet.decided = null;
+    start(num(c.seed)); setRoomMode(G); lobby.mode = net.seat === 0 ? 'host' : 'guest';
   }
   if (!coop() || scene !== 'play' || !G) return;
   speed = [1, 2, 3].includes(c.speed) ? c.speed : 1;
@@ -3761,8 +3815,8 @@ function drawLobby() {
   box(28, 132, W - 56, 196, C.panel, C.edge, 12);
   [
     '· 6자리 코드로 친구 방에 들어가요(로그인 없음, 2명).',
-    '· 각자 자기 판을 하고, 친구 판이 실시간으로 보여요.',
-    '  가로 화면은 오른쪽, 세로 화면은 아래에 보여요.',
+    '· 대결(PvP): 새우로 상대 판을 괴롭히고 더 오래 버티면 승리.',
+    '· 협동(PvE): 외부탐사를 같이(대장 체력 ×2). 각자 판은 따로.',
     '· 시작은 방장이 하고, 속도·일시정지는 둘이 함께 바뀌어요.',
     '· 방장이 나가면 방이 닫혀요.',
   ].forEach((l, k) => fitText(l, 44, 160 + k * 34, W - 88, 15, C.text));
@@ -3785,11 +3839,15 @@ function drawLobby() {
     const st = net.peerOn ? (host ? '친구가 들어왔어요!' : '방장과 연결됐어요. 방장이 시작하면 바로 시작해요.') : (host ? '친구를 기다리는 중… 코드나 링크를 보내 주세요.' : '방장을 기다리는 중…');
     const bad = net.peerOn && net.verBad;
     fitText(bad ? '친구와 게임 판이 달라요. 둘 다 새로고침해 주세요' : st, W / 2, y + 126, W - 60, 17, bad ? C.bad : net.peerOn ? C.good : C.muted, 'center');
-    if (host) {
-      button(60, y + 152, W - 120, 56, '링크 보내기', shareLink, 'normal', true, '열면 바로 이 방에 들어와요');
-      button(60, y + 224, W - 120, 76, '시작하기', () => sendCtl({ start: true }), 'primary', net.peerOn && !bad, bad ? '판이 같아야 시작할 수 있어요' : net.peerOn ? '둘이 함께 시작해요' : '친구가 들어오면 누를 수 있어요');
+    const MODE_NM = { pvp: '대결(PvP)', pve: '협동(PvE)' };
+    if (host) {   // 모드 고르기(2026-11-21 사용자 요청: 대결·협동)
+      const mw = (W - 120 - 10) / 2;
+      [['pvp', '대결 PvP', '괴롭히기·오래 버티기'], ['pve', '협동 PvE', '탐사 같이·대장 ×2']].forEach(([m, nm, sub], i) => button(60 + i * (mw + 10), y + 152, mw, 60, nm, () => { pvpNet.mode = m; netTick(); }, pvpNet.mode === m ? 'primary' : 'normal', true, sub));
+      button(60, y + 222, W - 120, 52, '링크 보내기', shareLink, 'normal', true, '열면 바로 이 방에 들어와요');
+      button(60, y + 284, W - 120, 72, `시작하기 · ${MODE_NM[pvpNet.mode]}`, () => sendCtl({ start: true }), 'primary', net.peerOn && !bad, bad ? '판이 같아야 시작할 수 있어요' : net.peerOn ? '둘이 함께 시작해요' : '친구가 들어오면 누를 수 있어요');
     }
-    button(60, y + 316, W - 120, 52, '방 나가기', () => leaveRoom(), 'quiet');
+    if (!host) fitText(pvpNet.peerMode ? `모드: ${MODE_NM[pvpNet.peerMode]}` : '방장이 모드를 고르는 중…', W / 2, y + 170, W - 60, 18, C.goldEdge, 'center');
+    button(60, y + (host ? 368 : 316), W - 120, 52, '방 나가기', () => leaveRoom(), 'quiet');
   }
   if (lobby.msg || net.err) fitText(lobby.msg || net.err, W / 2, 878, W - 40, 15, C.bad, 'center');
   else if (lobby.note) fitText(lobby.note, W / 2, 878, W - 40, 15, C.good, 'center');
@@ -3864,6 +3922,7 @@ function drawPeerFull(withButtons = false, topOnly = false) {
   ctx.save(); ctx.beginPath(); ctx.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h); ctx.clip();
   if (P) drawPeerField(P); else drawLanes();
   ctx.restore();
+  if (topOnly && withButtons && isPvp()) { pvpButtons(W - 22 - 300, FIELD.y + 8, 300, 44); return; }
   if (topOnly) { if (withButtons) { button(W - 22 - 150, FIELD.y + 8, 150, 38, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); button(W - 22 - 150, FIELD.y + 52, 150, 38, '신호 보내기', () => { modal = { kind: 'signal' }; }, 'normal', coop()); } return; }
   const y0 = 672;
   box(8, y0, W - 16, H - y0 - 8, C.panel, C.edge, 12);
@@ -3877,7 +3936,8 @@ function drawPeerFull(withButtons = false, topOnly = false) {
     const up = Array.isArray(P.up) ? P.up : [];
     chipRow(E.UPG_NAME.map((nm, gi) => [`${nm} ${num(up[gi])}`, num(up[gi]) >= E.RULES.upgMax ? C.goldEdge : C.muted]), 22, gy + 24, W - 22, 13);
   }
-  if (withButtons) { button(W - 22 - 150, 672 + 8, 150, 40, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); button(W - 22 - 150 - 130, 672 + 8, 122, 40, '신호', () => { modal = { kind: 'signal' }; }, 'normal', coop()); }
+  if (withButtons && isPvp()) pvpButtons(W - 22 - 290, 672 + 8, 290, 44);
+  else if (withButtons) { button(W - 22 - 150, 672 + 8, 150, 40, `새우 ${GIFT} 보내기`, sendGift, 'normal', canGift()); button(W - 22 - 150 - 130, 672 + 8, 122, 40, '신호', () => { modal = { kind: 'signal' }; }, 'normal', coop()); }
 }
 // 가로 화면에서 창을 연 동안: 오른쪽 위에 친구 소식 한 줄
 function drawPeerBar() {
@@ -3912,8 +3972,11 @@ function drawPeerStrip() {
   }
   const hw = (tw - 12) / 3;
   button(tx, y0 + PEER_H - 62, hw, 44, '크게', () => { modal = { kind: 'peer' }; }, 'normal');
+  if (isPvp()) pvpButtons(tx + hw + 6, y0 + PEER_H - 62, 2 * hw + 6, 44);
+  else {
   button(tx + hw + 6, y0 + PEER_H - 62, hw, 44, `새우 ${GIFT}`, sendGift, 'normal', canGift());
   button(tx + 2 * (hw + 6), y0 + PEER_H - 62, hw, 44, '신호', () => { modal = { kind: 'signal' }; }, 'normal', coop());
+  }
 }
 // 세로 화면 크게 보기(게임은 계속 흐름)
 function drawPeerModal() {
@@ -3941,6 +4004,8 @@ function frame(now) {
   }
   pfxTick(dt * speed * BASE_SPEED);
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
+  if (scene === 'play' && G?.over && G.overT == null) G.overT = G.t;   // 끝난 게임 시각(대결에서 둘 다 졌을 때 더 오래 버틴 쪽)
+  { const pr = pvpResult(); if (pr && pr !== pvpNet.decided) { pvpNet.decided = pr; pvpShow = { r: pr, until: performance.now() + 4500 }; sfx(pr === 'win' ? 'story' : 'warn'); } }
   if (scene === 'play' && G?.over && modal?.kind !== 'over' && modal?.kind !== 'peer') { saveBest(); modal = { kind: 'over' }; }
   else if (scene === 'play' && G?.choice && !G.choiceLater && !G.over && modal?.kind !== 'choice' && (!modal || modal.kind === 'mission')) { modal = { kind: 'choice' }; info = null; }   // 6장 보상 고르기
   else if (scene === 'play' && G?.augOffer && !G.over && modal?.kind !== 'aug' && (!modal || modal.kind === 'mission')) { modal = { kind: 'aug' }; info = null; }   // 증강체 고르기(다른 창을 보고 있으면 닫은 뒤에)
@@ -4019,3 +4084,4 @@ function frame(now) {
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
 window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
 window.__defense.goalOpen = goalOpen;   // 시험용(판 위 목표 창 열기)
+Object.assign(window.__defense, { makeRoom, joinRoom, sendCtl, sendPvp, pvpNet, pvpResult, toLobby: () => { scene = 'lobby'; } });   // 시험용(같이하기 두 화면 시험)
