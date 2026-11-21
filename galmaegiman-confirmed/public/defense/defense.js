@@ -1628,16 +1628,16 @@ function drawFieldInner() {
         ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
         ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
       else { drawShot(f, age); if (f.near && f.type === 'phys' && age < 0.15) fxSprite('slash_02', f.x1, f.y1 - 14, f.tier >= 6 ? 70 : 50, '255,226,180', 1 - age / 0.15, Math.atan2(f.y1 - f.y0, f.x1 - f.x0) - Math.PI / 2); }   // 근접 물리: 베기 자국
-    } else if (f.kind === 'num' && age < 0.75 && !fxLite) {   // 보스 피해 숫자(전설 이상)
+    } else if (f.kind === 'num' && age < 0.75) {   // 2026-11-21: 화려한 효과를 꺼도 숫자는 보임(글자만이라 가벼움)   // 보스 피해 숫자(전설 이상)
       // 2026-11-21: 모든 레어 이상 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
       const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
       ctx.globalAlpha = Math.min(1, a * 1.6);
       const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;
-      const fs = Math.round((cr ? 20 : big ? 17 : 13) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
-      text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx + 1.5, ny + 1.5, fs, 'rgba(7,19,28,.9)', 'center');
+      const fs = Math.round((cr ? 21 : big ? 18 : 15) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
+      ctx.font = `${fs}px ${FONT}`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(7,19,28,.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny);   // 테두리(읽기 쉽게, 2026-11-21: 13→15px)
       text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
       if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
-      if (cr && age < 0.25) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
+      if (cr && age < 0.25 && !fxLite) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
       ctx.globalAlpha = 1;
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
