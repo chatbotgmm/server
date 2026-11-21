@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=0aa6d551de60';
+import * as E from './engine.js?v=d85d10642555';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2124,11 +2124,10 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
   const picks = pickCount(), tk = G.tickets ?? 0, st = E.storedUnits(G).length;
   const items = [
     ['menu/icon-draw', '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', picks ? `${picks}개 있음` : '없음'],
-    ['menu/icon-team', '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`],
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
     ['menu/icon-combine', '목표', () => { modal = { kind: 'goals' }; }, G.goals.some((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }) ? 'primary' : 'normal', G.goals.length ? `${G.goals.length}개 · 조합 가능 ${G.goals.filter((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }).length}` : '조합법 ☆로 정해요'],
-    ['menu/currency-shrimp', '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', E.shopOpen(G) ? `새우 ${fmtN(G.gold)}` : `${E.RULES.shopFrom}웨이브부터`],   // 2026-11-19: 세로 화면에서도
+    ['menu/currency-shrimp', '상점', () => { modal = { kind: 'shop' }; }, tk >= 1 ? 'primary' : 'normal', `모집권 ${tk} · 새우 ${fmtN(G.gold)}`],   // 2026-11-19: 세로 화면에서도
     ...(E.skillOn(G) ? [['ui/icon-goldenstrike', '갈매미맨 폭격', () => { if (E.useSkill(G)) { sfx('boss'); modal = null; } else say(E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤에 쓸 수 있어요` : `새우 ${fmtN(E.skillCost(G))}이(가) 필요해요`); }, E.skillLeft(G) <= 0 && G.gold >= E.skillCost(G) ? 'primary' : 'normal', E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤` : `새우 ${fmtN(E.skillCost(G))}`]] : []),
   ];
   // 맨 위: 미뤄 둔 증강체·보상 고르기, 가진 증강체(2026-11-15)
@@ -3139,23 +3138,51 @@ function drawSideTop() {
     const left = E.skillLeft(G), cost = E.skillCost(G), ready = left <= 0 && !G.over && G.gold >= cost;
     button(16, by, W - 32 - 150, 92, '갈매미맨 폭격', () => { if (E.useSkill(G)) sfx('boss'); }, ready ? 'primary' : 'normal', ready, left > 0 ? `${Math.ceil(left)}초 뒤 · 새우 ${fmtN(cost)}` : `새우 ${fmtN(cost)} · 일반 적 체력 ${Math.round(E.RULES.skillPct * 100)}%`);
     if (left > 0) box(16, by + 86, (W - 32 - 150) * (1 - left / E.RULES.skillCd), 6, C.gold, null, 3);
-    button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, E.shopOpen(G) ? `새우 ${fmtN(G.gold)}` : `${E.RULES.shopFrom}웨이브부터`);
-  } else button(16, by, W - 32, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, E.shopOpen(G) ? `새우 ${fmtN(G.gold)} · 무작위 위습·리롤권` : `${E.RULES.shopFrom}웨이브부터 열려요 · 무작위 위습·리롤권`);
+    button(W - 16 - 142, by, 142, 92, '상점', () => { modal = { kind: 'shop' }; }, (G.tickets ?? 0) >= 1 ? 'primary' : 'normal', true, `모집권 ${G.tickets ?? 0} · 새우 ${fmtN(G.gold)}`);
+  } else button(16, by, W - 32, 92, '상점', () => { modal = { kind: 'shop' }; }, (G.tickets ?? 0) >= 1 ? 'primary' : 'normal', true, `모집권 ${G.tickets ?? 0} · 새우 ${fmtN(G.gold)} · 하급·상급 모집 · 위습·리롤권`);
 }
 // 새우 상점(2026-11-16): 무작위 위습·리롤권. 살 때마다 값이 오름. 판이 끝나면 남은 새우는 저금(첫 화면 꾸미기에서 포인트로)
+// 상점(2026-11-21 사용자 요청: 새우 상점과 용병모집을 하나로). 위: 모집권으로 하급·상급 모집 · 아래: 새우로 사는 물건(20웨이브부터)
 function drawShop() {
   shadeAll(0.3);
-  const R0 = modalRect(), x = R0.x + 6, y = R0.y, w = R0.w - 12, h = Math.min(R0.h, 420);
+  const R0 = modalRect(), x = R0.x + 6, y = R0.y, w = R0.w - 12, h = Math.min(R0.h, 600);
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
-  text('새우 상점', x + 18, y + 30, 22, C.text);
+  text('상점', x + 18, y + 30, 22, C.text);
   button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
-  fitText(`가진 새우 ${fmtN(G.gold)} · 무작위로 나와요 · 살수록 비싸져요 · 판이 끝나면 남은 새우는 저금돼요`, x + 18, y + 66, w - 36, 13, C.muted);
+  // ① 모집(모집권)
+  const tk = G.tickets ?? 0, cost = E.RULES.recruitCost, odds = E.RULES.recruitOdds;
+  let yy = y + 60;
+  text(`모집권 ${tk}`, x + 18, yy + 10, 16, C.goldEdge);
+  const fail = Math.round(100 * (1 - Object.values(odds).reduce((a, v) => a + v, 0)));
+  fitText(`상급: ${Object.entries(odds).map(([g, p]) => `${E.GRADE_NAME[g]} ${Math.round(p * 100)}%`).join(' · ')} · 실패 ${fail}%`, x + w - 18, yy + 10, w - 140, 12, C.muted, 'right');
+  yy += 24;
+  const bw = (w - 28 - 10) / 2, bh = 66;
+  button(x + 14, yy, bw, bh, '하급 모집', () => { const r = E.recruitLow(G); if (!r.ok) { if (r.why) say(r.why); return; } sfx('wisp'); modal.last = { low: true, t: performance.now() }; }, 'normal', tk >= 1, '모집권 1 → 커먼 위습 1');
+  button(x + 14 + bw + 10, yy, bw, bh, '상급 모집', () => {
+    const r = E.recruit(G); if (!r.ok) { if (r.why) say(r.why); return; }
+    sfx(r.fail ? 'recruitFail' : 'recruitOk');
+    modal.last = r.fail ? { fail: true, t: performance.now() } : { id: r.unit.id, grade: r.grade, t: performance.now() };
+  }, 'primary', tk >= cost, `모집권 ${cost} → 레어·에픽`);
+  yy += bh + 6;
+  const L = modal.last;   // 방금 결과 한 줄
+  if (L) {
+    box(x + 14, yy, w - 28, 40, 'rgba(11,30,42,.85)', L.fail || L.low ? C.edge : GRADE_COLOR[L.grade], 8, 1.5);
+    if (L.low) fitText('커먼 위습 1개를 받았어요(위습 칸에서 소환)', x + w / 2, yy + 20, w - 50, 14, C.text, 'center');
+    else if (L.fail) fitText('상급 모집 실패…', x + w / 2, yy + 20, w - 50, 14, C.muted, 'center');
+    else { drawFit(unitImg(L.id), x + 22, yy + 2, 36, 36); fitText(`${E.GRADE_NAME[L.grade]} ${E.UNIT[L.id].name}을(를) 모집했어요!`, x + 66, yy + 20, w - 90, 14, GRADE_COLOR[L.grade]); }
+  }
+  yy += 48;
+  // ② 새우로 사기
+  text(`새우 ${fmtN(G.gold)}`, x + 18, yy + 10, 16, C.goldEdge);
+  fitText(E.shopOpen(G) ? '무작위로 나와요 · 살수록 비싸져요 · 남은 새우는 판이 끝나면 저금' : `${E.RULES.shopFrom}웨이브부터 살 수 있어요`, x + w - 18, yy + 10, w - 140, 12, C.muted, 'right');
+  yy += 24;
+  const rh = Math.max(56, Math.min(80, (y + h - 12 - yy) / 3 - 8));
   Object.entries(E.SHOP).forEach(([id, it], i) => {
-    const yy = y + 92 + i * 100, pr = E.shopPrice(G, id);
-    box(x + 14, yy, w - 28, 88, 'rgba(11,30,42,.85)', C.edge, 10, 1.5);
-    text(it.name, x + 30, yy + 30, 18, C.text);
-    fitText(id === 'reroll' ? '에픽 한 마리를 다른 에픽으로 바꿔요' : `산 횟수 ${G.shopN?.[id] ?? 0}번`, x + 30, yy + 60, w - 230, 13, C.muted);
-    const op = E.shopOpen(G); button(x + w - 28 - 160, yy + 14, 160, 60, op ? '사기' : `${E.RULES.shopFrom}웨이브부터`, () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', op && G.gold >= pr, `새우 ${fmtN(pr)}`);
+    const ry = yy + i * (rh + 8), pr = E.shopPrice(G, id), op = E.shopOpen(G);
+    box(x + 14, ry, w - 28, rh, 'rgba(11,30,42,.85)', C.edge, 10, 1.5);
+    text(it.name, x + 30, ry + rh * 0.36, 17, C.text);
+    fitText(id === 'reroll' ? '에픽 한 마리를 다른 에픽으로 바꿔요' : `산 횟수 ${G.shopN?.[id] ?? 0}번`, x + 30, ry + rh * 0.7, w - 230, 12, C.muted);
+    button(x + w - 28 - 150, ry + 8, 150, rh - 16, op ? '사기' : `${E.RULES.shopFrom}웨이브부터`, () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', op && G.gold >= pr, `새우 ${fmtN(pr)}`);
   });
 }
 function drawSideEmpty() {
@@ -3416,7 +3443,7 @@ function drawModal() {
   else if (modal?.kind === 'over') drawOver();
   else if (modal?.kind === 'peer') drawPeerModal();
   else if (modal?.kind === 'meter') drawMeter();
-  else if (modal?.kind === 'recruit') drawRecruit();
+  else if (modal?.kind === 'recruit') { modal = { kind: 'shop' }; }   // 예전 용병모집 창 → 상점
   else if (modal?.kind === 'signal') drawSignalPicker();
   else if (modal?.kind === 'choice') drawChoice();
   else if (modal?.kind === 'aug' || modal?.kind === 'intro') drawBoardModal();

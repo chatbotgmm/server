@@ -54,7 +54,8 @@ export const RULES = {
   shopFrom: 20,   // 2026-11-21 사용자 요청(최상위를 이론상 가장 빨리 만드는 웨이브 13 → 20쯤, 수입 줄이기): 새우 상점은 20웨이브부터
   topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
   regenRate: 0.015, regenBoss: 0.004, regenPoisonCut: 0.5, regenLateBoss: 2,   // 재생형 판: 초당 회복(일반·보스), 독이면 ×0.5, 40웨이브부터 성향 보스는 회복 ×2
-  splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
+  splitKidW: 1, splitHard: 70, splitFrom: 20,   // 2026-11-21 사용자 요청: 분열형은 갈라진 적도 하나하나 세고(한도 70, 예전처럼) 대신 20웨이브부터만 갈라짐
+  // (이전: splitKidW 0 · splitHard 50 — 본체만 세기)   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
   bossEvery: 5, startWisps: 6, wispPerWave: 3,   // 처음 커먼 위습 6개, 웨이브마다 커먼 3개(2026-11-10: 4+언커먼1로 늘렸다가 사용자 「위습이 너무 남음」으로 줄임)
   // 균열 저항(2026-11-11 사용자 요청: 40웨이브 뒤에 초불영제 없이 전설 2마리로 라인이 버텨지면 안 됨): 41웨이브부터 라인 적은
@@ -639,7 +640,7 @@ export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
 // 판 성향(2026-11-16 사용자 요청): 판을 시작할 때 무작위로 갑옷형(방어↑ 마방↓) 또는 결계형(반대). 그 판 내내 모든 적에
 export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마방 ×0.75 — 마법이 유리', armor: 1.4, mr: 0.75 }, mr: { name: '결계형', desc: '적 마방 ×1.4 · 방어 ×0.75 — 물리가 유리', armor: 0.75, mr: 1.4 },
   regen: { name: '재생형', desc: '적이 체력을 계속 되찾음(초당 1.5%, 보스 0.4%) — 독이 유리 · 독에 걸리면 회복 절반', armor: 1, mr: 1 },   // 2026-11-21 사용자 요청: 체력회복형
-  split: { name: '분열형', desc: '쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 갈라진 적은 적 수에 안 셈', armor: 1, mr: 1 } };   // 2026-11-19
+  split: { name: '분열형', desc: '20웨이브부터 쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 즉시 패배 한도 70', armor: 1, mr: 1 } };   // 2026-11-19
 const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
 export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
 export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul(g, 'mr'));            // 마법방어
@@ -858,7 +859,13 @@ export function sell(g, uid) {
   if (got) news(g, `판매 보너스: ${got}`);
   return got || true;
 }
-// 용병모집: 모집권 RULES.recruitCost개로 레어·에픽 갈매미를 확률로(실패하면 없음)
+// 하급모집(2026-11-21 사용자 요청): 모집권 1개로 커먼 위습 1개
+export function recruitLow(g) {
+  if (g.over) return { ok: false, why: '' };
+  if ((g.tickets ?? 0) < 1) return { ok: false, why: '모집권이 없어요.' };
+  g.tickets -= 1; addWisps(g, { COMMON: 1 }); return { ok: true };
+}
+// 상급모집(예전 용병모집): 모집권 RULES.recruitCost개로 레어·에픽 갈매미를 확률로(실패하면 없음)
 export function recruit(g) {
   if (g.over) return { ok: false, why: '' };
   if ((g.tickets ?? 0) < RULES.recruitCost) return { ok: false, why: `모집권이 모자라요(${RULES.recruitCost}개 필요).` };
@@ -1181,6 +1188,7 @@ function startWave(g) {
   if (storyLeft(g) && (left === 10 || left === 5)) news(g, `스토리 ${REGIONS.length}장 마감까지 ${left}웨이브! (${RULES.storyDeadline}웨이브까지 못 깨면 패배)`);
   if (g.wave > 0) { addWisps(g, { COMMON: RULES.wispPerWave }); if (RULES.wispPerWaveUp) addWisps(g, RULES.wispPerWaveUp); }
   g.wave++; g.waveT = 0; g.dmgWave = {};
+  if (g.augPending && !g.augOffer) { const w0 = g.wave; g.wave = g.augPending; offerAug(g); g.wave = w0; g.augPending = 0; }   // 쉬는 시간 뒤 증강체(제시 내용은 그 보스 웨이브 기준)
   if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
   if (g.wave === (RULES.riftFrom ?? 999) + 1) news(g, `균열 저항 시작! 이제 적이 전설·히든 이하 공격을 웨이브마다 ${Math.round((RULES.riftPer ?? 0) * 100)}%씩 덜 받아요(최대 ${Math.round((RULES.riftMax ?? 0) * 100)}%). 초불영제 공격은 그대로`);
   const wi = waveInfo(g.wave);
@@ -1311,7 +1319,7 @@ export function step(g, dt) {
   const splitKids = [];
   g.enemies = g.enemies.filter((e) => {
     if (e.hp > 0) return true;
-    if (g.bias === 'split' && !e.boss && (e.gen ?? 0) < 3) splitKids.push(e);   // 분열형: 2마리로(3번까지)
+    if (g.bias === 'split' && !e.boss && (e.gen ?? 0) < 3 && g.wave >= (RULES.splitFrom ?? 0)) splitKids.push(e);   // 분열형: 2마리로(3번까지)
     g.gold += Math.round(e.gold * (1 + augV(g, 'gold'))); g.kills++;   // 증강체 「새우 풍년」
     if (e.boss) bossDown = true;
     g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, look: e.look, boss: !!e.boss, sx: e.hsx, t: g.t });   // 화면: 쓰러짐(모든 적) + 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
@@ -1360,7 +1368,7 @@ export function step(g, dt) {
     if (tk) g.tickets = (g.tickets ?? 0) + tk;
     const rr = RULES.bossRerollEvery && g.wave % RULES.bossRerollEvery === 0 ? 1 : 0;
     if (rr) g.rerolls = (g.rerolls ?? 0) + rr;
-    if (AUG_WAVES.includes(g.wave) && !g.augOffer) offerAug(g);   // 증강체 고르기(화면에서 chooseAug)
+    if (AUG_WAVES.includes(g.wave) && !g.augOffer) g.augPending = g.wave;   // 증강체: 2026-11-21 사용자 요청 — 보스를 잡고 쉬는 시간이 끝나 다음 웨이브가 시작될 때 고름(startWave)
     news(g, `보스 처치! ${[rw && wispText(rw), Object.keys(rp).length && pickText(rp), tk && `모집권 ${tk}`, rr && `리롤권 ${rr}`].filter(Boolean).join(' · ')}`);
     g.bossDone = g.wave;
     }
