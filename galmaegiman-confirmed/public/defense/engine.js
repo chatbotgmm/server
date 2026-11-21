@@ -54,6 +54,7 @@ export const RULES = {
   shopFrom: 20,   // 2026-11-21 사용자 요청(최상위를 이론상 가장 빨리 만드는 웨이브 13 → 20쯤, 수입 줄이기): 새우 상점은 20웨이브부터
   topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
   regenRate: 0.015, regenBoss: 0.004, regenPoisonCut: 0.5, regenLateBoss: 2,   // 재생형 판: 초당 회복(일반·보스), 독이면 ×0.5, 40웨이브부터 성향 보스는 회복 ×2
+  neutralDef: 1, lateNeutralMul: 2.2,   // 분열·재생형: 적 방어·마방 배율, 40웨이브부터 성향 보스 방어·마방 배율(봇으로 맞추는 중)
   splitKidW: 1, splitHard: 70, splitFrom: 20,   // 2026-11-21 사용자 요청: 분열형은 갈라진 적도 하나하나 세고(한도 70, 예전처럼) 대신 20웨이브부터만 갈라짐
   // (이전: splitKidW 0 · splitHard 50 — 본체만 세기)   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
@@ -641,7 +642,7 @@ export const diffOf = (g) => DIFFS[g.diff] ?? DIFFS.master;
 export const BIAS = { armor: { name: '갑옷형', desc: '적 방어 ×1.4 · 마방 ×0.75 — 마법이 유리', armor: 1.4, mr: 0.75 }, mr: { name: '결계형', desc: '적 마방 ×1.4 · 방어 ×0.75 — 물리가 유리', armor: 0.75, mr: 1.4 },
   regen: { name: '재생형', desc: '적이 체력을 계속 되찾음(초당 1.5%, 보스 0.4%) — 독이 유리 · 독에 걸리면 회복 절반', armor: 1, mr: 1 },   // 2026-11-21 사용자 요청: 체력회복형
   split: { name: '분열형', desc: '20웨이브부터 쓰러진 적이 작고 약한 2마리로 갈라짐(3번까지) — 독이 유리 · 즉시 패배 한도 70', armor: 1, mr: 1 } };   // 2026-11-19
-const biasMul = (g, key) => BIAS[g.bias]?.[key] ?? 1;
+const biasMul = (g, key) => (g.bias === 'split' || g.bias === 'regen' ? RULES.neutralDef ?? 1 : BIAS[g.bias]?.[key] ?? 1);   // 2026-11-21: 중립 성향(분열·재생)은 방어·마방 neutralDef배
 export const armorAt = (g, w) => Math.round(waveInfo(w).armor * diffOf(g).armor * biasMul(g, 'armor'));   // 이 판(난이도·성향)의 그 웨이브 방어력
 export const mrAt = (g, w) => Math.round(waveInfo(w).mr * diffOf(g).mr * biasMul(g, 'mr'));            // 마법방어
 // 판마다 열리는 최상위(2026-11-21 사용자 요청: 갑옷형·결계형은 최상위를 늘 같은 것으로 쉽게 만들어 깸 → 랜덤성).
@@ -1243,7 +1244,7 @@ function spawn(g, minion = false) {
   if (ne.boss && g.wave >= (RULES.lateBossFrom ?? 999)) {   // 2026-11-19 사용자 요청: 후반 보스는 판 성향에 맞춘 강한 보스(갑옷형 → 마법으로, 결계형 → 물리로, 분열형 → 독으로 잡아야)
     if (g.bias === 'armor') { ne.armor *= 2.2; ne.mr = Math.round(ne.mr * 0.7); }
     else if (g.bias === 'mr') { ne.mr *= 2.2; ne.armor = Math.round(ne.armor * 0.7); }
-    else { ne.armor *= 2.2; ne.mr *= 2.2; }   // 독(방어 무시)이 답
+    else { const m = RULES.lateNeutralMul ?? 2.2; ne.armor *= m; ne.mr *= m; }   // 독(방어 무시)이 답 · 2026-11-21: 배율을 설정으로(중립 성향이 너무 어려움)
     ne.lateBoss = g.bias;
   }
 }
