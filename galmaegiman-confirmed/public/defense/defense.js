@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=28816b0c4b4d';
+import * as E from './engine.js?v=a0872241fcb3';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2066,7 +2066,7 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-team', '용병모집', () => { modal = { kind: 'recruit' }; }, tk >= E.RULES.recruitCost ? 'primary' : 'normal', `모집권 ${tk}`],
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
-    ['menu/currency-shrimp', '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', `새우 ${fmtN(G.gold)}`],   // 2026-11-19: 세로 화면에서도
+    ['menu/currency-shrimp', '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', E.shopOpen(G) ? `새우 ${fmtN(G.gold)}` : `${E.RULES.shopFrom}웨이브부터`],   // 2026-11-19: 세로 화면에서도
     ...(E.skillOn(G) ? [['ui/icon-goldenstrike', '갈매미맨 폭격', () => { if (E.useSkill(G)) { sfx('boss'); modal = null; } else say(E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤에 쓸 수 있어요` : `새우 ${fmtN(E.skillCost(G))}이(가) 필요해요`); }, E.skillLeft(G) <= 0 && G.gold >= E.skillCost(G) ? 'primary' : 'normal', E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤` : `새우 ${fmtN(E.skillCost(G))}`]] : []),
   ];
   // 맨 위: 미뤄 둔 증강체·보상 고르기, 가진 증강체(2026-11-15)
@@ -3036,8 +3036,8 @@ function drawSideTop() {
     const left = E.skillLeft(G), cost = E.skillCost(G), ready = left <= 0 && !G.over && G.gold >= cost;
     button(16, by, W - 32 - 150, 92, '갈매미맨 폭격', () => { if (E.useSkill(G)) sfx('boss'); }, ready ? 'primary' : 'normal', ready, left > 0 ? `${Math.ceil(left)}초 뒤 · 새우 ${fmtN(cost)}` : `새우 ${fmtN(cost)} · 일반 적 체력 ${Math.round(E.RULES.skillPct * 100)}%`);
     if (left > 0) box(16, by + 86, (W - 32 - 150) * (1 - left / E.RULES.skillCd), 6, C.gold, null, 3);
-    button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)}`);
-  } else button(16, by, W - 32, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, `새우 ${fmtN(G.gold)} · 무작위 위습·리롤권`);
+    button(W - 16 - 142, by, 142, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, E.shopOpen(G) ? `새우 ${fmtN(G.gold)}` : `${E.RULES.shopFrom}웨이브부터`);
+  } else button(16, by, W - 32, 92, '새우 상점', () => { modal = { kind: 'shop' }; }, 'normal', true, E.shopOpen(G) ? `새우 ${fmtN(G.gold)} · 무작위 위습·리롤권` : `${E.RULES.shopFrom}웨이브부터 열려요 · 무작위 위습·리롤권`);
 }
 // 새우 상점(2026-11-16): 무작위 위습·리롤권. 살 때마다 값이 오름. 판이 끝나면 남은 새우는 저금(첫 화면 꾸미기에서 포인트로)
 function drawShop() {
@@ -3052,7 +3052,7 @@ function drawShop() {
     box(x + 14, yy, w - 28, 88, 'rgba(11,30,42,.85)', C.edge, 10, 1.5);
     text(it.name, x + 30, yy + 30, 18, C.text);
     fitText(id === 'reroll' ? '에픽 한 마리를 다른 에픽으로 바꿔요' : `산 횟수 ${G.shopN?.[id] ?? 0}번`, x + 30, yy + 60, w - 230, 13, C.muted);
-    button(x + w - 28 - 160, yy + 14, 160, 60, '사기', () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', G.gold >= pr, `새우 ${fmtN(pr)}`);
+    const op = E.shopOpen(G); button(x + w - 28 - 160, yy + 14, 160, 60, op ? '사기' : `${E.RULES.shopFrom}웨이브부터`, () => { const r = E.shopBuy(G, id); if (!r.ok) say(r.why); else { sfx('wisp'); say(`${it.name}을(를) 샀어요(새우 ${r.price})`); } }, 'primary', op && G.gold >= pr, `새우 ${fmtN(pr)}`);
   });
 }
 function drawSideEmpty() {

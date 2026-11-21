@@ -46,6 +46,7 @@ export const RULES = {
   storyDeadline: 50,   // 스토리 마지막 장(2026-11-11부터 13장)은 이 웨이브가 끝날 때까지(사용자 요청 2026-11-08: 꼭 해결하게). 40·45웨이브에 알림
   waves: 60, waveLen: 40,   // 60웨이브(사용자 요청: 40에서 끝내지 말고 더)
   perWave: 35, spawnGap: 0.75, limit: 70, warnMax: 20,
+  shopFrom: 20,   // 2026-11-21 사용자 요청(최상위를 이론상 가장 빨리 만드는 웨이브 13 → 20쯤, 수입 줄이기): 새우 상점은 20웨이브부터
   topOpen: 0.5,   // 2026-11-21 사용자 요청: 갑옷형·결계형 판은 최상위 조합법이 등급마다 절반만 열림(topOpenFor)
   splitKidW: 0, splitHard: 50,   // 2026-11-21 사용자 요청(분열형이 다른 두 성향보다 많이 어려움): 분열된 작은 적은 적 수에 안 셈(본체만), 즉시 패배 한도도 다른 성향과 같은 50. 봇 평균 끝 웨이브 24.3 → 44.7(갑옷형 48.3·결계형 48.1)
   restEvery: 10, restLen: 30,   // 10웨이브마다 끝나고 30초 쉬는 시간(2026-11-09 사용자 요청)
@@ -106,7 +107,7 @@ export const RULES = {
   // 칸: 커먼·언커먼 · 레어 · 에픽 · 전설·히든(묶음) · 제한 · 초월 · 불멸 · 영원 (8칸)
   // 강화(2026-11-09 사용자 요청: 공격 속도도 오르게): 단계마다 공격력 +10% · 공격 속도 +3%. 10단계면 공격력 ×2 · 공속 ×1.3(예전 공격력 +15%×10 = ×2.5와 초당 피해가 비슷)
   upgPct: 0.10, upgSpd: 0.03, upgMax: 10, upgGrowth: 1.2, upgBase: [5, 20, 60, 150, 600, 600, 600, 600],   // 제한·초월·불멸·영원은 같은 가격(사용자 요청)
-  bossReward: { 10: { EPIC: 1 }, 20: { EPIC: 1, UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { EPIC: 1, UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { EPIC: 1, RARE: 1 }, 45: { RARE: 1 }, 50: { EPIC: 1, RARE: 1 }, 55: { RARE: 1 } },   // 2026-11-19: 커먼은 무작위 대신 선택 위습(bossPickEach)
+  bossReward: { 10: { RARE: 1 }, 20: { EPIC: 1, UNCOMMON: 1 }, 25: { UNCOMMON: 1 }, 30: { EPIC: 1, UNCOMMON: 1 }, 35: { UNCOMMON: 1 }, 40: { EPIC: 1, RARE: 1 }, 45: { RARE: 1 }, 50: { EPIC: 1, RARE: 1 }, 55: { RARE: 1 } },   // 2026-11-21: 10웨이브 에픽 → 레어(최상위 최단 웨이브 늦추기) · 2026-11-19: 커먼은 무작위 대신 선택 위습(bossPickEach)
   // 선택 위습(원하는 갈매미를 골라 소환): 처음 0개, 스토리(외부탐사)를 깰 때마다 받음(REGIONS의 pick). 보스는 랜덤 위습만
   // 보스마다 커먼 선택 위습(2026-11-09 사용자 요청: 커먼 선택 위습이 너무 적음). bossPick은 특정 웨이브에 더 줄 때
   // 2026-11-11 보상 검토: 보스마다 선택 위습 1개, 등급은 웨이브에 맞춰 5~15 커먼 · 20~35 언커먼 · 40~55 레어(후반 커먼 선택 위습은 쓸 데가 없었음)
@@ -123,9 +124,9 @@ export const RULES = {
 // 보낸 갈매미가 그곳의 그림자 대장을 쓰러뜨리면 보상 위습(점점 높게). level은 대장 세기 기준 웨이브(열리는 시점과 무관).
 export const REGIONS = [
   // 스토리 선택 위습: 장마다 1개(2026-11-10 사용자 「선택위습이 너무 많음」으로 3 → 1). 2026-11-11 보상 검토: 등급은 1~3장 커먼 · 4~6장 언커먼 · 7·8장 레어
-  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { UNCOMMON: 2, COMMON: 1 }, ticket: 1, gold: 150 },
-  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { RARE: 1, UNCOMMON: 1, COMMON: 1 }, ticket: 1, gold: 400 },
-  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 2, COMMON: 1 }, ticket: 1, gold: 800 },
+  { ch: 1, name: '돌이 된 태초 갈매미', place: '마을 석상 터', img: 'identity-statue', look: 'b:u01', level: 8, reward: { COMMON: 2 }, ticket: 0, gold: 150 },   // 2026-11-21: 언커먼 2·커먼 1·모집권 1 → 커먼 2(최상위 최단 웨이브 늦추기)
+  { ch: 2, name: '인간들이 기억하는 갈매미', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u06', level: 12, reward: { UNCOMMON: 1, COMMON: 1 }, ticket: 0, gold: 400 },   // 2026-11-21: 레어 1 빼고 모집권 없음
+  { ch: 3, name: '사라진 기록', place: '인간의 기록 장소', img: 'identity-records', look: 'b:u07', level: 16, reward: { RARE: 1, COMMON: 1 }, ticket: 0, gold: 800 },   // 2026-11-21: 레어 2 → 1, 모집권 없음
   { ch: 4, name: '말하지 않는 노인', place: '은신처', img: 'identity-hq', look: 'b:u23', level: 20, reward: { EPIC: 1, UNCOMMON: 1 }, ticket: 1, gold: 1500 },
   { ch: 5, name: '죽은 적이 없는 친구', place: '기억 속 작업장', img: 'identity-records', look: 'b:u14', level: 24, reward: { EPIC: 1, UNCOMMON: 1 }, ticket: 1, gold: 3000 },
   // 6장: 기본 보상 + 아래 중 하나 고르기(2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도)
@@ -723,8 +724,10 @@ export function useSkill(g) {
 // 새우 상점(2026-11-16 사용자 요청): 무작위 위습·리롤권. 살 때마다 값이 올라감
 export const SHOP = { rare: { name: '무작위 레어 위습', base: 1500, grow: 1.18, give: { RARE: 1 } }, epic: { name: '무작위 에픽 위습', base: 6000, grow: 1.25, give: { EPIC: 1 } }, reroll: { name: '에픽 리롤권', base: 4000, grow: 1.3 } };
 export const shopPrice = (g, id) => Math.round(SHOP[id].base * Math.pow(SHOP[id].grow, g.shopN?.[id] ?? 0) / 10) * 10;
+export const shopOpen = (g) => g.wave >= (RULES.shopFrom ?? 0);   // 2026-11-21 사용자 요청(최상위 이론상 최단 13 → 20웨이브쯤): 상점은 shopFrom웨이브부터
 export function shopBuy(g, id) {
   const it = SHOP[id]; if (!it) return { ok: false, why: '없는 물건이에요.' };
+  if (!shopOpen(g)) return { ok: false, why: `새우 상점은 ${RULES.shopFrom}웨이브부터 열려요.` };
   const pr = shopPrice(g, id); if (g.gold < pr) return { ok: false, why: `새우가 모자라요(${pr} 필요).` };
   g.gold -= pr; (g.shopN ??= {})[id] = (g.shopN[id] ?? 0) + 1;
   if (it.give) addWisps(g, it.give); if (id === 'reroll') g.rerolls = (g.rerolls ?? 0) + 1;
