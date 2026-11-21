@@ -2014,6 +2014,19 @@ function drawMainPanel(y0) {
   // 위습
   const ws = E.WISP_GRADES, bw = (W - 44 - 4 * 6) / 5, PL = panelLayout(y0);
   text('위습', 22, PL.labelY, 14, C.gold);
+  if (!landscape && G.goals.length) {   // 세로 화면: 위습 제목 줄 오른쪽에 목표를 작게(2026-11-21 사용자 지적: 목표가 판에서 안 보임). 누르면 그 조합법
+    const cnt = E.countOnField(G), pw = 76, ph = 26; let px = W - 22 - G.goals.length * (pw + 6) + 6;
+    text('목표', px - 8, PL.labelY, 12, C.muted, 'right');
+    G.goals.forEach((gid, k) => {
+      const r = E.recipeFor(gid); if (!r) return;
+      const ok = canMake(r), pg = progOf(r, cnt), fr = have(r, cnt) === r.in.length ? 1 : pg.got / pg.total, py = PL.labelY - ph / 2;
+      box(px, py, pw, ph, ok ? 'rgba(43,122,98,.45)' : 'rgba(11,30,42,.9)', GOAL_COLOR[k], 8, 2);
+      drawFit(unitImg(gid), px + 2, py + 1, ph - 2, ph - 2);
+      text(ok ? '조합!' : `${Math.min(99, Math.floor(fr * 100))}%`, px + ph + (pw - ph) / 2, py + ph / 2 + 1, 13, ok ? C.good : C.text, 'center');
+      hit(px, py, pw, ph, () => openBook(gid, null, { sel: [...selected] }));
+      px += pw + 6;
+    });
+  }
   ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
     const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
     box(x, y, bw, h, n ? 'rgba(11,30,42,.92)' : 'rgba(11,30,42,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
