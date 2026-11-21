@@ -141,13 +141,28 @@ export const REGIONS = [
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
-// 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만). 지금: 가루다(초월) · 리치(불멸) · 여명(영원)
+// 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만). 지금: 리치(불멸) · 여명(영원) — 가루다는 2026-11-21부터 눌러 쓰는 기술(WISP_ACTIVE)
 export const WISP_SKILL = {
   // 2026-11-08 사용자 요청(전설 위습이 너무 잘 나옴): 처치 1마리당 전설 위습 확률 가루다 1.75%→0.3% · 리치 2.8%→0.5% · 여명 4%→0.78%
-  u49: { p: 0.05, table: { EPIC: 0.94, LEGEND: 0.06 } },
   u56: { p: 0.055, table: { EPIC: 0.91, LEGEND: 0.09 } },
   u57: { p: 0.06, table: { EPIC: 0.87, LEGEND: 0.13 } },
 };
+// 2026-11-21 사용자 요청(가루다 위습이 너무 잘 나옴): 가루다는 처치마다 나오던 것을 없애고, 정보 창에서 눌러 쓰는 기술로.
+// 누르면 성공 확률 ok로 위습 1개(실패도 있음), 성공하면 거의 에픽·전설은 아주 드묾. 쿨타임 cd초(갈매미마다 따로, 실패해도 돎)
+export const WISP_ACTIVE = {
+  u49: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },
+};
+export const wispCastLeft = (g, u) => Math.max(0, (u?.wispAt ?? 0) - g.t);
+export const canWispCast = (g, u) => !!u && !!WISP_ACTIVE[u.id] && !u.away && !u.stored && !u.held && !g.over && wispCastLeft(g, u) <= 0;
+export function wispCast(g, uid) {   // 돌려줌: { ok: true, grade } 성공 · { ok: false } 실패 · null 못 씀
+  const u = unitById(g, uid); if (!canWispCast(g, u)) return null;
+  const a = WISP_ACTIVE[u.id]; u.wispAt = g.t + a.cd;
+  if (g.rand() >= a.ok) { news(g, `${UNIT[u.id].name}의 위습 찾기 실패…`); return { ok: false }; }
+  let r = g.rand(), w = Object.keys(a.table).pop();
+  for (const [grade, p] of Object.entries(a.table)) { if ((r -= p) < 0) { w = grade; break; } }
+  addWisps(g, { [w]: 1 }); news(g, `${UNIT[u.id].name}이(가) ${GRADE_NAME[w]} 위습을 찾았어요!`); g.fx.push({ kind: 'wisp', x: u.x, y: u.y - 30, grade: w, t: g.t });
+  return { ok: true, grade: w };
+}
 
 // 탐사 특기(사용자 요청 2026-11-08: 외부탐사에 능한 재료 단계 갈매미, 외부탐사에서만 강해짐): 외부탐사 대장에게 주는 피해 배수.
 // 재료로 쓰이면서 판 수비는 약한 보조(고체력)는 ×6, 근접술사는 ×3 → 같은 등급 주력보다 외부탐사 피해가 약 1.5~1.7배
@@ -365,7 +380,7 @@ function kitRaw(id) {
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
   if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison', 'haste', 'might', 'weaken']) delete k[key];
-  const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? WISP_ACTIVE[id] ?? null, explore: EXPLORE[id] ?? 0 };
   if (tt >= TOP_TIER) {
     inheritUtil(id, out);
     const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
@@ -430,7 +445,7 @@ export function kitTips(k) {
   if (k.chain) out.push('번개 연쇄');
   if (k.poison) out.push('독(방어 무시·다른 독과 3겹)');
   if (k.holy) out.push('보스 추가 피해');
-  if (k.wisp) out.push('위습 찾기');
+  if (k.wisp) out.push(k.wisp.cd ? '위습 찾기(눌러서)' : '위습 찾기');
   if (k.inherited?.length) out.push('재료 유틸 물려받음');
   // 앞쪽(정보 칸에서 잘리지 않게): 고유 기술 → 패널티 → 주변 버프
   const head = [k.sig, k.weaken && `패널티: 주변 공격력 −${Math.round(k.weaken * 100)}%(반경 ${WEAKEN_R})`,
@@ -1124,7 +1139,7 @@ function startWave(g) {
   if (g.wave === 40 && diffOf(g).legend40) { addWisps(g, { LEGEND: 1 }); news(g, `40웨이브! ${diffOf(g).name} 보상: 전설 위습 1개`); }
   if (g.wave === (RULES.riftFrom ?? 999) + 1) news(g, `균열 저항 시작! 이제 적이 전설·히든 이하 공격을 웨이브마다 ${Math.round((RULES.riftPer ?? 0) * 100)}%씩 덜 받아요(최대 ${Math.round((RULES.riftMax ?? 0) * 100)}%). 초불영제 공격은 그대로`);
   const wi = waveInfo(g.wave);
-  g.spawnLeft = (wi.boss ? 1 : 0) + RULES.perWave; g.bossLeft = wi.boss ? 1 : 0; g.spawnT = 0;   // 2026-11-15 사용자 요청: 보스 웨이브에도 일반 적이 똑같이 나옴(보스 먼저)
+  g.spawnLeft = (wi.boss ? 1 : 0) + (g.bias === 'split' ? RULES.splitPerWave ?? RULES.perWave : RULES.perWave); g.bossLeft = wi.boss ? 1 : 0; g.spawnT = 0;   // 2026-11-15 사용자 요청: 보스 웨이브에도 일반 적이 똑같이 나옴(보스 먼저)
 }
 export const riftAt = (w) => (w > (RULES.riftFrom ?? 999) ? Math.min(RULES.riftMax ?? 0, (RULES.riftPer ?? 0) * (w - RULES.riftFrom)) : 0);   // 그 웨이브 라인 적의 균열 저항
 // 보스 행동(2026-11-16 사용자 요청): 보스마다 셋 중 하나 — 방어막(10초마다 3초간 받는 피해 30%) · 부하 소환(8초마다 일반 적 2) · 돌진(7초마다 1.5초간 속도 ×2.5)
@@ -1233,7 +1248,7 @@ export function step(g, dt) {
     return false;
   });
   for (const e of splitKids) for (let k = 0; k < 2; k++) {   // 작고(그림 ×0.75) 체력 30%·새우 절반(총 체력 약 2.2배), 독은 그대로 이어짐
-    const hp = e.max * 0.3, c = { ...e, id: g.nextId++, hp, max: hp, gen: (e.gen ?? 0) + 1, gold: Math.max(1, Math.round(e.gold / 2)), s: Math.max(0, e.s - k * 10), poisons: e.poisons ? { ...e.poisons } : undefined, slows: e.slows ? { ...e.slows } : undefined, hitT: g.t, by: 0 };
+    const hp = e.max * (RULES.splitHp ?? 0.3), c = { ...e, id: g.nextId++, hp, max: hp, gen: (e.gen ?? 0) + 1, gold: Math.max(1, Math.round(e.gold / 2)), s: Math.max(0, e.s - k * 10), poisons: e.poisons ? { ...e.poisons } : undefined, slows: e.slows ? { ...e.slows } : undefined, hitT: g.t, by: 0 };
     const p = pathPos(c.s); c.x = p.x; c.y = p.y; g.enemies.push(c);
   }
   // 외부탐사 대장 쓰러뜨림
@@ -1251,8 +1266,9 @@ export function step(g, dt) {
   }
   g.fx = g.fx.filter((f) => g.t - f.t < 0.8);
   // 경고: 70마리를 넘은 동안 1초마다 1회(누적)
-  if (hardLimitOn(g) && g.enemies.length > hardLimitOf(g)) { g.over = 'lose'; g.reason = `${RULES.hardLimitFrom}웨이브부터는 길 위의 적이 ${hardLimitOf(g)}마리를 넘으면 바로 패배해요.`; return; }
-  if (g.enemies.length > RULES.limit) {
+  const cnt = enemyCount(g);
+  if (hardLimitOn(g) && cnt > hardLimitOf(g)) { g.over = 'lose'; g.reason = `${RULES.hardLimitFrom}웨이브부터는 길 위의 적이 ${hardLimitOf(g)}마리를 넘으면 바로 패배해요.`; return; }
+  if (cnt > RULES.limit) {
     g.warnAcc += dt;
     while (g.warnAcc >= 1) { g.warnAcc -= 1; g.warn++; }
     if (g.warn > warnMaxOf(g)) { g.over = 'lose'; g.reason = `경고가 ${warnMaxOf(g)}회를 넘었어요(길 위의 적 ${RULES.limit}마리 초과).`; return; }
@@ -1298,5 +1314,11 @@ export const baseLenOf = (w) => (w % RULES.bossEvery === 0 && RULES.bossLen ? RU
 export const waveLenOf = (w) => baseLenOf(w) + (restWave(w) ? RULES.restLen : 0);
 export const resting = (g) => restWave(g.wave) && g.waveT >= baseLenOf(g.wave);
 export const hardLimitOn = (g) => g.wave >= (RULES.hardLimitFrom ?? 999);
-export const hardLimitOf = (g) => (g.bias === 'split' ? 70 : RULES.hardLimit) - (augV(g, 'allin') ? 10 : 0);   // 분열형 판은 70   // 「모 아니면 도」: 50 → 40   // 45웨이브부터 즉시 패배 한도
+// 길 위 적 수(경고·즉시 패배 기준). 분열형 판에서 분열된 작은 적은 splitKidW마리로 셈(0이면 본체만)
+export function enemyCount(g) {
+  if (g.bias !== 'split') return g.enemies.length;
+  const w = RULES.splitKidW ?? 1; if (w === 1) return g.enemies.length;
+  let n = 0; for (const e of g.enemies) n += e.gen ? w : 1; return Math.ceil(n);
+}
+export const hardLimitOf = (g) => (g.bias === 'split' ? RULES.splitHard ?? 70 : RULES.hardLimit) - (augV(g, 'allin') ? 10 : 0);   // 분열형 판은 70   // 「모 아니면 도」: 50 → 40   // 45웨이브부터 즉시 패배 한도
 export const nextWaveIn = (g) => Math.max(0, waveLenOf(g.wave) - g.waveT);

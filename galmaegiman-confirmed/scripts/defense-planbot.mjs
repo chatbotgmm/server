@@ -102,7 +102,7 @@ function bot(g, st) {
     if (bi < 0 || !E.upgrade(g, bi).ok) break;
   }
   // 외부탐사(목표 재료는 안 보냄). 2026-11-10부터 보낸 갈매미가 장을 깨도 남으므로, 남은 대장 체력을 150초 안에 못 잡을 만큼이면 더 보냄
-  if (E.missionOpen(g) && g.enemies.length < 25 && (st.nextSend ?? 0) <= g.t) {
+  if (E.missionOpen(g) && (E.enemyCount ? E.enemyCount(g) : g.enemies.length) < 25 && (st.nextSend ?? 0) <= g.t) {
     const t = E.missionTarget(g);
     const edps = (u) => { const k = E.kit(u.id); return (k.exDmg || k.dmg) * (k.explore || 1) / k.gap * 100 / (100 + (k.type === 'phys' ? t.armor : t.mr)); };
     const have = E.awayUnits(g).reduce((a, u) => a + edps(u), 0), needDps = t.hp / 150 - have;
@@ -116,12 +116,12 @@ function bot(g, st) {
     }
     st.nextSend = g.t + 10;
   }
-  if (E.awayUnits(g).length && g.enemies.length > 50) E.recall(g);
+  if (E.awayUnits(g).length && (E.enemyCount ? E.enemyCount(g) : g.enemies.length) > 50) E.recall(g);
 }
 const res = [], reasons = {}, ch6s = [], ends = []; let tops = 0;
 const SEED0 = +(process.env.SEED0 ?? 0);   // 여러 개를 나눠 돌릴 때 시드 시작점
 for (let s = SEED0 + 1; s <= SEED0 + N; s++) {
-  const g = E.newGame(s, 'normal', DIFF); let ch6 = 0, end = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
+  const g = E.newGame(s, 'normal', DIFF); if (process.env.BIAS) g.bias = process.env.BIAS; let ch6 = 0, end = 0; const style = STYLE === 'mix' ? (s % 2 ? 'mag' : 'phys') : STYLE;
   let wish = WISH[style];
   if (process.env.TOPPICK === 'random') {   // 판마다 최상위 2종을 무작위로(시드로 정함) → 유닛별 집계가 되게
     let x = s * 7919 + 13; const r = () => ((x = (x * 9301 + 49297) % 233280) / 233280);

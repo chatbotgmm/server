@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=b89139c4690a';
+import * as E from './engine.js?v=746f2a92cde2';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1521,7 +1521,7 @@ function drawFieldInner() {
     if (e.slow > 0) { ctx.beginPath(); ctx.arc(e.x, e.y + 2, sz / 3, 0, Math.PI * 2); ctx.strokeStyle = '#9fe8ff'; ctx.lineWidth = 1.5 + 2.5 * e.slow; ctx.stroke(); }   // 이속감소가 많이 쌓일수록 굵게
   }
   // 갈매미(아래쪽부터 그려 겹침이 자연스럽게)
-  const gc = goalColors(), selSet = new Set(selected);
+  const gc = goalColors(), selSet = new Set(selected), synAll = E.RULES.synergy ? E.synergyOf(G) : null;
   const list = [...E.fieldUnits(G)].sort((a, b) => a.y - b.y);
   const lastShot = new Map();   // 갈매미마다 가장 최근 공격(동작용)
   for (const f of G.fx) if (f.kind === 'shot' && f.uid) { const q = lastShot.get(f.uid); if (!q || q.t < f.t) lastShot.set(f.uid, f); }
@@ -1553,6 +1553,10 @@ function drawFieldInner() {
     { const t = E.tierOf(u.id), top = t >= E.TOP_TIER, end = [10, 15, 20, 25, 30, 30][t] ?? 30, na = top ? 1 : Math.max(0, Math.min(1, (end - G.wave) / 5));
       if (na > 0) { const fs = top ? 13 : 11, ny = u.y + 8 * z + (top ? 9 : 8); ctx.font = `${fs}px ${FONT}`; const nw = ctx.measureText(info.name).width + 10;
         ctx.globalAlpha = na; box(u.x - nw / 2, ny - fs * 0.7, nw, fs * 1.4, 'rgba(7,19,28,.72)', null, 7); text(info.name, u.x, ny, fs, col, 'center'); ctx.globalAlpha = 1; } }
+    // 시너지 표시(2026-11-21 사용자 요청): 시너지에 세는 갈매미(에픽 이상)에 속성 배지. 켜진 속성은 색을 채우고 단계 점, 안 켜진 속성은 흐린 테두리만
+    if (synAll && E.tierOf(u.id) >= 3 && info.role !== E.SPECIAL_ROLE) {
+      const el = E.kit(u.id).elem; synBadge(u.x - 20 * z - 4, u.y - 30 * z, el, synAll[el], 1);
+    }
     (gc[u.id] ?? []).forEach((c, k) => { ctx.beginPath(); ctx.ellipse(u.x, u.y, (24 + k * 4) * z, (9 + k * 2) * z, 0, 0, Math.PI * 2); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.stroke(); });
     if (G.t - u.born < 0.5) { ctx.globalAlpha = 1 - (G.t - u.born) / 0.5; ctx.beginPath(); ctx.arc(u.x, u.y - 20 * z, 30 * z, 0, Math.PI * 2); ctx.fillStyle = 'rgba(243,216,158,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
   }
@@ -1849,7 +1853,7 @@ function drawHud() {
     fitText(`▸ 다음 ${nx.boss ? `보스! 방어 ${nx.armor}` : `방어 ${nx.armor}`}${rf ? ` · 균열 저항 ${Math.round(rf * 100)}%` : ''}`, lx, 58, W - 30 - lx, 14, nx.boss ? '#ff8a7a' : rf ? '#c9a3ff' : nx.armor > armorNow ? C.goldEdge : C.muted);
   }
   // 적 수·경고
-  const hard = E.hardLimitOn(G), n = G.enemies.length, lim = hard ? E.hardLimitOf(G) : E.RULES.limit, ratio = Math.min(1, n / lim);   // 45웨이브부터 /50(넘으면 즉시 패배)
+  const hard = E.hardLimitOn(G), n = E.enemyCount(G), lim = hard ? E.hardLimitOf(G) : E.RULES.limit, ratio = Math.min(1, n / lim);   // 45웨이브부터 /50(넘으면 즉시 패배)
   text(`적 ${n}/${lim}`, 20, 82, 14, n > lim || (hard && ratio > 0.8) ? C.bad : C.text);
   box(92, 77, 150, 10, 'rgba(0,0,0,.5)', hard ? '#b4482a' : C.line, 5, 1);
   box(92, 77, 150 * ratio, 10, n > lim || (hard && ratio > 0.8) ? '#e0533f' : ratio > 0.7 ? '#e8b04a' : '#6fd08a', null, 5);
@@ -2050,6 +2054,14 @@ function readyCount() {
 // 조합할 수 있는가: 재료가 있고, 상위(제한~영원)면 2마리 제한에 걸리지 않을 때(사용자 요청 2026-11-08)
 const canMake = (r, keep = 0) => !!E.recipeUnits(G, r, keep) && !E.topBlocked(G, r);
 function have(r, cnt) { const left = { ...cnt }; let n = 0; for (const id of r.in) if ((left[id] ?? 0) > 0) { left[id]--; n++; } return n; }
+// 시너지 배지(2026-11-21): 속성 첫 글자 동그라미. 켜진 속성은 색을 채우고 아래에 단계 점, 안 켜지면 흐린 테두리만
+function synBadge(bx, by, el, sv, sc = 1) {
+  const on = sv?.lv > 0, rgb = ELEM_COL[el] ?? '220,220,220', r = (on ? 9 : 7) * sc;
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = on ? `rgb(${rgb})` : 'rgba(7,19,28,.7)'; ctx.fill();
+  ctx.lineWidth = on ? 2 : 1.5; ctx.strokeStyle = on ? '#07131c' : `rgba(${rgb},.75)`; ctx.stroke();
+  text(E.SYN_NAME[el].slice(0, 1), bx, by + 0.5, (on ? 11 : 9) * sc, on ? '#07131c' : `rgba(${rgb},.9)`, 'center');
+  if (on) for (let q = 0; q < sv.lv; q++) { ctx.beginPath(); ctx.arc(bx - (sv.lv - 1) * 3.5 * sc + q * 7 * sc, by + r + 4 * sc, 2.2 * sc, 0, Math.PI * 2); ctx.fillStyle = `rgb(${rgb})`; ctx.fill(); }
+}
 function drawUnitPanel(y0, u) {
   const info = E.UNIT[u.id], k = E.kit(u.id);
   drawFit(unitImg(u.id), 18, y0 + 8, 68, 70);
@@ -2058,7 +2070,13 @@ function drawUnitPanel(y0, u) {
   ctx.font = `21px ${FONT}`;
   let cx = 94 + Math.min(150, ctx.measureText(info.name).width) + 8;
   cx += chip(E.GRADE_NAME[info.grade], cx, y0 + 11, GRADE_COLOR[info.grade]) + 6;
-  chip(k.special ? '조합 재료' : `${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag);
+  cx += chip(k.special ? '조합 재료' : `${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx, y0 + 11, k.special ? C.goldEdge : k.type === 'phys' ? C.phys : C.mag) + 6;
+  if (!k.special && E.RULES.synergy) {   // 2026-11-21: 시너지 칩(에픽 이상만 셈)
+    const sv = E.synergyOf(G)[k.elem], nm = E.SYN_NAME[k.elem];
+    const st = k.tier < 3 ? `${nm} · 시너지 안 셈` : sv.lv ? `${nm} ${sv.lv}단계·${sv.n}종` : `${nm} ${sv.n}/2종`, lim = (E.tierOf(u.id) >= 3 && u.got ? W - 228 : W - 118);
+    if (k.tier >= 3) synBadge(78, y0 + 66, k.elem, sv, 1.15);   // 그림 오른쪽 아래(좁은 화면에서도 보이게)
+    ctx.font = `14px ${FONT}`; if (cx + ctx.measureText(st).width + 14 <= lim) chip(st, cx, y0 + 11, k.tier >= 3 && sv.lv ? `rgb(${ELEM_COL[k.elem]})` : C.muted);
+  }
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
   if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
   else fitText(`공격 ${Math.round(k.dmg * up)} · ${gp * (E.RULES.atkSpeed ?? 1) <= 0.6 ? '빠름' : gp * (E.RULES.atkSpeed ?? 1) >= 1.1 ? '느림' : '보통'}(${gp.toFixed(2)}초) · 사거리 ${k.range}`, 94, y0 + 50, W - 210, 15, C.muted);
@@ -2079,10 +2097,14 @@ function drawUnitPanel(y0, u) {
   // 2026-11-11 사용자 지적(태초가 들어가는 마딜이 없다고 보임 — 칸이 한 줄뿐이라 둘째 조합법이 「조합법 +1」 뒤에 숨음):
   // 줄 수보다 조합법이 많으면 작은 카드(그림·이름·물딜/마딜)로 나란히 보여 줌. 누르면 그 조합법 자리로 조합법 창을 엶
   if (sgOn) {
-    const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), fm = !!E.FORM_OF[u.id], bw3 = fm ? (W - 36) * 0.58 : W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
+    const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), wa = E.WISP_ACTIVE[u.id], fm = !!E.FORM_OF[u.id] || !!wa, bw3 = fm ? (W - 36) * 0.58 : W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
     button(18, yy, bw3, bh3, `「${sg.name}」 쓰기`, () => { const r = E.castSig(G, u.uid); if (r === true) sfx('boss'); else if (r === 'none') say('사거리 안에 적이 없어요.'); else if (left > 0) say(`${Math.ceil(left)}초 뒤에 쓸 수 있어요.`); }, ok ? 'primary' : 'normal', ok, left > 0 ? `${Math.ceil(left)}초 뒤에 다시 쓸 수 있어요` : (fm ? `위력 ×${E.RULES.sigCastMul} · ${E.RULES.sigCastCd}초` : `지금 쓰면 위력 ×${E.RULES.sigCastMul} · 쿨타임 ${E.RULES.sigCastCd}초(갈매미마다 따로)`));
     if (left > 0) box(18, yy + bh3 - 6, bw3 * (1 - left / E.RULES.sigCastCd), 6, C.gold, null, 3);
-    if (fm) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18 + bw3 + 8, yy, W - 36 - bw3 - 8, bh3, '각성 변신', () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번 · 마법→물리`); }   // 2026-11-21
+    if (wa) {   // 2026-11-21 사용자 요청: 가루다 위습 찾기는 눌러서(실패 있음, 전설은 아주 드묾)
+      const wl = E.wispCastLeft(G, u), wx = 18 + bw3 + 8, ww = W - 36 - bw3 - 8;
+      button(wx, yy, ww, bh3, '위습 찾기', () => { const r = E.wispCast(G, u.uid); if (!r) { if (wl > 0) say(`${Math.ceil(wl)}초 뒤에 쓸 수 있어요.`); return; } if (r.ok) { sfx('wisp'); say(`${E.GRADE_NAME[r.grade]} 위습을 찾았어요!`); } else say('위습 찾기 실패… 다음 기회에.'); }, E.canWispCast(G, u) ? 'primary' : 'normal', E.canWispCast(G, u), wl > 0 ? `${Math.ceil(wl)}초 뒤` : `성공 ${Math.round(wa.ok * 100)}% · ${wa.cd}초`);
+      if (wl > 0) box(wx, yy + bh3 - 6, ww * (1 - wl / wa.cd), 6, C.gold, null, 3);
+    } else if (fm) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18 + bw3 + 8, yy, W - 36 - bw3 - 8, bh3, '각성 변신', () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번 · 마법→물리`); }   // 2026-11-21
     else if (E.kit(u.id).goldScale) fitText(`패시브: 가진 새우 1000마다 공격력 +1% · 지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, 22, yy + bh3 + 22, W - 44, 14, C.goldEdge);
   }
   const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
