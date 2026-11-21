@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=2fafe245b18e';
+import * as E from './engine.js?v=fd3f21ea5c2d';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2209,7 +2209,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? `상위${E.RULES.topCap}` : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
+  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('웨이브부터') ? `${E.RULES.eternalFrom}웨~` : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
 }
 
 // ── 모달 ──
@@ -3124,13 +3124,13 @@ function drawInfo() {
     box(x + 12, y + h - 132, w - 24, 50, 'rgba(243,216,158,.08)', 'rgba(243,216,158,.3)', 8, 1);
     ctx.save(); ctx.beginPath(); ctx.rect(x + 12, y + h - 132, w - 24, 50); ctx.clip();
     if (ready) fitText('재료가 모두 있어요! 바로 조합할 수 있어요.', W / 2, y + h - 107, w - 40, 15, C.good, 'center');
-    else if (E.topBlocked(G, r) && E.recipeUnits(G, r)) fitText(`재료는 모두 있지만 상위(제한~영원)는 ${E.RULES.topCap}마리까지예요. 하나를 팔거나 재료로 쓰면 만들 수 있어요.`, W / 2, y + h - 107, w - 40, 13, C.bad, 'center');
+    else if (E.topBlocked(G, r) && E.recipeUnits(G, r)) fitText(`재료는 모두 있지만 ${E.topBlockWhy(G, r)}.`, W / 2, y + h - 107, w - 40, 13, C.bad, 'center');
     else if (miss) wrap(`더 필요: ${miss}`, x + 22, y + h - 127, w - 44, 13, C.goldEdge, 19);
     else fitText('하위 재료는 다 있어요. 「조합」을 누르면 중간 재료부터 한 번에 만들어요.', W / 2, y + h - 107, w - 40, 14, C.good, 'center');
     ctx.restore();
     const gi = G.goals.indexOf(id), nb = pickable ? 3 : 2, bw = (w - 28 - 12 * (nb - 1)) / nb;
     button(x + 14, y + h - 76, bw, 56, gi >= 0 ? '★ 목표에서 빼기' : '☆ 목표로', () => { const on = E.toggleGoal(G, id); say(on ? `목표: ${u.name} (하위 재료까지 색 테두리)` : '목표에서 뺐어요'); }, gi >= 0 ? 'primary' : 'normal');
-    if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`상위(제한~영원)는 ${E.RULES.topCap}마리까지예요(지금 ${E.topCount(G)}마리).`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
+    if (E.topBlocked(G, r) && !E.recipeUnits(G, r)) fitText(`${E.topBlockWhy(G, r)}.`, W / 2, y + h - 142, w - 30, 13, C.bad, 'center');
     if (pickable) pickBtn(x + 26 + bw, bw);
     button(x + 14 + (nb - 1) * (bw + 12), y + h - 76, bw, 56, '조합', () => { const nu = combineChain(r); if (nu) { selected = [nu.uid]; say(`${u.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; if (info.stack.length) { const back = info.stack[info.stack.length - 1]; info = { id: back, stack: info.stack.slice(0, -1) }; } } }, 'primary', ready || canChain(r));   // 창을 닫지 않음: 재료에서 들어왔으면 위 목표로 돌아감
   }

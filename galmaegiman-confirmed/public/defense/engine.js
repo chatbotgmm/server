@@ -64,6 +64,7 @@ export const RULES = {
   lateBossFrom: 40,   // 이 웨이브부터 보스는 판 성향 보스
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
   sigCastMul: 2, sigCastCd: 30,   // 최상위 고유 기술 직접 쓰기: 배율·쿨타임(초)
+  eternalFrom: 35, eternalCap: 2,   // 영원: 35웨이브부터, 2마리까지
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
   spdX: 1.15,   // 2026-11-15 사용자 요청: 전체적으로 적 이동속도 증가(일반·보스 모두 ×1.15)   // 2026-11-15 사용자 요청: 45웨이브부터 길 위 적이 50마리를 넘으면 즉시 패배(그 전은 70마리 넘은 동안 경고)
@@ -879,7 +880,16 @@ export function recipeUnits(g, r, keepUid = 0) {
 export const TOP_TIER = 6, TOP_POWER_TIER = 7;
 export const SPECIAL_ROLE = '초월 재료', TRANSCEND_KEY = 'u81';   // 초월 갈매미맨   // 초불영제(제한~영원): 능력치는 모두 7단계 값으로
 export const topCount = (g) => g.units.filter((u) => tierOf(u.id) >= TOP_TIER).length;
-export const topBlocked = (g, r) => RULES.topCap > 0 && tierOf(r.out) >= TOP_TIER && topCount(g) >= RULES.topCap;
+// 2026-11-19 사용자 의견(26웨이브쯤 영원 3마리면 너무 쉬움): 영원은 eternalFrom웨이브부터, 판(창고·탐사 포함)에 eternalCap마리까지
+export const eternalCount = (g) => g.units.filter((u) => tierOf(u.id) === 9).length;
+export function topBlockWhy(g, r) {
+  const t = tierOf(r.out); if (t < TOP_TIER) return '';
+  if (RULES.topCap > 0 && topCount(g) >= RULES.topCap) return `상위(제한~영원)는 ${RULES.topCap}마리까지예요`;
+  if (t === 9 && g.wave < (RULES.eternalFrom ?? 0)) return `영원은 ${RULES.eternalFrom}웨이브부터 만들 수 있어요`;
+  if (t === 9 && eternalCount(g) >= (RULES.eternalCap ?? 99)) return `영원은 ${RULES.eternalCap}마리까지예요`;
+  return '';
+}
+export const topBlocked = (g, r) => !!topBlockWhy(g, r);
 export function combine(g, r, keepUid = 0) {
   if (g.over || topBlocked(g, r)) return null;
   const uids = recipeUnits(g, r, keepUid);
