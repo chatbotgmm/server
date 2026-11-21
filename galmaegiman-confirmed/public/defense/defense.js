@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=dc4d1ab559a2';
+import * as E from './engine.js?v=28816b0c4b4d';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2272,7 +2272,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('웨이브부터') ? `${E.RULES.eternalFrom}웨~` : E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
+  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
   if (shut) box(x, y, w - 112, h, 'rgba(7,19,28,.45)', null, 8);   // 닫힌 최상위는 흐리게
 }
 
