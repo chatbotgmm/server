@@ -681,6 +681,7 @@ function start(seed, mode = 'normal', diff = selDiff) {
   G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode, diff); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
   tut = !inRoom() && mode === 'normal' && !ls.get(TUT_KEY) ? { step: 0, n0: G.units.length, t: performance.now() } : null;
+  if (!inRoom() && !tut) modal = { kind: 'intro', t: performance.now() };   // 2026-11-21 사용자 요청: 바로 시작하지 말고 이번 판 소개(멈춘 채, 「시작」을 누르면 진행)
 }
 // ── 이어하기(사용자 요청 2026-11-08): 3초마다·화면을 떠날 때 판을 기기에 저장 ──
 function saveNow() {
@@ -912,8 +913,9 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'aug', 'more']);   // 일시정지(Ⅱ)·결과 창만 멈춤
-const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind));
+const NONPAUSE = new Set(['shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
+const BOARD_MODAL = new Set(['intro', 'aug']);   // 판 위에 뜨는 창(TFT처럼)   // 일시정지(Ⅱ)·결과 창만 멈춤
+const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
@@ -3316,7 +3318,7 @@ function drawModal() {
   else if (modal?.kind === 'recruit') drawRecruit();
   else if (modal?.kind === 'signal') drawSignalPicker();
   else if (modal?.kind === 'choice') drawChoice();
-  else if (modal?.kind === 'aug') drawAug();
+  else if (modal?.kind === 'aug' || modal?.kind === 'intro') drawBoardModal();
 }
 // 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 게임은 계속 흐름.
 // 2026-11-11 사용자 요청: 선택을 미룰 수 있게 — 「나중에」를 누르면 닫히고, 아래 「더보기」에서 언제든 다시 열어 받음
@@ -3342,26 +3344,97 @@ function drawChoice() {
   });
 }
 // 증강체 고르기(2026-11-15 사용자 요청: 흐름이 바뀌는 20·40웨이브 보스 처치 뒤 한 번씩). 게임은 계속 흐르고, 「나중에」로 미룰 수 있음
+// 판 위 창(2026-11-21 사용자 요청: TFT처럼 판 위에) — 판 소개·증강체 고르기. 판 좌표(FIELD)에 그림(가로는 판 확대 안, 세로는 그대로)
+function drawBoardModal() {
+  hit(0, 0, W, H, () => {});   // 아래 판·메뉴 누르기 막음
+  ctx.fillStyle = 'rgba(3,9,14,.62)'; ctx.fillRect(0, 0, W, H);
+  if (modal?.kind === 'intro') drawIntro(); else drawAug();
+}
+// 검은 그림자(보스 미리 보기): 그림을 검게 칠한 사본(한 번만 만듦)
+const maskC = new Map();
+function blackMask(im, key) {
+  let c = maskC.get(key); if (c) return c;
+  c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d');
+  x.drawImage(im, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#05080b'; x.fillRect(0, 0, c.width, c.height);
+  maskC.set(key, c); return c;
+}
+// 이번 판 소개(2026-11-21 사용자 요청): 판 성향 · 닫힌(밴) 최상위 그림 · 후반 「???」 보스 검은 그림자 · 시작 버튼
+function drawIntro() {
+  const x = FIELD.x + 6, w = FIELD.w - 12, y = FIELD.y - 24, h = FIELD.h + 24, bi = E.BIAS[G.bias], cl = { armor: '143,183,255', mr: '255,178,122', split: '143,224,138' }[G.bias] ?? '220,220,220';
+  const age = (performance.now() - (modal.t ?? 0)) / 1000, ap = Math.min(1, age / 0.35);
+  ctx.globalAlpha = ap;
+  box(x, y, w, h, 'rgba(10,26,40,.96)', C.goldEdge, 16, 2.5);
+  text('이번 판 소개', x + w / 2, y + 30, 24, C.gold, 'center');
+  fitText(`${E.DIFFS[G.diff]?.name ?? ''} 난이도 · ${E.RULES.waves}웨이브`, x + w / 2, y + 56, w - 30, 13, C.muted, 'center');
+  // ① 판 성향
+  let yy = y + 74;
+  box(x + 14, yy, w - 28, 62, `rgba(${cl},.12)`, `rgba(${cl},.8)`, 12, 2);
+  fitText(`판 성향: ${bi?.name ?? '-'}`, x + 30, yy + 20, w - 60, 18, `rgb(${cl})`);
+  fitText(bi?.desc ?? '', x + 30, yy + 44, w - 60, 13, C.text);
+  // ② 닫힌 최상위(밴)
+  yy += 76;
+  const shut = G.topOpen ? E.UNITS.filter((u) => E.tierOf(u.id) >= E.TOP_TIER && E.RECIPES.some((r) => r.out === u.id) && !E.topIsOpen(G, u.id)) : [];
+  text(shut.length ? `이번 판 밴(닫힌 최상위) ${shut.length}종` : '이번 판은 최상위가 모두 열려 있어요', x + 18, yy + 10, 16, shut.length ? '#ff9a8a' : C.good);
+  if (shut.length) {
+    const per = 7, cs = Math.floor((w - 28 - (per - 1) * 6) / per), rows = Math.ceil(shut.length / per);
+    shut.forEach((u, i) => {
+      const cx = x + 14 + (i % per) * (cs + 6), cy = yy + 24 + Math.floor(i / per) * (cs + 20);
+      box(cx, cy, cs, cs, 'rgba(7,19,28,.9)', GRADE_COLOR[u.grade], 8, 1.5);
+      ctx.globalAlpha = ap * 0.55; drawFit(unitImg(u.id), cx + 3, cy + 3, cs - 6, cs - 6); ctx.globalAlpha = ap;
+      ctx.strokeStyle = 'rgba(255,107,107,.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx + 8, cy + 8); ctx.lineTo(cx + cs - 8, cy + cs - 8); ctx.moveTo(cx + cs - 8, cy + 8); ctx.lineTo(cx + 8, cy + cs - 8); ctx.stroke();
+      fitText(u.name, cx + cs / 2, cy + cs + 9, cs + 4, 11, GRADE_COLOR[u.grade], 'center');
+    });
+    yy += 24 + rows * (cs + 20);
+  } else yy += 26;
+  // ③ ??? 보스(검은 그림자)
+  yy += 8;
+  const look = E.waveInfo(E.RULES.waves).look, bim = enemyImg(look), bh = Math.max(90, Math.min(230, y + h - 78 - yy - 30)), tx = x + 34 + bh + 24, tw = x + w - 24 - tx;
+  box(x + 14, yy, w - 28, bh + 30, 'rgba(20,6,10,.85)', 'rgba(255,107,107,.7)', 12, 2);
+  if (bim) { const mk = blackMask(bim, look), pulse = 0.5 + 0.5 * Math.sin(age * 3);
+    ctx.save(); ctx.shadowColor = `rgba(${cl},${0.5 + 0.4 * pulse})`; ctx.shadowBlur = 18; drawFit(mk, x + 24, yy + 10, bh + 10, bh + 10); ctx.restore(); }
+  text('???', tx, yy + 34, 30, '#ff8a7a');
+  fitText(`${E.RULES.lateBossFrom}웨이브부터 이 판 성향에 맞춘`, tx, yy + 66, tw, 13, C.text); fitText('강한 보스가 나타나요', tx, yy + 86, tw, 13, C.text);
+  fitText({ armor: '단단한 갑옷 — 마법을 준비하세요', mr: '두꺼운 결계 — 물리를 준비하세요', split: '철벽 — 독을 준비하세요' }[G.bias] ?? '', tx, yy + 114, tw, 13, '#ffb3a8');
+  // 시작
+  button(x + w / 2 - 110, y + h - 66, 220, 52, '시작하기', () => { modal = null; G.biasShown = true; biasAlarm(); sfx('story'); }, 'primary');
+  ctx.globalAlpha = 1;
+}
+// 증강체 고르기(2026-11-21 사용자 요청: 고를 때 게임 멈춤, TFT처럼 판 위에 카드 셋). 「판 보기」로 잠깐 숨겨 판을 볼 수 있음
 function drawAug() {
   if (!G?.augOffer) { modal = null; return; }
-  shadeAll(0.45);
-  const { x, y, w, h } = modalRect(), o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
-  box(x, y, w, h, C.panel, col, 14, 2.5);
-  text(`${o.wave}웨이브 돌파! 증강체 고르기`, x + 18, y + 30, 22, C.text);
-  fitText(`하나를 고르면 이 판이 끝날 때까지 계속 적용돼요 · 다시 뽑기 1번 · 시간이 지나면 자동으로 골라져요${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, x + 18, y + 60, w - 36 - 110, 14, C.muted);
-  { const left = Math.max(0, Math.ceil((o.until ?? G.t) - G.t)); box(x + w - 110, y + 10, 96, 40, 'rgba(7,19,28,.85)', left <= 5 ? C.bad : C.edge, 10, 1.5); text(`${left}초`, x + w - 62, y + 30, 18, left <= 5 ? C.bad : C.goldEdge, 'center'); }   // 남은 시간(지나면 자동 선택)
-  button(x + w - 214, y + 10, 96, 40, o.rerolled ? '리롤 끝' : '다시 뽑기', () => { if (E.rerollAug(G)) sfx('wisp'); }, 'normal', !o.rerolled);   // 2026-11-19: 제시마다 1번
-  const ch = Math.min(150, (h - 96 - 2 * 12) / 3);
+  const o = G.augOffer, col = o.wave >= 40 ? GRADE_COLOR.LEGEND : GRADE_COLOR.EPIC;
+  if (modal.peek) {   // 판 보기: 위에 작은 띠만
+    ctx.fillStyle = 'rgba(3,9,14,.0)';
+    button(W / 2 - 120, FIELD.y + 8, 240, 50, '증강체 고르기로 돌아가기', () => { modal.peek = false; }, 'primary');
+    return;
+  }
+  text(`${o.wave}웨이브 돌파!`, W / 2, FIELD.y + 26, 16, C.muted, 'center');
+  text('증강체를 고르세요', W / 2, FIELD.y + 54, 26, col, 'center');
+  fitText(`게임이 멈춰 있어요 · 이 판이 끝날 때까지 계속 적용${G.augs?.length ? ` · 지금: ${G.augs.map((id) => E.AUGS[id].name).join(', ')}` : ''}`, W / 2, FIELD.y + 80, FIELD.w - 20, 12, C.muted, 'center');
+  const n = o.opts.length, gap = 10, cw = Math.floor((FIELD.w - 8 - gap * (n - 1)) / n), ch = 300, cy = FIELD.y + 100;
   o.opts.forEach((id, i) => {
-    const a = E.AUGS[id], cy = y + 84 + i * (ch + 12), rb = !!a.rb;
-    box(x + 12, cy, w - 24, ch, rb ? 'rgba(48,16,20,.92)' : 'rgba(11,30,42,.9)', rb ? '#ff7a6a' : col, 12, 2);
-    if (rb) { box(x + 108, cy + 8, 84, 20, 'rgba(255,122,106,.18)', '#ff7a6a', 6, 1); text('룰 브레이커', x + 150, cy + 18, 12, '#ffb0a4', 'center'); }   // 대가가 큰 증강(2026-11-16)
-    ctx.beginPath(); ctx.arc(x + 62, cy + ch / 2, 30, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
-    text(a.name.slice(0, 1), x + 62, cy + ch / 2 + 1, 26, col, 'center');   // 첫 글자를 문장처럼(기호 글꼴이 없는 기기에서도 보이게)
-    fitText(a.name, x + 108, cy + ch / 2 - 14, w - 108 - 24 - 112, 19, col);
-    fitText(a.desc, x + 108, cy + ch / 2 + 14, w - 108 - 24 - 112, 14, C.text, 'left', 10);
-    button(x + w - 24 - 100, cy + ch / 2 - 24, 100, 48, '고르기', () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); } }, 'primary');
+    const a = E.AUGS[id], cx = FIELD.x + 4 + i * (cw + gap), rb = !!a.rb, ec = rb ? '#ff7a6a' : col;
+    box(cx, cy, cw, ch, rb ? 'rgba(48,16,20,.96)' : 'rgba(11,30,42,.96)', ec, 14, 2.5);
+    hit(cx, cy, cw, ch, () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); } });
+    if (rb) { box(cx + cw / 2 - 42, cy + 10, 84, 20, 'rgba(255,122,106,.18)', '#ff7a6a', 6, 1); text('룰 브레이커', cx + cw / 2, cy + 20, 12, '#ffb0a4', 'center'); }
+    const ix = cx + cw / 2, iy = cy + 78;
+    if (!fxLite) fxSprite('magic_02', ix, iy, 110, hexRGB(ec), 0.5, performance.now() / 1500);
+    ctx.beginPath(); ctx.arc(ix, iy, 36, 0, Math.PI * 2); ctx.fillStyle = 'rgba(7,19,28,.95)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = ec; ctx.stroke();
+    text(a.name.slice(0, 1), ix, iy + 1, 30, ec, 'center');
+    fitText(a.name, ix, cy + 140, cw - 16, 17, ec, 'center');
+    wrapCenter(a.desc, ix, cy + 168, cw - 18, 13, C.text, 6);
+    box(cx + 12, cy + ch - 50, cw - 24, 38, 'rgba(243,216,158,.14)', C.goldEdge, 10, 1.5); text('고르기', ix, cy + ch - 31, 15, C.gold, 'center');
   });
+  const by = cy + ch + 14;
+  button(W / 2 - 170, by, 160, 46, o.rerolled ? '리롤 끝' : '다시 뽑기', () => { if (E.rerollAug(G)) sfx('wisp'); }, 'normal', !o.rerolled);
+  button(W / 2 + 10, by, 160, 46, '판 보기', () => { modal.peek = true; }, 'quiet');
+}
+// 가운데 맞춤 줄바꿈(글자 단위, 최대 줄 수)
+function wrapCenter(s, cx, y, maxW, size, color, maxLines = 4) {
+  ctx.font = `${size}px ${FONT}`; const lines = []; let cur = '';
+  for (const chh of String(s)) { if (ctx.measureText(cur + chh).width > maxW && cur) { lines.push(cur); cur = chh.trimStart(); } else cur += chh; }
+  if (cur) lines.push(cur);
+  lines.slice(0, maxLines).forEach((ln, k) => text(ln, cx, y + k * (size + 5), size, color, 'center'));
 }
 // ── 친구랑 같이하기(사용자 요청 2026-11-08: 코드를 입력해 방에 들어가고, 친구 화면을 옆에 실시간으로) ──
 // 각자 자기 판을 하고, 0.25초마다 자기 판 모습(짧은 상태 글)을 서버(/defense/room)에 보내며 친구 판 모습을 받아 그린다.
@@ -3791,13 +3864,16 @@ function frame(now) {
       // 왼쪽: 위 정보 줄 + 판을 크게
       ctx.save(); ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X;
       drawField(); drawHud(); drawSignalBanner(); drawToast();
+      const bm = BOARD_MODAL.has(modal?.kind) ? modal : null; if (bm) drawBoardModal();
       ctx.restore(); OS = 1; OX = 0;
+      if (bm) modal = null;   // 오른쪽 칸은 평소 모습(아래에서 어둡게 덮고 누르기 막음)
       // 오른쪽: 창이 열리면 창(열 전체), 없으면 위에 피해 미니판(같이하기면 친구 판) + 아래 메뉴
       if (wide) {   // 넓은 화면: 창 칸(A) + 메뉴 칸(B), 일시정지·결과 창은 오른쪽 가운데에 원래 크기로
         if (topModal()) { colA(drawModal); colB(drawBottom); }
         else if (modal) { const fx = Math.round(SIDE_X + (VW - SIDE_X - W) / 2); ctx.save(); ctx.translate(fx, 0); OX = fx; drawModal(); ctx.restore(); OX = 0; }
         else { colA(drawSideTop); colB(drawBottom); }
         if (info) colA(drawInfo);
+        if (bm) { modal = bm; ctx.fillStyle = 'rgba(3,9,14,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       } else {
       ctx.save(); ctx.translate(SIDE_X, 0); OX = SIDE_X;
       if (topModal()) { drawModal(); drawBottom(); }
@@ -3806,10 +3882,11 @@ function frame(now) {
       else { if (coop()) drawPeerFull(true, true); else drawSideTop(); drawBottom(); }
       if (info) drawInfo();
       ctx.restore(); OX = 0;
+      if (bm) { modal = bm; ctx.fillStyle = 'rgba(3,9,14,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       }
     } else { drawField(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
-  if (scene === 'play') drawBossWarn();
+  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind)) drawBossWarn();   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene !== 'play') drawToast();
   if (perfShow.on) {
