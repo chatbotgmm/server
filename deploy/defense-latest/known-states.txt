@@ -100,3 +100,4 @@ da0a3efb6a0efc1bd6abce796177b60fda099f4551a2c08f3b8c89888d7b921a 최신 이전(�
 857881e59762a9f732ae28b5f6269d30d5292843c14c95f99c3595816d7a1bdf 최신 이전(영원 제한 없앰)
 66804aa81c7c9ae47b3cf305d6baf28c52d2e97322d7be7cee1afcf9ddf40fae 최신 이전(피해 숫자·상점 20웨이브·초반 보상·초반 체력)
 981f164cc8e9fade610c401ffe79fa61492ee2559c91b30556e6b2fe4b7cad83 최신 이전(판 소개·판 위 증강체·목표 창·영원 3.5전설)
+824fc5675509a37f5418e0d8f9ba9c46b28e8ca9fcafdda246fb2b15bf586059 최신 이전(여명 위습 버튼·리치 모집권·패시브 칸)
