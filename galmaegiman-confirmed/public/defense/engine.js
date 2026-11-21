@@ -145,16 +145,17 @@ export const REGIONS = [
 ];
 
 // 위습 찾기 재주: 최상위(제한·초월·불멸·영원) 갈매미만(사용자 요청 2026-11-08: 금각이 너무 쉽게 만들어져 뺌, 거장도 뺌).
-// 적을 쓰러뜨리면 확률로 위습(전설 위습은 여기서만). 지금: 리치(불멸) · 여명(영원) — 가루다는 2026-11-21부터 눌러 쓰는 기술(WISP_ACTIVE)
+// 적을 쓰러뜨리면 확률로 위습 — 2026-11-21부터 비어 있음(가루다·리치·여명 모두 눌러 쓰는 기술 WISP_ACTIVE)
 export const WISP_SKILL = {
   // 2026-11-08 사용자 요청(전설 위습이 너무 잘 나옴): 처치 1마리당 전설 위습 확률 가루다 1.75%→0.3% · 리치 2.8%→0.5% · 여명 4%→0.78%
-  u56: { p: 0.055, table: { EPIC: 0.91, LEGEND: 0.09 } },
-  u57: { p: 0.06, table: { EPIC: 0.87, LEGEND: 0.13 } },
+  // 2026-11-21 사용자 요청: 리치·여명도 처치마다 나오던 것을 없애고 눌러 쓰는 기술로(아래 WISP_ACTIVE)
 };
 // 2026-11-21 사용자 요청(가루다 위습이 너무 잘 나옴): 가루다는 처치마다 나오던 것을 없애고, 정보 창에서 눌러 쓰는 기술로.
 // 누르면 성공 확률 ok로 위습 1개(실패도 있음), 성공하면 거의 에픽·전설은 아주 드묾. 쿨타임 cd초(갈매미마다 따로, 실패해도 돎)
 export const WISP_ACTIVE = {
-  u49: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },
+  u49: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },   // 가루다(초월)
+  u56: { cd: 90, ok: 0.4, table: { EPIC: 0.98, LEGEND: 0.02 } },    // 리치(불멸)
+  u57: { cd: 90, ok: 0.45, table: { EPIC: 0.97, LEGEND: 0.03 } },   // 여명(영원)
 };
 export const wispCastLeft = (g, u) => Math.max(0, (u?.wispAt ?? 0) - g.t);
 export const canWispCast = (g, u) => !!u && !!WISP_ACTIVE[u.id] && !u.away && !u.stored && !u.held && !g.over && wispCastLeft(g, u) <= 0;
