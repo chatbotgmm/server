@@ -154,9 +154,10 @@ export const WISP_SKILL = {
 // 누르면 성공 확률 ok로 위습 1개(실패도 있음), 성공하면 거의 에픽·전설은 아주 드묾. 쿨타임 cd초(갈매미마다 따로, 실패해도 돎)
 export const WISP_ACTIVE = {
   u49: { cd: 90, ok: 0.35, table: { EPIC: 0.99, LEGEND: 0.01 } },   // 가루다(초월)
-  u56: { cd: 90, ok: 0.4, table: { EPIC: 0.98, LEGEND: 0.02 } },    // 리치(불멸)
   u57: { cd: 90, ok: 0.45, table: { EPIC: 0.97, LEGEND: 0.03 } },   // 여명(영원)
 };
+// 2026-11-21 사용자 요청: 리치는 적을 쓰러뜨리면 낮은 확률로 모집권 1개(위습 찾기 대신)
+export const TICKET_SKILL = { u56: { p: 0.01 } };
 export const wispCastLeft = (g, u) => Math.max(0, (u?.wispAt ?? 0) - g.t);
 export const canWispCast = (g, u) => !!u && !!WISP_ACTIVE[u.id] && !u.away && !u.stored && !u.held && !g.over && wispCastLeft(g, u) <= 0;
 export function wispCast(g, uid) {   // 돌려줌: { ok: true, grade } 성공 · { ok: false } 실패 · null 못 씀
@@ -234,7 +235,7 @@ export const STUN_MIN = 1, STUN_MAX = 2;   // 2026-11-15: 1초 20% ~ 2초 10% �
 export function stunPerks(k, t) {
   const big = Math.round(SHRED(t) * 0.6);
   return [k.shred && 'shred', (k.mshred ?? 0) >= big && 'mshred', k.amp && 'amp', k.slow && 'slow', k.area && 'area', (k.splash ?? 0) >= 0.3 && 'splash',
-    k.chain && 'chain', k.poison && 'poison', k.holy && 'holy', k.wisp && 'wisp'].filter(Boolean);   // 주변 버프(공속·공격력)는 셈하지 않음: 고체력 스턴 보조가 버프를 받아도 2초 그대로
+    k.chain && 'chain', k.poison && 'poison', k.holy && 'holy', (k.wisp || k.ticket) && 'wisp'].filter(Boolean);   // 주변 버프(공속·공격력)는 셈하지 않음: 고체력 스턴 보조가 버프를 받아도 2초 그대로
 }
 export const stunTimeOf = (k, t) => Math.min(STUN_MAX, Math.max(STUN_MIN, (k.job === '보조' ? 2.25 : 1.75) - 0.25 * stunPerks(k, t).length));
 export const BOSS_STUN = 0.25;   // 보스는 스턴 시간의 1/4
@@ -385,7 +386,7 @@ function kitRaw(id) {
   if (k.poison) k.poison *= AS;
   // 2026-11-10 사용자 요청: 효과(방깍·마방깍·증폭·이감·스턴·독)는 에픽 이상만 — 커먼·언커먼·레어는 공격만
   if (tt < 3) for (const key of ['shred', 'mshred', 'amp', 'slow', 'stun', 'astun', 'poison', 'haste', 'might', 'weaken']) delete k[key];
-  const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? WISP_ACTIVE[id] ?? null, explore: EXPLORE[id] ?? 0 };
+  const out = { ...k, sig: sigText(id) || undefined, gap: k.gap / AS, type, elem, tier: tt, dmg: Math.round(RULES.dmg[t] * k.mul / AS), sell: RULES.sell[t], wisp: WISP_SKILL[id] ?? WISP_ACTIVE[id] ?? null, ticket: TICKET_SKILL[id] ?? null, explore: EXPLORE[id] ?? 0 };
   if (tt >= TOP_TIER) {
     inheritUtil(id, out);
     const m = Math.max(0, ...(RECIPES.find((q) => q.out === id)?.in ?? []).map((i) => EXPLORE[i] ?? 0));
@@ -451,6 +452,7 @@ export function kitTips(k) {
   if (k.poison) out.push('독(방어 무시·다른 독과 3겹)');
   if (k.holy) out.push('보스 추가 피해');
   if (k.wisp) out.push(k.wisp.cd ? '위습 찾기(눌러서)' : '위습 찾기');
+  if (k.ticket) out.push(`처치 시 모집권 ${Math.round(k.ticket.p * 1000) / 10}%`);
   if (k.inherited?.length) out.push('재료 유틸 물려받음');
   // 앞쪽(정보 칸에서 잘리지 않게): 고유 기술 → 패널티 → 주변 버프
   const head = [k.sig, k.weaken && `패널티: 주변 공격력 −${Math.round(k.weaken * 100)}%(반경 ${WEAKEN_R})`,
@@ -1288,6 +1290,8 @@ export function step(g, dt) {
     if (e.boss) bossDown = true;
     g.fx.push({ kind: 'kill', x: e.x, y: e.y, uid: e.by, look: e.look, boss: !!e.boss, sx: e.hsx, t: g.t });   // 화면: 쓰러짐(모든 적) + 꾸민 갈매미면 처치 효과(꾸미기 2026-11-11)
     const killer = byUid.get(e.by), sk = killer ? WISP_SKILL[killer.id] : null;
+    const tk = killer ? TICKET_SKILL[killer.id] : null;
+    if (tk && g.rand() < tk.p) { g.tickets = (g.tickets ?? 0) + 1; news(g, `${UNIT[killer.id].name}이(가) 모집권을 찾았어요!`); g.fx.push({ kind: 'wisp', x: e.x, y: e.y, grade: 'RARE', t: g.t }); }
     if (sk) { const w = rollWisp(g, sk); if (w) { addWisps(g, { [w]: 1 }); news(g, `${UNIT[killer.id].name}이(가) ${GRADE_NAME[w]} 위습을 찾았어요!`); g.fx.push({ kind: 'wisp', x: e.x, y: e.y, grade: w, t: g.t }); } }
     return false;
   });

@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=b3031794a733';
+import * as E from './engine.js?v=9cce58986bbc';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -2134,15 +2134,21 @@ function drawUnitPanel(y0, u) {
   // 2026-11-11 사용자 지적(태초가 들어가는 마딜이 없다고 보임 — 칸이 한 줄뿐이라 둘째 조합법이 「조합법 +1」 뒤에 숨음):
   // 줄 수보다 조합법이 많으면 작은 카드(그림·이름·물딜/마딜)로 나란히 보여 줌. 누르면 그 조합법 자리로 조합법 창을 엶
   if (sgOn) {
-    const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), wa = E.WISP_ACTIVE[u.id], fm = !!E.FORM_OF[u.id] || !!wa, bw3 = fm ? (W - 36) * 0.58 : W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
+    const sg = E.SIGNATURE[u.id], left = E.sigCastLeft(G, u), ok = E.canCast(G, u), wa = E.WISP_ACTIVE[u.id], kk = E.kit(u.id), pas = kk.ticket || kk.goldScale, fm = !!E.FORM_OF[u.id] || !!wa || !!pas, bw3 = fm ? (W - 36) * 0.58 : W - 36, yy = y0 + 112, bh3 = Math.max(44, Math.min(66, by1 - 8 - yy));
     button(18, yy, bw3, bh3, `「${sg.name}」 쓰기`, () => { const r = E.castSig(G, u.uid); if (r === true) sfx('boss'); else if (r === 'none') say('사거리 안에 적이 없어요.'); else if (left > 0) say(`${Math.ceil(left)}초 뒤에 쓸 수 있어요.`); }, ok ? 'primary' : 'normal', ok, left > 0 ? `${Math.ceil(left)}초 뒤에 다시 쓸 수 있어요` : (fm ? `위력 ×${E.RULES.sigCastMul} · ${E.RULES.sigCastCd}초` : `지금 쓰면 위력 ×${E.RULES.sigCastMul} · 쿨타임 ${E.RULES.sigCastCd}초(갈매미마다 따로)`));
     if (left > 0) box(18, yy + bh3 - 6, bw3 * (1 - left / E.RULES.sigCastCd), 6, C.gold, null, 3);
     if (wa) {   // 2026-11-21 사용자 요청: 가루다 위습 찾기는 눌러서(실패 있음, 전설은 아주 드묾)
       const wl = E.wispCastLeft(G, u), wx = 18 + bw3 + 8, ww = W - 36 - bw3 - 8;
       button(wx, yy, ww, bh3, '위습 찾기', () => { const r = E.wispCast(G, u.uid); if (!r) { if (wl > 0) say(`${Math.ceil(wl)}초 뒤에 쓸 수 있어요.`); return; } if (r.ok) { sfx('wisp'); say(`${E.GRADE_NAME[r.grade]} 위습을 찾았어요!`); } else say('위습 찾기 실패… 다음 기회에.'); }, E.canWispCast(G, u) ? 'primary' : 'normal', E.canWispCast(G, u), wl > 0 ? `${Math.ceil(wl)}초 뒤` : `성공 ${Math.round(wa.ok * 100)}% · ${wa.cd}초`);
       if (wl > 0) box(wx, yy + bh3 - 6, ww * (1 - wl / wa.cd), 6, C.gold, null, 3);
-    } else if (fm) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18 + bw3 + 8, yy, W - 36 - bw3 - 8, bh3, '각성 변신', () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번 · 마법→물리`); }   // 2026-11-21
-    else if (E.kit(u.id).goldScale) fitText(`패시브: 가진 새우 1000마다 공격력 +1% · 지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, 22, yy + bh3 + 22, W - 44, 14, C.goldEdge);
+    } else if (E.FORM_OF[u.id]) { const c = E.transformCost(), to = E.UNIT[E.FORM_OF[u.id]]; button(18 + bw3 + 8, yy, W - 36 - bw3 - 8, bh3, '각성 변신', () => { const r = E.transformUnit(G, u.uid); if (!r.ok) say(r.why); else sfx('boss'); }, 'normal', G.gold >= c, `새우 ${fmtN(c)} · 한 번 · 마법→물리`); }   // 2026-11-21
+    else if (pas) {   // 패시브(2026-11-21: 가로 화면에 자리가 없어 기술 버튼 옆 정보 칸으로) — 리치 모집권 · 갈발 새우 비례 공격력
+      const px = 18 + bw3 + 8, pw = W - 36 - bw3 - 8;
+      box(px, yy, pw, bh3, 'rgba(11,30,42,.85)', C.goldEdge, 10, 1.5);
+      fitText('패시브', px + pw / 2, yy + bh3 * 0.3, pw - 12, 13, C.gold, 'center');
+      fitText(kk.ticket ? `처치 시 ${Math.round(kk.ticket.p * 1000) / 10}% 모집권` : `새우 1000당 공격 +1%`, px + pw / 2, yy + bh3 * 0.58, pw - 12, 12, C.text, 'center');
+      fitText(kk.ticket ? `지금 모집권 ${G.tickets ?? 0}` : `지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, px + pw / 2, yy + bh3 * 0.82, pw - 12, 11, C.goldEdge, 'center');
+    }
   }
   const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
     : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);
