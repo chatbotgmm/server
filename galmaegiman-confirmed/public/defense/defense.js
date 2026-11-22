@@ -2634,7 +2634,7 @@ function drawTitleBack() {   // 화면 전체 너비
   const sky = ctx.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, '#6fbdf0'); sky.addColorStop(0.45, '#bfe6fb'); sky.addColorStop(1, '#2f9fd6');
   ctx.fillStyle = sky; ctx.fillRect(0, 0, VW, VH);
   // 2026-11-21 사용자 제공 그림: 항구 마을과 갈매미들(가로 화면은 넓은 그림, 세로 화면은 세로 그림). 화면을 꽉 채우고 아래(갈매미)가 보이게
-  const sea = img(`${ART}/village/${VW >= VH ? 'title-harbor-wide' : 'title-harbor-tall'}.webp`) ?? img(`${ART}/village/10-distant-bay.webp`);
+  const sea = img(`${ART}/village/${VW >= VH ? 'title-harbor-v2-wide' : 'title-harbor-v2-tall'}.webp`) ?? img(`${ART}/village/10-distant-bay.webp`);
   if (sea) { const s = Math.max(VW / sea.naturalWidth, VH / sea.naturalHeight); ctx.drawImage(sea, (VW - sea.naturalWidth * s) / 2, VH - sea.naturalHeight * s, sea.naturalWidth * s, sea.naturalHeight * s); }
   if (scene === 'title') {   // 위쪽 제목·아래 기록 글이 밝은 그림에 묻히지 않게 아주 옅은 그늘
     const g1 = ctx.createLinearGradient(0, 0, 0, VH * 0.3); g1.addColorStop(0, 'rgba(16,22,56,.45)'); g1.addColorStop(1, 'rgba(16,22,56,0)'); ctx.fillStyle = g1; ctx.fillRect(0, 0, VW, VH * 0.3);
