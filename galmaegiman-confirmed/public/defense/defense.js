@@ -694,12 +694,12 @@ function start(seed, mode = 'normal', diff = selDiff) {
   shake.until = 0;
   G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode, diff); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
-  tut = !inRoom() && mode === 'normal' && !ls.get(TUT_KEY) ? { step: 0, n0: G.units.length, t: performance.now() } : null;
-  if (!inRoom() && !tut) modal = { kind: 'intro', t: performance.now() };   // 2026-11-21 사용자 요청: 바로 시작하지 말고 이번 판 소개(멈춘 채, 「시작」을 누르면 진행)
+  tut = null;   // 2026-11-22: 첫 판 안내 대신 따로 들어가는 튜토리얼(startTutorial)
+  if (!inRoom()) modal = { kind: 'intro', t: performance.now() };   // 2026-11-21 사용자 요청: 바로 시작하지 말고 이번 판 소개(멈춘 채, 「시작」을 누르면 진행)
 }
 // ── 이어하기(사용자 요청 2026-11-08): 3초마다·화면을 떠날 때 판을 기기에 저장 ──
 function saveNow() {
-  if (scene !== 'play' || !G || G.over) return;
+  if (scene !== 'play' || !G || G.over || G.tutorial) return;   // 튜토리얼 연습 판은 이어하기에 안 남김
   if (coop()) ls.set(ROOM_SAVE_KEY, JSON.stringify({ code: net.code, round: net.round, gs: net.giftSent, gr: net.giftRecv, save: E.saveGame(G) }));
   else if (!inRoom()) { ls.set(SAVE_KEY, E.saveGame(G)); resumeMeta = { wave: G.wave, mode: G.mode, diff: G.diff, at: Date.now() }; ls.set(SAVE_META_KEY, JSON.stringify(resumeMeta)); cloudSave(false); }
 }
@@ -786,7 +786,7 @@ function recordRun(w) {
   G.lastRec = rec;
 }
 function saveBest() {   // 모드마다 따로
-  if (G.lastRec) return;   // 한 판에 한 번만(같이하기에서 친구 판을 보고 돌아와도 다시 기록하지 않음)
+  if (G.lastRec || G.tutorial) return;   // 튜토리얼 연습 판은 기록 안 함   // 한 판에 한 번만(같이하기에서 친구 판을 보고 돌아와도 다시 기록하지 않음)
   const w = G.over === 'win' ? E.RULES.waves + 1 : G.wave;
   recordRun(w);
   if (G.over === 'win') addClear(G.diff);
@@ -929,7 +929,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
 const NONPAUSE = new Set(['goals', 'shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
 const BOARD_MODAL = new Set(['intro', 'aug']);   // 판 위에 뜨는 창(TFT처럼)   // 일시정지(Ⅱ)·결과 창만 멈춤
-const running = () => scene === 'play' && G && !G.over && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
+const running = () => scene === 'play' && G && !G.over && !tut?.hold && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
@@ -2798,6 +2798,7 @@ function drawTitle() {
   if (resumeMeta) button(40, 372, W - 80, 44, `이어하기 · ${resumeMeta.wave}웨이브 (${[diffName(resumeMeta.diff), resumeMeta.mode && resumeMeta.mode !== 'normal' ? E.MODES[resumeMeta.mode]?.name : ''].filter(Boolean).join('·')})`, resume, 'normal');
   const sy = resumeMeta ? 426 : 372;
   button(40, sy, (W - 92) / 2, 72, '혼자 하기', () => start(), 'primary');
+  if (!ls.get(TUT_KEY)) button(40, sy + 84, W - 80, 50, '처음이라면? 튜토리얼', startTutorial, 'normal', true, '직접 해 보며 배우기(연습 판)');   // 2026-11-22: 한 번 끝내면 메뉴에만
   button(52 + (W - 92) / 2, sy, (W - 92) / 2, 72, '친구랑 같이하기', () => { scene = 'lobby'; lobby.mode = 'menu'; lobby.msg = ''; lobby.note = ''; musicPlay(); }, 'normal', true, '코드로 방 들어가기');
   box(28, 914, W - 56, 32, 'rgba(20,28,70,.78)', null, 16);   // 밝은 그림 위에서 읽히게(맨 아래로 — 갈매미가 보이게)
   if (cloud.on) fitText(`최고 기록 ${bestText(best)} · ${cloud.nick ? `${cloud.nick}님 ` : ''}계정에 저장 중(다른 기기에서도 이어하기)`, W / 2, 930, W - 40, 14, C.good, 'center');
@@ -3069,7 +3070,7 @@ const TITLE_RULES = () => [
 function drawTitleMenu() {   // 첫 화면 「≡ 메뉴」
   shadeAll();
   const x = 40, w = W - 80, items = [['기록', '지난 판 기록·조합', () => { modal = { kind: 'records' }; }], ['최상위 기록', '최상위 유닛별 클리어 횟수', () => { modal = { kind: 'tops', td: 'all' }; }], ['꾸미기', '클리어 보상: 날개·오라·효과', openCustomize, cosOpen() > (stats.seen ?? 0)],
-    ['도전 모드', `규칙을 바꿔 도전(난이도 ${diffName(selDiff)})`, () => { modal = { kind: 'modes' }; }], ['조합식 ↗', '상위 조합식 웹페이지(새 탭)', openRecipePage], ['게임 방법', '처음 하는 분을 위한 안내', () => { modal = { kind: 'rules' }; }]];
+    ['도전 모드', `규칙을 바꿔 도전(난이도 ${diffName(selDiff)})`, () => { modal = { kind: 'modes' }; }], ['조합식 ↗', '상위 조합식 웹페이지(새 탭)', openRecipePage], ['튜토리얼', '직접 해 보며 배우기(연습 판·기록 안 남음)', () => { modal = null; startTutorial(); }], ['게임 방법', '처음 하는 분을 위한 안내', () => { modal = { kind: 'rules' }; }]];
   const h = 92 + items.length * 70, y = Math.max(70, (VH0() - h) / 2);
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('메뉴', x + 20, y + 32, 22, C.text);
@@ -3307,19 +3308,21 @@ function showInfo(id, fromCard = false) {   // 설명 안에서 재료를 누르
 }
 // 재료 나무(사용자 요청 2026-11-08: 피라미드 화면 개편): 위에 만들 것, 각 재료는 자기 바로 아래에 선으로 이어짐.
 // 너무 넓으면 보이는 단 수를 줄이고, 더 아래가 있는 재료는 「+」(누르면 그 재료 기준으로 펼침)
-function treeLayout(root, availW) {
+function treeLayout(root, availW, availH = 1e9) {
   const fit = (md) => {
     const vis = (n, d) => { n.d = d; n.show = d < md && !n.have ? n.kids : []; n.more = !n.have && n.kids.length > 0 && !n.show.length; n.leaves = n.show.length ? n.show.reduce((a, c) => a + vis(c, d + 1), 0) : 1; return n.leaves; };
     return vis(root, 0);
   };
-  let md = 3;
-  while (md > 1 && fit(md) * 46 > availW) md--;
-  fit(md);
-  let depth = 0;
-  const walk = (n) => { depth = Math.max(depth, n.d); n.show.forEach(walk); };
-  walk(root);
-  return depth;
+  const depthOf = () => { let depth = 0; const walk = (n) => { depth = Math.max(depth, n.d); n.show.forEach(walk); }; walk(root); return depth; };
+  // 2026-11-22 사용자 제보(휴대폰 「원해」 정보 창 글자 겹침): 폭만 보고 단 수를 정해, 높이가 모자라면 이름표가 아래 단·「더 필요」 칸과 겹쳤음 → 한 단 높이가 TREE_ROW_MIN 이상일 때까지 단 수를 줄임(줄인 재료는 「+」로 펼침)
+  for (let md = 3; md >= 1; md--) {
+    const leaves = fit(md), depth = depthOf();
+    if (md === 1 || (leaves * 46 <= availW && (depth === 0 || treeRowH(availH, depth) >= TREE_ROW_MIN))) return depth;
+  }
+  return depthOf();
 }
+const TREE_ROW_MIN = 60;   // 동그라미(반지름 17 이상) + 이름표 한 줄이 들어가는 최소 단 높이
+const treeRowH = (h, depth) => Math.min(118, (h - 76) / Math.max(1, depth));   // 맨 위 34 + 맨 아래 동그라미·이름표 몫 42를 뺀 나머지를 단 수로 나눔
 function drawCheck(cx, cy, r, fill, mark) {   // 동그란 작은 표시: ✓ · ! · +
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#10163a'; ctx.stroke();
   ctx.strokeStyle = '#10163a'; ctx.lineWidth = 2.2; ctx.beginPath();
@@ -3341,8 +3344,8 @@ function treeLabel(name, cx, y, maxW, size, color) {
   text(t + '…', cx, y, 9, color, 'center');
 }
 function drawTree(root, x0, y0, w, h) {
-  const depth = treeLayout(root, w);
-  const rowH = Math.min(118, h / (depth + 1)), R = [30, 25, 21, 19];
+  const depth = treeLayout(root, w, h);
+  const rowH = depth ? treeRowH(h, depth) : 0, R = [30, 25, 21, 19].map((r, d) => (d && rowH ? Math.max(15, Math.min(r, (rowH - 24) / 2)) : r));   // 단이 낮으면 동그라미도 줄임(이름표 자리 남김)
   const place = (n, a, b) => { n.cx = (a + b) / 2; n.cy = y0 + 34 + n.d * rowH; let s = a; for (const c of n.show) { const e = s + (b - a) * c.leaves / n.leaves; place(c, s, e); s = e; } n.span = b - a; };
   place(root, x0, x0 + w);
   const lines = (n) => {   // 부모 아래 → 가로 → 자식 위
@@ -3467,33 +3470,95 @@ function drawMeter() {
   });
   ctx.restore();
 }
-// ── 처음 하는 사람 안내(사용자 요청 2026-11-08): 첫 판에서만, 위습 부르기 → 끌어 옮기기 → 조합법 → 설명 ──
+// ── 튜토리얼(2026-11-22 사용자 요청 「튜토리얼도 따로 만들어줘」): 첫 화면에서 따로 들어가는 연습 판(입문 난이도) ──
+// 직접 해 보는 단계(위습 → 끌기 → 조합 → 갈매미 보기 → 강화)와 설명 카드(규칙·웨이브·탐사·상점). 기록·이어하기·계정 저장은 남지 않음
+// (예전 「첫 판 4단계 안내」는 이것으로 바꿈)
 let tut = null;
 function tutDone() { tut = null; ls.set(TUT_KEY, '1'); }
-function drawTutorial() {
-  const now = performance.now();
-  if (tut.step === 0 && G.units.length > tut.n0) { tut.step = 1; tut.mv = moveCount; }
-  if (tut.step === 1 && moveCount > tut.mv) tut.step = 2;
-  if (tut.step === 2 && modal?.kind === 'book') { tut.step = 3; tut.t = now; }
-  if (tut.step === 3 && (info || now - tut.t > 9000)) { tutDone(); return; }
-  if (info || (modal && !(tut.step === 3 && modal.kind === 'book'))) return;   // 다른 창을 가리지 않게(조합법 단계만 창 위에)
-  const b5 = (W - 44 - 4 * 6) / 5, b4 = (W - 44 - 24) / 5, newest = E.fieldUnits(G).slice(-1)[0], PL = panelLayout();
-  const steps = [
-    { msg: '① 커먼 위습을 눌러 갈매미를 불러 보세요', tx: 22 + b5 / 2, ty: PL.wy, by: 560 },
-    { msg: '② 갈매미를 끌어서 길(적이 지나가는 곳) 옆으로 옮겨 보세요', tx: newest?.x ?? W / 2, ty: (newest?.y ?? 400) - 56, by: (newest?.y ?? 400) > 400 ? 150 : 470 },
-    { msg: '③ 위습을 더 불러 조합법대로 모으면 더 센 갈매미! 「조합법」을 눌러 보세요', tx: 22 + (W - 44 - 6) / 4, ty: PL.by, by: 640 },   // 2026-11-11: 조합법은 아래 메뉴 첫 줄 왼쪽
-    { msg: '④ 조합법 줄을 누르면 설명과 재료 나무가 나와요. 이제 직접 해 보세요!', tx: null, ty: null, by: H - 96 },
+const TUT_RECIPE = () => E.RECIPES.find((r) => r.in.every((id) => E.UNIT[id].grade === 'COMMON')) ?? E.RECIPES[0];   // 재료가 모두 커먼인 첫 조합법
+const tutCount = (id) => E.fieldUnits(G).filter((u) => u.id === id).length;
+const upgSum = () => G.upg.reduce((a, b) => a + b, 0);
+function startTutorial() {
+  start(20261128, 'normal', 'intro');   // 갑옷형이 나오는 시드(가장 무난한 성향)
+  G.tutorial = true; modal = null; selected = [];
+  tut = { step: 0, entered: -1 };
+}
+function tutGo(k) { tut.step = k; tut.entered = -1; }
+function tutSteps() {
+  const b5 = (W - 44 - 4 * 6) / 5, PL = panelLayout(), b2 = (W - 44 - 6) / 2, r = TUT_RECIPE(), out = E.UNIT[r.out];
+  const newest = E.fieldUnits(G).slice(-1)[0], made = E.fieldUnits(G).filter((u) => u.id === r.out).slice(-1)[0];
+  const aboveMenu = PL.wy - 120;
+  return [
+    { card: '튜토리얼', btn: '시작하기', body: [
+      '적은 판 둘레의 길을 따라 빙빙 돌아요. 갈매미를 판에 놓아 적을 물리쳐요.',
+      `길 위 적이 ${E.RULES.limit}마리를 넘으면 1초마다 경고가 1번 쌓이고, 경고가 ${E.RULES.warnMax}번을 넘으면 져요. 위 상황판의 「적 N/${E.RULES.limit}」·「경고 N/${E.RULES.warnMax}」를 보세요.`,
+      '연습 판(입문 난이도)이라 기록·이어하기는 남지 않아요. 하나씩 직접 해 봐요!'] },
+    { msg: '아래 「커먼」 위습을 눌러 갈매미를 불러 보세요. (PC: 숫자 1 키)', fr: 'panel', tx: 22 + b5 / 2, ty: PL.wy, by: aboveMenu,
+      enter: (t) => { t.n0 = G.units.length; G.wisps.COMMON = Math.max(G.wisps.COMMON ?? 0, 2); }, done: (t) => G.units.length > t.n0 },
+    { msg: '갈매미를 끌어서 길 가까이 옮겨 보세요. 둘레 동그라미(사거리) 안의 적을 공격해요.', fr: 'board', tx: newest?.x, ty: (newest?.y ?? 400) - 56, by: (newest?.y ?? 400) > 400 ? 150 : 470,
+      enter: (t) => { t.mv = moveCount; }, done: (t) => moveCount > t.mv },
+    { msg: `재료(${r.in.map((id) => E.UNIT[id].name).join('·')})를 넣어 드렸어요! 「조합법」을 열고 「${out.name}」 줄의 「조합」을 눌러 보세요. (PC: B 키)`, fr: 'panel', tx: 22 + b2 / 2, ty: PL.by, by: aboveMenu, overModal: 'book',
+      enter: (t) => { t.c0 = tutCount(r.out); for (const id of r.in) { const gr = E.UNIT[id].grade; G.picks[gr] = (G.picks[gr] ?? 0) + 1; E.summonPick(G, id); } },
+      done: (t) => tutCount(r.out) > t.c0 },
+    { msg: `만든 「${out.name}」을(를) 판에서 눌러 보세요. 능력치·이 갈매미로 만들 수 있는 것·판매·창고·위치 고정이 나와요. 다 봤으면 「닫기」!`, fr: 'board', tx: made?.x, ty: (made?.y ?? 400) - 56, by: (made?.y ?? 400) > 400 ? 150 : 470,
+      enter: (t) => { if (modal?.kind === 'book') modal = null; t.sel = false; }, tick: (t) => { if (selected.length) t.sel = true; }, done: (t) => t.sel && !selected.length },
+    { msg: '「강화」를 열고 아무 줄이나 「강화」를 눌러 보세요. 그 등급 갈매미가 모두 세져요. 강화엔 새우(돈)가 들어요. (PC: U 키)', fr: 'panel', tx: 22 + b2 + 6 + b2 / 2, ty: PL.by, by: aboveMenu, overModal: 'upgrade',
+      enter: (t) => { t.u0 = upgSum(); G.gold = Math.max(G.gold, Math.max(...G.upg.map((_, gi) => E.upgradeCost(G, gi))) + 20); }, done: (t) => upgSum() > t.u0 },
+    { card: '웨이브와 보스', btn: '다음', enter: () => { if (modal?.kind === 'upgrade') modal = null; }, body: [
+      `적은 웨이브마다 새로 와요. ${E.RULES.bossEvery}웨이브마다 보스! ${E.RULES.restEvery}웨이브마다 쉬는 시간이 있어요. ${E.RULES.waves}웨이브까지 버티면 클리어예요.`,
+      `${E.RULES.hardLimitFrom}웨이브부터는 경고 없이, 길 위 적이 ${E.RULES.hardLimit}마리를 넘는 즉시 져요.`,
+      '위 상황판 「▸ 다음」에 다음 웨이브의 방어력(보스면 「보스!」)이 나와요. 판마다 성향(갑옷형·결계형·재생형·분열형)이 있어 물리·마법 유불리가 달라요.'] },
+    { card: '외부탐사 · 상점 · 목표', btn: '다음', body: [
+      '외부탐사: 갈매미를 판 밖으로 보내 장마다 보스를 잡으면 보상(위습 등)을 받아요. 보낸 갈매미는 그동안 판에서 빠져요.',
+      `상점: 모집권 1개로 하급 모집(커먼 위습 1개), 모집권 ${E.RULES.recruitCost}개로 상급 모집(레어 30%·에픽 40%, 나머지는 꽝). ${E.RULES.shopFrom}웨이브부터는 새우로 위습·리롤권도 사요.`,
+      `조합법에서 ☆를 누르면 목표가 되고, 판 위 동그라미 버튼에 남은 재료가 보여요(3개까지). ${(E.AUG_WAVES ?? [20, 40]).join('·')}웨이브 보스 뒤 쉬는 시간이 끝나면 증강체 3개 중 하나를 골라요.`] },
+    { card: '튜토리얼 끝!', end: true, body: [
+      '이제 진짜 판을 시작해 볼까요? 난이도는 첫 화면에서 고를 수 있어요(입문~장인).',
+      '튜토리얼은 첫 화면 「≡ 메뉴 → 튜토리얼」에서 언제든 다시 할 수 있어요.'] },
   ];
-  const st = steps[tut.step], bw = W - 60, bh = 74, bx = 30;
-  let by = st.by;
-  ctx.save();
-  if (landscape) {   // 가로 배치: 메뉴·조합법은 오른쪽 열, 갈매미 끌기는 왼쪽 큰 판
-    if (tut.step === 1) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X; } else if (wide) { ctx.translate(BX, BYT); ctx.scale(WK, WK); OX = BX; OY = BYT; OS = WK; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+}
+function drawTutCard(st) {
+  ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0); OX = 0; OY = 0; OS = 1;
+  ctx.fillStyle = 'rgba(8,11,30,.6)'; ctx.fillRect(0, 0, VW, VH); hit(0, 0, VW, VH, () => {});
+  const w = Math.min(600, VW - 40), x = (VW - w) / 2;
+  ctx.font = `16px ${FONT}`;
+  let hh = 0; for (const b of st.body) { let line = '', n = 1; for (const wd of b.split(' ')) { const t = line ? `${line} ${wd}` : wd; if (ctx.measureText(t).width > w - 48 && line) { n++; line = wd; } else line = t; } hh += n * 24 + 12; }
+  const h = 88 + hh + (st.end ? 196 : 76), y = Math.max(16, (VH - h) / 2);
+  box(x, y, w, h, C.panel, C.goldEdge, 16, 2);
+  text(st.card, x + 24, y + 38, 24, C.text);
+  const total = tutSteps().length; text(`${tut.step + 1}/${total}`, x + w - 24, y + 38, 14, C.muted, 'right');
+  let yy = y + 70; for (const b of st.body) { yy += wrap(b, x + 24, yy, w - 48, 16, C.text, 24) + 12; }
+  if (st.end) {
+    button(x + 24, yy + 8, w - 48, 56, '진짜 판 시작하기', () => { tutDone(); start(); }, 'primary');
+    button(x + 24, yy + 72, (w - 56) / 2, 48, '조금 더 연습', () => { tutDone(); }, 'normal', true);
+    button(x + 32 + (w - 56) / 2, yy + 72, (w - 56) / 2, 48, '첫 화면으로', () => { tutDone(); scene = 'title'; modal = null; G = null; }, 'quiet');
+    fitText('연습 판은 기록에 남지 않아요', x + w / 2, yy + 140, w - 48, 13, C.muted, 'center');
+  } else {
+    button(x + w - 24 - 180, yy + 8, 180, 52, st.btn ?? '다음', () => tutGo(tut.step + 1), 'primary');
+    button(x + 24, yy + 12, 150, 44, '튜토리얼 그만', () => { tutDone(); scene = 'title'; modal = null; G = null; }, 'quiet');
   }
+  ctx.restore();
+}
+function drawTutorial() {
+  const now = performance.now(), steps = tutSteps(), st = steps[tut.step];
+  if (!st) { tutDone(); return; }
+  if (tut.entered !== tut.step) { tut.entered = tut.step; st.enter?.(tut); tut.hold = !!st.card; return; }
+  st.tick?.(tut);
+  if (st.done?.(tut)) { tutGo(tut.step + 1); return; }
+  if (st.card) { drawTutCard(st); return; }
+  if (info || (modal && modal.kind !== st.overModal)) return;   // 다른 창을 가리지 않게(이 단계의 창은 위에 안내)
+  const bw = W - 60, bh = 86, bx = 30, inModal = !!modal;
+  let by = inModal ? (landscape ? H - bh - 8 : VH - bh - 8) : st.by;
+  ctx.save();
+  if (landscape) {   // 가로 배치: 메뉴·창은 오른쪽 열, 갈매미 끌기는 왼쪽 큰 판
+    if (st.fr === 'board' && !inModal) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X; } else if (wide) { ctx.translate(BX, BYT); ctx.scale(WK, WK); OX = BX; OY = BYT; OS = WK; } else { ctx.translate(SIDE_X, 0); OX = SIDE_X; }
+  }
+  if (inModal && !landscape) by = Math.min(by, VH - bh - 8);
   box(bx, by, bw, bh, 'rgba(41,54,129,.97)', C.goldEdge, 12, 2);
-  ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 6, bw - 120, bh - 12); ctx.clip(); wrap(st.msg, bx + 14, by + 12, bw - 130, 15, C.text, 22); ctx.restore();
-  button(bx + bw - 100, by + 18, 88, 38, '안내 끄기', tutDone, 'quiet');
-  if (st.tx != null) {   // 가리키는 화살표
+  text(`${tut.step + 1}/${steps.length}`, bx + 14, by + 16, 12, C.gold);
+  ctx.save(); ctx.beginPath(); ctx.rect(bx + 10, by + 24, bw - 120, bh - 28); ctx.clip(); wrap(st.msg, bx + 14, by + 28, bw - 130, 14, C.text, 20); ctx.restore();
+  button(bx + bw - 100, by + 22, 88, 42, '그만', () => { tutDone(); scene = 'title'; modal = null; G = null; }, 'quiet');
+  if (st.tx != null && !inModal) {   // 가리키는 화살표
     const ay = st.ty > by ? by + bh : by, dir = st.ty > by ? 1 : -1, ax = Math.max(bx + 20, Math.min(bx + bw - 20, st.tx));
     const bob = Math.sin(now / 220) * 4;
     ctx.strokeStyle = C.goldEdge; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(st.tx, st.ty - dir * (10 - bob)); ctx.stroke();
@@ -4188,7 +4253,7 @@ function frame(now) {
       }
     } else { drawField(); drawGoalBoard(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
-  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind)) drawBossWarn();   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
+  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias')) drawBossWarn();   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   drawHover();
   if (scene !== 'play') drawToast();
@@ -4220,6 +4285,7 @@ function frame(now) {
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
 window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
 window.__defense.goalOpen = goalOpen;
-Object.defineProperty(window.__defense, 'hits', { get: () => hits });   // 시험용(누르기 영역)
+Object.defineProperty(window.__defense, 'hits', { get: () => hits });
+Object.assign(window.__defense, { startTutorial, tutGo: (k) => tutGo(k) }); Object.defineProperty(window.__defense, 'tut', { get: () => tut });   // 시험용(튜토리얼)   // 시험용(누르기 영역)
 Object.defineProperty(window.__defense, 'mouse', { get: () => mouse });   // 시험용(판 위 목표 창 열기)
 Object.assign(window.__defense, { makeRoom, joinRoom, sendCtl, sendPvp, pvpNet, pvpResult, toLobby: () => { scene = 'lobby'; } });   // 시험용(같이하기 두 화면 시험)
