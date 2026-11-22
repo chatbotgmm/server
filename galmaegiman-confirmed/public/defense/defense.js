@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=d1c10b78b5a1';
+import * as E from './engine.js?v=eb32979cccff';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -1705,7 +1705,7 @@ function drawFieldInner() {
         ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
       else { drawShot(f, age); if (f.near && f.type === 'phys' && age < 0.15) fxSprite('slash_02', f.x1, f.y1 - 14, f.tier >= 6 ? 70 : 50, '255,226,180', 1 - age / 0.15, Math.atan2(f.y1 - f.y0, f.x1 - f.x0) - Math.PI / 2); }   // 근접 물리: 베기 자국
     } else if (f.kind === 'num' && age < 0.75) {   // 2026-11-21: 화려한 효과를 꺼도 숫자는 보임(글자만이라 가벼움)   // 보스 피해 숫자(전설 이상)
-      // 2026-11-21: 모든 레어 이상 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
+      // 2026-11-22: 모든 등급 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
       const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
       ctx.globalAlpha = Math.min(1, a * 1.6);
       const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;

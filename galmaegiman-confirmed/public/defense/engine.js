@@ -80,7 +80,7 @@ export const RULES = {
   augPickSec: 20,   // 증강체 고르는 시간(초, 게임 시간)
   sigCastMul: 2, sigCastCd: 30,   // 최상위 고유 기술 직접 쓰기: 배율·쿨타임(초)
   // (2026-11-21 사용자 요청: 영원 「35웨이브부터·판에 2마리까지」 규칙 없앰 — 최상위 절반만 열림으로 대신)
-  critChance: 0.1, critMul: 2, numMax: 14,   // 치명타 10% ×2 · 피해 숫자 동시 최대
+  critChance: 0.1, critMul: 2, numMax: 20,   // 치명타 10% ×2 · 피해 숫자 동시 최대
   goldScaleCap: 1, transformCost: 20000,   // 갈발 패시브 한도 · 귀해 변신 새우
   landTime: 1.5,   // 내려놓은 뒤 주저앉아 행동 불능(초). 2026-11-16 사용자 요청 0.8 → 1.5
   weather: true,   // 날씨(11웨이브부터 5웨이브마다)
@@ -1170,7 +1170,12 @@ function attack(g, u, k) {
   if (k.stun) { const st = (k.stunTime ?? 1), p = k.stun * (1 + augV(g, 'stun')) * (1 + synV(g, 'ICE')), r2 = rg2;
     for (const e of g.enemies) { if (e.hp <= 0 || !e.speed || hits.includes(e) || (e.x - u.x) ** 2 + (e.y - u.y) ** 2 > r2) continue; if (g.rand() < p) e.stunUntil = Math.max(e.stunUntil, g.t + st * (e.boss ? BOSS_STUN : 1)); } }
   // 화면용(2026-11-09 공격 연출): 보스에게 전설 이상이 준 피해 숫자(동시에 4개까지)
-  if (d0 > 0 && (crit || k.tier >= 2 || best.boss) && g.fx.filter((f) => f.kind === 'num').length < (RULES.numMax ?? 14)) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, crit, boss: !!best.boss, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });   // 2026-11-21: 피해 숫자(레어 이상·치명타·보스, 동시에 14개까지)
+  if (d0 > 0) {   // 2026-11-22 사용자 요청: 피해 숫자는 모든 등급. 동시에 numMax개까지, 꽉 차면 치명타·에픽 이상이 가장 오래된 낮은 등급 숫자를 밀어냄
+    const nums = g.fx.filter((f) => f.kind === 'num'), imp = crit || k.tier >= 3 || best.boss;
+    let ok = nums.length < (RULES.numMax ?? 20);
+    if (!ok && imp) { const old = nums.find((f) => !f.crit && !f.boss && f.tier < 3); if (old) { g.fx.splice(g.fx.indexOf(old), 1); ok = true; } }
+    if (ok) g.fx.push({ kind: 'num', x: best.x, y: best.y, v: d0, tier: k.tier, crit, boss: !!best.boss, n: (g.numSeq = ((g.numSeq ?? 0) + 1) % 1000), t: g.t });
+  }
   if (k.chain) {
     const near = g.enemies.filter((e) => e !== best && e.hp > 0).map((e) => [e, Math.hypot(e.x - best.x, e.y - best.y)]).filter(([, d]) => d <= 90).sort((a, b) => a[1] - b[1]).slice(0, k.chain);
     for (const [e] of near) { hurt(g, e, k.dmg * 0.5, k, u.uid); g.fx.push({ kind: 'zap', x0: best.x, y0: best.y, x1: e.x, y1: e.y, t: g.t }); }
