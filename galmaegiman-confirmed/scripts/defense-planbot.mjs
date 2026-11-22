@@ -60,7 +60,9 @@ function bot(g, st) {
   if (g.choice) E.chooseReward(g, 0);
   if (g.augOffer && E.chooseAug && process.env.NOAUG !== '1') {   // 증강체(2026-11-15): 봇 방식에 맞는 것부터. NOAUG=1이면 고르지 않음(전·후 비교용)
     const pref = [st.style === 'phys' ? 'phys' : 'mag', 'fury', 'rift', 'shred', 'haste', 'boss', 'exec', 'storm', 'legend', 'chrono', 'wisp', 'upg', 'explore', 'slow', 'stun', 'gold', 'warn', 'supply', 'phys', 'mag'];
-    const o = g.augOffer.opts; let best = 0, bi = 99; o.forEach((id, i) => { const r = pref.indexOf(id); if (r >= 0 && r < bi) { bi = r; best = i; } }); E.chooseAug(g, best);
+    const force = process.env[`AUG${g.augOffer.wave}`];   // 증강체 밸런스 재기(2026-11-22): AUG20=phys AUG40=fury처럼 그 웨이브에 그것을 고름
+    if (force) { g.augOffer.opts[0] = force; E.chooseAug(g, 0); } else {
+    const o = g.augOffer.opts; let best = 0, bi = 99; o.forEach((id, i) => { const r = pref.indexOf(id); if (r >= 0 && r < bi) { bi = r; best = i; } }); E.chooseAug(g, best); }
   }   // 6장 보상: 초월 갈매미맨(초월 등급을 만들 수 있게)
   const have = ownedMap(g);
   // 지금 목표: 목록에서 아직 없는 것 2개

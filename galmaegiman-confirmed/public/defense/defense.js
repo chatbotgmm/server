@@ -298,6 +298,7 @@ const SFX = {
   story: [[523, 0, 0.12, 'triangle'], [659, 0.1, 0.12, 'triangle'], [784, 0.2, 0.12, 'triangle'], [1047, 0.3, 0.3, 'sine']],
   signal: [[1320, 0, 0.08, 'sine'], [1760, 0.09, 0.12, 'sine']],
   wisp: [[1568, 0, 0.1, 'sine'], [2093, 0.07, 0.14, 'sine']],
+  top: [[523, 0, 0.14, 'triangle'], [659, 0.09, 0.14, 'triangle'], [784, 0.18, 0.14, 'triangle'], [1047, 0.27, 0.2, 'triangle'], [1319, 0.4, 0.3, 'sine'], [1568, 0.55, 0.9, 'sine'], [1047, 0.55, 0.9, 'triangle'], [784, 0.55, 0.9, 'triangle'], [2093, 0.75, 0.6, 'sine']],   // 최상위 탄생 팡파르(2026-11-22)
 };
 function sfx(name) {
   if (!(sfxState.vol > 0)) return;
@@ -1949,13 +1950,19 @@ function drawHud() {
   for (const u of E.fieldUnits(G)) { const k = E.kit(u.id); shSum += k.shred ?? 0; mshSum += k.mshred ?? 0; slSum += k.slow ?? 0; stSum += (k.stun ?? 0) + (k.astun ?? 0); }
   const okCol = (v, a = armorNow) => (v >= a * 0.7 ? C.good : v >= a * 0.35 ? C.goldEdge : C.bad);
   ctx.font = `12px ${FONT}`;
-  const sx = 150 + cw + 8, maxW = W - 224 - sx;
+  const sx = 150 + cw + 8, maxW = W - 120 - sx;   // 2026-11-22: 배속 버튼을 빼서(사용자 요청) 오른쪽 버튼은 소리·멈춤 둘(W−112부터)
   if (maxW > 40) {
-    const t1 = `깎인 방어 ${armorNow}→${Math.max(0, Math.round(armorNow - shSum))}`, t2 = ` · 마방 ${mrNow}→${Math.max(0, Math.round(mrNow - mshSum))}`;   // 2026-11-19 사용자 요청: 깎은 뒤 남는 방어 수치로
-    const tw = ctx.measureText(t1 + t2).width, sc2 = Math.min(1, maxW / tw), fs = Math.max(10, Math.floor(12 * sc2));
+    const aL = Math.max(0, Math.round(armorNow - shSum)), mL = Math.max(0, Math.round(mrNow - mshSum));
+    // 2026-11-22 사용자 제보(「깎도 넘어간다 글자」): 10px로 줄여도 넘치면 짧은 표기로 바꿈
+    const forms = [[`깎인 방어 ${armorNow}→${aL}`, ` · 마방 ${mrNow}→${mL}`], [`방어 ${armorNow}→${aL}`, ` · 마방 ${mrNow}→${mL}`], [`${armorNow}→${aL}`, ` · ${mrNow}→${mL}`]];
+    let t1, t2, fs;
+    for ([t1, t2] of forms) { ctx.font = `12px ${FONT}`; fs = Math.floor(12 * Math.min(1, maxW / ctx.measureText(t1 + t2).width)); if (fs >= 10) break; }
+    fs = Math.max(9, fs);
     text(t1, sx, 28, fs, okCol(shSum));
-    ctx.font = `${fs}px ${FONT}`;
-    text(t2, sx + ctx.measureText(t1).width, 28, fs, okCol(mshSum, mrNow));
+    ctx.font = `${fs}px ${FONT}`; const w1 = ctx.measureText(t1).width, w2 = ctx.measureText(t2).width;
+    text(t2, sx + w1, 28, fs, okCol(mshSum, mrNow));
+    // 올리거나(PC) 누르고 있으면(휴대폰) 계산 설명 — 방어 칩까지 함께
+    tipZone(148, 12, sx - 148 + w1 + w2 + 6, 32, [['방어 깎기', C.goldEdge, 15], [`적 방어 ${armorNow} − 내 판 방깍 합 ${Math.round(shSum)} = ${aL}`, okCol(shSum), 13], [`적 마방 ${mrNow} − 내 판 마방깍 합 ${Math.round(mshSum)} = ${mL}`, okCol(mshSum, mrNow), 13], ['남는 방어가 낮을수록 피해가 잘 들어가요 · 초록 넉넉 · 노랑 부족 · 빨강 많이 부족', C.muted, 12]]);
   }
   const rest = E.resting(G);
   const line2 = rest ? `쉬는 시간 · 다음 웨이브까지 ${left}초` : wi.boss ? (G.bossDone === G.wave ? '보스 처치! 다음 웨이브까지 ' + left + '초' : `보스를 ${Math.ceil(Math.max(0, E.baseLenOf(G.wave) - G.waveT))}초 안에 잡기`) : `다음 웨이브 ${left}초`;
@@ -1993,9 +2000,8 @@ function drawHud() {
       text(t1, gx, 77, fs, sl >= 60 ? C.good : sl >= 30 ? C.goldEdge : C.muted); ctx.font = `${fs}px ${FONT}`;
       text(t2, gx + ctx.measureText(t1).width, 77, fs, st >= 30 ? C.good : st > 0 ? C.goldEdge : C.muted); } }
   // 「피해」 버튼은 아래 「더보기」로 옮김(2026-11-11 버튼 줄이기). 단축키 D는 그대로
-  musicButton(W - 164, 12);
-  button(W - 112, 12, 46, 40, 'Ⅱ', () => setPause(true), 'normal');
-  button(W - 60, 12, 46, 40, `×${speed}`, () => setSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1), 'normal');
+  musicButton(W - 112, 12);
+  button(W - 60, 12, 46, 40, 'Ⅱ', () => setPause(true), 'normal');   // 2026-11-22 사용자 요청: 배속(×1·×2·×3) 버튼 뺌
   // 새 소식(위습 획득·탐사 결과)
   const nw = G.news[G.news.length - 1];
   if (nw && G.t - nw.t < 3.5) {
@@ -2169,6 +2175,8 @@ function tipZone(x, y, w, h, lines) { tipZones.push({ x: x * OS + OX, y: y * OS 
 function drawTips() {
   const pt = press ?? (pcMQ?.matches ? mouse : null); if (!pt) return;
   const z = tipZones.find((q) => pt.x >= q.x && pt.y >= q.y && pt.x < q.x + q.w && pt.y < q.y + q.h); if (!z) return;
+  { const h = hitAt(pt); if (h && !(h.x <= z.x && h.y <= z.y && h.x + h.w >= z.x + z.w && h.y + h.h >= z.y + z.h) && h.w * h.h > z.w * z.h * 4) return; }   // 그 위를 다른 창이 덮고 있으면 안 띄움(2026-11-22 검토)
+  if (topFx) return;
   ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   let tw = 0; for (const [t, , sz] of z.lines) { ctx.font = `${sz}px ${FONT}`; tw = Math.max(tw, ctx.measureText(t).width); }
   const bw = Math.min(VW - 12, tw + 24), bh = 14 + z.lines.length * 21;
@@ -2249,6 +2257,63 @@ function drawResumeCount() {   // 증강체 고른 뒤 다시 시작까지 5→1
   fitText('곧 다시 시작해요', cx, cy + r + 22, 240, 16, C.goldEdge, 'center');
   button(cx - 70, cy + r + 38, 140, 40, '바로 시작', () => { resumeAt = 0; }, 'primary');
   ctx.restore(); OX = 0; OS = 1;
+}
+// ── 최상위 탄생 연출(2026-11-22 사용자 요청: 최상위 조합 때 보상 심리를 자극할 만큼 화려하게) ──
+// 제한~영원(TOP_TIER 이상)이 조합으로 새로 생기면: 흰 섬광 → 등급 색 회전 빛줄기 · 별 · 종이꽃가루 · 유닛 그림이 튀어나오며 「○○ 등급 탄생!」 · 팡파르 · 판 흔들림(2.8초)
+const topSeen = new Set(); let topSeenG = null, topFx = null;
+const TOPFX_T = 2.8;
+function topWatch() {
+  if (!G) return;
+  if (topSeenG !== G) { topSeenG = G; topSeen.clear(); for (const u of G.units) topSeen.add(u.uid); return; }   // 새 판·이어하기: 이미 있던 것은 축하 안 함
+  for (const u of G.units) {
+    if (topSeen.has(u.uid)) continue; topSeen.add(u.uid);
+    if (E.tierOf(u.id) >= E.TOP_TIER && E.UNIT[u.id].role !== E.SPECIAL_ROLE && !u.away) startTopFx(u);
+  }
+}
+function startTopFx(u) {
+  const col = GRADE_COLOR[E.UNIT[u.id].grade], rnd = (k) => { const v = Math.sin((u.uid + 1) * 97.13 + k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+  const bits = Array.from({ length: 70 }, (_, k) => ({ a: rnd(k) * Math.PI * 2, v: 260 + rnd(k + 100) * 520, s: 5 + rnd(k + 200) * 7, r0: rnd(k + 300) * 6, c: k % 3 === 0 ? '#ffffff' : k % 3 === 1 ? col : '#ffe48a', h: rnd(k + 400) * 360 }));
+  topFx = { id: u.id, at: performance.now(), col, rgb: hexRGB(col), bits, eternal: E.tierOf(u.id) >= 9 };
+  sfx('top'); if (G) { shake.until = G.t + 0.4; shake.mag = 7; }
+}
+function drawTopFx() {
+  if (!topFx) return;
+  const t = (performance.now() - topFx.at) / 1000; if (t > TOPFX_T) { topFx = null; return; }
+  const u = E.UNIT[topFx.id], rgb = topFx.rgb, out = t > TOPFX_T - 0.45 ? (TOPFX_T - t) / 0.45 : 1;
+  ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+  const cx = VW / 2, cy = VH * (landscape ? 0.46 : 0.4), S = Math.min(VW, VH);
+  if (t < 0.3) { ctx.fillStyle = `rgba(255,255,255,${0.75 * (1 - t / 0.3)})`; ctx.fillRect(0, 0, VW, VH); }   // 섬광
+  const vg = ctx.createRadialGradient(cx, cy, S * 0.1, cx, cy, Math.hypot(VW, VH) / 2);   // 등급 색 가장자리 빛
+  vg.addColorStop(0, `rgba(${rgb},0)`); vg.addColorStop(1, `rgba(${rgb},${0.35 * out})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+  ctx.fillStyle = `rgba(8,11,30,${0.45 * out})`; ctx.fillRect(0, 0, VW, VH);   // 가운데가 돋보이게 살짝 어둡게
+  // 회전 빛줄기
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(t * 0.6); ctx.globalCompositeOperation = 'lighter';
+  const RL = S * 0.75 * Math.min(1, t / 0.35);
+  for (let k = 0; k < 14; k++) { ctx.rotate(Math.PI * 2 / 14); const g = ctx.createLinearGradient(0, 0, RL, 0); g.addColorStop(0, `rgba(${rgb},${0.55 * out})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(RL, -RL * 0.09); ctx.lineTo(RL, RL * 0.09); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  // 별·고리
+  if (!fxLite) { fxSprite('circle_03', cx, cy, S * 0.2 + t * S * 0.5, rgb, Math.max(0, 0.9 - t * 0.6)); fxSprite('light_01', cx, cy, S * 0.55, rgb, 0.8 * out); fxSprite('star_07', cx, cy, S * 0.5 * (1 + 0.1 * Math.sin(t * 8)), '255,240,200', 0.7 * out, t * 1.5); fxSprite('twirl_01', cx, cy, S * 0.45, rgb, 0.5 * out, -t * 2); }
+  // 종이꽃가루(위로 터졌다가 떨어짐)
+  for (const b of topFx.bits) {
+    const tt = Math.min(t, 2.6), x = cx + Math.cos(b.a) * b.v * tt * 0.55, y = cy + Math.sin(b.a) * b.v * tt * 0.55 - 220 * tt + 420 * tt * tt;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(b.r0 + t * 6); ctx.globalAlpha = out;
+    ctx.fillStyle = topFx.eternal ? `hsl(${(b.h + t * 200) % 360},90%,65%)` : b.c; ctx.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); ctx.restore();
+  }
+  ctx.globalAlpha = out;
+  // 유닛 그림: 튀어나오며 커짐(넘쳤다가 제자리)
+  const p = Math.min(1, t / 0.5), pop = p < 1 ? 1 + 0.25 * Math.sin(p * Math.PI) : 1, is = S * 0.36 * pop * (0.3 + 0.7 * Math.min(1, t / 0.25));
+  ctx.beginPath(); ctx.arc(cx, cy, is * 0.55, 0, Math.PI * 2); ctx.fillStyle = `rgba(${rgb},0.22)`; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = topFx.col; ctx.stroke();
+  drawFit(unitImg(topFx.id), cx - is / 2, cy - is / 2, is, is);
+  // 이름 띠
+  const by = cy + S * 0.24, bw = Math.min(VW - 24, 460), bh = 92;
+  if (t > 0.25) {
+    const a2 = Math.min(1, (t - 0.25) / 0.25) * out; ctx.globalAlpha = a2;
+    box(cx - bw / 2, by, bw, bh, 'rgba(16,22,56,.94)', topFx.col, 14, 3);
+    fitText(`${E.GRADE_NAME[u.grade]} 등급 탄생!`, cx, by + 26, bw - 30, 18, '#ffe48a', 'center');
+    ctx.font = `34px ${FONT}`; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(8,11,30,.95)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(u.name, cx, by + 62);
+    text(u.name, cx, by + 62, 34, topFx.col === '#ffffff' ? '#ffffff' : topFx.col, 'center');
+  }
+  ctx.restore();
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#10163a'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
@@ -2497,7 +2562,7 @@ function rolesOf(id) {
 }
 let bookRoles = new Set();   // 역할 칩 여러 개(2026-11-10 사용자 요청: 이감+방깍처럼 둘 다 가진 것 찾기). 비어 있으면 전체, 여러 개면 모두 가진 것만
 // 조합법 찾기(사용자 요청 2026-11-08): 만들 수 있는 것만 · 재료 많이 모인 순 · 이름 검색(캔버스 위에 실제 입력칸을 겹쳐 띄움)
-const bookOpt = { ready: false, near: false, q: '' };
+const bookOpt = { ready: false, near: false, high: false, q: '' };   // high: 전설 이상만(2026-11-22 사용자 요청: 후반엔 낮은 재료 조합법을 숨기는 토글)
 let bookSearchRect = null;
 const searchEl = document.createElement('input');
 searchEl.type = 'search'; searchEl.placeholder = '이름 검색'; searchEl.autocomplete = 'off'; searchEl.enterKeyHint = 'search';
@@ -2540,8 +2605,8 @@ function drawBook() {
   bookSearchRect = { x: OX + (x + 144) * OS, y: OY + (y + 12) * OS, w: (w - 144 - 108) * OS, h: 36 * OS, k: OS };   // 검색 입력칸 자리(실제 입력칸은 placeSearch가 겹침)
   box(x + 144, y + 12, w - 144 - 108, 36, '#1a2258', C.edge, 8, 1.5);
   // 보기 옵션 2개(「조합식 전체 보기」는 2026-11-12 사용자 요청으로 뺌)
-  const tw2 = (w - 24 - 6) / 2;
-  [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순']].forEach(([key, nm], i) => {
+  const tw2 = (w - 24 - 12) / 3;
+  [['ready', '만들 수 있는 것만'], ['near', '재료 많이 모인 순'], ['high', '전설 이상만']].forEach(([key, nm], i) => {
     const on = bookOpt[key], bx = x + 12 + i * (tw2 + 6);
     const tc = tabFace(bx, y + 90, tw2, 28, on);
     fitText(`${on ? '✓ ' : ''}${nm}`, bx + tw2 / 2, y + 104, tw2 - 8, 13, tc, 'center');
@@ -2560,6 +2625,7 @@ function drawBook() {
     && (!q || E.UNIT[r.out].name.includes(q) || r.in.some((id) => E.UNIT[id].name.includes(q))));
   rows = rows.map((r) => { const pg = progOf(r, cnt); return { r, ok: canMake(r), frac: have(r, cnt) === r.in.length ? 1 : pg.got / pg.total }; });   // 게이지와 같은 값으로 정렬
   if (bookOpt.ready) rows = rows.filter((it) => it.ok);
+  if (bookOpt.high) rows = rows.filter((it) => E.tierOf(it.r.out) >= 4 || it.r.out === modal.focus);   // 전설·히든(4단) 이상만, 목표 재료 창에서 누른 것은 보임
   const items = [];
   if (bookOpt.near) {   // 재료가 많이 모인 순(등급 묶음 없이)
     rows.sort((a, b) => (b.frac - a.frac) || (E.tierOf(b.r.out) - E.tierOf(a.r.out)));
@@ -4294,6 +4360,7 @@ function frame(now) {
   if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias')) drawBossWarn();   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene === 'play' && G && !G.over && resumeAt > performance.now() && !modal) drawResumeCount();
+  if (scene === 'play' && G) { topWatch(); drawTopFx(); } else topFx = null;
   drawTips(); drawHover();
   if (scene !== 'play') drawToast();
   if (perfShow.on) {
