@@ -1557,6 +1557,8 @@ function drawGoalBoard() {
     ctx.globalAlpha = m.h ? 1 : 0.35; drawFit(unitImg(m.id), tx + 2, ty + 2, ts - 4, ts - 4); ctx.globalAlpha = 1;
     if (m.h) { ctx.beginPath(); ctx.arc(tx + ts - 7, ty + 7, 6, 0, Math.PI * 2); ctx.fillStyle = C.good; ctx.fill(); text('✓', tx + ts - 7, ty + 7.5, 9, '#10163a', 'center'); }
     fitText(E.UNIT[m.id].name, tx + ts / 2, ty + ts + 8, ts + gap, 10, m.h ? gc : '#ff9a8a', 'center');
+    // 2026-11-22 사용자 요청: 재료를 누르면 그 재료의 조합법 창(조합법이 없는 커먼은 정보 창). 「돌아가기」로 판에 돌아옴
+    if (t >= 1) hit(tx - 2, ty - 2, ts + gap, ts + 18, () => { if (E.recipeFor(m.id)) openBook(m.id, null, { sel: [...selected] }); else showInfo(m.id); });
   });
   button(px + 8, oy + ph - 30, pw - 16, 24, got === n || canMake(r) ? '조합법 열기 · 조합!' : '조합법 열기', () => openBook(gid, null, { sel: [...selected] }), canMake(r) ? 'primary' : 'quiet');
   ctx.restore();
