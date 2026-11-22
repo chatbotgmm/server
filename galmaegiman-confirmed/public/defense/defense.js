@@ -692,6 +692,7 @@ const selUnits = () => selected.map((uid) => E.unitById(G, uid)).filter((u) => u
 
 function start(seed, mode = 'normal', diff = selDiff) {
   shake.until = 0;
+  resumeAt = 0;
   G = E.newGame(seed === undefined ? undefined : seed >>> 0, mode, diff); scene = 'play'; modal = null; speed = 1; selected = []; lastNews = 0; info = null;
   musicPlay();   // 누른 순간 안에서 재생 시작
   tut = null;   // 2026-11-22: 첫 판 안내 대신 따로 들어가는 튜토리얼(startTutorial)
@@ -929,7 +930,8 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
 const NONPAUSE = new Set(['goals', 'shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
 const BOARD_MODAL = new Set(['intro', 'aug']);   // 판 위에 뜨는 창(TFT처럼)   // 일시정지(Ⅱ)·결과 창만 멈춤
-const running = () => scene === 'play' && G && !G.over && !tut?.hold && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
+let resumeAt = 0;   // 이 시각(performance.now)까지 판을 멈춰 둠(증강체 고른 뒤 5초 세기)
+const running = () => scene === 'play' && G && !G.over && !tut?.hold && !(resumeAt > performance.now()) && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
 const playing = () => scene === 'play' && G && !G.over && (!info || landscape) && (!modal || (landscape && NONPAUSE.has(modal.kind)));
 // 스크롤할 목록: 가로 배치는 오른쪽 창, 세로 배치는 열린 창
 function scrollerAt(p) {
@@ -940,6 +942,7 @@ function scrollerAt(p) {
 const toBoard = (p) => (landscape ? { x: (p.x - BOARD_X) / LS, y: p.y / LS } : p);
 const onBoard = (p) => !landscape || (p.x >= BOARD_X && p.x < BOARD_X + SIDE_X);
 cv.addEventListener('pointerdown', (ev) => {
+  press = ev.pointerType === 'mouse' ? null : toLogical(ev);
   if (!sfxState.ctx) sfxCtx();   // 첫 누르기에서 소리 준비
   const p = toLogical(ev), bp = toBoard(p);
   cv.setPointerCapture?.(ev.pointerId);
@@ -952,6 +955,7 @@ cv.addEventListener('pointerdown', (ev) => {
 });
 cv.addEventListener('pointermove', (ev) => {
   mouse = ev.pointerType === 'mouse' ? toLogical(ev) : null;
+  if (press && ev.pointerType !== 'mouse') press = toLogical(ev);
   if (!down) return;
   const p = toLogical(ev), bp = down.dragFn ? p : toBoard(p);
   if (Math.hypot(bp.x - down.x0, bp.y - down.y0) > 10) down.moved = true;
@@ -968,6 +972,7 @@ cv.addEventListener('pointermove', (ev) => {
 });
 cv.addEventListener('pointerleave', () => { mouse = null; });
 cv.addEventListener('pointerup', (ev) => {
+  press = null;
   if (!down) return;
   const sp = toLogical(ev), d = down;
   down = null;
@@ -999,7 +1004,7 @@ cv.addEventListener('pointerup', (ev) => {
   const h = hitAt(sp);
   if (h) h.fn(sp);
 });
-cv.addEventListener('pointercancel', () => { if (down?.start && G) E.holdUnits(G, down.start.map(([uid]) => uid), false); down = null; });
+cv.addEventListener('pointercancel', () => { press = null; if (down?.start && G) E.holdUnits(G, down.start.map(([uid]) => uid), false); down = null; });
 cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
   if (document.activeElement === searchEl) { if (ev.key === 'Escape') searchEl.blur(); return; }   // 검색 입력 중에는 단축키 안 씀
@@ -1958,7 +1963,13 @@ function drawHud() {
   ctx.font = `15px ${FONT}`;
   let lx = 20 + ctx.measureText(line2).width + 10;
   const wx = E.weatherOf(G);   // 날씨(2026-11-16): 맑음이 아니면 이름을 옆에
-  if (wx !== E.WEATHERS.calm) { text(`· ${wx.name}`, lx - 4, 58, 15, '#8fd8ff'); ctx.font = `15px ${FONT}`; lx += ctx.measureText(`· ${wx.name}`).width + 8; }
+  if (wx !== E.WEATHERS.calm) {
+    text(`· ${wx.name}`, lx - 4, 58, 15, '#8fd8ff'); ctx.font = `15px ${FONT}`; const ww = ctx.measureText(`· ${wx.name}`).width;
+    // 2026-11-22 사용자 요청: 날씨 이름에 마우스를 올리거나(PC) 누르고 있는 동안(휴대폰) 설명
+    const b = Math.floor((G.wave - E.WEATHER_FROM) / E.WEATHER_LEN), end = E.WEATHER_FROM + (b + 1) * E.WEATHER_LEN - 1, nx = end < E.RULES.waves ? E.WEATHERS[E.weatherAt(G, end + 1)] : null;
+    tipZone(lx - 8, 44, ww + 12, 28, [[`${wx.icon ?? ''} ${wx.name}`, '#8fd8ff', 15], [wx.desc, C.text, 13], [`${end}웨이브까지${nx ? ` · 다음: ${nx.name}${nx === E.WEATHERS.calm ? '' : `(${nx.desc})`}` : ''}`, C.muted, 12]]);
+    lx += ww + 8;
+  }
   if (G.wave < E.RULES.waves) {   // 다음 웨이브 종류 미리 보기(사용자 요청 2026-11-08)
     const nx = E.waveInfo(G.wave + 1); nx.armor = E.armorAt(G, G.wave + 1);
     const rf = nx.boss ? 0 : E.riftAt(G.wave + 1);   // 균열 저항(41웨이브부터 라인 적이 전설·히든 이하 피해를 덜 받음)
@@ -2152,6 +2163,20 @@ function keyCap(x, y, k) {
 }
 function keyCapFor(label, x, y, w, h) { const k = keyHint && pcHints() ? KEYCAP[keyHint]?.[label] : null; if (k) keyCap(x + w - 24, y + h - 22, k); }
 let mouse = null;   // 마우스 위치(논리 좌표, 마우스일 때만)
+let press = null;   // 터치로 누르고 있는 위치(논리 좌표)
+let tipZones = [];  // 올리거나 누르고 있으면 설명이 뜨는 곳(매 그림마다 다시 모음)
+function tipZone(x, y, w, h, lines) { tipZones.push({ x: x * OS + OX, y: y * OS + OY, w: w * OS, h: h * OS, lines }); }
+function drawTips() {
+  const pt = press ?? (pcMQ?.matches ? mouse : null); if (!pt) return;
+  const z = tipZones.find((q) => pt.x >= q.x && pt.y >= q.y && pt.x < q.x + q.w && pt.y < q.y + q.h); if (!z) return;
+  ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+  let tw = 0; for (const [t, , sz] of z.lines) { ctx.font = `${sz}px ${FONT}`; tw = Math.max(tw, ctx.measureText(t).width); }
+  const bw = Math.min(VW - 12, tw + 24), bh = 14 + z.lines.length * 21;
+  const tx = Math.max(6, Math.min(VW - 6 - bw, z.x + z.w / 2 - bw / 2)), ty = z.y + z.h + 6 + bh > VH - 6 ? z.y - 6 - bh : z.y + z.h + 6;
+  box(tx, ty, bw, bh, 'rgba(16,22,56,.96)', 'rgba(149,204,221,.9)', 9, 1.5);
+  z.lines.forEach(([t, c, sz], i) => fitText(t, tx + 12, ty + 17 + i * 21, bw - 24, sz, c));
+  ctx.restore();
+}
 function drawHover() {
   if (!mouse || down || !pcMQ?.matches) { if (cv.style.cursor) cv.style.cursor = ''; return; }
   ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
@@ -2213,6 +2238,17 @@ function drawInfoCol(w) {   // 넓은 PC 화면 오른쪽 끝 판 정보 칸
     text('단축키', 16, ky, 15, C.gold);
     keys.forEach(([k, d], i) => { const yy = ky + 18 + i * 24; keyCap(16, yy, k); text(d, 16 + 96, yy + 8.5, 13, C.text); });
   }
+}
+function drawResumeCount() {   // 증강체 고른 뒤 다시 시작까지 5→1(판 아래쪽, 증강체 알림 띠와 안 겹치게)
+  const left = (resumeAt - performance.now()) / 1000, n = Math.ceil(left), fr = n - left;
+  ctx.save(); if (landscape) { ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X; }
+  const cx = W / 2, cy = FIELD.y + FIELD.h - 150, r = 46 * (1 + 0.18 * Math.max(0, 1 - fr * 4));
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(16,22,56,.9)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#95ccdd'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (left / 5)); ctx.lineWidth = 4; ctx.strokeStyle = '#4274d9'; ctx.stroke();
+  text(String(n), cx, cy + 2, 44, '#ffffff', 'center');
+  fitText('곧 다시 시작해요', cx, cy + r + 22, 240, 16, C.goldEdge, 'center');
+  button(cx - 70, cy + r + 38, 140, 40, '바로 시작', () => { resumeAt = 0; }, 'primary');
+  ctx.restore(); OX = 0; OS = 1;
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#10163a'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
@@ -3719,7 +3755,7 @@ function drawAug() {
   o.opts.forEach((id, i) => {
     const a = E.AUGS[id], cx = FIELD.x + 4 + i * (cw + gap), rb = !!a.rb, ec = rb ? '#ff7a6a' : col;
     box(cx, cy, cw, ch, rb ? 'rgba(48,16,20,.96)' : 'rgba(24,32,78,.96)', ec, 14, 2.5);
-    hit(cx, cy, cw, ch, () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); } });
+    hit(cx, cy, cw, ch, () => { if (E.chooseAug(G, i)) { modal = null; augAlarm(id); sfx('story'); if (!coop()) resumeAt = performance.now() + 5000; } });   // 2026-11-22 사용자 요청: 고르고 5초 뒤 시작
     if (rb) { box(cx + cw / 2 - 42, cy + 10, 84, 20, 'rgba(255,122,106,.18)', '#ff7a6a', 6, 1); text('룰 브레이커', cx + cw / 2, cy + 20, 12, '#ffb0a4', 'center'); }
     const ix = cx + cw / 2, iy = cy + 78;
     if (!fxLite) fxSprite('magic_02', ix, iy, 110, hexRGB(ec), 0.5, performance.now() / 1500);
@@ -4215,7 +4251,7 @@ function frame(now) {
   const wantStrip = coop() && scene === 'play';
   if (wantStrip !== stripOn || coop() !== coopOn || (scene !== 'play') !== fullTitle) { stripOn = wantStrip; coopOn = coop(); fullTitle = scene !== 'play'; fit(); }
   musicSync(); sfxTick(); talkTick(); placeSearch();
-  hits = [];
+  hits = []; tipZones = [];
   const tDraw0 = performance.now();
   ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 그림 줄일 때 고품질(기본은 낮음이라 거칠었음)
@@ -4257,7 +4293,8 @@ function frame(now) {
   }
   if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias')) drawBossWarn();   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
-  drawHover();
+  if (scene === 'play' && G && !G.over && resumeAt > performance.now() && !modal) drawResumeCount();
+  drawTips(); drawHover();
   if (scene !== 'play') drawToast();
   if (perfShow.on) {
     perfShow.draw = ema(perfShow.draw, performance.now() - tDraw0);
