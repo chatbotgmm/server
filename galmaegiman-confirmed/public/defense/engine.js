@@ -5,7 +5,7 @@
 // - 갈매미는 판 어디에나 둘 수 있고 겹쳐도 된다(수 제한 없음). 조합은 게임 속 조합법 52개(히든 포함).
 // - 웨이브마다 35마리(분열형 판의 갈라진 적은 안 셈). 길 위의 적이 70마리를 넘은 동안 1초마다 경고 1회(누적), 20회를 넘으면 패배.
 // - 10웨이브마다 보스. 그 라운드 안에 못 잡으면 바로 패배. 중후반엔 외부탐사(스토리 지역)에 갈매미를 보내 보상 위습.
-import { UNITS, RECIPES } from './data.js?v=9434aa8c77a4';
+import { UNITS, RECIPES } from './data.js?v=bfffd536003c';
 
 export const GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGEND', 'HIDDEN', 'LIMITED', 'TRANSCEND', 'IMMORTAL', 'ETERNAL'];
 export const GRADE_NAME = { COMMON: '커먼', UNCOMMON: '언커먼', RARE: '레어', EPIC: '에픽', LEGEND: '전설', HIDDEN: '히든', LIMITED: '제한', TRANSCEND: '초월', IMMORTAL: '불멸', ETERNAL: '영원' };
@@ -554,16 +554,16 @@ export const AUGS = {
   haste: { name: '날갯짓 가속', desc: '모든 갈매미 공격 속도 +12%', v: 0.12 },
   shred: { name: '부식', desc: '방깍·마방깍 효과 +35%', v: 0.35 },
   slow: { name: '끈끈한 바다', desc: '이감 효과 +25%(최대치는 그대로)', v: 0.25 },
-  stun: { name: '천둥 부리', desc: '스턴 확률 +50%', v: 0.5 },
+  stun: { name: '천둥 부리', desc: '스턴 확률 +80%', v: 0.8 },   // 2026-11-22 봇 40판 증강체 측정으로 조정(아래 표시 「22조정」): +50% → +80%
   boss: { name: '사냥꾼의 눈', desc: '보스·외부탐사 대장에게 주는 피해 +25%', v: 0.25 },
-  explore: { name: '원정대장', desc: '외부탐사 피해 +60%', v: 0.6 },
-  gold: { name: '새우 풍년', desc: '처치 새우 +40%', v: 0.4 },
-  upg: { name: '단골 대장간', desc: '강화 비용 −30%', v: 0.3 },
-  wisp: { name: '위습 꾸러미', desc: '지금 에픽 위습 2개 + 레어 위습 3개', v: 1 },
-  warn: { name: '든든한 방파제', desc: '경고 한도 +8회', v: 8 },
+  explore: { name: '원정대장', desc: '외부탐사 피해 +45%', v: 0.45 },   // 22조정: +60% → +45%
+  gold: { name: '새우 풍년', desc: '처치 새우 +60%', v: 0.6 },   // 22조정: +40% → +60%
+  upg: { name: '단골 대장간', desc: '강화 비용 −40%', v: 0.4 },   // 22조정: −30% → −40%
+  wisp: { name: '위습 꾸러미', desc: '지금 에픽 위습 1개 + 레어 위습 3개', v: 1 },   // 22조정: 에픽 2 → 1(평균 끝 42.0으로 가장 셌음)
+  warn: { name: '든든한 방파제', desc: '경고 한도 +10회', v: 10 },   // 22조정: +8 → +10
   // 룰 브레이커(2026-11-16 기획안 반영: 판 짜는 방식 자체를 뒤집는 것, 대가가 큼)
-  lowtide: { name: '하급 총공세', desc: '커먼~레어 피해 ×3 · 전설 이상 −15%', v: 3, rb: true },
-  rush: { name: '빠른 물살', desc: '적 이속 +15% · 일반 적 체력 −15%', v: 0.15, rb: true },
+  lowtide: { name: '하급 총공세', desc: '커먼~레어 피해 ×2.5 · 전설 이상 −15%', v: 2.5, rb: true },   // 22조정: ×3 → ×2.5(40.7로 둘째로 셌음)
+  rush: { name: '빠른 물살', desc: '적 이속 +15% · 일반 적 체력 −22%', v: 0.15, hp: 0.22, rb: true },   // 22조정: 체력 −15% → −22%(이속은 그대로)
   // 40웨이브: 후반을 버티게 하는 큰 것(대가가 있는 것도)
   fury: { name: '광폭화', desc: '모든 공격 피해 +35% · 경고 한도 −5회', v: 0.35 },
   chrono: { name: '시간 왜곡', desc: '일반 적 이동속도 −15%(보스 제외)', v: 0.15 },
@@ -622,7 +622,7 @@ export function chooseAug(g, i) {
   const o = g.augOffer, id = o?.opts?.[i];
   if (!id || !AUGS[id]) return false;
   (g.augs ??= []).push(id); g.augOffer = null;
-  if (id === 'wisp') addWisps(g, { EPIC: 2, RARE: 3 });
+  if (id === 'wisp') addWisps(g, { EPIC: 1, RARE: 3 });
   if (id === 'legend') addWisps(g, { LEGEND: 1, EPIC: 2 });
   if (id === 'supply') { g.tickets = (g.tickets ?? 0) + 6; g.rerolls = (g.rerolls ?? 0) + 2; }
   news(g, `증강체 「${AUGS[id].name}」: ${AUGS[id].desc}`);
@@ -1245,7 +1245,7 @@ function spawn(g, minion = false) {
   const w0 = waveInfo(g.wave), asBoss = !minion && w0.boss && (g.bossLeft ?? 1) > 0;   // 예전 저장(bossLeft 없음)은 남은 1마리가 보스
   if (w0.boss && !minion) g.bossLeft = asBoss ? 0 : (g.bossLeft ?? 0);
   const wi = asBoss ? w0 : waveInfo(g.wave, true);
-  const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * earlyEase(g.wave) * (1 + pvpHpBuff(g)) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - AUGS.rush.v : 1);   // 「빠른 물살」: 일반 적 체력 −15%
+  const df = diffOf(g), hp = wi.hp * (RULES.hpX ?? 1) * earlyEase(g.wave) * (1 + pvpHpBuff(g)) * (modeOf(g).hpMul ?? 1) * (wi.boss ? df.boss : df.line) * (!wi.boss && augV(g, 'rush') ? 1 - (AUGS.rush.hp ?? AUGS.rush.v) : 1);   // 「빠른 물살」: 일반 적 체력 −15%
   const rift = !wi.boss && g.wave > (RULES.riftFrom ?? 999) ? riftAt(g.wave) : 0;
   g.enemies.push({ id: g.nextId++, hp, max: hp, s: 0, speed: wi.speed, boss: wi.boss, look: wi.look, gold: wi.gold, armor: Math.round(wi.armor * df.armor * biasMul(g, 'armor')), mr: Math.round(wi.mr * df.mr * biasMul(g, 'mr')), rift, ...(wi.boss ? { bpat: BOSS_PAT[(Math.round(g.wave / RULES.bossEvery) - 1) % BOSS_PAT.length], bt: g.t + 6 } : {}),
     shred: 0, shredUntil: 0, mshred: 0, mshredUntil: 0, amp: 0, ampUntil: 0, slow: 0, slowUntil: 0, stunUntil: 0, poison: 0, poisonUntil: 0, x: LOOP.x0, y: LOOP.y0, by: 0 });

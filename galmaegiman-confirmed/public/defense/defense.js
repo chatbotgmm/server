@@ -1,6 +1,6 @@
 // 갈매미맨 랜덤 디펜스 2판: 화면·입력(규칙은 engine.js). 논리 좌표 540×960을 화면 크기에 맞춰 그린다.
 // 조작(사용자 요청 2026-11-08): 갈매미는 끌어서만 옮긴다 · 누르면 고르기 · 빈 곳을 끌면 여러 마리 고르기(고른 무리는 하나를 끌면 함께) · 다른 곳을 누르면 고르기 풀림.
-import * as E from './engine.js?v=eb32979cccff';
+import * as E from './engine.js?v=27aa272ba3d0';
 
 const { W, H, FIELD } = E;
 const ART = '/game60/assets';
@@ -929,7 +929,7 @@ function unitAt(p) {   // 위에 그려진(나중) 것부터
   return null;
 }
 // 게임 시간이 흐르는가: 강화 창은 열어도 멈추지 않는다(사용자 요청)
-const NONPAUSE = new Set(['goals', 'shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
+const NONPAUSE = new Set(['goals', 'syn', 'shop', 'upgrade', 'mission', 'pick', 'book', 'sound', 'storage', 'peer', 'meter', 'recruit', 'signal', 'choice', 'more']);   // 2026-11-21: 증강체(aug)는 멈춤(같이하기만 흐름)
 const BOARD_MODAL = new Set(['intro', 'aug']);   // 판 위에 뜨는 창(TFT처럼)   // 일시정지(Ⅱ)·결과 창만 멈춤
 let resumeAt = 0;   // 이 시각(performance.now)까지 판을 멈춰 둠(증강체 고른 뒤 5초 세기)
 const running = () => scene === 'play' && G && !G.over && !tut?.hold && !(resumeAt > performance.now()) && (!modal || NONPAUSE.has(modal.kind) || (modal.kind === 'aug' && coop()));
@@ -1712,17 +1712,7 @@ function drawFieldInner() {
         ctx.globalAlpha = 1 - age / 0.14; ctx.strokeStyle = f.type === 'phys' ? C.phys : C.mag; ctx.lineWidth = f.job === '보조' ? 1.5 : 2.5;
         ctx.beginPath(); ctx.moveTo(f.x0, f.y0 - 24); ctx.lineTo(f.x1, f.y1 - 10); ctx.stroke(); ctx.globalAlpha = 1; } }
       else { drawShot(f, age); if (f.near && f.type === 'phys' && age < 0.15) fxSprite('slash_02', f.x1, f.y1 - 14, f.tier >= 6 ? 70 : 50, '255,226,180', 1 - age / 0.15, Math.atan2(f.y1 - f.y0, f.x1 - f.x0) - Math.PI / 2); }   // 근접 물리: 베기 자국
-    } else if (f.kind === 'num' && age < 0.75) {   // 2026-11-21: 화려한 효과를 꺼도 숫자는 보임(글자만이라 가벼움)   // 보스 피해 숫자(전설 이상)
-      // 2026-11-22: 모든 등급 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
-      const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
-      ctx.globalAlpha = Math.min(1, a * 1.6);
-      const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;
-      const fs = Math.round((cr ? 21 : big ? 18 : 15) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
-      ctx.font = `${fs}px ${FONT}`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(16,22,56,.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny);   // 테두리(읽기 쉽게, 2026-11-21: 13→15px)
-      text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
-      if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
-      if (cr && age < 0.25 && !fxLite) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
-      ctx.globalAlpha = 1;
+    } else if (f.kind === 'num') {   // 피해 숫자는 맨 위 따로(drawNums)
     } else if (f.kind === 'boom' && age < 0.28) {   // 범위 공격(채운 원)·스플래시(고리)
       const a = 1 - age / 0.28, rr2 = f.r * (0.55 + 0.45 * (1 - a));
       const col = f.elem === 'FIRE' ? '255,140,70' : f.type === 'phys' ? '255,179,107' : '143,200,255';
@@ -1764,6 +1754,23 @@ function drawFieldInner() {
   }
   drawPfx();   // 화려한 효과(도트 층)
   drawTalk();   // 전설 이상 갈매미 대사(말풍선)
+  drawNums();
+}
+function drawNums() {   // 2026-11-22 사용자 요청: 피해 숫자는 맨 위(도트 효과·말풍선보다 위)
+  for (const f of G.fx) {
+    const age = G.t - f.t;
+    if (f.kind !== 'num' || age >= 0.75) continue;
+      // 2026-11-22: 모든 등급 공격의 피해 숫자, 치명타는 크고 붉게 「치명!」, 보스는 체력 칸 위·일반 적은 머리 위
+      const a = 1 - age / 0.75, big = f.tier >= 6, cr = !!f.crit, pop = age < 0.08 ? 1 + (0.08 - age) * 6 : 1;
+      ctx.globalAlpha = Math.min(1, a * 1.6);
+      const sq = f.n ?? 0, nx = Math.min(W - 30, Math.max(30, f.x + ((sq * 23) % 40) - 20)), ny = f.y - (f.boss ? 92 : 50) - (sq % 3) * 10 - age * 40;
+      const fs = Math.round((cr ? 21 : big ? 18 : 15) * pop), col = cr ? '#ff6b4a' : big ? '#ffd76a' : '#fff1d6';
+      ctx.font = `${fs}px ${FONT}`; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(16,22,56,.9)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.strokeText(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny);   // 테두리(읽기 쉽게, 2026-11-21: 13→15px)
+      text(cr ? `${fmtN(f.v)}!` : fmtN(f.v), nx, ny, fs, col, 'center');
+      if (cr && age < 0.3) text('치명', nx, ny - fs * 0.85, 11, '#ffd0c4', 'center');
+      if (cr && age < 0.25 && !fxLite) fxSprite('star_07', f.x, f.y - (f.boss ? 40 : 22), 60 + age * 160, '255,140,90', 1 - age / 0.25, age * 3);   // 치명타 섬광
+      ctx.globalAlpha = 1;
+  }
 }
 
 // ── 공격 연출(2026-11-09 사용자 요청: 공격 모션이 단조로움) ──
@@ -2329,6 +2336,7 @@ function drawMore() {   // 「더보기」: 선택위습 · 용병모집 · 창�
     ['menu/icon-draw', '선택위습', () => { modal = { kind: 'pick', grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' }; }, picks ? 'primary' : 'normal', picks ? `${picks}개 있음` : '없음'],
     ['menu/icon-shop', '창고', () => { modal = { kind: 'storage', scroll: 0, scrollable: true }; }, 'normal', `${st}마리${Object.values(G.autoGrades ?? {}).some(Boolean) ? '·자동' : ''}`],
     ['ui/icon-goldenstrike', '피해 순위', () => { modal = { kind: 'meter', scroll: 0, scrollable: true }; }, 'normal', '갈매미별 피해'],
+    ['menu/icon-combine', '시너지', () => { modal = { kind: 'syn' }; }, 'normal', (() => { const sy = E.synergyOf(G), on = E.SYN_ELEMS.filter((el) => sy[el].lv > 0); return on.length ? on.map((el) => `${E.SYN_NAME[el]} ${sy[el].lv}단계`).join(' · ') : '켜진 시너지 없음'; })()],
     ['menu/icon-combine', '목표', () => { modal = { kind: 'goals' }; }, G.goals.some((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }) ? 'primary' : 'normal', G.goals.length ? `${G.goals.length}개 · 조합 가능 ${G.goals.filter((gid) => { const r = E.recipeFor(gid); return r && canMake(r); }).length}` : '조합법 ☆로 정해요'],
     ['menu/currency-shrimp', '상점', () => { modal = { kind: 'shop' }; }, tk >= 1 ? 'primary' : 'normal', `모집권 ${tk} · 새우 ${fmtN(G.gold)}`],   // 2026-11-19: 세로 화면에서도
     ...(E.skillOn(G) ? [['ui/icon-goldenstrike', '갈매미맨 폭격', () => { if (E.useSkill(G)) { sfx('boss'); modal = null; } else say(E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤에 쓸 수 있어요` : `새우 ${fmtN(E.skillCost(G))}이(가) 필요해요`); }, E.skillLeft(G) <= 0 && G.gold >= E.skillCost(G) ? 'primary' : 'normal', E.skillLeft(G) > 0 ? `${Math.ceil(E.skillLeft(G))}초 뒤` : `새우 ${fmtN(E.skillCost(G))} · 피해 ${fmtN(E.skillDmg(G))}`]] : []),
@@ -2372,8 +2380,8 @@ function drawUnitPanel(y0, u) {
   if (!k.special && E.RULES.synergy) {   // 2026-11-21: 시너지 칩(에픽 이상만 셈)
     const sv = E.synergyOf(G)[k.elem], nm = E.SYN_NAME[k.elem];
     const st = k.tier < (E.RULES.synFrom ?? 4) ? `${nm} · 시너지 안 셈` : sv.lv ? `${nm} ${sv.lv}단계·${sv.n}종` : `${nm} ${sv.n}/2종`, lim = (E.tierOf(u.id) >= 3 && u.got ? W - 228 : W - 118);
-    if (k.tier >= (E.RULES.synFrom ?? 4)) synBadge(78, y0 + 66, k.elem, sv, 1.15);   // 그림 오른쪽 아래(좁은 화면에서도 보이게)
-    ctx.font = `14px ${FONT}`; if (cx + ctx.measureText(st).width + 14 <= lim) chip(st, cx, y0 + 11, k.tier >= (E.RULES.synFrom ?? 4) && sv.lv ? `rgb(${ELEM_COL[k.elem]})` : C.muted);
+    if (k.tier >= (E.RULES.synFrom ?? 4)) { synBadge(78, y0 + 66, k.elem, sv, 1.15); hit(64, y0 + 52, 30, 30, () => { modal = { kind: 'syn', el: k.elem }; }); }   // 그림 오른쪽 아래(좁은 화면에서도 보이게)
+    ctx.font = `14px ${FONT}`; if (cx + ctx.measureText(st).width + 14 <= lim) { const cw2 = chip(st, cx, y0 + 11, k.tier >= (E.RULES.synFrom ?? 4) && sv.lv ? `rgb(${ELEM_COL[k.elem]})` : C.muted); hit(cx, y0 + 5, cw2, 32, () => { modal = { kind: 'syn', el: k.elem }; }); }   // 누르면 시너지 창
   }
   const up = E.upgMul(G, k.tier), gp = E.gapOf(G, k);
   if (k.special) fitText('공격하지 않아요 · 초월 등급 조합 재료', 94, y0 + 50, W - 210, 15, C.muted);
@@ -3302,6 +3310,24 @@ function drawGoals(x0, qy, w0, head = true) {
   });
   return qy;
 }
+function drawSynModal() {   // 시너지 창(2026-11-22 사용자 요청: 모바일에서 시너지 볼 방법). 더보기 → 시너지 · 갈매미 정보의 속성 칩·배지를 눌러도 열림
+  const { x, y, w, h } = modalRect();
+  box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
+  text('시너지', x + 18, y + 30, 20, C.text);
+  button(x + w - 96, y + 10, 82, 40, '닫기', () => { modal = null; }, 'quiet');
+  fitText(`판의 ${E.GRADE_NAME.LEGEND}·${E.GRADE_NAME.HIDDEN} 이상 갈매미를 속성별 「종류 수」로 셈 · ${E.SYN_STEPS.join('·')}종이면 단계가 올라요`, x + 18, y + 60, w - 36, 12, C.muted);
+  const syn = E.synergyOf(G), list = [...E.SYN_ELEMS].sort((a, b) => syn[b].lv - syn[a].lv || syn[b].n - syn[a].n);
+  const rowH = Math.min(62, (h - 86) / list.length);
+  list.forEach((el, i) => {
+    const sv = syn[el], yy = y + 76 + i * rowH, col = `rgb(${ELEM_COL[el] ?? '220,220,220'})`, on = sv.lv > 0, nx = E.SYN_STEPS.find((q) => sv.n < q), fx = E.SYN_FX[el];
+    box(x + 12, yy, w - 24, rowH - 6, on ? 'rgba(24,32,78,.95)' : 'rgba(24,32,78,.5)', on || modal.el === el ? col : 'rgba(149,204,221,.35)', 8, on || modal.el === el ? 2 : 1);
+    ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; ctx.lineTo(x + 34 + Math.cos(a) * 14, yy + (rowH - 6) / 2 + Math.sin(a) * 14); } ctx.closePath();
+    ctx.fillStyle = on ? col : 'rgba(80,90,100,.8)'; ctx.fill(); text(String(sv.n), x + 34, yy + (rowH - 6) / 2 + 1, 14, on ? '#10202c' : '#cfd6da', 'center');
+    text(E.SYN_NAME[el], x + 58, yy + 16, 15, on ? col : '#9aa9b0');
+    E.SYN_STEPS.forEach((st, k) => { const px = x + 58 + 48 + k * 46; box(px, yy + 7, 40, 18, sv.n >= st ? col : 'rgba(0,0,0,.4)', 'rgba(255,255,255,.15)', 5, 1); text(`${st}종`, px + 20, yy + 16, 11, sv.n >= st ? '#10202c' : '#7d8c94', 'center'); });
+    fitText(on ? `지금: ${fx.text(sv.bonus)}${nx ? ` · ${nx}종이면 ${fx.text(fx.v[sv.lv])}` : ' · 최고 단계'}` : `${nx}종이면 ${fx.text(fx.v[0])}`, x + 58, yy + 38, w - 84, 12, on ? C.text : '#8b9aa3');
+  });
+}
 function drawGoalsModal() {   // 세로 화면용 목표 창(2026-11-21 모바일 검토)
   const { x, y, w, h } = modalRect();
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
@@ -3724,6 +3750,7 @@ function drawModal() {
   else if (modal?.kind === 'choice') drawChoice();
   else if (modal?.kind === 'aug' || modal?.kind === 'intro') drawBoardModal();
   else if (modal?.kind === 'goals') drawGoalsModal();
+  else if (modal?.kind === 'syn') drawSynModal();
 }
 // 고르는 보상(6장, 2026-11-10 사용자 요청: 초월 갈매미맨 대신 다른 보상도). 게임은 계속 흐름.
 // 2026-11-11 사용자 요청: 선택을 미룰 수 있게 — 「나중에」를 누르면 닫히고, 아래 「더보기」에서 언제든 다시 열어 받음
