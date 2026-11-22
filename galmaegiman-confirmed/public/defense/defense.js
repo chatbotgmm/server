@@ -1749,7 +1749,7 @@ function drawFieldInner() {
       const a = Math.max(0, 1 - age / 0.8);
       if (!fxLite && a > 0) { const gc2 = hexRGB(GRADE_COLOR[f.grade]); fxSprite('twirl_01', f.x, f.y - 20 - (1 - a) * 30, 54 + age * 30, gc2, a, -age * 9); fxSprite('star_06', f.x, f.y - 20 - (1 - a) * 30, 40, gc2, a * 0.8); }   // 위습: 소용돌이 + 별빛
       ctx.globalAlpha = a;
-      text('✦', f.x, f.y - 20 - (1 - a) * 30, 22, GRADE_COLOR[f.grade], 'center'); ctx.globalAlpha = 1;
+      wispPix(f.x, f.y - 20 - (1 - a) * 30, 22, GRADE_COLOR[f.grade]); ctx.globalAlpha = 1;
     }
   }
   drawPfx();   // 화려한 효과(도트 층)
@@ -2134,11 +2134,11 @@ function drawMainPanel(y0) {
     }
     if (h >= 90) {   // 큰 칸: ✦ 위, 이름·개수 아래
       if (n) { const rg2 = ctx.createRadialGradient(x + bw / 2, y + h * 0.33, 2, x + bw / 2, y + h * 0.33, h * 0.38); rg2.addColorStop(0, col + '99'); rg2.addColorStop(1, col + '00'); ctx.fillStyle = rg2; ctx.fillRect(x + 2, y + 2, bw - 4, h * 0.66); }
-      text('✦', x + bw / 2, y + h * 0.33, Math.min(40, h * 0.36), n ? col : '#46508a', 'center');
+      wispPix(x + bw / 2, y + h * 0.33, Math.min(40, h * 0.36), n ? col : '#46508a');
       fitText(E.GRADE_NAME[gr], x + bw / 2, y + h * 0.66, bw - 8, 14, n ? col : '#6a77a6', 'center');
       text(`×${n}`, x + bw / 2, y + h * 0.86, 20, n ? C.text : '#6a77a6', 'center');
     } else {
-      text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#46508a', 'center');
+      wispPix(x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#46508a');
       fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#6a77a6', 'center');
       text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#6a77a6', 'center');
     }
@@ -2321,6 +2321,22 @@ function drawTopFx() {
     text(u.name, cx, by + 62, 34, topFx.col === '#ffffff' ? '#ffffff' : topFx.col, 'center');
   }
   ctx.restore();
+}
+// 위습 도트 그림(2026-11-22 사용자 제보: 위습이 도트 느낌이 안 남 — 글자 「✦」는 기기 글꼴에 따라 매끈한 별로 그려졌음 → 칸을 직접 칠함)
+const WISP_PIX = [
+  '....#....',
+  '....#....',
+  '...###...',
+  '..##o##..',
+  '###ooo###',
+  '..##o##..',
+  '...###...',
+  '....#....',
+  '....#....'];
+function wispPix(cx, cy, size, col) {
+  const n = WISP_PIX.length, p = Math.max(1, Math.round(size / n)), x0 = Math.round(cx - (n * p) / 2), y0 = Math.round(cy - (n * p) / 2);
+  ctx.fillStyle = 'rgba(16,22,56,.55)'; WISP_PIX.forEach((row, j) => [...row].forEach((c, i) => { if (c !== '.') ctx.fillRect(x0 + i * p + 1, y0 + j * p + 1, p, p); }));   // 아래 그림자
+  WISP_PIX.forEach((row, j) => [...row].forEach((c, i) => { if (c === '.') return; ctx.fillStyle = c === 'o' ? '#ffffff' : col; ctx.fillRect(x0 + i * p, y0 + j * p, p, p); }));
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#10163a'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
