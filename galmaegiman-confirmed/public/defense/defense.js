@@ -49,6 +49,7 @@ let stripOn = false;         // 친구 판 줄을 붙였는가(frame이 정함)
 // 화면 비율이 약 2:1 이상일 때만(그보다 좁으면 예전처럼 한 칸). 같이하기 중에는 친구 판이 있어 예전 배치
 let BOARD_X = 0;             // 판이 시작하는 가로 위치. 2026-11-12: 판 가운데(창 칸 | 판 | 메뉴 칸)를 해 봤으나 「메뉴와 조합창이 나뉘어 불편」 → 다시 판 왼쪽, 창·메뉴는 오른쪽에 나란히
 let wide = false, WK = 1, AX = 772, AY = 0, BX = 772, BYT = 0, coopOn = false;
+let INFO_W = 0;              // 2026-11-22 PC판: 16:9처럼 넓은 가로 화면이면 오른쪽 끝에 「판 정보」 칸(판 | 창·메뉴 | 판 정보). 0이면 없음
 let fullTitle = true;        // 첫 화면·대기실은 가로 화면 폭 전체(밝은 배경 양옆에 검은 띠가 안 보이게, frame이 정함)
 let PBOT = H;                // 아래 메뉴 판의 바닥(세로 화면에서 휴대폰이 길면 늘어남)
 let OY = 0;                  // 지금 그리는 곳의 세로 위치(첫 화면을 가운데로 내릴 때)
@@ -76,7 +77,9 @@ function fit() {
   landscape = window.innerWidth / window.innerHeight > 0.9;
   const wk = Math.min((Math.min(H * window.innerWidth / window.innerHeight, 2400) - SIDE_X - 16) / (2 * W), H / 664);
   wide = false && landscape && !coopOn && wk >= 1.05; WK = wide ? wk : 1;   // 2026-11-12 사용자 의견: 3분할(판 | 창 | 메뉴)보다 예전 2분할(판 | 창·메뉴 한 칸)이 더 좋음 → 넓은 화면 배치 끔(코드는 남김)
-  VW = wide ? Math.round(SIDE_X + 2 * W * WK + 16) : landscape ? SIDE_X + W : W;
+  INFO_W = 0;
+  if (landscape && !wide && !coopOn && !fullTitle) { const ex = Math.min(2400, Math.round(H * window.innerWidth / window.innerHeight)) - (SIDE_X + W) - 8; if (ex >= 300) INFO_W = Math.min(ex, 460); }
+  VW = wide ? Math.round(SIDE_X + 2 * W * WK + 16) : landscape ? SIDE_X + W + (INFO_W ? INFO_W + 8 : 0) : W;
   if (landscape && fullTitle) VW = Math.max(VW, Math.min(2400, Math.round(H * window.innerWidth / window.innerHeight)));
   // 세로 화면(사용자 요청 2026-11-08: 휴대폰 위아래 빈 곳 없이): 화면이 더 길면 그만큼 세로를 늘려(최대 +300) 아래 메뉴를 크게
   const base = stripOn && !landscape ? H + PEER_H : H;
@@ -231,6 +234,7 @@ function button(x, y, w, h, label, fn, style = 'normal', enabled = true, sub = '
   } else if (sub) { fitText(label, x + w / 2, y + h / 2 - 10, w - 12, 17, col, 'center'); fitText(sub, x + w / 2, y + h / 2 + 12, w - 12, 14, sc, 'center'); }
   else fitText(label, x + w / 2, y + h / 2, w - 12, 17, col, 'center');
   if (enabled) hit(x, y, w, h, fn);
+  keyCapFor(label, x, y, w, h);
 }
 function chip(s, x, y, color, size = 14) {
   ctx.font = `${size}px ${FONT}`;
@@ -947,6 +951,7 @@ cv.addEventListener('pointerdown', (ev) => {
   down = { x: bp.x, y: bp.y, x0: bp.x, y0: bp.y, sy0: p.y, unit: u, field, scroller: sc, scroll0: sc?.scroll ?? 0, moved: false };
 });
 cv.addEventListener('pointermove', (ev) => {
+  mouse = ev.pointerType === 'mouse' ? toLogical(ev) : null;
   if (!down) return;
   const p = toLogical(ev), bp = down.dragFn ? p : toBoard(p);
   if (Math.hypot(bp.x - down.x0, bp.y - down.y0) > 10) down.moved = true;
@@ -961,6 +966,7 @@ cv.addEventListener('pointermove', (ev) => {
   }
   if (down.scroller && down.moved) down.scroller.scroll = Math.max(0, Math.min(down.scroller.maxScroll ?? 0, down.scroll0 - (p.y - down.sy0) / (wide ? WK : 1)));
 });
+cv.addEventListener('pointerleave', () => { mouse = null; });
 cv.addEventListener('pointerup', (ev) => {
   if (!down) return;
   const sp = toLogical(ev), d = down;
@@ -1020,7 +1026,7 @@ window.addEventListener('keydown', (ev) => {
   else if (k === 'b') { if (modal?.kind === 'book') modal = null; else openBook(); }
   else if (k === 'p') open('pick', { grade: E.PICK_GRADES.find((gr) => G.picks[gr] > 0) ?? 'COMMON' });
   else if (k === 'd') open('meter', { scroll: 0, scrollable: true });
-  else if (k === 'r') open('recruit');
+  else if (k === 'r') open('shop');   // 2026-11-22: 모집은 상점으로 합쳐짐
   else if (k === 'l') { const sel = selUnits(); if (sel.length) { const on = !sel.every((u) => u.lock); E.setLock(G, sel.map((u) => u.uid), on); say(on ? `${sel.length}마리 위치 고정` : `${sel.length}마리 고정 풀기`); } }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) setPause(true); });
@@ -2061,9 +2067,11 @@ function drawBottom() {
   decorCorners(8, y0, W - 16, PBOT - y0 - 8);
   hazard(40, y0 - 6, W - 80, 4);   // 위 창(전술창)과 아래 메뉴 사이 경고 테이프(가로 화면엔 위습·버튼 사이 줄이 없어 여기에도)
   const sel = selUnits();
+  keyHint = sel.length ? 'unit' : 'main';
   if (sel.length === 1) drawUnitPanel(y0, sel[0]);
   else if (sel.length > 1) drawGroupPanel(y0, sel);
   else drawMainPanel(y0);
+  keyHint = '';
 }
 // 아래 메뉴 버튼(사용자 지적 2026-11-08: 칸만 커져 여백이 많음): 그림 + 이름 + 상태. 칸이 높으면 그림 위·글자 아래, 낮으면 그림 왼쪽
 const MENU_ICON = ['menu/icon-draw', 'menu/icon-team', 'ui/icon-goldenstrike', 'menu/icon-explore', 'menu/icon-shop', 'menu/icon-combine'];
@@ -2083,6 +2091,7 @@ function menuButton(x, y, w, h, icon, label, fn, style, sub, subCol) {
     fitText(sub, tx, y + h / 2 + 12, x + w - tx - 6, 13, sc);
   }
   hit(x, y, w, h, fn);
+  keyCapFor(label, x, y, w, h);
 }
 function drawMainPanel(y0) {
   // 위습
@@ -2091,7 +2100,7 @@ function drawMainPanel(y0) {
 
   ws.forEach((gr, k) => {   // 위습 칸: 있으면 등급 색으로 은은하게 빛나는 ✦
     const n = G.wisps[gr] ?? 0, x = 22 + k * (bw + 6), y = PL.wy, h = PL.wh, col = GRADE_COLOR[gr];
-    box(x, y, bw, h, n ? 'rgba(24,32,78,.92)' : 'rgba(24,32,78,.45)', n ? col : '#33434d', 10, n ? 2 : 1);
+    box(x, y, bw, h, n ? 'rgba(24,32,78,.92)' : 'rgba(24,32,78,.45)', n ? col : '#3a4478', 10, n ? 2 : 1);
     if (n && h < 90) {
       const cx = x + bw * 0.3, cy = y + h / 2, rg = ctx.createRadialGradient(cx, cy, 2, cx, cy, h * 0.42);
       rg.addColorStop(0, col + '99'); rg.addColorStop(1, col + '00');
@@ -2099,15 +2108,16 @@ function drawMainPanel(y0) {
     }
     if (h >= 90) {   // 큰 칸: ✦ 위, 이름·개수 아래
       if (n) { const rg2 = ctx.createRadialGradient(x + bw / 2, y + h * 0.33, 2, x + bw / 2, y + h * 0.33, h * 0.38); rg2.addColorStop(0, col + '99'); rg2.addColorStop(1, col + '00'); ctx.fillStyle = rg2; ctx.fillRect(x + 2, y + 2, bw - 4, h * 0.66); }
-      text('✦', x + bw / 2, y + h * 0.33, Math.min(40, h * 0.36), n ? col : '#3d4c55', 'center');
-      fitText(E.GRADE_NAME[gr], x + bw / 2, y + h * 0.66, bw - 8, 14, n ? col : '#5b6a73', 'center');
-      text(`×${n}`, x + bw / 2, y + h * 0.86, 20, n ? C.text : '#5b6a73', 'center');
+      text('✦', x + bw / 2, y + h * 0.33, Math.min(40, h * 0.36), n ? col : '#46508a', 'center');
+      fitText(E.GRADE_NAME[gr], x + bw / 2, y + h * 0.66, bw - 8, 14, n ? col : '#6a77a6', 'center');
+      text(`×${n}`, x + bw / 2, y + h * 0.86, 20, n ? C.text : '#6a77a6', 'center');
     } else {
-      text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#3d4c55', 'center');
-      fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#5b6a73', 'center');
-      text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#5b6a73', 'center');
+      text('✦', x + bw * 0.3, y + h / 2 + 1, Math.min(30, h * 0.42), n ? col : '#46508a', 'center');
+      fitText(E.GRADE_NAME[gr], x + bw * 0.72, y + h * 0.32, bw * 0.5, 13, n ? col : '#6a77a6', 'center');
+      text(`${n}`, x + bw * 0.72, y + h * 0.68, Math.min(24, h * 0.32), n ? C.text : '#6a77a6', 'center');
     }
     if (n) hit(x, y, bw, h, () => doSummon(gr));
+    if (pcHints()) keyCap(x + 4, y + 4, String(k + 1));   // 2026-11-22 PC판: 1~5 위습
   });
   if (PL.gap > 14) {   // 위습과 버튼 사이 장식 구분선
     const dy = PL.divY, cx = W / 2;
@@ -2127,6 +2137,80 @@ function drawMainPanel(y0) {
   const mc = moreCount();
   btn(3, 'menu/icon-draw', '더보기', () => { modal = { kind: 'more' }; }, mc ? 'primary' : 'normal', moreSub(), mc ? '#3d2f1a' : null);
   if (mc) badge(bx(3) + b2 - 6, PL.by2 + 6, mc);
+}
+// ── PC판(2026-11-22 사용자 요청 「pc판 ui 개선」) ──
+// 마우스가 있는 PC에서만: 버튼에 단축키 글자, 마우스 올리면 버튼 밝힘·손가락 커서, 판 위 갈매미·적에 올리면 짧은 정보
+const pcMQ = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+const pcHints = () => !!pcMQ?.matches && scene === 'play';
+let keyHint = '';   // 'main'(아래 메뉴·오른쪽 창·더보기) · 'unit'(고른 갈매미 패널)일 때만 단축키 글자(창 안 같은 이름 버튼에는 안 붙임)
+const KEYCAP = { main: { 조합법: 'B', 강화: 'U', 외부탐사: 'M', 선택위습: 'P', 창고: 'S', '피해 순위': 'D', 상점: 'R' }, unit: { '위치 고정': 'L', '고정 풀기': 'L' } };
+function keyCap(x, y, k) {
+  ctx.font = `bold 11px ${FONT}`; const w = Math.max(16, ctx.measureText(k).width + 8);
+  box(x, y, w, 16, 'rgba(16,22,56,.82)', 'rgba(149,204,221,.85)', 4, 1); text(k, x + w / 2, y + 8.5, 11, '#d0e7e6', 'center');
+}
+function keyCapFor(label, x, y, w, h) { const k = keyHint && pcHints() ? KEYCAP[keyHint]?.[label] : null; if (k) keyCap(x + w - 24, y + h - 22, k); }
+let mouse = null;   // 마우스 위치(논리 좌표, 마우스일 때만)
+function drawHover() {
+  if (!mouse || down || !pcMQ?.matches) { if (cv.style.cursor) cv.style.cursor = ''; return; }
+  ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+  const h = hitAt(mouse), small = h && !h.drag && h.w <= 560 && h.h <= 200 && h.w * h.h <= 60000;
+  let cur = small ? 'pointer' : '';
+  if (small) { rr(h.x + 1, h.y + 1, h.w - 2, h.h - 2, 9); ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fill(); ctx.shadowColor = 'rgba(149,204,221,.95)'; ctx.shadowBlur = 14; ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke(); ctx.shadowBlur = 0; }
+  else if (scene === 'play' && playing() && !BOARD_MODAL.has(modal?.kind) && onBoard(mouse)) {   // 판 위: 갈매미·적 정보
+    const bp = toBoard(mouse), lines = [];
+    const u = inField(bp) ? unitAt(bp) : null;
+    if (u) {
+      const inf = E.UNIT[u.id], k = E.kit(u.id); cur = 'grab';
+      lines.push([inf.name, GRADE_COLOR[inf.grade], 15]);
+      lines.push([k.special ? '조합 재료(공격 안 함)' : `${E.GRADE_NAME[inf.grade]} · ${k.type === 'phys' ? '물딜' : '마딜'} ${k.job} · 공격 ${fmtN(Math.round(k.dmg * E.upgMul(G, k.tier)))} · 사거리 ${k.range}`, C.text, 12]);
+      lines.push([`이번 웨이브 피해 ${fmtN(Math.round(G.dmgWave?.[u.uid] ?? 0))}${u.lock ? ' · 위치 고정' : ''}`, C.muted, 12]);
+    } else {
+      let best = null, bd = 1e9;
+      for (const e of G.enemies) { if (e.hp <= 0 || e.x == null) continue; const d = Math.hypot(e.x - bp.x, e.y - bp.y); if (d < (e.boss ? 40 : 24) && d < bd) { bd = d; best = e; } }
+      if (best) {
+        lines.push([best.boss ? '보스' : best.elite ? '정예 적' : '적', best.boss ? '#ff8a7a' : C.text, 15]);
+        lines.push([`체력 ${fmtN(Math.ceil(best.hp))} / ${fmtN(Math.round(best.max))}`, C.text, 12]);
+        lines.push([`방어 ${best.armor} · 마방 ${best.mr}${best.rift ? ` · 균열 저항 ${Math.round(best.rift * 100)}%` : ''}`, C.muted, 12]);
+      }
+    }
+    if (lines.length) {
+      ctx.font = `12px ${FONT}`; let tw = 0; for (const [t, , sz] of lines) { ctx.font = `${sz}px ${FONT}`; tw = Math.max(tw, ctx.measureText(t).width); }
+      const bw = tw + 20, bh = 12 + lines.length * 19; let tx = mouse.x + 18, ty = mouse.y + 14;
+      if (tx + bw > VW - 6) tx = mouse.x - 18 - bw; if (ty + bh > VH - 6) ty = VH - 6 - bh;
+      box(tx, ty, bw, bh, 'rgba(16,22,56,.94)', 'rgba(149,204,221,.85)', 8, 1.5);
+      lines.forEach(([t, c, sz], i) => text(t, tx + 10, ty + 16 + i * 19, sz, c));
+    }
+  }
+  ctx.restore();
+  if (cv.style.cursor !== cur) cv.style.cursor = cur;
+}
+// 다음 웨이브·다음 보스 묶음(판 정보 칸·오른쪽 창 빈 곳). 끝 y를 돌려줌
+function drawWaveBlock(x, y, w) {
+  const total = E.RULES.waves, n = G.wave + 1, be = E.RULES.bossEvery;
+  box(x, y, w, 92, 'rgba(24,32,78,.85)', 'rgba(149,204,221,.45)', 10, 1.2);
+  if (G.wave >= total) { fitText('마지막 웨이브예요', x + 12, y + 24, w - 24, 15, C.goldEdge); return y + 92; }
+  const nx = E.waveInfo(n), rf = nx.boss ? 0 : E.riftAt(n), nb = Math.ceil(n / be) * be;
+  fitText(`다음 웨이브 ${n}${nx.boss ? ' · 보스!' : ''}`, x + 12, y + 22, w - 90, 15, nx.boss ? '#ff8a7a' : C.goldEdge);
+  text(`${Math.ceil(E.nextWaveIn(G))}초 뒤`, x + w - 12, y + 22, 13, C.muted, 'right');
+  fitText(`방어 ${E.armorAt(G, n)} · 마방 ${E.mrAt(G, n)}${rf ? ` · 균열 저항 ${Math.round(rf * 100)}%` : ''}`, x + 12, y + 48, w - 24, 13, C.text);
+  fitText(nx.boss ? '이번이 보스 웨이브예요' : `다음 보스: ${nb}웨이브(${nb - G.wave}웨이브 뒤) · 방어 ${E.armorAt(G, nb)} · 마방 ${E.mrAt(G, nb)}`, x + 12, y + 72, w - 24, 13, C.muted);
+  return y + 92;
+}
+function drawInfoCol(w) {   // 넓은 PC 화면 오른쪽 끝 판 정보 칸
+  box(0, 6, w, 948, 'rgba(30,40,100,.82)', C.edge, 12);
+  text('판 정보', 16, 30, 17, C.gold);
+  const bi = E.BIAS[G.bias], df = E.DIFFS[G.diff]?.name;
+  fitText([df && `난이도 ${df}`, bi && bi.name, G.topOpen && `열린 최상위 ${G.topOpen.length}종`, E.modeOf(G)?.name && G.mode !== 'normal' ? E.modeOf(G).name : ''].filter(Boolean).join(' · '), 16, 56, w - 32, 13, C.text);
+  let y = 96;
+  if (G.augs?.length) { text('증강체', 16, y, 15, C.gold); fitText(G.augs.map((id) => E.AUGS[id].name).join(' · '), 16, y + 22, w - 32, 13, C.text); y += 50; }
+  if (G.goals.length) { y = drawGoals(10, y - 10, w - 20) + 14; }
+  else { text('목표', 16, y, 15, C.gold); fitText('조합법 창에서 ☆를 누르면 여기에 남은 재료가 보여요', 16, y + 22, w - 32, 12, C.muted); y += 50; }
+  if (pcMQ?.matches) {   // 단축키 표
+    const keys = [['1~5', '위습 소환'], ['B', '조합법 (Book)'], ['U', '강화 (Upgrade)'], ['M', '외부탐사 (Mission)'], ['R', '상점 (Recruit·모집)'], ['P', '선택위습 (Pick)'], ['S', '창고 (Storage)'], ['D', '피해 순위 (Damage)'], ['L', '위치 고정 (Lock)'], ['스페이스·Esc', '멈춤 · 창 닫기']];   // 2026-11-22: 영어 앞글자라는 걸 알 수 있게
+    const ky = Math.max(y + 8, 954 - 22 - keys.length * 24 - 10);
+    text('단축키', 16, ky, 15, C.gold);
+    keys.forEach(([k, d], i) => { const yy = ky + 18 + i * 24; keyCap(16, yy, k); text(d, 16 + 96, yy + 8.5, 13, C.text); });
+  }
 }
 function badge(x, y, n) { ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = '#e0533f'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#10163a'; ctx.stroke(); text(String(n), x, y + 0.5, 13, '#fff', 'center'); }
 const pickCount = () => E.PICK_GRADES.reduce((a, gr) => a + (G.picks[gr] ?? 0), 0);
@@ -3154,6 +3238,7 @@ function drawSideTop() {
     box(56, y + 22, (W - 56 - 110) * r.d / top, 7, col, null, 4);
     fitText(fmtN(r.d), W - 24, y + 18, 84, 13, C.text, 'right');
   });
+  { const endY = my + 14 + rows.length * 38 + (rows.length ? 0 : 40); if (548 - endY >= 104) drawWaveBlock(16, 548 - 98, W - 32); }   // 2026-11-22 PC판: 빈 곳 채우기
   // ③ 갈매미맨 폭격(증강체 「갈매미맨 호출」이 있을 때만, 새우를 냄) · 새우 상점
   const by = 560;
   if (E.skillOn(G)) {
@@ -3459,7 +3544,7 @@ function drawModal() {
   else if (modal?.kind === 'shop') drawShop();
   else if (modal?.kind === 'sound') drawSound();
   else if (modal?.kind === 'pick') drawPick();
-  else if (modal?.kind === 'more') drawMore();
+  else if (modal?.kind === 'more') { keyHint = 'main'; drawMore(); keyHint = ''; }
   else if (modal?.kind === 'storage') drawStorage();
   else if (modal?.kind === 'pause') drawPause();
   else if (modal?.kind === 'over') drawOver();
@@ -4095,15 +4180,17 @@ function frame(now) {
       if (topModal()) { drawModal(); drawBottom(); }
       else if (modal && modal.kind !== 'peer') { drawModal(); if (coop()) drawPeerBar(); }
       else if (modal?.kind === 'peer') { drawPeerFull(true); button(W - 150, 684, 128, 44, '내 결과 보기', () => { modal = null; }, 'primary'); }
-      else { if (coop()) drawPeerFull(true, true); else drawSideTop(); drawBottom(); }
+      else { if (coop()) drawPeerFull(true, true); else { keyHint = 'main'; drawSideTop(); keyHint = ''; } drawBottom(); }
       if (info) drawInfo();
       ctx.restore(); OX = 0;
+      if (INFO_W) { const ix = SIDE_X + W + 8; ctx.save(); ctx.translate(ix, 0); OX = ix; drawInfoCol(INFO_W); ctx.restore(); OX = 0; }
       if (bm) { modal = bm; ctx.fillStyle = 'rgba(8,11,30,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       }
     } else { drawField(); drawGoalBoard(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
   if (scene === 'play' && !BOARD_MODAL.has(modal?.kind)) drawBossWarn();   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
+  drawHover();
   if (scene !== 'play') drawToast();
   if (perfShow.on) {
     perfShow.draw = ema(perfShow.draw, performance.now() - tDraw0);
@@ -4132,5 +4219,7 @@ function frame(now) {
 
 // 시험용(자동 캡처에서 상태를 만들 때만 씀)
 window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
-window.__defense.goalOpen = goalOpen;   // 시험용(판 위 목표 창 열기)
+window.__defense.goalOpen = goalOpen;
+Object.defineProperty(window.__defense, 'hits', { get: () => hits });   // 시험용(누르기 영역)
+Object.defineProperty(window.__defense, 'mouse', { get: () => mouse });   // 시험용(판 위 목표 창 열기)
 Object.assign(window.__defense, { makeRoom, joinRoom, sendCtl, sendPvp, pvpNet, pvpResult, toLobby: () => { scene = 'lobby'; } });   // 시험용(같이하기 두 화면 시험)
