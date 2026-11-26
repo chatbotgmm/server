@@ -1658,6 +1658,8 @@ function drawFieldInner() {
     if (landP >= 0 && landP * LT < 0.35 && !fxLite) landFx(u.x, u.y, z, landP * LT / 0.35);   // 쿵: 바닥 충격 고리·먼지(앞 0.35초)
     drawUnitShape(u.id, u.x, u.y, selSet.has(u.uid) ? '#ffffff' : col, selSet.has(u.uid) ? 3 : 2, u.lock, ox, oy, zm, dragFace ?? (face && !anim), anim);
     if (cos) cosFront(cos, u.x + ox, u.y + oy, z * zm, u.uid);
+    // 속성 배지(2026-11-22 사용자 요청: 판 위 유닛 속성 구분): 발 오른쪽 아래 작은 동그라미에 속성 첫 글자. 시너지가 켜진 속성(전설·히든 이상)은 색이 채워지고 단계 점
+    if (info.role !== E.SPECIAL_ROLE && !u.held) { const el = E.kit(u.id).elem, counts = E.tierOf(u.id) >= (E.RULES.synFrom ?? 4); synBadge(u.x + ox + 17 * z, u.y + oy - 2, el, counts ? synAll?.[el] : null, 0.8 + 0.15 * z); }
     // 이름표(2026-11-15 사용자 요청): 상위(제한~영원)는 늘, 그 아래 등급은 웨이브가 지나며 차차 흐려짐
     // 커먼 5→10웨이브 · 언커먼 10→15 · 레어 15→20 · 에픽 20→25 · 전설·히든 25→30웨이브에 사라짐(배울 때만 도움, 후반엔 판이 깔끔하게)
     { const t = E.tierOf(u.id), top = t >= E.TOP_TIER, end = [10, 15, 20, 25, 30, 30][t] ?? 30, na = top ? 1 : Math.max(0, Math.min(1, (end - G.wave) / 5));
