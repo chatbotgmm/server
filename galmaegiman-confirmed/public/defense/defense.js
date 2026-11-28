@@ -298,6 +298,7 @@ const SFX = {
   story: [[523, 0, 0.12, 'triangle'], [659, 0.1, 0.12, 'triangle'], [784, 0.2, 0.12, 'triangle'], [1047, 0.3, 0.3, 'sine']],
   signal: [[1320, 0, 0.08, 'sine'], [1760, 0.09, 0.12, 'sine']],
   wisp: [[1568, 0, 0.1, 'sine'], [2093, 0.07, 0.14, 'sine']],
+  arm: [[988, 0, 0.05, 'sine'], [1319, 0.045, 0.07, 'sine']],   // 겹쳐 조합 무장(2026-11-28)
   top: [[523, 0, 0.14, 'triangle'], [659, 0.09, 0.14, 'triangle'], [784, 0.18, 0.14, 'triangle'], [1047, 0.27, 0.2, 'triangle'], [1319, 0.4, 0.3, 'sine'], [1568, 0.55, 0.9, 'sine'], [1047, 0.55, 0.9, 'triangle'], [784, 0.55, 0.9, 'triangle'], [2093, 0.75, 0.6, 'sine']],   // 최상위 탄생 팡파르(2026-11-22)
 };
 function sfx(name) {
@@ -609,6 +610,176 @@ function drawBossWarn() {
     fitText(`웨이브 ${bossWarn.wave} · 방어 ${E.armorAt(G, bossWarn.wave)} · ${E.baseLenOf(bossWarn.wave)}초 안에 잡기 · 보스 기술 「${bp.name}」 ${bp.desc}${bossWarn.wave >= (E.RULES.lateBossFrom ?? 999) ? ` · ${{ armor: '갑옷 보스(방어 ×2.2) — 마법으로', mr: '결계 보스(마방 ×2.2) — 물리로', split: '철벽 보스(방어·마방 ×2.2) — 독으로', regen: '불사 보스(방어·마방 ×2.2, 회복 ×2) — 독으로' }[G.bias] ?? ''}` : ''}`, W / 2, by + 70, bw - 30, 15, '#ffd2c8', 'center'); }
   ctx.restore();
 }
+// ── 겹쳐 조합 도우미(엔진은 그대로: G.units 순서를 잠깐 바꿔 recipeUnits가 끈 A·겹친 B를 꼭 쓰게 함) ──
+function withOrder(list, fn) {   // list에 없는 갈매미는 엔진에서 잠깐 안 보임. 끝나면 원래 순서로(쓰인 것만 빠지고 새로 생긴 것은 끝에) → 공격 순서·난수 순서 그대로
+  const saved = G.units, inList = new Set(list), had = new Set(saved); G.units = list;
+  try { return fn(); } finally { const alive = new Set(G.units); G.units = [...saved.filter((u) => !inList.has(u) || alive.has(u)), ...G.units.filter((u) => !had.has(u))]; }
+}
+const pairOrder = (b) => [b, ...G.units.filter((u) => u !== b).sort(lockLast)];   // recipeUnits는 탐사만 뒤로 보내고 앞에서부터 고름 → B가 먼저, 고정한 같은 종류는 뒤로
+const pairUnits = (r, a, b) => withOrder(pairOrder(b), () => { const ids = E.recipeUnits(G, r, a.uid); return ids?.includes(b.uid) ? ids : null; });
+function pairChainPlan(r, a, b) {   // chainPlan과 같은데 A·B를 먼저 떼어 둠 → 중간 조합 단계(마지막 r 빼고). 안 되면 null
+  const pool = E.countOnField(G), rest = [...r.in], steps = [];
+  for (const u of [a, b]) { const k = rest.indexOf(u.id); if (k < 0) return null; rest.splice(k, 1); pool[u.id]--; }
+  const need = (c, depth) => { if ((pool[c] ?? 0) > 0) { pool[c]--; return true; } const rr = depth < 8 ? E.recipeFor(c) : null; if (!rr || E.tierOf(c) >= E.TOP_TIER) return false; for (const x of rr.in) if (!need(x, depth + 1)) return false; steps.push(rr); return true; };
+  for (const x of rest) if (!need(x, 1)) return null;
+  return steps;
+}
+const pairFits = (a, b) => E.recipesUsing(a.id).filter((r) => (a.id === b.id ? r.in.filter((x) => x === a.id).length >= 2 : r.in.includes(b.id)));
+function missOf(r, a, b) {   // A·B 말고 모자란 재료 이름
+  const pool = E.countOnField(G), rest = [...r.in], out = [];
+  for (const u of [a, b]) { const k = rest.indexOf(u.id); if (k >= 0) rest.splice(k, 1); pool[u.id]--; }
+  for (const id of rest) { if ((pool[id] ?? 0) > 0) pool[id]--; else out.push(E.UNIT[id].name); }
+  return out;
+}
+function mergePlan(a, b) {   // { cls: 'go'|'ask'|'none', silent, dud, one, live, ask, extra }
+  if (!a || !b) return { cls: 'none', silent: true };
+  const fits = pairFits(a, b);
+  if (!fits.length) return { cls: 'none', silent: true };   // 같이 들어가는 조합법이 없으면 아무 표시 없음(지금 옮기기와 같음)
+  const goals = G.goals ?? [], gi = (r) => { const k = goals.indexOf(r.out); return k < 0 ? 99 : k; };
+  const rows = fits.map((r) => { const why = E.topBlockWhy(G, r), uids = why ? null : pairUnits(r, a, b), chain = why || uids ? null : pairChainPlan(r, a, b); return { r, why, uids, chain }; });
+  const live = rows.filter((x) => x.uids || x.chain?.length).sort((p, q) => (gi(p.r) - gi(q.r)) || (!!q.uids - !!p.uids) || (p.r.in.length - q.r.in.length) || (E.tierOf(p.r.out) - E.tierOf(q.r.out)) || (E.RECIPES.indexOf(p.r) - E.RECIPES.indexOf(q.r)));
+  if (!live.length) {
+    const open = rows.filter((x) => !x.why);
+    if (open.length) return { cls: 'none', dud: open.map((x) => ({ r: x.r, miss: missOf(x.r, a, b) })).sort((p, q) => (gi(p.r) - gi(q.r)) || (p.miss.length - q.miss.length))[0] };
+    return { cls: 'none', dud: { r: rows[0].r, why: rows[0].why } };
+  }
+  const one = live[0], use = one.uids ? one.uids.map((uid) => E.unitById(G, uid)).filter(Boolean) : [];
+  let ask = '';
+  if (live.length >= 2) ask = `놓으면 고르기 · ${live.length}가지`;
+  else if (E.tierOf(one.r.out) >= E.TOP_TIER) ask = '놓으면 확인 · 최상위';   // 사용자 결정(2026-11-28): 최상위는 한 번 더 확인
+  else if (!one.uids) ask = `놓으면 확인 · 중간 조합 ${one.chain.length}번`;
+  else if (use.some((u) => u.lock)) ask = '놓으면 확인 · 고정한 갈매미가 쓰여요';
+  else if (use.some((u) => u.away)) ask = '놓으면 확인 · 탐사 중 갈매미가 쓰여요';
+  else { const gn = goalNeed(); if (!goals.includes(one.r.out) && !gn[one.r.out] && use.some((u) => gn[u.id])) ask = '놓으면 확인 · 목표 재료가 쓰여요'; }
+  return { cls: ask ? 'ask' : 'go', one, live, ask, extra: use.filter((u) => u.uid !== a.uid && u.uid !== b.uid) };
+}
+function pairCombine(r, a, b, chain = 0) {   // A·B로 조합, 결과는 겹친 자리(B 자리)에(사용자 결정 2026-11-28 · 버튼 조합은 지금처럼 가운데)
+  if (!a || !b || a.away || a.stored || b.away || b.stored || G.over || E.topBlocked(G, r)) return null;
+  const spot = { x: b.tx, y: b.ty }, ghosts = [];
+  const nu = withOrder(pairOrder(b), () => {
+    const ids = E.recipeUnits(G, r, a.uid); if (!ids || !ids.includes(b.uid)) return null;
+    for (const uid of ids) { if (uid === a.uid || uid === b.uid) continue; const u = E.unitById(G, uid); if (u && !u.away && !u.stored) ghosts.push({ id: u.id, x: u.x, y: u.y }); }
+    return E.combine(G, r, a.uid);
+  });
+  if (!nu) return null;
+  const f = [...G.fx].reverse().find((q) => q.kind === 'combine' && q.t === G.t);
+  E.moveUnit(G, nu.uid, spot.x, spot.y, true);
+  if (f) { f.x = nu.x; f.y = nu.y; }
+  if (mergeFxG !== G) { mergeFx = []; mergeFxG = G; }
+  if (ghosts.length && !fxLite) mergeFx.push({ kind: 'suck', ghosts, x: nu.x, y: nu.y, t0: performance.now() });   // 판 위 나머지 재료가 결과로 빨려 들어감
+  combineFx(nu);
+  if (lastPt !== 'mouse') { try { navigator.vibrate?.(20); } catch { /* 진동 없음 */ } }
+  selected = [nu.uid]; pairWith = null;
+  say(`${E.UNIT[nu.id].name} 완성!${chain ? ` (중간 조합 ${chain}번 포함)` : ''}`);
+  return nu;
+}
+function pairCombineAny(r, aUid, bUid) {   // 아래 창 짝 조합(바로 또는 중간 조합 뒤)
+  const a = E.unitById(G, aUid), b = E.unitById(G, bUid);
+  if (!a || !b || a.away || a.stored || b.away || b.stored) { say('짝이 판에 없어요.'); pairWith = null; return null; }
+  if (E.topBlocked(G, r)) { say(E.topBlockWhy(G, r)); return null; }
+  if (pairUnits(r, a, b)) return pairCombine(r, a, b);
+  const steps = pairChainPlan(r, a, b);
+  if (!steps?.length) { say('재료가 모자라요.'); return null; }
+  const ok = withOrder(G.units.filter((u) => u !== a && u !== b).sort(lockLast), () => { for (const st of steps) if (!E.combine(G, st)) return false; return true; });   // A·B는 엔진에서 잠깐 숨겨 중간 조합에 안 먹힘
+  G.fx = G.fx.filter((q) => !(q.kind === 'combine' && q.t === G.t));   // 중간 조합의 가운데 번쩍임은 지움
+  if (!ok) { say('재료가 바뀌어 조합하지 못했어요.'); return null; }
+  return pairCombine(r, a, b, steps.length);
+}
+function mergeTip() {   // 버튼 조합 알림 끝에 처음 2번만
+  if (!mergeOn || tut) return '';
+  const n = +(ls.get('gmm-defense-merge-tip') ?? 0); if (n >= 2) return '';
+  ls.set('gmm-defense-merge-tip', String(n + 1)); return ' · 판에서 재료끼리 겹쳐 꾹 눌러도 돼요';
+}
+function mergeTick(now) {   // 매 프레임(손가락이 멈춰 pointermove가 안 와도 시간을 셈) · 실제 시간 기준이라 게임 배속과 무관
+  const d = down, m0 = d?.mg0; if (!m0) return;
+  const a = E.unitById(G, m0.a);
+  if (!d.start || !playing() || tut || !mergeOn || !a || a.away || a.stored || a.id !== m0.aid) { d.mg = null; return; }
+  const v = { x: m0.sx + d.x - d.x0, y: m0.sy + d.y - d.y0 }, vc = { x: v.x, y: v.y - 14 * usz(a.id) };   // 손가락이 가리키는 자리(스냅·밀어내기 전)
+  const far = (u) => { const c = bodyOf(u); return Math.hypot(c.x - vc.x, c.y - vc.y) > holdR(u, m0.mouse); };
+  for (const uid of [...m0.excl]) { const u = E.unitById(G, uid); if (!u || far(u)) m0.excl.delete(uid); }
+  if (d.mgOff) { const u = E.unitById(G, d.mgOff); if (!u || far(u)) d.mgOff = 0; }
+  let m = d.mg;
+  if (m) { const b = E.unitById(G, m.b); if (!b || b.away || b.stored || b.id !== m.bid || far(b)) m = d.mg = null; }
+  if (!m) {
+    let best = null, bd = 1e9;
+    for (const u of E.fieldUnits(G)) {
+      if (u === a || u.held || m0.excl.has(u.uid) || u.uid === d.mgOff) continue;
+      const c = bodyOf(u), dd = Math.hypot(c.x - vc.x, c.y - vc.y); if (dd > coreR(u, m0.mouse)) continue;
+      if (dd < bd - 0.5 || (Math.abs(dd - bd) <= 0.5 && tieBetter(u, best))) { best = u; bd = dd; }
+    }
+    if (!best) return;
+    const plan = mergePlan(a, best); if (plan.silent) return;
+    m = d.mg = { b: best.uid, bid: best.id, same: best.id === a.id, ax: v.x, ay: v.y, t0: now, plan, pAt: now, p: 0, armed: false, cool: false };
+  }
+  m.v = v;
+  if (!m.armed && Math.hypot(v.x - m.ax, v.y - m.ay) > MG.ANCHOR / boardCss()) { m.ax = v.x; m.ay = v.y; m.t0 = now; }   // 움직이는 동안은 시간을 0부터(쓸고 지나가기·자리 맞추기는 무장 안 됨)
+  if (now - m.pAt >= 100) { m.plan = mergePlan(a, E.unitById(G, m.b)); m.pAt = now; if (m.plan.silent) { d.mg = null; return; } }
+  const T = m.same ? MG.SAME : MG.DIFF, live = m.plan.cls === 'go' || m.plan.cls === 'ask';
+  m.p = Math.max(0, Math.min(1, (now - m.t0 - T.delay) / (T.arm - T.delay)));
+  if (m.armed && !live) m.armed = false;
+  if (!m.armed && !m.cool && m.p >= 1 && live) { m.armed = true; m.armT = now; sfx('arm'); if (!m0.mouse) { try { navigator.vibrate?.(12); } catch { /* 진동 없음 */ } } }
+  if (m.armed && !m.cool && now - m.armT > MG.COOL) m.cool = true;   // 4초 넘게 들고 있으면 식음(떼도 옮기기)
+  if (d.mgDemo) { m.p = d.mgDemo.p; m.armed = d.mgDemo.armed && live; m.cool = !!d.mgDemo.cool; }   // 시험(캡처)용
+  m.ghost = live && m.p > 0 && !m.same && !m.cool;   // 다른 종류: 끈 갈매미를 B 위에 겹쳐 그림(조합 모드라는 표시)
+}
+function drawMergeRing() {   // B 몸 둘레 고리(발밑 ☆목표 타원과 구별)
+  const m = down?.mg; if (!m?.plan || m.plan.silent) return;
+  const b = E.unitById(G, m.b); if (!b) return;
+  const live = m.plan.cls !== 'none', z = usz(b.id), c = bodyOf(b), R = Math.max(34 * z, MG.RING / boardCss()), now = performance.now(), full = Math.PI * 2;
+  ctx.save();
+  if (live && m.p > 0) {
+    if (m.cool) ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(16,22,56,.55)'; ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, full); ctx.stroke();
+    if (m.armed) {
+      const col = m.plan.cls === 'go' ? C.good : C.goldEdge;
+      ctx.lineWidth = 5 + 1.5 * (0.5 + 0.5 * Math.sin(now / 90)); ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, full); ctx.stroke();
+      if (!m.cool) { ctx.setLineDash([5, 4]); ctx.lineWidth = 2; for (const u of m.plan.extra ?? []) { const q = E.unitById(G, u.uid); if (!q || q.away || q.stored) continue; const uz = usz(q.id); ctx.beginPath(); ctx.ellipse(q.x, q.y + 2, 26 * uz, 10 * uz, 0, 0, full); ctx.stroke(); } ctx.setLineDash([]); }   // 함께 쓰일 판 위 재료
+    } else { ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = C.gold; ctx.beginPath(); ctx.arc(c.x, c.y, R, -Math.PI / 2, -Math.PI / 2 + full * m.p); ctx.stroke(); }
+  } else if (!live && m.p >= 1) { ctx.globalAlpha = 0.6; ctx.setLineDash([4, 5]); ctx.lineWidth = 2; ctx.strokeStyle = C.muted; ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, full); ctx.stroke(); ctx.setLineDash([]); }   // 짝이지만 지금 못 만듦
+  ctx.restore();
+}
+function drawMergeFx() {   // 조합 직후 나머지 재료가 결과로 빨려 들어감(0.22초)
+  if (mergeFxG !== G) { mergeFx = []; mergeFxG = G; return; }
+  const now = performance.now();
+  mergeFx = mergeFx.filter((f) => now - f.t0 < 220);
+  for (const f of mergeFx) {
+    const t = (now - f.t0) / 220, e = t * t;
+    ctx.save(); ctx.globalAlpha = 1 - t;
+    for (const g of f.ghosts) drawUnitShape(g.id, g.x + (f.x - g.x) * e, g.y + (f.y - g.y) * e, GRADE_COLOR[E.UNIT[g.id].grade], 2, false, 0, 0, 1 - 0.4 * t);
+    ctx.restore();
+  }
+}
+function drawMergeLabel() {   // 손가락 위 이름표: 「A + B → 결과」 · 둘째 줄은 놓으면 무엇이 되는지
+  const d = down, m = d?.mg; if (!m?.plan || m.plan.silent || !G || scene !== 'play') return;
+  const a = E.unitById(G, d.mg0.a), b = E.unitById(G, m.b); if (!a || !b) return;
+  const pl = m.plan, live = pl.cls !== 'none';
+  if (live ? !(m.p > 0) : !(m.p >= 1)) return;
+  const bc = boardCss(), k = Math.max(1, 12 / (15 * bc)), rr = live ? pl.one.r : pl.dud.r;
+  const res = live && pl.live.length >= 2 ? `${pl.live.length}가지` : E.UNIT[rr.out].name, resCol = live && pl.live.length >= 2 ? C.goldEdge : GRADE_COLOR[E.UNIT[rr.out].grade];
+  const head = `${E.UNIT[a.id].name} + ${E.UNIT[b.id].name} → `;
+  const nm = (u) => E.UNIT[u.id].name + (u.stored ? '(창고)' : u.away ? '(탐사)' : '');
+  let l2, c2, edge;
+  if (!live) { if (pl.dud.why) { l2 = pl.dud.why; c2 = C.bad; } else { const ms = pl.dud.miss; l2 = `더 필요: ${ms.slice(0, 2).join('·')}${ms.length > 2 ? ` 외 ${ms.length - 2}` : ''}`; c2 = C.muted; } edge = 'rgba(149,204,221,.4)'; }
+  else if (m.cool) { l2 = '떼었다 다시 대면 조합'; c2 = C.muted; edge = 'rgba(149,204,221,.4)'; }
+  else if (!m.armed) { l2 = '꾹 누르고 있기'; c2 = C.muted; edge = C.gold; }
+  else if (pl.cls === 'go') { const ex = pl.extra; l2 = `놓으면 조합${ex.length ? ` · 함께: ${ex.slice(0, 2).map(nm).join('·')}${ex.length > 2 ? ` 외 ${ex.length - 2}` : ''}` : ''}`; c2 = C.good; edge = C.good; }
+  else { l2 = pl.ask; c2 = C.goldEdge; edge = C.goldEdge; }
+  let fs = 15 * k; ctx.font = `${fs}px ${FONT}`; const w1 = ctx.measureText(head + res).width; ctx.font = `${12 * k}px ${FONT}`; const w2 = ctx.measureText(l2).width;
+  const w = Math.min(300 * k, Math.max(w1, w2) + 24 * k), h = 46 * k;
+  while (fs > 9 && (ctx.font = `${fs}px ${FONT}`, ctx.measureText(head + res).width > w - 20 * k)) fs -= 0.5;
+  let x, y;
+  if (m0Mouse(d)) { x = d.x + 18; y = d.y + 14; }
+  else {
+    const gap = MG.GAP / bc; x = d.x - w / 2; y = d.y - gap - h;
+    if (y < FIELD.y + 4) { y = d.y - 20 * k - h / 2; x = d.x < FIELD.x + FIELD.w / 2 ? d.x + gap * 0.6 : d.x - gap * 0.6 - w; }   // 위가 모자라면 손가락 옆(판 가운데 쪽)
+  }
+  x = Math.max(FIELD.x + 2, Math.min(FIELD.x + FIELD.w - w - 2, x)); y = Math.max(FIELD.y + 2, Math.min(FIELD.y + FIELD.h - h - 2, y));
+  box(x, y, w, h, 'rgba(16,22,56,.94)', edge, 10 * k, 2);
+  ctx.font = `${fs}px ${FONT}`; const hw = ctx.measureText(head).width, tx0 = x + 12 * k;
+  text(head, tx0, y + h * 0.33, fs, C.text); text(res, tx0 + hw, y + h * 0.33, fs, resCol);
+  fitText(l2, tx0, y + h * 0.72, w - 24 * k, 12 * k, c2);
+}
+const m0Mouse = (d) => !!d?.mg0?.mouse;
 // 한 번에 조합(2026-11-15 사용자 요청): 바로 아래 재료가 없어도 기본 재료가 다 있으면 중간 재료부터 차례로 조합
 function chainPlan(r) {   // 조합할 순서(아래부터, 마지막이 r). 기본 재료가 모자라면 null
   const pool = E.countOnField(G), steps = [];
@@ -630,9 +801,10 @@ function combineChain(r, keep = 0) {   // 바로 되면 그대로, 아니면 중
   const nu = combineNow(r); if (nu) nu.chain = plan.length - 1;
   return nu;
 }
+function combineFx(nu) { sfx('combine'); const t = E.tierOf(nu.id); pfx('collect', nu.x, nu.y - 20, { dur: 1.2 }); if (t >= E.TOP_TIER) pfx('portal', nu.x, nu.y + 4, { dur: 1.6 }); if (t >= 4) pfx('starfall', nu.x, nu.y - 10, { dur: 1.6, elem: t >= E.TOP_TIER ? 'HOLY' : undefined }); }   // 조합 효과(버튼·겹쳐 조합 같이 씀)
 function combineNow(r, keep = 0) {
   const nu = E.combine(G, r, keep);
-  if (nu) { sfx('combine'); const t = E.tierOf(nu.id); pfx('collect', nu.x, nu.y - 20, { dur: 1.2 }); if (t >= E.TOP_TIER) pfx('portal', nu.x, nu.y + 4, { dur: 1.6 }); if (t >= 4) pfx('starfall', nu.x, nu.y - 10, { dur: 1.6, elem: t >= E.TOP_TIER ? 'HOLY' : undefined }); }
+  if (nu) combineFx(nu);
   return nu;
 }
 // ── 화려한 효과(2026-11-15 사용자 요청): pixelfx(MIT) 도트 효과를 판 위 투명한 층에 그림(pixfx.js, scripts/web/build-pixfx.sh로 묶음) ──
@@ -920,6 +1092,19 @@ function addClear(diff) {
 
 // ── 입력 ──
 let down = null;
+// ── 끌어서 겹쳐 조합(2026-11-28 사용자 요청 「드래그해서 유닛끼리 겹쳐서 조합」 · 설계 워크플로 5안·심사 3명 → 「꾹 겹치기」) ──
+// 한 마리를 끌어 조합 짝 위에 겹친 채 꾹 누르면(다른 종류 0.7초 · 같은 종류 1초) 고리가 차고 무장, 떼면 조합. 그 전에 떼면 지금처럼 옮기기만.
+// 애매하면(만들 것 여럿·최상위·중간 조합·고정/탐사/목표 재료가 쓰임) 떼도 내려놓기만 하고 아래 창에 짝 조합 목록 → 「조합」 한 번 더. engine.js는 그대로(화면 파일만)
+const MG = { DIFF: { delay: 150, arm: 700 }, SAME: { delay: 350, arm: 1000 }, COOL: 4000, CORE_T: [24, 30], CORE_M: 20, PAD_T: 10, PAD_M: 8, ANCHOR: 10, RING: 34, GAP: 80 };   // ANCHOR·RING·GAP은 화면(CSS) px
+const MERGE_KEY = 'gmm-defense-dragmerge';
+let mergeOn = ls.get(MERGE_KEY) !== '0', pairWith = null, mergeFx = [], mergeFxG = null, lastPt = '';
+const boardCss = () => Math.max(0.1, cv.getBoundingClientRect().width / VW * (landscape ? LS : 1));   // 판 논리 1px = 화면 몇 px
+const bodyOf = (u) => ({ x: u.x, y: u.y - 14 * usz(u.id) });
+const coreR = (u, mouse) => (mouse ? MG.CORE_M : Math.min(MG.CORE_T[1], Math.max(MG.CORE_T[0], 18 / boardCss()))) * usz(u.id);
+const holdR = (u, mouse) => coreR(u, mouse) + (mouse ? MG.PAD_M : MG.PAD_T) * usz(u.id);
+const lockLast = (p, q) => (p.lock ? 1 : 0) - (q.lock ? 1 : 0);
+const tieBetter = (u, o) => !o || (!u.lock && o.lock) || (!!u.lock === !!o.lock && ((!u.got && o.got) || (!!u.got === !!o.got && u.uid < o.uid)));
+const releaseHeld = (d) => { if (d?.start && G) E.holdUnits(G, d.start.map(([uid]) => uid), false); };
 let moveCount = 0;   // 끌어서 옮긴 횟수(처음 안내)
 function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) * VW / r.width, y: (ev.clientY - r.top) * VH / r.height }; }
 const inField = (p) => p.x >= FIELD.x && p.y >= FIELD.y && p.x < FIELD.x + FIELD.w && p.y < FIELD.y + FIELD.h;
@@ -943,28 +1128,33 @@ function scrollerAt(p) {
 const toBoard = (p) => (landscape ? { x: (p.x - BOARD_X) / LS, y: p.y / LS } : p);
 const onBoard = (p) => !landscape || (p.x >= BOARD_X && p.x < BOARD_X + SIDE_X);
 cv.addEventListener('pointerdown', (ev) => {
+  if (down && ev.pointerId !== down.pid) { if (cv.hasPointerCapture?.(down.pid)) return; releaseHeld(down); down = null; }   // 2026-11-28: 끄는 중 두 번째 손가락은 무시(전에는 down을 덮어써 첫 갈매미가 들린 채 남음)
+  lastPt = ev.pointerType;
   press = ev.pointerType === 'mouse' ? null : toLogical(ev);
   if (!sfxState.ctx) sfxCtx();   // 첫 누르기에서 소리 준비
   const p = toLogical(ev), bp = toBoard(p);
   cv.setPointerCapture?.(ev.pointerId);
   const top = hitAt(p), dragFn = top?.drag ? top.fn : null;
-  if (dragFn) { dragFn(p); down = { x: p.x, y: p.y, x0: p.x, y0: p.y, sy0: p.y, dragFn, moved: false }; return; }
+  if (dragFn) { dragFn(p); down = { x: p.x, y: p.y, x0: p.x, y0: p.y, sy0: p.y, dragFn, moved: false, pid: ev.pointerId, pt: ev.pointerType }; return; }
   const field = playing() && onBoard(p) && inField(bp);
   const u = field ? unitAt(bp) : null;
   const sc = scrollerAt(p);
-  down = { x: bp.x, y: bp.y, x0: bp.x, y0: bp.y, sy0: p.y, unit: u, field, scroller: sc, scroll0: sc?.scroll ?? 0, moved: false };
+  down = { x: bp.x, y: bp.y, x0: bp.x, y0: bp.y, sy0: p.y, unit: u, field, scroller: sc, scroll0: sc?.scroll ?? 0, moved: false, pid: ev.pointerId, pt: ev.pointerType };
 });
 cv.addEventListener('pointermove', (ev) => {
   mouse = ev.pointerType === 'mouse' ? toLogical(ev) : null;
   if (press && ev.pointerType !== 'mouse') press = toLogical(ev);
-  if (!down) return;
+  if (!down || ev.pointerId !== down.pid) return;
   const p = toLogical(ev), bp = down.dragFn ? p : toBoard(p);
   if (Math.hypot(bp.x - down.x0, bp.y - down.y0) > 10) down.moved = true;
   down.x = bp.x; down.y = bp.y;
   if (down.dragFn) { down.dragFn(p); return; }
   // 끌기를 실시간으로(2026-11-12 사용자 요청): 끄는 동안 갈매미(고른 무리면 무리째)가 손가락을 바로 따라옴
   if (down.field && down.unit && down.moved && playing()) {
-    if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); E.holdUnits(G, down.start.map(([uid]) => uid), true); }   // 집어 듦: 공격 멈춤
+    if (!down.start) { const group = selected.includes(down.unit.uid) && selected.length > 1 ? selUnits() : [down.unit]; down.start = group.filter((u) => !u.lock).map((u) => [u.uid, u.tx, u.ty]); E.holdUnits(G, down.start.map(([uid]) => uid), true);   // 집어 듦: 공격 멈춤
+      down.solo = down.start.length === 1 && !(selected.length > 1 && selected.includes(down.unit.uid));   // 겹쳐 조합은 한 마리 끌기만(무리 끌기는 늘 옮기기)
+      if (down.solo && mergeOn && !tut) { const [uid, sx, sy] = down.start[0], a = E.unitById(G, uid), mouse = down.pt === 'mouse', c = { x: sx, y: sy - 14 * usz(a.id) };
+        down.mg0 = { a: uid, aid: a.id, sx, sy, mouse, excl: new Set(E.fieldUnits(G).filter((o) => o.uid !== uid && Math.hypot(bodyOf(o).x - c.x, bodyOf(o).y - c.y) <= holdR(o, mouse)).map((o) => o.uid)) }; } }   // 집을 때 바로 옆(쌓인 더미)은 한 번 벗어날 때까지 짝으로 안 봄
     const dx = bp.x - down.x0, dy = bp.y - down.y0, mvx = bp.x - (down.lx ?? down.x0); down.lx = bp.x;
     for (const [uid, x, y] of down.start) { E.moveUnit(G, uid, x + dx, y + dy, true); if (Math.abs(mvx) > 1.5) { const u = E.unitById(G, uid); if (u) u.dragDir = mvx > 0 ? 1 : -1; } }   // 끄는 방향 기억(그림만)
     return;
@@ -974,13 +1164,20 @@ cv.addEventListener('pointermove', (ev) => {
 cv.addEventListener('pointerleave', () => { mouse = null; });
 cv.addEventListener('pointerup', (ev) => {
   press = null;
-  if (!down) return;
+  if (!down || ev.pointerId !== down.pid) return;
   const sp = toLogical(ev), d = down;
   down = null;
   if (d.dragFn) { d.dragFn(sp); return; }
   const p = d.field ? toBoard(sp) : sp;
+  if (d.start && !(d.field && playing())) { releaseHeld(d); return; }   // 2026-11-28: 끄는 중 창이 열렸으면 내려놓기만(떼는 자리의 창 버튼이 눌리던 것·들린 채 남던 것)
   if (d.field && playing()) {
     if (d.unit && d.moved) {   // 끌어서 옮기기(고른 무리에 있으면 무리째, 고정한 갈매미는 그 자리에)
+      const m = d.mg, a0 = m && E.unitById(G, d.mg0.a), b0 = m && E.unitById(G, m.b); let ask = null;
+      if (m?.armed && !m.cool && a0 && b0 && !b0.away && !b0.stored && b0.id === m.bid) {   // 겹쳐 조합: 무장은 마지막 프레임 상태 그대로(떼며 미끄러져도), 재료만 다시 셈
+        const plan = mergePlan(a0, b0);
+        if (plan.cls === 'go') { if (pairCombine(plan.one.r, a0, b0)) { releaseHeld(d); return; } say('재료가 바뀌어 조합하지 못했어요.'); }
+        else if (plan.cls === 'ask') ask = { a: a0.uid, b: b0.uid }; else say('재료가 바뀌어 조합하지 못했어요.');
+      }
       const dx = p.x - d.x0, dy = p.y - d.y0;
       let moved = 0;
       for (const [uid, x, y] of d.start ?? []) if (E.moveUnit(G, uid, x + dx, y + dy, true)) moved++;   // 끄는 동안 이미 따라왔음, 마지막 자리로 맞춤
@@ -988,7 +1185,11 @@ cv.addEventListener('pointerup', (ev) => {
       if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
       const sn = (d.start ?? []).map(([uid]) => E.unitById(G, uid)).find((u) => u?.snap);   // 같은 갈매미에 붙음: 고리 + 소리
       if (sn) { G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t }); G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t - 0.15 }); sfx('summon'); }
-      if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
+      if (ask) { selected = [ask.b]; pairWith = ask; sfx('arm'); }
+      else {
+        if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
+        if (m && !m.armed && m.p > 0 && (m.plan.cls === 'go' || m.plan.cls === 'ask') && !ls.get('gmm-defense-merge-hint')) { ls.set('gmm-defense-merge-hint', '1'); say('겹친 채로 꾹 누르고 있으면 조합돼요(고리가 다 찰 때까지)'); }
+      }
       return;
     }
     if (d.unit) { selected = selected.length === 1 && selected[0] === d.unit.uid ? [] : [d.unit.uid]; return; }
@@ -1005,7 +1206,7 @@ cv.addEventListener('pointerup', (ev) => {
   const h = hitAt(sp);
   if (h) h.fn(sp);
 });
-cv.addEventListener('pointercancel', () => { press = null; if (down?.start && G) E.holdUnits(G, down.start.map(([uid]) => uid), false); down = null; });
+cv.addEventListener('pointercancel', (ev) => { if (down && ev.pointerId !== down.pid) return; press = null; releaseHeld(down); down = null; });
 cv.addEventListener('wheel', (ev) => { const sc = scrollerAt(toLogical(ev)); if (sc) { sc.scroll = Math.max(0, Math.min(sc.maxScroll ?? 0, sc.scroll + ev.deltaY)); ev.preventDefault(); } }, { passive: false });
 window.addEventListener('keydown', (ev) => {
   if (document.activeElement === searchEl) { if (ev.key === 'Escape') searchEl.blur(); return; }   // 검색 입력 중에는 단축키 안 씀
@@ -1016,6 +1217,7 @@ window.addEventListener('keydown', (ev) => {
     return;
   }
   if (scene !== 'play' || !G || G.over) return;
+  if (ev.key === 'Escape' && down?.mg) { down.mgOff = down.mg.b; down.mg = null; ev.preventDefault(); return; }   // 끄는 중 Esc: 이번 짝 조합만 취소
   if (ev.key === ' ' || ev.key === 'Escape') {
     if (info) info = null; else if (modal?.kind === 'pause') setPause(false); else if (modal) modal = null; else setPause(true);
     ev.preventDefault();
@@ -1624,7 +1826,8 @@ function drawFieldInner() {
   }
   // 갈매미(아래쪽부터 그려 겹침이 자연스럽게)
   const gc = goalColors(), selSet = new Set(selected), synAll = E.RULES.synergy ? E.synergyOf(G) : null;
-  const list = [...E.fieldUnits(G)].sort((a, b) => a.y - b.y);
+  const mgD = down?.mg?.ghost ? down.mg : null, gB = mgD && E.unitById(G, mgD.b), gh = mgD && gB ? { uid: down.mg0.a, x: mgD.v.x, y: mgD.v.y, by: gB.y } : null;   // 겹쳐 조합: 끈 갈매미를 B 위에 그림(엔진 자리는 그대로)
+  const list = E.fieldUnits(G).map((u) => (gh && u.uid === gh.uid ? { ...u, x: gh.x, y: gh.y, ghost: true } : u)).sort((a, b) => (a.ghost ? gh.by + 0.1 : a.y) - (b.ghost ? gh.by + 0.1 : b.y));
   const lastShot = new Map();   // 갈매미마다 가장 최근 공격(동작용)
   for (const f of G.fx) if (f.kind === 'shot' && f.uid) { const q = lastShot.get(f.uid); if (!q || q.t < f.t) lastShot.set(f.uid, f); }
   for (const u of list) {
@@ -1688,7 +1891,8 @@ function drawFieldInner() {
   }
   // 겹친 갈매미 수(같은 자리 14px 안)
   const stacks = [];
-  for (const u of list) { const z = usz(u.id), st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; st.z = Math.max(st.z, z); } else stacks.push({ x: u.x, y: u.y, n: 1, z }); }
+  for (const u of list) { if (u.ghost) continue; const z = usz(u.id), st = stacks.find((q) => Math.abs(q.x - u.x) < 14 && Math.abs(q.y - u.y) < 14); if (st) { st.n++; st.x = u.x; st.y = u.y; st.z = Math.max(st.z, z); } else stacks.push({ x: u.x, y: u.y, n: 1, z }); }
+  drawMergeRing(); drawMergeFx();
   for (const st of stacks) if (st.n > 1) { const by = st.y - 50 * st.z - 4; box(st.x + 10 * st.z, by, 30, 20, 'rgba(16,22,56,.9)', C.goldEdge, 8, 1.5); text(`×${st.n}`, st.x + 10 * st.z + 15, by + 10.5, 13, C.goldEdge, 'center'); }
   // 끌기 표시
   if (down?.moved && down.field) {
@@ -2095,6 +2299,7 @@ function drawBottom() {
   decorCorners(8, y0, W - 16, PBOT - y0 - 8);
   hazard(40, y0 - 6, W - 80, 4);   // 위 창(전술창)과 아래 메뉴 사이 경고 테이프(가로 화면엔 위습·버튼 사이 줄이 없어 여기에도)
   const sel = selUnits();
+  if (pairWith) { const pa = E.unitById(G, pairWith.a); if (sel.length !== 1 || sel[0].uid !== pairWith.b || !pa || pa.away || pa.stored) pairWith = null; }   // 겹쳐 조합 「한 번 더 확인」 목록은 그 B를 고른 동안만
   keyHint = sel.length ? 'unit' : 'main';
   if (sel.length === 1) drawUnitPanel(y0, sel[0]);
   else if (sel.length > 1) drawGroupPanel(y0, sel);
@@ -2195,7 +2400,7 @@ function drawTips() {
   ctx.restore();
 }
 function drawHover() {
-  if (!mouse || down || !pcMQ?.matches) { if (cv.style.cursor) cv.style.cursor = ''; return; }
+  if (!mouse || down || !pcMQ?.matches) { const cur = down?.mg?.armed && !down.mg.cool ? 'copy' : ''; if (cv.style.cursor !== cur) cv.style.cursor = cur; return; }
   ctx.save(); ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
   const h = hitAt(mouse), small = h && !h.drag && h.w <= 560 && h.h <= 200 && h.w * h.h <= 60000;
   let cur = small ? 'pointer' : '';
@@ -2411,9 +2616,13 @@ function drawUnitPanel(y0, u) {
     const ok = E.canReroll(G, u);
     button(W - 222, y0 + 10, 104, 40, u.rerolled ? '리롤 끝' : `리롤 (${G.rerolls ?? 0})`, () => { if (u.rerolled) return say('한 번 리롤한 갈매미는 다시 리롤할 수 없어요.'); const was = info.name, nu = E.rerollUnit(G, u.uid); if (nu) say(`리롤: ${was} → ${E.UNIT[nu.id].name}`); else say('리롤권이 없어요. 10웨이브 보스마다 1개 받아요.'); }, ok ? 'primary' : 'normal');   // 누르면 다른 에픽으로(리롤권 1개)
   }
-  const list = E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
-  const sgOn = !list.length && E.tierOf(u.id) >= E.TOP_TIER && E.SIGNATURE[u.id];   // 2026-11-19: 최상위는 조합법 자리에 고유 기술 버튼
-  text(sgOn ? '고유 기술 직접 쓰기' : list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
+  const pw = pairWith?.b === u.uid ? E.unitById(G, pairWith.a) : null;   // 겹쳐 조합 뒤: 「A도 함께 쓰는 조합」
+  const gIdx = (r) => { const k2 = (G.goals ?? []).indexOf(r.out); return k2 < 0 ? 99 : k2; };
+  const list = pw ? pairFits(pw, u).map((r) => { const bl = E.topBlocked(G, r), ok = !bl && !!pairUnits(r, pw, u); return { r, ok, chain: !bl && !ok && !!pairChainPlan(r, pw, u)?.length }; }).sort((a, b) => (b.ok - a.ok) || (b.chain - a.chain) || (gIdx(a.r) - gIdx(b.r)) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)))
+    : E.recipesUsing(u.id).map((r) => ({ r, ok: canMake(r, u.uid) })).sort((a, b) => (b.ok - a.ok) || (E.tierOf(a.r.out) - E.tierOf(b.r.out)));
+  const sgOn = !pw && !list.length && E.tierOf(u.id) >= E.TOP_TIER && E.SIGNATURE[u.id];   // 2026-11-19: 최상위는 조합법 자리에 고유 기술 버튼
+  if (pw) { fitText(`「${E.UNIT[pw.id].name}」도 함께 쓰는 조합`, 22, y0 + 100, W - 150, 15, C.goldEdge); button(W - 112, y0 + 86, 90, 26, '짝 빼기', () => { pairWith = null; }, 'quiet'); }
+  else text(sgOn ? '고유 기술 직접 쓰기' : list.length ? '이 갈매미로 만들 수 있는 것' : '이 갈매미가 들어가는 조합법이 없어요', 22, y0 + 100, 15, C.gold);
   const cnt = E.countOnField(G);
   // 버튼 6개는 3개씩 두 줄(사용자 요청 2026-11-08: 휴대폰에서 작음), 조합법 줄은 남는 높이만큼
   const ex = Math.max(0, PBOT - H), BH = Math.min(70, 44 + ex * 0.15), b6 = (W - 44 - 12) / 3;
@@ -2437,8 +2646,8 @@ function drawUnitPanel(y0, u) {
       fitText(kk.ticket ? `지금 모집권 ${G.tickets ?? 0}` : `지금 +${Math.round(Math.min(E.RULES.goldScaleCap, G.gold / 1000 * 0.01) * 100)}%`, px + pw / 2, yy + bh3 * 0.82, pw - 12, 11, C.goldEdge, 'center');
     }
   }
-  const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid)), list.length)
-    : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id);
+  const shown = sgOn ? 0 : list.length <= rowsN ? (list.forEach(({ r, ok, chain }, i) => recipeRow(r, ok, 18, y0 + 112 + i * 50, W - 36, 46, cnt, u.uid, pw ? { a: pw.uid, b: u.uid, chain } : null)), list.length)
+    : recipeCards(list, 18, y0 + 112, W - 36, 46, rowsN, u.id, pw ? { a: pw.uid, b: u.uid } : null);
   const bx = (i) => 22 + (i % 3) * (b6 + 6), byOf = (i) => (i < 3 ? by1 : by2);
   button(bx(0), byOf(0), b6, BH, list.length > shown ? `조합법 +${list.length - shown}` : '조합법', () => openBook(null, u.id, { sel: [u.uid] }), 'normal');
   button(bx(1), byOf(1), b6, BH, '모으기', () => { selected = E.gather(G, u.uid); say(`같은 ${E.UNIT[u.id].name} ${selected.length}마리를 모았어요(고정한 것은 그 자리).`); }, 'normal');
@@ -2504,13 +2713,13 @@ function chipLabel(t, cx, cy, maxW, size, color) {   // 좁은 재료 칸: 9px�
   let s = t; ctx.font = `9px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
   text(s + '…', cx, cy, 9, color, 'center');
 }
-function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카드: 줄마다 왼쪽부터 채우고, 들어간 개수를 돌려줌
+function recipeCards(list, x, y, w, h, rows, using, pair = null) {   // 작은 조합법 카드: 줄마다 왼쪽부터 채우고, 들어간 개수를 돌려줌
   let n = 0;
   for (let row = 0; row < rows && n < list.length; row++) {
     let cx = x; const cy = y + row * (h + 4);
     while (n < list.length) {
-      const { r, ok } = list[n], out = E.UNIT[r.out], k = E.kit(r.out);
-      const shut = !E.topIsOpen(G, r.out), sub = `${k.type === 'phys' ? '물딜' : '마딜'} · ${shut ? '이번 판 닫힘' : ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
+      const { r, ok, chain } = list[n], out = E.UNIT[r.out], k = E.kit(r.out), pgo = pair && (ok || chain);
+      const shut = !E.topIsOpen(G, r.out), sub = pgo ? '눌러 조합' : `${k.type === 'phys' ? '물딜' : '마딜'} · ${shut ? '이번 판 닫힘' : ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
       ctx.font = `14px ${FONT}`; const nw = ctx.measureText(out.name).width; ctx.font = `12px ${FONT}`;
       const cw = Math.min(190, Math.max(96, h + 12 + Math.max(nw, ctx.measureText(sub).width)));
       if (cx + cw > x + w + 0.5 && cx > x) break;
@@ -2520,13 +2729,13 @@ function recipeCards(list, x, y, w, h, rows, using) {   // 작은 조합법 카�
       fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
       fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
       if (shut) box(cx, cy, ww, h, 'rgba(16,22,56,.45)', null, 8);
-      hit(cx, cy, ww, h, () => openBook(r.out, using, { sel: [...selected] }));
+      hit(cx, cy, ww, h, () => (pgo ? pairCombineAny(r, pair.a, pair.b) : openBook(r.out, using, { sel: [...selected] })));
       cx += ww + 6; n++;
     }
   }
   return n;
 }
-function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
+function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0, pair = null) {
   const out = E.UNIT[r.out], gi = G.goals.indexOf(r.out);
   hit(x, y, w, h, () => showInfo(r.out));   // 조합 버튼 말고 줄을 누르면 간단 설명(사용자 요청 2026-11-08)
   box(x, y, w, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(24,32,78,.7)', gi >= 0 ? GOAL_COLOR[gi] : ok ? '#2b7a62' : 'rgba(149,204,221,.4)', 8, gi >= 0 ? 2.5 : 1.5);
@@ -2568,7 +2777,7 @@ function recipeRow(r, ok, x, y, w, h, cnt, keepUid = 0) {
   const bx = x + w - 108;
   button(bx, y + 5, 40, h - 10, gi >= 0 ? '★' : '☆', () => { const on = E.toggleGoal(G, r.out); say(on ? `목표: ${out.name} (재료에 색 테두리)` : '목표에서 뺐어요'); }, 'quiet');
   const capped = E.topBlocked(G, r);
-  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}`); delete nu.chain; } }, 'primary', ok || canChain(r));
+  button(bx + 46, y + 5, 58, h - 10, capped ? (E.topBlockWhy(G, r).includes('닫힌') ? '닫힘' : '불가') : '조합', () => { if (pair) { pairCombineAny(r, pair.a, pair.b); return; } const nu = combineChain(r, keepUid); if (nu) { selected = [nu.uid]; say(`${out.name} 완성!${nu.chain ? ` (중간 조합 ${nu.chain}번 포함)` : ''}${mergeTip()}`); delete nu.chain; } }, 'primary', pair ? ok || pair.chain : ok || canChain(r));
   if (shut) box(x, y, w - 112, h, 'rgba(16,22,56,.45)', null, 8);   // 닫힌 최상위는 흐리게
 }
 
@@ -3262,7 +3471,7 @@ function drawModes() {
 function drawSound() {
   shadeAll();
   // 「공격 소리」 줄이 들어가 546 → 620(2026-11-15). 판 위에서 열면(아래 메뉴가 보이는 상태) 위에서부터 열어 아래 메뉴에 가리지 않게(검토: 성능 표시·공격 소리 줄이 메뉴 뒤로 숨음)
-  const top = topModal(), x = 50, y = top ? 12 : 220, w = W - 100, h = top ? MENU_Y - 20 : 620;
+  const top = topModal(), x = 50, y = top ? 12 : 200, w = W - 100, h = top ? MENU_Y - 20 : 690;   // 2026-11-28 「끌어서 겹쳐 조합」 줄이 들어가 620 → 690
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -3280,14 +3489,15 @@ function drawSound() {
   const sy = by + 80;
   text('화려한 효과', x + 24, sy + 82, 18, C.text);
   button(x + w - 24 - 120, sy + 60, 120, 44, fxLite ? '끔' : '켬', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
-  fitText('끄면 공격 효과·꾸밈·빛 테두리·움직이는 장식을 줄이고', x + 24, sy + 128, w - 48, 13, C.muted);
-  fitText('화면 해상도를 조금 낮춰 가볍게 그려요(렉이 있는 기기용). 게임 규칙은 같아요.', x + 24, sy + 150, w - 48, 13, C.muted);
-  text('성능 표시', x + 24, sy + 200, 18, C.text);
-  button(x + w - 24 - 120, sy + 178, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
-  fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 236, w - 48, 13, C.muted);
-  text('공격·처치 소리', x + 24, sy + 286, 18, C.text);
-  button(x + w - 24 - 120, sy + 264, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
-  fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, sy + 322, w - 48, 13, C.muted);
+  fitText('끄면 효과·꾸밈을 줄이고 화면을 조금 낮춰 가볍게(렉 있는 기기용, 규칙은 같아요)', x + 24, sy + 126, w - 48, 13, C.muted);
+  text('성능 표시', x + 24, sy + 178, 18, C.text);
+  button(x + w - 24 - 120, sy + 156, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
+  fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 212, w - 48, 13, C.muted);
+  text('공격·처치 소리', x + 24, sy + 260, 18, C.text);
+  button(x + w - 24 - 120, sy + 238, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
+  fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, sy + 294, w - 48, 13, C.muted);
+  text('끌어서 겹쳐 조합', x + 24, sy + 340, 18, C.text);   // 2026-11-28
+  button(x + w - 24 - 120, sy + 318, 120, 40, mergeOn ? '켬' : '끔', () => { mergeOn = !mergeOn; ls.set(MERGE_KEY, mergeOn ? '1' : '0'); }, mergeOn ? 'primary' : 'normal');
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
@@ -3662,6 +3872,7 @@ function tutSteps() {
       `조합법에서 ☆를 누르면 목표가 되고, 판 위 동그라미 버튼에 남은 재료가 보여요(3개까지). ${(E.AUG_WAVES ?? [20, 40]).join('·')}웨이브 보스 뒤 쉬는 시간이 끝나면 증강체 3개 중 하나를 골라요.`] },
     { card: '튜토리얼 끝!', end: true, body: [
       '이제 진짜 판을 시작해 볼까요? 난이도는 첫 화면에서 고를 수 있어요(입문~장인).',
+      '팁: 판에서 재료끼리 겹친 채 꾹 누르고 있으면 조합법을 열지 않아도 조합돼요.',
       '튜토리얼은 첫 화면 「≡ 메뉴 → 튜토리얼」에서 언제든 다시 할 수 있어요.'] },
   ];
 }
@@ -4350,6 +4561,7 @@ function frame(now) {
     while (acc >= 0.05) { E.step(G, 0.05); acc -= 0.05; }
     selected = selected.filter((uid) => { const u = E.unitById(G, uid); return u && !u.away; });
   }
+  if (scene === 'play' && G) mergeTick(performance.now());
   pfxTick(dt * speed * BASE_SPEED);
   if (perfShow.on) perfShow.sim = ema(perfShow.sim, performance.now() - tSim0);
   if (scene === 'play' && G?.over && G.overT == null) G.overT = G.t;   // 끝난 게임 시각(대결에서 둘 다 졌을 때 더 오래 버틴 쪽)
@@ -4378,7 +4590,7 @@ function frame(now) {
     if (landscape) {
       // 왼쪽: 위 정보 줄 + 판을 크게
       ctx.save(); ctx.translate(BOARD_X, 0); ctx.scale(LS, LS); OS = LS; OX = BOARD_X;
-      drawField(); drawGoalBoard(); drawHud(); drawSignalBanner(); drawToast();
+      drawField(); drawGoalBoard(); drawMergeLabel(); drawHud(); drawSignalBanner(); drawToast();
       const bm = BOARD_MODAL.has(modal?.kind) ? modal : null; if (bm) drawBoardModal();
       ctx.restore(); OS = 1; OX = 0;
       if (bm) modal = null;   // 오른쪽 칸은 평소 모습(아래에서 어둡게 덮고 누르기 막음)
@@ -4400,9 +4612,9 @@ function frame(now) {
       if (INFO_W) { const ix = SIDE_X + W + 8; ctx.save(); ctx.translate(ix, 0); OX = ix; drawInfoCol(INFO_W); ctx.restore(); OX = 0; }
       if (bm) { modal = bm; ctx.fillStyle = 'rgba(8,11,30,.55)'; ctx.fillRect(SIDE_X, 0, VW - SIDE_X, VH); hit(SIDE_X, 0, VW - SIDE_X, VH, () => {}); }
       }
-    } else { drawField(); drawGoalBoard(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
+    } else { drawField(); drawGoalBoard(); drawMergeLabel(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
-  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias')) drawBossWarn();   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
+  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias') && !(down?.mg && down.mg.p > 0)) drawBossWarn();   // 겹쳐 조합 고리·이름표가 보이는 동안은 경고 띠가 덮지 않게(2026-11-28 검토)   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene === 'play' && G && !G.over && resumeAt > performance.now() && !modal) drawResumeCount();
   if (scene === 'play' && G) { topWatch(); drawTopFx(); } else topFx = null;
@@ -4437,6 +4649,17 @@ function frame(now) {
 window.__defense = { E, esay: (e, m) => esay(e, m), say2: (u, m) => say2(u, m), talk, atkSound: (f) => atkSound(f), atkVoice: (ac, k, t, p, v) => atkVoice(ac, k, t, p, v), sfxOut: (ac) => sfxOut(ac), SFX, atkSfx, sfxOpen: () => sfxCtx(), combineChain: (r) => combineChain(r), canChain: (r) => canChain(r), progOf: (r, c) => progOf(r, c), costOf: (id) => costOf(id), pfx: (n, x, y, o) => pfx(n, x, y, o), get pfxReady() { return !!pfxLayer; }, get G() { return G; }, set scene(v) { scene = v; }, get dpr() { return dpr; }, get stats() { return stats; }, get cosmetic() { return cosmetic; }, cosSave, addClear, get music() { return music; }, start, net, lobby, get scene() { return scene; }, get speed() { return speed; }, get modal() { return modal; }, set selected(v) { selected = v; }, get selected() { return selected; }, openBook, set modal(v) { modal = v; }, get info() { return info; }, showInfo, sendSignal, get sigShow() { return sigShow; }, set peerSnap(v) { net.peer = v; net.peerAt = performance.now(); } };
 window.__defense.goalOpen = goalOpen;
 Object.defineProperty(window.__defense, 'hits', { get: () => hits });
+Object.assign(window.__defense, { mergePlan: (a, b) => mergePlan(E.unitById(G, a), E.unitById(G, b)), pairCombine: (ri, a, b) => pairCombineAny(E.RECIPES[ri], a, b), pairUnitsT: (ri, a, b) => pairUnits(E.RECIPES[ri], E.unitById(G, a), E.unitById(G, b)),
+  mergeDemo: (aUid, bUid, p = 1, armed = true, cool = false) => {   // 시험(캡처)용: A를 B 위로 끈 상태를 고정
+    if (aUid == null) { releaseHeld(down); down = null; return; }
+    const A = E.unitById(G, aUid), B = E.unitById(G, bUid); if (!A || !B) return false;
+    E.holdUnits(G, [A.uid], true); const bx = B.x, by = B.y - 14 * usz(B.id) + 14 * usz(A.id);
+    down = { field: true, unit: A, moved: true, start: [[A.uid, A.tx, A.ty]], x0: A.tx, y0: A.ty, x: bx, y: by, pid: -1, pt: 'touch', solo: true, mg0: { a: A.uid, aid: A.id, sx: A.tx, sy: A.ty, mouse: false, excl: new Set() }, mgDemo: { p, armed, cool } };
+    return true;
+  } });
+Object.defineProperty(window.__defense, 'pairWith', { get: () => pairWith, set: (v) => { pairWith = v; } });
+Object.defineProperty(window.__defense, 'down', { get: () => down });
+Object.defineProperty(window.__defense, 'mergeOn', { get: () => mergeOn, set: (v) => { mergeOn = !!v; } });
 Object.assign(window.__defense, { startTutorial, tutGo: (k) => tutGo(k) }); Object.defineProperty(window.__defense, 'tut', { get: () => tut });   // 시험용(튜토리얼)   // 시험용(누르기 영역)
 Object.defineProperty(window.__defense, 'mouse', { get: () => mouse });   // 시험용(판 위 목표 창 열기)
 Object.assign(window.__defense, { makeRoom, joinRoom, sendCtl, sendPvp, pvpNet, pvpResult, toLobby: () => { scene = 'lobby'; } });   // 시험용(같이하기 두 화면 시험)
