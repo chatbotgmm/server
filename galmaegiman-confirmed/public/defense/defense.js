@@ -680,15 +680,17 @@ function pairCombineAny(r, aUid, bUid) {   // 아래 창 짝 조합(바로 또�
   if (pairUnits(r, a, b)) return pairCombine(r, a, b);
   const steps = pairChainPlan(r, a, b);
   if (!steps?.length) { say('재료가 모자라요.'); return null; }
+  const fx0 = new Set(G.fx);
   const ok = withOrder(G.units.filter((u) => u !== a && u !== b).sort(lockLast), () => { for (const st of steps) if (!E.combine(G, st)) return false; return true; });   // A·B는 엔진에서 잠깐 숨겨 중간 조합에 안 먹힘
-  G.fx = G.fx.filter((q) => !(q.kind === 'combine' && q.t === G.t));   // 중간 조합의 가운데 번쩍임은 지움
+  G.fx = G.fx.filter((q) => fx0.has(q) || q.kind !== 'combine');   // 이번 중간 조합이 만든 가운데 번쩍임만 지움(검토)
   if (!ok) { say('재료가 바뀌어 조합하지 못했어요.'); return null; }
   return pairCombine(r, a, b, steps.length);
 }
+let mergeTipN = -1, mergeHintDone = false;   // 저장소가 막힌 기기에서도 같은 판 동안 되풀이하지 않게(검토)
 function mergeTip() {   // 버튼 조합 알림 끝에 처음 2번만
   if (!mergeOn || tut) return '';
-  const n = +(ls.get('gmm-defense-merge-tip') ?? 0); if (n >= 2) return '';
-  ls.set('gmm-defense-merge-tip', String(n + 1)); return ' · 판에서 재료끼리 겹쳐 꾹 눌러도 돼요';
+  if (mergeTipN < 0) mergeTipN = +(ls.get('gmm-defense-merge-tip') ?? 0); if (mergeTipN >= 2) return '';
+  ls.set('gmm-defense-merge-tip', String(++mergeTipN)); return ' · 판에서 재료끼리 겹쳐 꾹 눌러도 돼요';
 }
 function mergeTick(now) {   // 매 프레임(손가락이 멈춰 pointermove가 안 와도 시간을 셈) · 실제 시간 기준이라 게임 배속과 무관
   const d = down, m0 = d?.mg0; if (!m0) return;
@@ -754,7 +756,7 @@ function drawMergeLabel() {   // 손가락 위 이름표: 「A + B → 결과」
   const a = E.unitById(G, d.mg0.a), b = E.unitById(G, m.b); if (!a || !b) return;
   const pl = m.plan, live = pl.cls !== 'none';
   if (live ? !(m.p > 0) : !(m.p >= 1)) return;
-  const bc = boardCss(), k = Math.max(1, 12 / (15 * bc)), rr = live ? pl.one.r : pl.dud.r;
+  const bc = boardCss(), k = Math.max(1, 1 / bc), rr = live ? pl.one.r : pl.dud.r;   // 둘째 줄(12k)도 화면에서 12px 이상(검토)
   const res = live && pl.live.length >= 2 ? `${pl.live.length}가지` : E.UNIT[rr.out].name, resCol = live && pl.live.length >= 2 ? C.goldEdge : GRADE_COLOR[E.UNIT[rr.out].grade];
   const head = `${E.UNIT[a.id].name} + ${E.UNIT[b.id].name} → `;
   const nm = (u) => E.UNIT[u.id].name + (u.stored ? '(창고)' : u.away ? '(탐사)' : '');
@@ -768,10 +770,11 @@ function drawMergeLabel() {   // 손가락 위 이름표: 「A + B → 결과」
   const w = Math.min(300 * k, Math.max(w1, w2) + 24 * k), h = 46 * k;
   while (fs > 9 && (ctx.font = `${fs}px ${FONT}`, ctx.measureText(head + res).width > w - 20 * k)) fs -= 0.5;
   let x, y;
-  if (m0Mouse(d)) { x = d.x + 18; y = d.y + 14; }
+  const bz = usz(b.id), ringR = Math.max(34 * bz, MG.RING / bc) + 10, bcY = b.y - 14 * bz;
+  if (m0Mouse(d)) { x = d.x + 18; y = d.y + 14; if (x + w > FIELD.x + FIELD.w - 2) x = d.x - 18 - w; if (y + h > FIELD.y + FIELD.h - 2) y = d.y - 14 - h; }   // drawHover 말풍선처럼 뒤집기(검토)
   else {
-    const gap = MG.GAP / bc; x = d.x - w / 2; y = d.y - gap - h;
-    if (y < FIELD.y + 4) { y = d.y - 20 * k - h / 2; x = d.x < FIELD.x + FIELD.w / 2 ? d.x + gap * 0.6 : d.x - gap * 0.6 - w; }   // 위가 모자라면 손가락 옆(판 가운데 쪽)
+    const gap = MG.GAP / bc; x = d.x - w / 2; y = Math.min(d.y, bcY - ringR) - gap * 0.5 - h;
+    if (y < FIELD.y + 4) { const off = Math.max(gap * 0.6, ringR); y = Math.min(d.y, bcY) - h / 2; x = d.x < FIELD.x + FIELD.w / 2 ? Math.max(d.x, b.x) + off : Math.min(d.x, b.x) - off - w; }   // 위가 모자라면 고리 바깥 옆(판 가운데 쪽, 검토: 엄지·고리를 가리지 않게)
   }
   x = Math.max(FIELD.x + 2, Math.min(FIELD.x + FIELD.w - w - 2, x)); y = Math.max(FIELD.y + 2, Math.min(FIELD.y + FIELD.h - h - 2, y));
   box(x, y, w, h, 'rgba(16,22,56,.94)', edge, 10 * k, 2);
@@ -1104,6 +1107,7 @@ const coreR = (u, mouse) => (mouse ? MG.CORE_M : Math.min(MG.CORE_T[1], Math.max
 const holdR = (u, mouse) => coreR(u, mouse) + (mouse ? MG.PAD_M : MG.PAD_T) * usz(u.id);
 const lockLast = (p, q) => (p.lock ? 1 : 0) - (q.lock ? 1 : 0);
 const tieBetter = (u, o) => !o || (!u.lock && o.lock) || (!!u.lock === !!o.lock && ((!u.got && o.got) || (!!u.got === !!o.got && u.uid < o.uid)));
+const mergeShown = (m) => !!m?.plan && !m.plan.silent && (m.plan.cls !== 'none' ? m.p > 0 : m.p >= 1);   // 고리·이름표가 그려지는 조건(Esc·경고 띠에 같이 씀)
 const releaseHeld = (d) => { if (d?.start && G) E.holdUnits(G, d.start.map(([uid]) => uid), false); };
 let moveCount = 0;   // 끌어서 옮긴 횟수(처음 안내)
 function toLogical(ev) { const r = cv.getBoundingClientRect(); return { x: (ev.clientX - r.left) * VW / r.width, y: (ev.clientY - r.top) * VH / r.height }; }
@@ -1128,7 +1132,7 @@ function scrollerAt(p) {
 const toBoard = (p) => (landscape ? { x: (p.x - BOARD_X) / LS, y: p.y / LS } : p);
 const onBoard = (p) => !landscape || (p.x >= BOARD_X && p.x < BOARD_X + SIDE_X);
 cv.addEventListener('pointerdown', (ev) => {
-  if (down && ev.pointerId !== down.pid) { if (cv.hasPointerCapture?.(down.pid)) return; releaseHeld(down); down = null; }   // 2026-11-28: 끄는 중 두 번째 손가락은 무시(전에는 down을 덮어써 첫 갈매미가 들린 채 남음)
+  if (down && ev.pointerId !== down.pid) { if ((down.start || down.dragFn) && cv.hasPointerCapture?.(down.pid)) return; releaseHeld(down); down = null; }   // 검토(2026-11-28): 그냥 대고 있는 손가락이면 새 손가락이 이어받음(전처럼)   // 2026-11-28: 끄는 중 두 번째 손가락은 무시(전에는 down을 덮어써 첫 갈매미가 들린 채 남음)
   lastPt = ev.pointerType;
   press = ev.pointerType === 'mouse' ? null : toLogical(ev);
   if (!sfxState.ctx) sfxCtx();   // 첫 누르기에서 소리 준비
@@ -1185,10 +1189,10 @@ cv.addEventListener('pointerup', (ev) => {
       if (!moved) say('고정한 갈매미예요. 「고정 풀기」를 누르면 옮길 수 있어요.'); else moveCount++;
       const sn = (d.start ?? []).map(([uid]) => E.unitById(G, uid)).find((u) => u?.snap);   // 같은 갈매미에 붙음: 고리 + 소리
       if (sn) { G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t }); G.fx.push({ kind: 'move', x: sn.tx, y: sn.ty, t: G.t - 0.15 }); sfx('summon'); }
-      if (ask) { selected = [ask.b]; pairWith = ask; sfx('arm'); }
+      if (ask) { selected = [ask.b]; pairWith = { ...ask, aid: a0.id, bid: b0.id }; sfx('arm'); }
       else {
         if (!selected.includes(d.unit.uid)) selected = [d.unit.uid];
-        if (m && !m.armed && m.p > 0 && (m.plan.cls === 'go' || m.plan.cls === 'ask') && !ls.get('gmm-defense-merge-hint')) { ls.set('gmm-defense-merge-hint', '1'); say('겹친 채로 꾹 누르고 있으면 조합돼요(고리가 다 찰 때까지)'); }
+        if (m && !m.armed && m.p > 0 && (m.plan.cls === 'go' || m.plan.cls === 'ask') && !mergeHintDone && !ls.get('gmm-defense-merge-hint')) { mergeHintDone = true; ls.set('gmm-defense-merge-hint', '1'); say('겹친 채로 꾹 누르고 있으면 조합돼요(고리가 다 찰 때까지)'); }
       }
       return;
     }
@@ -1217,7 +1221,7 @@ window.addEventListener('keydown', (ev) => {
     return;
   }
   if (scene !== 'play' || !G || G.over) return;
-  if (ev.key === 'Escape' && down?.mg) { down.mgOff = down.mg.b; down.mg = null; ev.preventDefault(); return; }   // 끄는 중 Esc: 이번 짝 조합만 취소
+  if (ev.key === 'Escape' && mergeShown(down?.mg)) { down.mgOff = down.mg.b; down.mg = null; ev.preventDefault(); return; }   // 끄는 중 Esc: 이번 짝 조합만 취소
   if (ev.key === ' ' || ev.key === 'Escape') {
     if (info) info = null; else if (modal?.kind === 'pause') setPause(false); else if (modal) modal = null; else setPause(true);
     ev.preventDefault();
@@ -2299,7 +2303,7 @@ function drawBottom() {
   decorCorners(8, y0, W - 16, PBOT - y0 - 8);
   hazard(40, y0 - 6, W - 80, 4);   // 위 창(전술창)과 아래 메뉴 사이 경고 테이프(가로 화면엔 위습·버튼 사이 줄이 없어 여기에도)
   const sel = selUnits();
-  if (pairWith) { const pa = E.unitById(G, pairWith.a); if (sel.length !== 1 || sel[0].uid !== pairWith.b || !pa || pa.away || pa.stored) pairWith = null; }   // 겹쳐 조합 「한 번 더 확인」 목록은 그 B를 고른 동안만
+  if (pairWith) { const pa = E.unitById(G, pairWith.a), pb = sel[0]; if (sel.length !== 1 || pb.uid !== pairWith.b || pb.stored || (pairWith.bid && pb.id !== pairWith.bid) || !pa || pa.away || pa.stored || (pairWith.aid && pa.id !== pairWith.aid)) pairWith = null; }   // 창고·리롤로 바뀌면 지움(검토)   // 겹쳐 조합 「한 번 더 확인」 목록은 그 B를 고른 동안만
   keyHint = sel.length ? 'unit' : 'main';
   if (sel.length === 1) drawUnitPanel(y0, sel[0]);
   else if (sel.length > 1) drawGroupPanel(y0, sel);
@@ -2719,15 +2723,15 @@ function recipeCards(list, x, y, w, h, rows, using, pair = null) {   // 작은 �
     let cx = x; const cy = y + row * (h + 4);
     while (n < list.length) {
       const { r, ok, chain } = list[n], out = E.UNIT[r.out], k = E.kit(r.out), pgo = pair && (ok || chain);
-      const shut = !E.topIsOpen(G, r.out), sub = pgo ? '눌러 조합' : `${k.type === 'phys' ? '물딜' : '마딜'} · ${shut ? '이번 판 닫힘' : ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
+      const shut = !E.topIsOpen(G, r.out), sub = pgo ? (ok ? '눌러 조합' : '눌러 조합(중간 조합 포함)') : `${k.type === 'phys' ? '물딜' : '마딜'} · ${shut ? '이번 판 닫힘' : ok ? '조합 가능' : E.GRADE_NAME[out.grade]}`;
       ctx.font = `14px ${FONT}`; const nw = ctx.measureText(out.name).width; ctx.font = `12px ${FONT}`;
       const cw = Math.min(190, Math.max(96, h + 12 + Math.max(nw, ctx.measureText(sub).width)));
       if (cx + cw > x + w + 0.5 && cx > x) break;
       const ww = Math.min(cw, x + w - cx);
-      box(cx, cy, ww, h, ok ? 'rgba(43,122,98,.25)' : 'rgba(24,32,78,.7)', ok ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok ? 2 : 1.5);
+      box(cx, cy, ww, h, ok || pgo ? 'rgba(43,122,98,.25)' : 'rgba(24,32,78,.7)', ok || pgo ? '#2b7a62' : GRADE_COLOR[out.grade], 8, ok || pgo ? 2 : 1.5);
       drawFit(unitImg(r.out), cx + 3, cy + 3, h - 6, h - 6);
       fitText(out.name, cx + h + 2, cy + 15, ww - h - 8, 14, GRADE_COLOR[out.grade]);
-      fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok ? C.good : k.type === 'phys' ? C.phys : C.mag);
+      fitText(sub, cx + h + 2, cy + 33, ww - h - 8, 12, shut ? C.bad : ok || pgo ? C.good : k.type === 'phys' ? C.phys : C.mag);
       if (shut) box(cx, cy, ww, h, 'rgba(16,22,56,.45)', null, 8);
       hit(cx, cy, ww, h, () => (pgo ? pairCombineAny(r, pair.a, pair.b) : openBook(r.out, using, { sel: [...selected] })));
       cx += ww + 6; n++;
@@ -3497,7 +3501,7 @@ function drawSound() {
   button(x + w - 24 - 120, sy + 238, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
   fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, sy + 294, w - 48, 13, C.muted);
   text('끌어서 겹쳐 조합', x + 24, sy + 340, 18, C.text);   // 2026-11-28
-  button(x + w - 24 - 120, sy + 318, 120, 40, mergeOn ? '켬' : '끔', () => { mergeOn = !mergeOn; ls.set(MERGE_KEY, mergeOn ? '1' : '0'); }, mergeOn ? 'primary' : 'normal');
+  button(x + w - 24 - 120, sy + 316, 120, 44, mergeOn ? '켬' : '끔', () => { mergeOn = !mergeOn; ls.set(MERGE_KEY, mergeOn ? '1' : '0'); }, mergeOn ? 'primary' : 'normal');
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
@@ -4614,7 +4618,7 @@ function frame(now) {
       }
     } else { drawField(); drawGoalBoard(); drawMergeLabel(); drawHud(); drawBottom(); if (stripOn) drawPeerStrip(); drawModal(); if (info) drawInfo(); drawSignalBanner(); drawToast(); }
   }
-  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias') && !(down?.mg && down.mg.p > 0)) drawBossWarn();   // 겹쳐 조합 고리·이름표가 보이는 동안은 경고 띠가 덮지 않게(2026-11-28 검토)   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
+  if (scene === 'play' && !BOARD_MODAL.has(modal?.kind) && (landscape || (!info && !modal)) && !(tut && bossWarn.kind === 'bias') && !mergeShown(down?.mg)) drawBossWarn();   // 겹쳐 조합 고리·이름표가 보이는 동안은 경고 띠가 덮지 않게(2026-11-28 검토)   // 튜토리얼 중엔 성향 띠가 안내 상자와 겹치지 않게   // 2026-11-22: 세로 화면에선 창·정보 창을 덮지 않게(띠가 글자를 가림)   // 판 위 창(소개·증강체)이 열려 있으면 경고 띠는 가림 방지로 안 그림
   if (tut && scene === 'play' && G && !G.over) drawTutorial();
   if (scene === 'play' && G && !G.over && resumeAt > performance.now() && !modal) drawResumeCount();
   if (scene === 'play' && G) { topWatch(); drawTopFx(); } else topFx = null;
