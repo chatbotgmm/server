@@ -2700,10 +2700,10 @@ function tipLines(tips, x, y0, maxW, color) {
   let sz = 13; for (; sz > 11; sz--) { ctx.font = `${sz}px ${FONT}`; if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxW) break; }
   clipText(l1, x, y0 + 66, maxW, sz, color, 11); clipText(l2, x, y0 + 84, maxW, sz, color, 11);
 }
-function clipText(t, x, y, maxW, size, color, min = 9) {   // 왼쪽 정렬: min px(기본 9)까지 줄이고 그래도 길면 「…」
-  for (let sz = size; sz >= min; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, x, y, sz, color); return; } }
+function clipText(t, x, y, maxW, size, color, min = 9, align = 'left') {   // min px(기본 9)까지 줄이고 그래도 길면 「…」 (align: 기본 왼쪽, 'center' 가능)
+  for (let sz = size; sz >= min; sz--) { ctx.font = `${sz}px ${FONT}`; if (ctx.measureText(t).width <= maxW) { text(t, x, y, sz, color, align); return; } }
   let s = t; ctx.font = `${min}px ${FONT}`; while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
-  text(s + '…', x, y, min, color);
+  text(s + '…', x, y, min, color, align);
 }
 function wrapItems(head, items, cx, y, maxW, size, color, maxLines = 3) {   // 가운데 정렬로 「머리 + 항목 · 항목 …」을 항목 단위로 줄 나눔, 마지막 줄만 넘치면 줄임
   ctx.font = `${size}px ${FONT}`; const lines = []; let cur = head;
@@ -3181,8 +3181,9 @@ function drawPick() {
     drawFit(unitImg(id), cx + 8, cy + 6, cw - 16, 96, n ? 1 : 0.45);
     fitText(u.name, cx + cw / 2, cy + 116, cw - 10, 16, n ? C.text : '#6f7f88', 'center');
     fitText(`${k.type === 'phys' ? '물딜' : '마딜'} ${k.job}`, cx + cw / 2, cy + 138, cw - 10, 13, k.type === 'phys' ? C.phys : C.mag, 'center');
-    const tip = E.kitTips(k).find((t) => !t.includes('형(')) ?? (k.job === '주력' ? (k.line ? '라인 정리형' : '단일 공격형') : '기본 공격');   // 칸이 좁아 짧게
-    fitText(tip, cx + cw / 2, cy + 156, cw - 10, 12, C.muted, 'center');
+    const tip = (E.kitTips(k).find((t) => !t.includes('형(')) ?? (k.job === '주력' ? (k.line ? '라인 정리형' : '단일 공격형') : '기본 공격')).replace('탐사 특기: ', '');   // 칸이 좁아 짧게
+    // 2026-11-28 검토: fitText는 11px에서 멈춰 「탐사 특기: 외부탐사 피해 ×5」가 옆 카드 글자와 겹쳤음 → 10px까지 줄이고 그래도 길면 「…」로 카드 안에
+    clipText(tip, cx + cw / 2, cy + 156, cw - 10, 12, C.muted, 10, 'center');
     if (n) hit(cx, cy, cw, ch, () => { const r = E.summonPick(G, id); if (r.ok) { say(`${u.name} 소환!`); if (!(G.picks[gr] > 0)) modal = null; } else if (r.why) say(r.why); });
   });
   if (!n) fitText(`${E.GRADE_NAME[gr]} 선택 위습이 없어요`, W / 2, y + h - 30, w - 40, 15, C.muted, 'center');
@@ -3475,7 +3476,7 @@ function drawModes() {
 function drawSound() {
   shadeAll();
   // 「공격 소리」 줄이 들어가 546 → 620(2026-11-15). 판 위에서 열면(아래 메뉴가 보이는 상태) 위에서부터 열어 아래 메뉴에 가리지 않게(검토: 성능 표시·공격 소리 줄이 메뉴 뒤로 숨음)
-  const top = topModal(), x = 50, y = top ? 12 : 200, w = W - 100, h = top ? MENU_Y - 20 : 690;   // 2026-11-28 「끌어서 겹쳐 조합」 줄이 들어가 620 → 690
+  const top = topModal(), x = 50, y = top ? 12 : 200, w = W - 100, h = top ? MENU_Y - 20 : 660;   // 2026-11-28 「끌어서 겹쳐 조합」 줄이 들어가 620 → 660(아래 켬·끔 줄 간격을 맞춘 뒤)
   box(x, y, w, h, C.panel, C.goldEdge, 14, 2);
   text('소리·효과 설정', x + 20, y + 32, 22, C.text);
   button(x + w - 96, y + 12, 82, 40, '닫기', () => { modal = null; }, 'quiet');
@@ -3491,17 +3492,21 @@ function drawSound() {
   hit(bx - 14, by - 10, bw + 28, 56, (p) => setVolume((p.x - bx) / bw), true);   // 누르거나 끌어서
   // 효과음 음량
   const sy = by + 80;
-  text('화려한 효과', x + 24, sy + 82, 18, C.text);
-  button(x + w - 24 - 120, sy + 60, 120, 44, fxLite ? '끔' : '켬', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
-  fitText('끄면 효과·꾸밈을 줄이고 화면을 조금 낮춰 가볍게(렉 있는 기기용, 규칙은 같아요)', x + 24, sy + 126, w - 48, 13, C.muted);
-  text('성능 표시', x + 24, sy + 178, 18, C.text);
-  button(x + w - 24 - 120, sy + 156, 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
-  fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, sy + 212, w - 48, 13, C.muted);
-  text('공격·처치 소리', x + 24, sy + 260, 18, C.text);
-  button(x + w - 24 - 120, sy + 238, 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
-  fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, sy + 294, w - 48, 13, C.muted);
-  text('끌어서 겹쳐 조합', x + 24, sy + 340, 18, C.text);   // 2026-11-28
-  button(x + w - 24 - 120, sy + 316, 120, 44, mergeOn ? '켬' : '끔', () => { mergeOn = !mergeOn; ls.set(MERGE_KEY, mergeOn ? '1' : '0'); }, mergeOn ? 'primary' : 'normal');
+  // 켬·끔 줄 4개는 같은 간격(78): 이름 = 줄 위 +22, 설명 = +56. 2026-11-28 검토: 간격이 96·82·78로 들쭉날쭉하고 「끌어서 겹쳐 조합」만 설명이 없어
+  // 판 위에서 연 창(높이 MENU_Y − 20)에서 버튼이 창 아래 테두리에 붙었음 → 간격을 맞추고 설명을 달아도 아래 여백이 남게
+  const row = (i) => sy + 60 + i * 78;
+  text('화려한 효과', x + 24, row(0) + 22, 18, C.text);
+  button(x + w - 24 - 120, row(0), 120, 44, fxLite ? '끔' : '켬', () => setFxLite(!fxLite), fxLite ? 'normal' : 'primary');
+  fitText('끄면 효과·꾸밈을 줄이고 화면을 조금 낮춰 가볍게(렉 있는 기기용, 규칙은 같아요)', x + 24, row(0) + 56, w - 48, 13, C.muted);
+  text('성능 표시', x + 24, row(1) + 22, 18, C.text);
+  button(x + w - 24 - 120, row(1), 120, 44, perfShow.on ? '켬' : '끔', () => { perfShow.on = !perfShow.on; try { localStorage.setItem(PERF_KEY, perfShow.on ? '1' : '0'); } catch { /* 진행 */ } }, perfShow.on ? 'primary' : 'normal');
+  fitText('왼쪽 아래에 초당 프레임·그리기·계산 시간이 나와요(렉 원인 찾기용)', x + 24, row(1) + 56, w - 48, 13, C.muted);
+  text('공격·처치 소리', x + 24, row(2) + 22, 18, C.text);
+  button(x + w - 24 - 120, row(2), 120, 44, atkSfx.on ? '켬' : '끔', () => { setAtkSfx(!atkSfx.on); sfxCtx(); if (atkSfx.on) atkSound({ type: 'phys', tier: 2, job: '주력', elem: 'NORMAL' }); }, atkSfx.on ? 'primary' : 'normal');
+  fitText('갈매미가 쏠 때 속성별 짧은 소리·적이 쓰러질 때 소리(효과음 음량을 따라요)', x + 24, row(2) + 56, w - 48, 13, C.muted);
+  text('끌어서 겹쳐 조합', x + 24, row(3) + 22, 18, C.text);   // 2026-11-28
+  button(x + w - 24 - 120, row(3), 120, 44, mergeOn ? '켬' : '끔', () => { mergeOn = !mergeOn; ls.set(MERGE_KEY, mergeOn ? '1' : '0'); }, mergeOn ? 'primary' : 'normal');
+  fitText('갈매미를 끌어 조합 짝 위에 잠깐 겹쳐 두었다 놓으면 조합돼요(끄면 옮기기만)', x + 24, row(3) + 56, w - 48, 13, C.muted);
   text(`효과음 ${Math.round(sfxState.vol * 100)}%`, x + 24, sy - 18, 18, sfxState.vol ? C.text : C.muted);
   button(x + 24, sy - 4, 48, 44, '−', () => { setSfxVolume(sfxState.vol - 0.05); sfx('summon'); }, 'normal');
   button(x + w - 24 - 48, sy - 4, 48, 44, '+', () => { setSfxVolume(sfxState.vol + 0.05); sfx('summon'); }, 'normal');
