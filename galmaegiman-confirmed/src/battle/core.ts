@@ -3,7 +3,7 @@
 // 기술 설명은 적지 않으면 숫자로 자동으로 만듦 → 숫자만 고쳐도 설명이 맞음
 import type { BattleData } from './rules.js';
 import { recipePowerBonus } from './recipe-value.js';
-import { augmentCatalogV2, parseAugmentCatalogV2, type AugmentCatalogV2, type CatalogTier } from './augment-catalog-v2.js';
+import { augmentCatalogV2, augmentTemplateV2, parseAugmentCatalogV2, type AugmentCatalogV2, type CatalogTier } from './augment-catalog-v2.js';
 export { battleAugIdsV2, augmentCatalogV2, parseAugmentCatalogV2, createAugmentConfigV2 } from './augment-catalog-v2.js';
 export type { AugmentCatalogV2, CatalogTier } from './augment-catalog-v2.js';
 export const attrKeys=['STONE','GOLD','FIRE','ICE','BLOSSOM','SEA','SHADOW','STAR','THREAD','GRAVITY'] as const;
@@ -164,7 +164,7 @@ export function augDesc(id:string,p:Record<string,number>,attrNm:string){
     case 'pierce':return `내 공격이 상대 방어를 ${p.pct}% 무시해요`;
     case 'lunch':return `턴이 끝날 때마다 나와 있는 내 갈매미 체력 ${p.pct}% 회복`;
   }
-  return augmentCatalogV2.augments.find(a=>a.id===id)?.desc??'';
+  return augmentTemplateV2(id)?.desc??'';
 }
 
 // 검사를 마친 데이터로 규칙 만들기(브라우저는 서버가 검사한 데이터를 받아 이것만 씀)

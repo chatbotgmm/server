@@ -49,6 +49,7 @@ model Player {
   items         PlayerItem[]
   kakao         KakaoLink?
   story         StorySave?
+  defense       DefenseSave?
   chatApp       ChatAppUser?
 }
 
@@ -215,6 +216,19 @@ model StorySave {
   data      String
   updatedAt DateTime @updatedAt
   player    Player   @relation(fields: [playerId], references: [id])
+}
+
+// 랜덤 디펜스(/defense) 계정 저장(2026-11-09): 모드별 최고 웨이브와 이어하기 판 하나. 브라우저 저장과 합쳐 씀
+model DefenseSave {
+  playerId  String   @id
+  best      String   @default("{}") // {"normal":12,"normal.intro":30} 모드(·난이도)별 최고(61 = 클리어)
+  save      String? // 이어하기 판(엔진 saveGame 결과 JSON 글자)
+  saveWave  Int?
+  saveMode  String?
+  saveAt    DateTime?
+  extra     String? // 꾸미기·판 기록·클리어 수·포인트(JSON 글자, 2026-11-10)
+  updatedAt DateTime @updatedAt
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 }
 
 // 챗봇 요청에 카카오 로그인 회원번호(appUserId)가 같이 오면 기록 → 웹 카카오 로그인 때 코드 없이 자동 연결

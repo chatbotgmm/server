@@ -1139,7 +1139,7 @@ export class GameService {
       const mine=(await tx.comment.findMany({where,select:{id:true}})).map(c=>c.id);
       await tx.commentLike.deleteMany({where:{OR:[{commentId:{in:mine}},{voter:`p:${p.id}`}]}});
       await tx.comment.deleteMany({where});
-      for(const m of [tx.progressionReceipt,tx.progressionMilestone,tx.progressionState,tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
+      for(const m of [tx.progressionReceipt,tx.progressionMilestone,tx.progressionState,tx.ownedCharacter,tx.collectionEntry,tx.expedition,tx.pendingAction,tx.auditEvent,tx.achievement,tx.dailyProgress,tx.adminSnapshot,tx.webLogin,tx.kakaoLink,tx.storySave,tx.defenseSave,tx.chatAppUser,tx.playerItem] as unknown as {deleteMany:(a:{where:{playerId:string}})=>Promise<unknown>}[])
         await m.deleteMany({where});
       await tx.player.delete({where:{id:p.id}});
       return true;

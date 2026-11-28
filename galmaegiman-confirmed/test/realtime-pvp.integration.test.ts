@@ -6,7 +6,10 @@ import {RealtimePvpService,REALTIME_LIMITS} from '../src/pvp/service.js';
 import {GameService} from '../src/game.js';
 import {buildApp} from '../src/app.js';
 import {loadBattleRules} from '../src/battle/load.js';
-import {deserializeBattle,serializeBattle} from '../src/battle/realtime-adapter.js';
+import {createBattleService,serializeServiceBattle} from '../src/battle/service-factory.js';
+import {V2_CLIENT_HEADERS,freestyleChoose} from './helpers/v2-client.js';
+import {augmentCatalogV2,retiredAugmentsV2} from '../src/battle/augment-catalog-v2.js';
+import {balancedSixProfile} from '../src/battle/augment-sequence.js';
 
 const suite=process.env.TEST_DB_URL?describe:describe.skip;
 suite('durable realtime two-human PvP (isolated SQLite)',()=>{
@@ -22,11 +25,19 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
   async function ticket(pid:string,mode:'rank'|'normal'='rank'){return service.attempt(pid,mode);}
   async function join(pid:string,t:Awaited<ReturnType<typeof ticket>>){return service.join(pid,t.attemptId,t.token);}
   async function pair(ready=true,mode:'rank'|'normal'='rank'){const a=await player(),b=await player(),ta=await ticket(a.id,mode),tb=await ticket(b.id,mode);await join(a.id,ta);const q=await join(b.id,tb);expect(q.status).toBe('matched');const roomId=(q as {roomId:string}).roomId;for(const p of [a,b]){const v=await service.currentRoom(p.id,roomId);await service.command(p.id,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{accept:true}});}if(ready){for(const p of [a,b]){const v=await service.currentRoom(p.id,roomId);await service.command(p.id,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{prepare:{team:['D1','T1','E1'],ready:true}}});}}return {a,b,ta,tb,roomId};}
-  const choose=(v:any)=>({choose:{...(v.battle!.teams[0].offers.length?{augment:v.battle!.teams[0].offers[0].id}:{}),...(v.battle!.teams[0].needSwitch?{switchTo:v.battle!.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}});
+  const choose=(v:any)=>({choose:freestyleChoose(v.battle!.teams[0])??{...(v.battle!.teams[0].offers.length?{augment:v.battle!.teams[0].offers[0].id}:{}),...(v.battle!.teams[0].needSwitch?{switchTo:v.battle!.teams[0].fighters.findIndex((f:any)=>f.hp>0)}:{})}});
+  // 두 사람이 증강을 고른 뒤, 자유자재를 고른 쪽만 속성 선택을 한 번 더 보내 행동 단계까지 간다.
   async function actionPhase(p:Awaited<ReturnType<typeof pair>>){
-    const a=await service.currentRoom(p.a.id,p.roomId),b=await service.currentRoom(p.b.id,p.roomId);
-    await service.command(p.a.id,{roomId:p.roomId,phaseId:a.phaseId,requestId:randomUUID(),command:choose(a)});
-    return service.command(p.b.id,{roomId:p.roomId,phaseId:b.phaseId,requestId:randomUUID(),command:choose(b)});
+    let last:any;
+    for(let round=0;round<3;round++){
+      for(const id of [p.a.id,p.b.id]){
+        const v=await service.currentRoom(id,p.roomId);if(v.phase!=='choose')return v;
+        if(round>0&&!v.battle!.teams[0].attributeSelection)continue;
+        last=await service.command(id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:choose(v)});
+      }
+      if(last.phase!=='choose')return last;
+    }
+    throw new Error('증강·속성 선택 뒤에도 행동 단계가 되지 않았어요');
   }
 
   it('preparation stays private and starts augment selection only after both ready',async()=>{
@@ -62,8 +73,8 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     expect(late.phase).toBe('choose');expect((await db.player.findUniqueOrThrow({where:{id:p.a.id}})).battleTeam).toBe('T1,D1,E1');
   });
   async function wound(p:Awaited<ReturnType<typeof pair>>){
-    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=deserializeBattle(loadBattleRules(process.cwd()),s.battle),side=r.player0Id===p.a.id?0:1;
-    b.sides[side].fighters[b.sides[side].active].hp=1;s.battle=serializeBattle(b);
+    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=createBattleService(loadBattleRules(process.cwd())).restore(s.battle),side=r.player0Id===p.a.id?0:1;
+    b.sides[side].fighters[b.sides[side].active].hp=1;s.battle=serializeServiceBattle(b);
     await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});
     await db.playerItem.upsert({where:{playerId_itemId:{playerId:p.a.id,itemId:'potion'}},create:{playerId:p.a.id,itemId:'potion',count:1},update:{count:1}});
   }
@@ -152,6 +163,28 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     const mine=await restarted.currentRoom(p.a.id,p.roomId),foe=await restarted.currentRoom(p.b.id,p.roomId);
     expect(mine.mySubmitted).toBe(true);expect(foe.opponentReady).toBe(true);expect(mine.deadline).toBe(v.deadline);
   });
+  it('a room saved with the previous 60-augment catalog still finishes reverse and camo after the server drops them',async()=>{
+    // 배포 전 서버(reverse·camo 포함 60종)가 만든 방을 배포 후 서버가 이어받는 상황. 새 전투에는 둘 다 없다.
+    const old={version:2 as const,weights:{silver:1,gold:1,prismatic:1},sequenceProfile:balancedSixProfile,catalog:{version:2 as const,augments:[...augmentCatalogV2.augments,...retiredAugmentsV2]}};
+    await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now,old);
+    const p=await pair(),before=createBattleService(loadBattleRules(process.cwd()),old);
+    // 선택지 순서는 난수라서 한쪽은 reverse, 다른 쪽은 camo를 첫 선택지로 고정한다.
+    const r=await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}}),s=JSON.parse(r.stateJson),b=before.restore(s.battle),forced=['reverse','camo'];
+    for(const [i,side] of b.sides.entries())side.offers=[forced[i],...side.offers!.filter(id=>!forced.includes(id))].slice(0,side.offers!.length);
+    s.battle=serializeServiceBattle(b);await db.realtimeRoom.update({where:{id:r.id},data:{stateJson:JSON.stringify(s)}});
+    await service.stop();service=new RealtimePvpService(db,content,process.cwd(),secret,()=>now);
+    for(const id of forced)expect(createBattleService(loadBattleRules(process.cwd())).R.battleAug.has(id)).toBe(false);
+    expect((await actionPhase(p)).phase).toBe('action');
+    const after=createBattleService(loadBattleRules(process.cwd())).restore(JSON.parse((await db.realtimeRoom.findUniqueOrThrow({where:{id:p.roomId}})).stateJson).battle);
+    expect(after.sides[0].augs).toContain('reverse');expect(after.sides[0].freestyle?.chosen).toBeTruthy();expect(after.sides[0].fighters[after.sides[0].active].attr).toBe(after.sides[0].freestyle!.chosen);
+    expect(after.sides[1].augs).toContain('camo');expect(after.log.some(l=>l.includes('속성이')&&l.includes('바뀌었어요'))).toBe(true);
+  });
+  for(const dropped of ['reverse','camo'])it(`new rooms never offer the dropped ${dropped} augment`,async()=>{
+    const p=await pair();
+    for(const id of [p.a.id,p.b.id]){const v=await service.currentRoom(id,p.roomId);expect(v.battle!.teams[0].offers.map((o:any)=>o.id)).not.toContain(dropped);}
+    const v=await service.currentRoom(p.a.id,p.roomId);
+    await expect(service.command(p.a.id,{roomId:p.roomId,phaseId:v.phaseId,requestId:randomUUID(),command:{choose:{augment:dropped}}})).rejects.toThrow();
+  });
   it('three missed action turns settle a deterministic double-timeout void once',async()=>{
     const p=await pair();await actionPhase(p);
     // Seed only the miss counter to exercise the third-strike boundary without a long fight.
@@ -187,7 +220,7 @@ suite('durable realtime two-human PvP (isolated SQLite)',()=>{
     try{
       const code=(await game.handle(p.identity,'웹 로그인')).text!.match(/\b\d{6}\b/)![0];
       const login=(await app.inject({method:'POST',url:'/my/api/login',headers:{'x-gmm':'1','x-gmm-app':'1'},payload:{code}})).json();
-      const headers={'x-gmm':'1','x-gmm-s':login.token};
+      const headers={'x-gmm':'1','x-gmm-s':login.token,...V2_CLIENT_HEADERS};
       expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers:{'x-gmm':'1'},payload:{mode:'rank',protocol:3}})).statusCode).toBe(401);
       for(const extra of [{playerId:'someone-else'},{bot:true},{participantKind:'AI'}])expect((await app.inject({method:'POST',url:'/my/api/pvp/queue/attempt',headers,payload:{mode:'rank',protocol:3,...extra}})).statusCode).toBe(400);
       const rank=(await app.inject({method:'GET',url:'/my/api/pvp/rank',headers})).json();expect(rank.me).toMatchObject({point:0,tier:'Bronze'});

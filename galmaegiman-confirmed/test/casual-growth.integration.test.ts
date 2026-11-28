@@ -8,9 +8,10 @@ import {randomUUID} from 'node:crypto';
 import {loadContent} from '../src/content.js';
 import {loadBattleRules} from '../src/battle/load.js';
 import {createBattle} from '../src/battle/engine.js';
-import {deserializeBattle} from '../src/battle/realtime-adapter.js';
+import {createBattleService} from '../src/battle/service-factory.js';
 import {RealtimePvpService} from '../src/pvp/service.js';
-const C=loadContent(),R=loadBattleRules();
+// 운영과 같은 서비스(기본 V2)로 저장 전투를 복원한다. V1 규칙으로 직접 읽으면 버전 불일치로 거부된다.
+const C=loadContent(),R=loadBattleRules(),battles=createBattleService(R);
 describe('actual owned growth through realtime service (new disposable SQLite)',()=>{
  let db:PrismaClient,dir:string,service:RealtimePvpService,now:number;
  beforeAll(async()=>{dir=mkdtempSync(join(tmpdir(),'casual-growth-test-'));const url=`file:${join(dir,'isolated.db')}`;writeFileSync(join(dir,'isolated.db'),'');execFileSync(process.execPath,['node_modules/prisma/build/index.js','db','push','--skip-generate'],{env:{...process.env,DATABASE_URL:url},stdio:'pipe'});db=new PrismaClient({datasources:{db:{url}}});for(const c of C.characters)await db.characterDefinition.create({data:{id:c.id,name:c.name,rarity:c.rarity,position:c.position,quote:c.quote,imageUrl:c.imageUrl}});},30000);
@@ -19,7 +20,7 @@ describe('actual owned growth through realtime service (new disposable SQLite)',
  async function player(levels:number[]){const p=await db.player.create({data:{identity:randomUUID(),battleTeam:'D1,T1,E1'}}),keys:string[]=[],units:Record<string,unknown>={};for(const [i,id] of ['D1','T1','E1'].entries()){const row=await db.ownedCharacter.create({data:{playerId:p.id,characterId:id,obtainedVia:'TEST'}});keys.push(`o${row.id}`);units[`o${row.id}`]={level:levels[i],xp:7,stage:0,learned:['@','basic']};}await db.storySave.create({data:{playerId:p.id,data:JSON.stringify({units})}});return {p,keys};}
  async function joinQueue(p:{id:string},mode:'normal'|'rank'='normal'){const t=await service.attempt(p.id,mode);return service.join(p.id,t.attemptId,t.token);}
  async function command(p:string,roomId:string,command:any){const v=await service.currentRoom(p,roomId);return service.command(p,{roomId,phaseId:v.phaseId,requestId:randomUUID(),command});}
- async function stored(roomId:string){const room=await db.realtimeRoom.findUniqueOrThrow({where:{id:roomId}}),s=JSON.parse(room.stateJson);return {room,s,b:deserializeBattle(R,s.battle)};}
+ async function stored(roomId:string){const room=await db.realtimeRoom.findUniqueOrThrow({where:{id:roomId}}),s=JSON.parse(room.stateJson);return {room,s,b:battles.restore(s.battle)};}
  it('preserves exact chosen instance, ignores higher unused copy, matches AI again after preparation edit, and never writes growth',async()=>{
   const x=await player([10,20,30]),extra=await db.ownedCharacter.create({data:{playerId:x.p.id,characterId:'D1',obtainedVia:'TEST'}});const save=JSON.parse((await db.storySave.findUniqueOrThrow({where:{playerId:x.p.id}})).data);save.units[`o${extra.id}`]={level:60,xp:99,stage:0,learned:['@','basic']};await db.storySave.update({where:{playerId:x.p.id},data:{data:JSON.stringify(save)}});const before=await db.storySave.findUniqueOrThrow({where:{playerId:x.p.id}});
   await joinQueue(x.p);now+=30000;const q=await service.currentQueue(x.p.id),roomId=(q as {roomId:string}).roomId;let b=(await stored(roomId)).b;expect(b.sides[0].fighters.map(f=>f.rec.level)).toEqual([10,20,30]);expect(b.sides[1].fighters.every(f=>f.rec.level===20)).toBe(true);

@@ -14,6 +14,7 @@ import {registerNative} from './native.js';
 import type {PrismaClient} from '@prisma/client';
 import {RealtimePvpService} from './pvp/service.js';
 import {registerRealtimePvp} from './pvp/routes.js';
+import {defenseBody,defenseLoad,defenseStore,DEFENSE_BODY_LIMIT} from './defense-save.js';
 
 const COOKIE='gmm_s',DAYS=30,KSTATE='gmm_ks',KPEND='gmm_kp',KAPP='gmm_ka',KLINK='gmm_kl';
 // 안드로이드 앱(Capacitor) 화면 주소. 앱에서 오는 요청만 다른 주소에서 받음(CORS)
@@ -321,6 +322,22 @@ export function registerMy(app:FastifyInstance,game:GameService,opt:{db:PrismaCl
     const r=storyShape(loadBattleRules(opt.root)).safeParse(b.data);
     if(!r.success)throw new GameError('스토리 진행 모양이 맞지 않아요.');
     return game.webSaveStory(id,r.data);
+  });
+  // 랜덤 디펜스 계정 저장(2026-11-09): 로그인돼 있으면 최고 기록·이어하기 판을 계정에도(다른 기기에서 이어하기). 안 돼 있으면 401 → 브라우저에만
+  app.get('/my/api/defense',limit,async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    const who=id?await game.webWho(id):null;
+    if(!id||!who)return reply.code(401).header('Cache-Control','no-store').send({error:'login'});
+    return reply.header('Cache-Control','no-store').send({nickname:who.nickname,...await defenseLoad(opt.db,id)});
+  });
+  app.post('/my/api/defense',{...limit,bodyLimit:DEFENSE_BODY_LIMIT},async(req,reply)=>{
+    if(!guard(req,reply))return;
+    const id=session(req);
+    if(!id||!await game.webWho(id))return reply.code(401).send({error:'login'});
+    const r=defenseBody.safeParse(req.body);
+    if(!r.success)return reply.code(400).send({error:'디펜스 저장 모양이 맞지 않아요.'});
+    return reply.header('Cache-Control','no-store').send({ok:true,...await defenseStore(opt.db,id,r.data)});
   });
   // PvP(일반·랭크): 내 랭크·순위표 / 대전 시작(상대·시드는 서버가) / 결과(기록을 서버가 다시 돌려 승패 확인)
   app.get('/my/api/pvp',limit,async(req,reply)=>{

@@ -1,0 +1,5 @@
+@font-face{font-family:"Workbench";src:url("/game60/assets/fonts/workbench-noto-regular.otf") format("opentype");font-display:block}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0b1030;color:#eef6f6;overflow:hidden;font-family:"Workbench","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:none;overscroll-behavior:none}
+#game{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:block;touch-action:none}
+#boot{position:fixed;inset:0;display:grid;place-items:center;margin:0;color:#a9bfd0}
